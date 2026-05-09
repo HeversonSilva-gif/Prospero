@@ -14,17 +14,19 @@
   --c-accent: #5bc4e7;
 }
 
+/* Dark theme — based on the original mockup: deep black background with white-alpha
+   borders and accents. Brand-dark is inverted to a light blue so headers stay readable. */
 html.dark {
-  --c-bg: #070c27;
-  --c-bg-soft: #0f1733;
-  --c-bg-card: #111935;
-  --c-border: #1f2747;
-  --c-border-strong: #2a335a;
+  --c-bg: #0a0a0a;
+  --c-bg-soft: #111111;
+  --c-bg-card: #161616;
+  --c-border: #1f1f1f;
+  --c-border-strong: #2a2a2a;
   --c-text: #ffffff;
-  --c-text-muted: #c4c8d4;
-  --c-text-soft: #8089a0;
+  --c-text-muted: #aaaaaa;
+  --c-text-soft: #6b6b6b;
   --c-primary: #4a85e7;
-  --c-primary-dark: #1d5dd7;
+  --c-primary-dark: #bee0fe;
   --c-primary-soft: #1f3a73;
   --c-primary-bg: #142347;
   --c-accent: #5bc4e7;
