@@ -1,4 +1,5 @@
-import { app, BrowserWindow, Tray } from "electron";
+import { app } from "electron";
+import type { BrowserWindow, Tray } from "electron";
 import type Database from "better-sqlite3";
 import { createMainWindow } from "./window/main-window.js";
 import { registerIpcHandlers } from "./ipc/handlers.js";
@@ -12,7 +13,7 @@ let db: Database.Database | null = null;
 
 const getWindow = (): BrowserWindow | null => mainWindow;
 
-app.whenReady().then(() => {
+void app.whenReady().then(() => {
   db = openDatabase(databasePath());
   registerIpcHandlers();
   mainWindow = createMainWindow();
@@ -20,9 +21,9 @@ app.whenReady().then(() => {
 });
 
 // On Windows, closing the window should hide it (tray keeps app alive).
-app.on("window-all-closed", (event: Event) => {
-  // Do not quit; tray keeps process alive.
-  event.preventDefault();
+// Subscribing to this event without calling app.quit() prevents the default exit.
+app.on("window-all-closed", () => {
+  // Intentionally empty — keep app alive in tray.
 });
 
 app.on("activate", () => {

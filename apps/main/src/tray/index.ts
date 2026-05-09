@@ -1,4 +1,5 @@
-import { Tray, Menu, BrowserWindow, app } from "electron";
+import { Tray, Menu, app } from "electron";
+import type { BrowserWindow } from "electron";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 

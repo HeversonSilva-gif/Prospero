@@ -12,6 +12,9 @@ build/
 *.tsbuildinfo
 .tsbuild-node/
 
+# IA
+.claude
+
 # Runtime data (Spec §14.1)
 *.db
 *.db-journal
