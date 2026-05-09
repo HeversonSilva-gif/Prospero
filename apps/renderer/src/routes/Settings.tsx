@@ -1,33 +1,27 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { TokenStatus } from "@dashboard-agent/shared";
+import { useAuthStore } from "../stores/auth.js";
 
 export const Settings = () => {
   const { t } = useTranslation();
-  const [status, setStatus] = useState<TokenStatus>({ hasToken: false });
+  const status = useAuthStore((s) => s.status);
+  const setToken = useAuthStore((s) => s.setToken);
+  const clearToken = useAuthStore((s) => s.clearToken);
   const [tokenInput, setTokenInput] = useState("");
   const [error, setError] = useState<string | null>(null);
-
-  const refresh = async () => setStatus(await window.dashboardAgent.auth.status());
-
-  useEffect(() => {
-    void refresh();
-  }, []);
 
   const onSave = async () => {
     setError(null);
     try {
-      await window.dashboardAgent.auth.set(tokenInput, "manual");
+      await setToken(tokenInput, "manual");
       setTokenInput("");
-      await refresh();
     } catch {
       setError(t("settings.auth.tokenInvalid"));
     }
   };
 
   const onClear = async () => {
-    await window.dashboardAgent.auth.clear();
-    await refresh();
+    await clearToken();
   };
 
   return (

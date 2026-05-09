@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useSettingsStore } from "./stores/settings.js";
+import { useAuthStore } from "./stores/auth.js";
 import { Dashboard } from "./routes/Dashboard.js";
 import { Settings } from "./routes/Settings.js";
 import { SetupWizard } from "./routes/SetupWizard.js";
@@ -29,19 +30,18 @@ const Layout = ({ children }: { children: React.ReactNode }) => (
 );
 
 export const App = () => {
-  const { load, loaded } = useSettingsStore();
-  const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const settingsLoaded = useSettingsStore((s) => s.loaded);
+  const loadSettings = useSettingsStore((s) => s.load);
+  const authLoaded = useAuthStore((s) => s.loaded);
+  const loadAuth = useAuthStore((s) => s.load);
+  const hasToken = useAuthStore((s) => s.status.hasToken);
 
   useEffect(() => {
-    const init = async () => {
-      await load();
-      const status = await window.dashboardAgent.auth.status();
-      setHasToken(status.hasToken);
-    };
-    void init();
-  }, [load]);
+    void loadSettings();
+    void loadAuth();
+  }, [loadSettings, loadAuth]);
 
-  if (!loaded || hasToken === null) {
+  if (!settingsLoaded || !authLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-soft">
         <p className="text-ink-muted">Loading…</p>

@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../stores/auth.js";
 
 type Step = "choose" | "manual" | "auto";
 
 export const SetupWizard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const setToken = useAuthStore((s) => s.setToken);
   const [step, setStep] = useState<Step>("choose");
   const [tokenInput, setTokenInput] = useState("");
   const [autoToken, setAutoToken] = useState<string | null>(null);
@@ -24,7 +26,7 @@ export const SetupWizard = () => {
   const importAuto = async () => {
     if (autoToken === null) return;
     try {
-      await window.dashboardAgent.auth.set(autoToken, "auto-detect");
+      await setToken(autoToken, "auto-detect");
       navigate("/dashboard");
     } catch {
       setError(t("settings.auth.tokenInvalid"));
@@ -34,7 +36,7 @@ export const SetupWizard = () => {
   const saveManual = async () => {
     setError(null);
     try {
-      await window.dashboardAgent.auth.set(tokenInput, "manual");
+      await setToken(tokenInput, "manual");
       navigate("/dashboard");
     } catch {
       setError(t("settings.auth.tokenInvalid"));
