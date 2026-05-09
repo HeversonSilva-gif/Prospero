@@ -1,14 +1,19 @@
 import { app, BrowserWindow, Tray } from "electron";
+import type Database from "better-sqlite3";
 import { createMainWindow } from "./window/main-window.js";
 import { registerIpcHandlers } from "./ipc/handlers.js";
 import { createTray } from "./tray/index.js";
+import { openDatabase } from "./db/client.js";
+import { databasePath } from "./db/path.js";
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+let db: Database.Database | null = null;
 
 const getWindow = (): BrowserWindow | null => mainWindow;
 
 app.whenReady().then(() => {
+  db = openDatabase(databasePath());
   registerIpcHandlers();
   mainWindow = createMainWindow();
   tray = createTray(getWindow);
@@ -26,8 +31,9 @@ app.on("activate", () => {
   }
 });
 
-// Suppress unused-tray warning by referencing tray on quit
 app.on("before-quit", () => {
   tray?.destroy();
   tray = null;
+  db?.close();
+  db = null;
 });
