@@ -6,7 +6,7 @@
   "main": "./dist/index.js",
   "scripts": {
     "predev": "pnpm run rebuild:electron",
-    "dev": "tsup --watch --onSuccess \"node scripts/dev.cjs\"",
+    "dev": "tsup --watch",
     "prestart": "pnpm run rebuild:electron",
     "start": "pnpm exec cross-env RENDERER_URL= electron ./dist/index.js",
     "build": "tsup",

@@ -1,6 +1,7 @@
 import { defineConfig } from "tsup";
 import { copyFileSync, mkdirSync, readdirSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { spawn } from "node:child_process";
 
 const copyTreeIfExists = (srcDir: string, destDir: string): void => {
   if (!existsSync(srcDir)) return;
@@ -10,6 +11,18 @@ const copyTreeIfExists = (srcDir: string, destDir: string): void => {
       copyFileSync(join(srcDir, entry.name), join(destDir, entry.name));
     }
   }
+};
+
+// In watch mode (pnpm dev), launch the dev electron helper after copying assets.
+// In one-shot mode (pnpm build), skip — the helper is dev-only.
+const isWatch = process.argv.includes("--watch");
+
+const launchDevElectron = (): void => {
+  if (!isWatch) return;
+  spawn(process.execPath, [resolve("scripts/dev.cjs")], {
+    stdio: "inherit",
+    detached: false,
+  });
 };
 
 // Two builds:
@@ -33,6 +46,8 @@ export default defineConfig([
       // Copy SQL migrations to dist/migrations (where the bundled code looks for them).
       // The bundled code's __dirname resolves to dist/, so migrations must be at dist/migrations/.
       copyTreeIfExists(resolve("src/db/migrations"), resolve("dist/migrations"));
+      // Launch electron in watch mode (dev.cjs is idempotent — uses lockfile to prevent multiple).
+      launchDevElectron();
     },
   },
   {
