@@ -1,0 +1,2 @@
+gitleaks git --staged --redact --no-banner --exit-code 1
+pnpm exec lint-staged

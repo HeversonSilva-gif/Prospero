@@ -32,6 +32,23 @@ export default ts.config(
     settings: { react: { version: "detect" } },
   },
   {
+    // Root-level config files (*.mjs, *.cjs) are not part of any TS project
+    files: ["*.mjs", "*.cjs"],
+    extends: [ts.configs.disableTypeChecked],
+  },
+  {
+    // CJS config files need CJS globals
+    files: ["*.cjs"],
+    languageOptions: {
+      globals: {
+        module: "writable",
+        require: "readonly",
+        __dirname: "readonly",
+        __filename: "readonly",
+      },
+    },
+  },
+  {
     ignores: ["**/dist/**", "**/out/**", "**/.vite/**", "**/coverage/**"],
   },
   prettier,
