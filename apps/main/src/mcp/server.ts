@@ -28,10 +28,21 @@ const ctx: ToolContext = {
 
 const server = new McpServer({ name: "dashboard", version: "0.0.1" });
 
+// MCP SDK 1.x + Zod 3.25 trigger excessively-deep type instantiation in `registerTool`'s
+// generic inference. Runtime is correct (covered by tests/mcp.tools.test.ts and integration).
+// We cast the server reference to a structurally compatible shape to break the deep inference.
+type RegisterTool = (
+  name: string,
+  config: { description: string; inputSchema: unknown },
+  handler: (input: unknown) => Promise<{ content: { type: "text"; text: string }[] }>,
+) => void;
+
+const register = (server.registerTool as unknown as RegisterTool).bind(server);
+
 for (const def of toolDefinitions) {
-  server.registerTool(
+  register(
     def.name,
-    { description: def.description, inputSchema: def.inputSchema },
+    { description: def.description, inputSchema: def.inputSchema.shape },
     async (input: unknown) => {
       // stdio MCP can't carry custom auth headers, so we validate the env presence as a soft guard.
       // Future hardening: rotate MCP_TOKEN per-call via a request_id challenge.

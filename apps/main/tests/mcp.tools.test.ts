@@ -1,4 +1,3 @@
- 
 import { describe, expect, it, vi } from "vitest";
 import { toolDefinitions, type ToolContext } from "../src/mcp/tools.js";
 
@@ -22,32 +21,36 @@ describe("mcp tools (M3 mocks)", () => {
   it("hire_agent rejects empty role at parse time", () => {
     const def = toolDefinitions.find((t) => t.name === "hire_agent");
     expect(def).toBeDefined();
-    expect(() => def!.inputSchema.parse({})).toThrow();
+    expect(def!.inputSchema.safeParse({}).success).toBe(false);
   });
 
   it("create_issue accepts optional fields", () => {
     const def = toolDefinitions.find((t) => t.name === "create_issue");
     expect(def).toBeDefined();
-    const parsed = def!.inputSchema.parse({ project: "P", title: "T" }) as {
-      title: string;
-    };
-    expect(parsed.title).toBe("T");
+    const result = def!.inputSchema.safeParse({ project: "P", title: "T" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect((result.data as { title: string }).title).toBe("T");
+    }
   });
 
   it("notify_user accepts optional requires_action", () => {
     const def = toolDefinitions.find((t) => t.name === "notify_user");
     expect(def).toBeDefined();
-    const parsed = def!.inputSchema.parse({
+    const result = def!.inputSchema.safeParse({
       title: "Hi",
       requires_action: true,
-    }) as { requires_action: boolean };
-    expect(parsed.requires_action).toBe(true);
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect((result.data as { requires_action: boolean }).requires_action).toBe(true);
+    }
   });
 
   it("message_agent requires both fields", () => {
     const def = toolDefinitions.find((t) => t.name === "message_agent");
     expect(def).toBeDefined();
-    expect(() => def!.inputSchema.parse({ agent: "a" })).toThrow();
-    expect(() => def!.inputSchema.parse({ content: "c" })).toThrow();
+    expect(def!.inputSchema.safeParse({ agent: "a" }).success).toBe(false);
+    expect(def!.inputSchema.safeParse({ content: "c" }).success).toBe(false);
   });
 });
