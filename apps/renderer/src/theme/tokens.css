@@ -14,8 +14,8 @@
   --c-accent: #5bc4e7;
 }
 
-/* Dark theme — based on the original mockup: deep black background with white-alpha
-   borders and accents. Brand-dark is inverted to a light blue so headers stay readable. */
+/* Dark theme — based on the original mockup: deep black background, white text,
+   no blue letters. Blue is reserved for CTAs/buttons (--c-primary), not titles. */
 html.dark {
   --c-bg: #0a0a0a;
   --c-bg-soft: #111111;
@@ -26,7 +26,7 @@ html.dark {
   --c-text-muted: #aaaaaa;
   --c-text-soft: #6b6b6b;
   --c-primary: #4a85e7;
-  --c-primary-dark: #bee0fe;
+  --c-primary-dark: #ffffff;
   --c-primary-soft: #1f3a73;
   --c-primary-bg: #142347;
   --c-accent: #5bc4e7;
