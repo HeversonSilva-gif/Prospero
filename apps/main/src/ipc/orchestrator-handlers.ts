@@ -57,7 +57,6 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         const token = loadDecryptedToken(db);
         if (token === null) throw new Error("OAuth token not configured");
         const collectedToolCalls = new Map<string, ToolCallView>();
-        let assistantTextBuffer = "";
 
         runner = spawnAgent(
           { agent, oauthToken: token },
@@ -73,25 +72,39 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
                   status: "thinking",
                   currentAction: null,
                 });
-              } else if (ev.kind === "tool-use-start") {
-                const tc: ToolCallView = {
-                  id: ev.toolUseId,
-                  name: ev.name,
-                  input: ev.input,
-                  status: "pending",
-                  result: null,
-                };
-                collectedToolCalls.set(ev.toolUseId, tc);
-                broadcast({
-                  kind: "tool-call",
-                  agentId: agent.id,
-                  threadId: userMessage.threadId,
-                  tool: tc,
-                });
+              } else if (ev.kind === "assistant-message") {
+                let textContent = "";
+                const tools: ToolCallView[] = [];
+                for (const block of ev.blocks) {
+                  if (block.kind === "text") {
+                    textContent += block.text;
+                  } else {
+                    const tc: ToolCallView = {
+                      id: block.id,
+                      name: block.name,
+                      input: block.input,
+                      status: "pending",
+                      result: null,
+                    };
+                    tools.push(tc);
+                    collectedToolCalls.set(block.id, tc);
+                  }
+                }
+                if (textContent !== "" || tools.length > 0) {
+                  const m = messages.append({
+                    companyId: agent.companyId,
+                    participants: ["user", agent.id],
+                    senderKind: "agent",
+                    senderId: agent.id,
+                    content: textContent,
+                    toolCalls: tools.length > 0 ? tools : null,
+                  });
+                  broadcast({ kind: "message-append", agentId: agent.id, message: m });
+                }
               } else if (ev.kind === "tool-result") {
                 const existing = collectedToolCalls.get(ev.toolUseId);
                 if (existing !== undefined) {
-                  existing.status = "success";
+                  existing.status = ev.isError ? "error" : "success";
                   existing.result = ev.content;
                   broadcast({
                     kind: "tool-result",
@@ -101,24 +114,8 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
                     result: ev.content,
                   });
                 }
-              } else if (ev.kind === "text-delta") {
-                assistantTextBuffer += ev.text;
-              } else if (ev.kind === "message-stop") {
-                if (assistantTextBuffer.trim() !== "" || collectedToolCalls.size > 0) {
-                  const tools =
-                    collectedToolCalls.size > 0 ? Array.from(collectedToolCalls.values()) : null;
-                  const m = messages.append({
-                    companyId: agent.companyId,
-                    participants: ["user", agent.id],
-                    senderKind: "agent",
-                    senderId: agent.id,
-                    content: assistantTextBuffer,
-                    toolCalls: tools,
-                  });
-                  broadcast({ kind: "message-append", agentId: agent.id, message: m });
-                  assistantTextBuffer = "";
-                  collectedToolCalls.clear();
-                }
+              } else if (ev.kind === "turn-complete") {
+                collectedToolCalls.clear();
                 agents.updateStatus(agent.id, { status: "idle", currentAction: null });
                 broadcast({
                   kind: "status",

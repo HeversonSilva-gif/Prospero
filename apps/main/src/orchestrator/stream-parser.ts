@@ -1,9 +1,26 @@
+// Parser for `claude -p --output-format stream-json --verbose`.
+//
+// Real shape (verified against claude 2.1.138):
+//   - {"type":"system","subtype":"init", session_id, ...}            → session-init
+//   - {"type":"system","subtype":"hook_*", ...}                      → ignored
+//   - {"type":"assistant", message:{content:[{type:"text"|"tool_use"...}]}} → assistant-message
+//   - {"type":"user", message:{content:[{type:"tool_result", tool_use_id, content}]}} → tool-result
+//   - {"type":"rate_limit_event", ...}                               → ignored
+//   - {"type":"result", subtype, ...}                                → turn-complete
+//
+// Older / partial-message stream events (--include-partial-messages):
+//   - {"type":"stream_event", event:{type:"content_block_*"|"message_stop", ...}}
+// Still parsed for forward compatibility.
+
+export type AssistantContentBlock =
+  | { kind: "text"; text: string }
+  | { kind: "tool-use"; id: string; name: string; input: unknown };
+
 export type ParsedEvent =
   | { kind: "session-init"; sessionId: string }
-  | { kind: "tool-use-start"; toolUseId: string; name: string; input: unknown }
-  | { kind: "tool-result"; toolUseId: string; content: string }
-  | { kind: "text-delta"; text: string }
-  | { kind: "message-stop" }
+  | { kind: "assistant-message"; blocks: AssistantContentBlock[] }
+  | { kind: "tool-result"; toolUseId: string; content: string; isError: boolean }
+  | { kind: "turn-complete" }
   | { kind: "api-retry"; attempt: number; error: string }
   | { kind: "unknown"; raw: unknown };
 
@@ -17,24 +34,102 @@ const safeParse = (s: string): unknown => {
 
 const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object";
 
+const toAssistantBlocks = (content: unknown): AssistantContentBlock[] => {
+  if (!Array.isArray(content)) return [];
+  const blocks: AssistantContentBlock[] = [];
+  for (const block of content) {
+    if (!isObject(block)) continue;
+    const t = block["type"];
+    if (t === "text" && typeof block["text"] === "string") {
+      blocks.push({ kind: "text", text: block["text"] });
+    } else if (
+      t === "tool_use" &&
+      typeof block["id"] === "string" &&
+      typeof block["name"] === "string"
+    ) {
+      blocks.push({
+        kind: "tool-use",
+        id: block["id"],
+        name: block["name"],
+        input: block["input"] ?? {},
+      });
+    }
+  }
+  return blocks;
+};
+
+const extractToolResultText = (content: unknown): string => {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    const parts: string[] = [];
+    for (const c of content) {
+      if (isObject(c) && typeof c["text"] === "string") parts.push(c["text"]);
+    }
+    return parts.join("\n");
+  }
+  return "";
+};
+
 export const parseStreamLine = (line: string): ParsedEvent | null => {
   const trimmed = line.trim();
   if (trimmed === "") return null;
   const data = safeParse(trimmed);
   if (!isObject(data)) return null;
 
-  if (data["type"] === "system" && data["subtype"] === "init") {
-    const sid = data["session_id"];
-    if (typeof sid === "string") return { kind: "session-init", sessionId: sid };
+  // system events
+  if (data["type"] === "system") {
+    if (data["subtype"] === "init" && typeof data["session_id"] === "string") {
+      return { kind: "session-init", sessionId: data["session_id"] };
+    }
+    if (
+      data["subtype"] === "api_retry" &&
+      typeof data["attempt"] === "number" &&
+      typeof data["error"] === "string"
+    ) {
+      return { kind: "api-retry", attempt: data["attempt"], error: data["error"] };
+    }
+    // hook_* and other system events: ignored
+    return null;
   }
 
-  if (data["type"] === "system" && data["subtype"] === "api_retry") {
-    const attempt = data["attempt"];
-    const error = data["error"];
-    if (typeof attempt === "number" && typeof error === "string")
-      return { kind: "api-retry", attempt, error };
+  // assistant message — text + tool_use blocks
+  if (data["type"] === "assistant" && isObject(data["message"])) {
+    const blocks = toAssistantBlocks(data["message"]["content"]);
+    if (blocks.length > 0) {
+      return { kind: "assistant-message", blocks };
+    }
+    return null;
   }
 
+  // user message — extract tool_results (input messages echoed by --replay-user-messages
+  // would have other shapes; here we only care about tool_result content blocks)
+  if (data["type"] === "user" && isObject(data["message"])) {
+    const content = data["message"]["content"];
+    if (Array.isArray(content)) {
+      for (const block of content) {
+        if (
+          isObject(block) &&
+          block["type"] === "tool_result" &&
+          typeof block["tool_use_id"] === "string"
+        ) {
+          return {
+            kind: "tool-result",
+            toolUseId: block["tool_use_id"],
+            content: extractToolResultText(block["content"]),
+            isError: block["is_error"] === true,
+          };
+        }
+      }
+    }
+    return null;
+  }
+
+  // result — turn completed
+  if (data["type"] === "result") {
+    return { kind: "turn-complete" };
+  }
+
+  // legacy partial-message stream events (still emitted with --include-partial-messages)
   if (data["type"] === "stream_event" && isObject(data["event"])) {
     const ev = data["event"];
     if (ev["type"] === "content_block_start" && isObject(ev["content_block"])) {
@@ -45,34 +140,25 @@ export const parseStreamLine = (line: string): ParsedEvent | null => {
         typeof cb["name"] === "string"
       ) {
         return {
-          kind: "tool-use-start",
-          toolUseId: cb["id"],
-          name: cb["name"],
-          input: cb["input"] ?? {},
+          kind: "assistant-message",
+          blocks: [
+            {
+              kind: "tool-use",
+              id: cb["id"],
+              name: cb["name"],
+              input: cb["input"] ?? {},
+            },
+          ],
         };
       }
     }
-    if (ev["type"] === "content_block_delta" && isObject(ev["delta"])) {
-      const d = ev["delta"];
-      if (d["type"] === "text_delta" && typeof d["text"] === "string") {
-        return { kind: "text-delta", text: d["text"] };
-      }
-    }
-    if (ev["type"] === "message_stop") {
-      return { kind: "message-stop" };
-    }
+    // text-deltas and message_stop are intentionally ignored — we use the consolidated
+    // assistant-message event instead, which contains the full content.
+    return null;
   }
 
-  if (data["type"] === "tool_result" && typeof data["tool_use_id"] === "string") {
-    const content = data["content"];
-    let textContent = "";
-    if (typeof content === "string") textContent = content;
-    else if (Array.isArray(content)) {
-      const first: unknown = content[0];
-      if (isObject(first) && typeof first["text"] === "string") textContent = first["text"];
-    }
-    return { kind: "tool-result", toolUseId: data["tool_use_id"], content: textContent };
-  }
+  // ignore rate_limit_event, etc.
+  if (data["type"] === "rate_limit_event") return null;
 
   return { kind: "unknown", raw: data };
 };
