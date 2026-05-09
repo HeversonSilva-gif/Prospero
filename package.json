@@ -1,0 +1,21 @@
+{
+  "name": "dashboard-agent",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local orchestrator for Claude Code agents using Claude Max OAuth (no API key).",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "lint": "pnpm -r --parallel run lint",
+    "typecheck": "pnpm -r --parallel run typecheck",
+    "test": "pnpm -r --parallel run test",
+    "build": "pnpm -r run build",
+    "dev": "pnpm --filter @dashboard-agent/main dev & pnpm --filter @dashboard-agent/renderer dev",
+    "prepare": "husky"
+  },
+  "devDependencies": {}
+}
