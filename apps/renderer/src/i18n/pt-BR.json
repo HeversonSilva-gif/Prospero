@@ -2,6 +2,13 @@
   "app": {
     "title": "Dashboard Agent"
   },
+  "nav": {
+    "dashboard": "Dashboard",
+    "settings": "Configurações"
+  },
+  "dashboard": {
+    "placeholder": "M2 — Autenticação e Configurações concluídas. Os widgets do dashboard chegam em M6."
+  },
   "settings": {
     "title": "Configurações",
     "language": "Idioma",

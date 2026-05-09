@@ -2,6 +2,13 @@
   "app": {
     "title": "Dashboard Agent"
   },
+  "nav": {
+    "dashboard": "Dashboard",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "placeholder": "M2 — Auth & Settings done. Dashboard widgets land in M6."
+  },
   "settings": {
     "title": "Settings",
     "language": "Language",

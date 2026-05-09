@@ -5,9 +5,7 @@ export const Dashboard = () => {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold text-brand-dark">{t("app.title")}</h1>
-      <p className="text-ink-muted mt-2">
-        M2 — Auth & Settings done. Dashboard widgets land in M6.
-      </p>
+      <p className="text-ink-muted mt-2">{t("dashboard.placeholder")}</p>
     </div>
   );
 };
