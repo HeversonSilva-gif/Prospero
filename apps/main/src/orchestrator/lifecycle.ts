@@ -1,4 +1,5 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
+import crossSpawn from "cross-spawn";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -84,11 +85,12 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
   const mcpConfigPath = writeMcpConfigFile(mcpServerPath, env);
   const args = buildClaudeArgs(opts.agent, mcpConfigPath);
 
-  const child: ChildProcess = spawn("claude", args, {
+  // cross-spawn handles Windows .cmd / .ps1 resolution safely (no shell injection),
+  // so we can keep shell behavior off and still find the claude binary across platforms.
+  const child: ChildProcess = crossSpawn("claude", args, {
     env: { ...process.env, ...env },
     cwd: opts.cwd ?? process.cwd(),
     stdio: ["pipe", "pipe", "pipe"],
-    shell: false, // do not invoke a shell — args are passed verbatim, no injection risk
   });
 
   if (child.stdout) {

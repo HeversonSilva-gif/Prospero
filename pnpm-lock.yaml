@@ -56,6 +56,9 @@ importers:
       better-sqlite3:
         specifier: ^11.3.0
         version: 11.10.0
+      cross-spawn:
+        specifier: ^7.0.5
+        version: 7.0.6
       electron:
         specifier: 33.0.2
         version: 33.0.2
@@ -69,6 +72,9 @@ importers:
       '@types/better-sqlite3':
         specifier: ^7.6.11
         version: 7.6.13
+      '@types/cross-spawn':
+        specifier: ^6.0.6
+        version: 6.0.6
       '@types/node':
         specifier: ^20.19.40
         version: 20.19.40
@@ -899,6 +905,9 @@ packages:
 
   '@types/conventional-commits-parser@5.0.2':
     resolution: {integrity: sha512-BgT2szDXnVypgpNxOK8aL5SGjUdaQbC++WZNjF1Qge3Og2+zhHj+RWhmehLhYyvQwqAmvezruVfOf8+3m74W+g==}
+
+  '@types/cross-spawn@6.0.6':
+    resolution: {integrity: sha512-fXRhhUkG4H3TQk5dBhQ7m/JDdSNHKwR2BBia62lhwEIq9xGiQKLxd6LymNhn47SjXhsUEPmxi+PKw2OkW4LLjA==}
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
@@ -4250,6 +4259,10 @@ snapshots:
       '@types/responselike': 1.0.3
 
   '@types/conventional-commits-parser@5.0.2':
+    dependencies:
+      '@types/node': 20.19.40
+
+  '@types/cross-spawn@6.0.6':
     dependencies:
       '@types/node': 20.19.40
 
