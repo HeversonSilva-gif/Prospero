@@ -99,6 +99,11 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
   if (child.stdout) {
     const rl = createInterface({ input: child.stdout, crlfDelay: Infinity });
     rl.on("line", (line) => {
+      // Dev-only: log raw stdout to diagnose what claude is emitting.
+      if (process.env["NODE_ENV"] !== "production") {
+        const preview = line.length > 200 ? line.slice(0, 200) + "..." : line;
+        console.error(`[claude:${opts.agent.id}] stdout: ${preview}`);
+      }
       const parsed = parseStreamLine(line);
       if (parsed !== null) cb.onEvent(parsed);
     });
