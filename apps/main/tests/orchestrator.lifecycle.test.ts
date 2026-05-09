@@ -34,7 +34,7 @@ describe("buildClaudeArgs", () => {
   it("includes -p, --system, --output-format stream-json, --mcp-config", () => {
     const args = buildClaudeArgs(baseAgent, "/tmp/mcp.json");
     expect(args[0]).toBe("-p");
-    expect(args).toContain("--system");
+    expect(args).toContain("--system-prompt");
     expect(args).toContain("You are CEO.");
     expect(args).toContain("--output-format");
     expect(args).toContain("stream-json");
