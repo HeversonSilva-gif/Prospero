@@ -23,4 +23,6 @@ regexes = [
 ]
 paths = [
   '''pnpm-lock\.yaml''',
+  '''docs/superpowers/specs/.*\.md''',
+  '''docs/superpowers/plans/.*\.md''',
 ]
