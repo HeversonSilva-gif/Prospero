@@ -1,0 +1,101 @@
+import type Database from "better-sqlite3";
+import { randomUUID } from "node:crypto";
+import type { Agent, AgentMode, AgentStatus } from "@dashboard-agent/shared";
+
+type Row = {
+  id: string;
+  company_id: string;
+  name: string;
+  role: string;
+  template_id: string | null;
+  system_prompt: string;
+  skills_json: string;
+  allowed_projects_json: string;
+  mode: string;
+  always_on: number;
+  reports_to: string | null;
+  claude_session_id: string | null;
+  status: string;
+  current_action: string | null;
+  created_at: number;
+  updated_at: number;
+};
+
+const rowToAgent = (r: Row): Agent => ({
+  id: r.id,
+  companyId: r.company_id,
+  name: r.name,
+  role: r.role,
+  systemPrompt: r.system_prompt,
+  mode: r.mode as AgentMode,
+  alwaysOn: r.always_on === 1,
+  status: r.status as AgentStatus,
+  claudeSessionId: r.claude_session_id,
+  currentAction: r.current_action,
+});
+
+export type CreateAgentInput = {
+  companyId: string;
+  name: string;
+  role: string;
+  systemPrompt: string;
+  mode: AgentMode;
+  alwaysOn: boolean;
+};
+
+export type AgentsRepository = {
+  create(input: CreateAgentInput): Agent;
+  getById(id: string): Agent | null;
+  listByCompany(companyId: string): Agent[];
+  updateStatus(id: string, patch: { status: AgentStatus; currentAction: string | null }): void;
+  setSessionId(id: string, sessionId: string): void;
+};
+
+export const createAgentsRepository = (db: Database.Database): AgentsRepository => {
+  const insert = db.prepare(`
+    INSERT INTO agents (id, company_id, name, role, system_prompt, skills_json, allowed_projects_json, mode, always_on, status, current_action, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, '[]', '[]', ?, ?, 'idle', NULL, ?, ?)
+  `);
+  const byId = db.prepare("SELECT * FROM agents WHERE id = ?");
+  const byCompany = db.prepare("SELECT * FROM agents WHERE company_id = ? ORDER BY created_at ASC");
+  const updateStatusStmt = db.prepare(
+    "UPDATE agents SET status = ?, current_action = ?, updated_at = ? WHERE id = ?",
+  );
+  const setSessionStmt = db.prepare(
+    "UPDATE agents SET claude_session_id = ?, updated_at = ? WHERE id = ?",
+  );
+
+  return {
+    create(input) {
+      const id = `agent_${randomUUID()}`;
+      const now = Date.now();
+      insert.run(
+        id,
+        input.companyId,
+        input.name,
+        input.role,
+        input.systemPrompt,
+        input.mode,
+        input.alwaysOn ? 1 : 0,
+        now,
+        now,
+      );
+      const row = byId.get(id) as Row;
+      return rowToAgent(row);
+    },
+    getById(id) {
+      const row = byId.get(id) as Row | undefined;
+      return row ? rowToAgent(row) : null;
+    },
+    listByCompany(companyId) {
+      const rows = byCompany.all(companyId) as Row[];
+      return rows.map(rowToAgent);
+    },
+    updateStatus(id, patch) {
+      updateStatusStmt.run(patch.status, patch.currentAction, Date.now(), id);
+    },
+    setSessionId(id, sessionId) {
+      setSessionStmt.run(sessionId, Date.now(), id);
+    },
+  };
+};
