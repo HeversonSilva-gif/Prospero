@@ -25,6 +25,7 @@ export type RunnerCallbacks = {
   onEvent: (event: ParsedEvent) => void;
   onStderr?: (line: string) => void;
   onExit?: (code: number | null) => void;
+  onError?: (err: Error) => void;
 };
 
 export type SpawnOptions = {
@@ -112,6 +113,10 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
 
   child.on("exit", (code) => {
     cb.onExit?.(code);
+  });
+
+  child.on("error", (err) => {
+    cb.onError?.(err);
   });
 
   const runner: AgentRunner = {

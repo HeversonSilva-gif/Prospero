@@ -49,6 +49,7 @@ export type AgentsRepository = {
   listByCompany(companyId: string): Agent[];
   updateStatus(id: string, patch: { status: AgentStatus; currentAction: string | null }): void;
   setSessionId(id: string, sessionId: string): void;
+  clearSessionId(id: string): void;
 };
 
 export const createAgentsRepository = (db: Database.Database): AgentsRepository => {
@@ -63,6 +64,9 @@ export const createAgentsRepository = (db: Database.Database): AgentsRepository 
   );
   const setSessionStmt = db.prepare(
     "UPDATE agents SET claude_session_id = ?, updated_at = ? WHERE id = ?",
+  );
+  const clearSessionStmt = db.prepare(
+    "UPDATE agents SET claude_session_id = NULL, updated_at = ? WHERE id = ?",
   );
 
   return {
@@ -96,6 +100,9 @@ export const createAgentsRepository = (db: Database.Database): AgentsRepository 
     },
     setSessionId(id, sessionId) {
       setSessionStmt.run(sessionId, Date.now(), id);
+    },
+    clearSessionId(id) {
+      clearSessionStmt.run(Date.now(), id);
     },
   };
 };

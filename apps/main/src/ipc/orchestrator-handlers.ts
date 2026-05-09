@@ -167,6 +167,11 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
             onExit: (code) => {
               console.error(`[claude:${agent.id}] exit code: ${String(code)}`);
               removeRunner(agent.id);
+              // On non-zero exit, clear session id so next attempt starts fresh instead of
+              // trying --resume with a possibly invalid session.
+              if (code !== 0) {
+                agents.clearSessionId(agent.id);
+              }
               agents.updateStatus(agent.id, {
                 status: code === 0 ? "idle" : "error",
                 currentAction: null,
@@ -175,6 +180,26 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
                 kind: "status",
                 agentId: agent.id,
                 status: code === 0 ? "idle" : "error",
+                currentAction: null,
+              });
+            },
+            onError: (err) => {
+              console.error(`[claude:${agent.id}] spawn error: ${err.message}`);
+              removeRunner(agent.id);
+              agents.clearSessionId(agent.id);
+              agents.updateStatus(agent.id, {
+                status: "error",
+                currentAction: null,
+              });
+              broadcast({
+                kind: "error",
+                agentId: agent.id,
+                message: err.message,
+              });
+              broadcast({
+                kind: "status",
+                agentId: agent.id,
+                status: "error",
                 currentAction: null,
               });
             },
