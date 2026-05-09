@@ -3,12 +3,25 @@ import crossSpawn from "cross-spawn";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import type { Agent } from "@dashboard-agent/shared";
 import { parseStreamLine, type ParsedEvent } from "./stream-parser.js";
 import { buildSpawnEnv, type SpawnEnv } from "./env.js";
 import { writeMcpConfigFile } from "./mcp-config.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Diagnostic file log — writes to dist/orchestrator.log so we can see what claude
+// emits even when stderr/stdout from the Electron main process is hidden.
+const logFile = resolve(__dirname, "orchestrator.log");
+const dlog = (msg: string): void => {
+  try {
+    if (!existsSync(__dirname)) mkdirSync(__dirname, { recursive: true });
+    appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`, "utf8");
+  } catch {
+    /* ignore log errors */
+  }
+};
 
 // Hard cap per Anthropic ToS — single-user OAuth license tolerates ~4 parallel sessions safely.
 // Attempting to spawn a 5th throws a clear error. Future budget enforcement (M8) refines this.
@@ -88,6 +101,9 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
   const mcpConfigPath = writeMcpConfigFile(mcpServerPath, env);
   const args = buildClaudeArgs(opts.agent, mcpConfigPath);
 
+  dlog(`spawn claude for agent=${opts.agent.id} cwd=${opts.cwd ?? process.cwd()}`);
+  dlog(`args: ${JSON.stringify(args)}`);
+
   // cross-spawn handles Windows .cmd / .ps1 resolution safely (no shell injection),
   // so we can keep shell behavior off and still find the claude binary across platforms.
   const child: ChildProcess = crossSpawn("claude", args, {
@@ -96,14 +112,13 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
     stdio: ["pipe", "pipe", "pipe"],
   });
 
+  dlog(`spawned pid=${String(child.pid ?? "unknown")}`);
+
   if (child.stdout) {
     const rl = createInterface({ input: child.stdout, crlfDelay: Infinity });
     rl.on("line", (line) => {
-      // Dev-only: log raw stdout to diagnose what claude is emitting.
-      if (process.env["NODE_ENV"] !== "production") {
-        const preview = line.length > 200 ? line.slice(0, 200) + "..." : line;
-        console.error(`[claude:${opts.agent.id}] stdout: ${preview}`);
-      }
+      const preview = line.length > 300 ? line.slice(0, 300) + "..." : line;
+      dlog(`stdout: ${preview}`);
       const parsed = parseStreamLine(line);
       if (parsed !== null) cb.onEvent(parsed);
     });
@@ -113,16 +128,21 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
     child.stderr.setEncoding("utf8");
     child.stderr.on("data", (chunk: string) => {
       for (const line of chunk.split("\n")) {
-        if (line.trim() !== "") cb.onStderr?.(line);
+        if (line.trim() !== "") {
+          dlog(`stderr: ${line}`);
+          cb.onStderr?.(line);
+        }
       }
     });
   }
 
   child.on("exit", (code) => {
+    dlog(`exit code=${String(code)}`);
     cb.onExit?.(code);
   });
 
   child.on("error", (err) => {
+    dlog(`error: ${err.message}`);
     cb.onError?.(err);
   });
 
