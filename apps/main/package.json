@@ -1,0 +1,23 @@
+{
+  "name": "@dashboard-agent/main",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsup --watch --onSuccess \"electron .\"",
+    "build": "tsup",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@dashboard-agent/shared": "workspace:*",
+    "electron": "33.0.2"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.0",
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.1"
+  }
+}
