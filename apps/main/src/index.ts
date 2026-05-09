@@ -15,13 +15,11 @@ const getWindow = (): BrowserWindow | null => mainWindow;
 
 void app.whenReady().then(() => {
   db = openDatabase(databasePath());
-  registerIpcHandlers();
+  registerIpcHandlers(db);
   mainWindow = createMainWindow();
   tray = createTray(getWindow);
 });
 
-// On Windows, closing the window should hide it (tray keeps app alive).
-// Subscribing to this event without calling app.quit() prevents the default exit.
 app.on("window-all-closed", () => {
   // Intentionally empty — keep app alive in tray.
 });
