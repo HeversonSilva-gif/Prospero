@@ -14,7 +14,7 @@
     "typecheck": "pnpm -r --parallel run typecheck",
     "test": "pnpm -r --parallel run test",
     "build": "pnpm -r run build",
-    "dev": "pnpm --filter @dashboard-agent/main dev & pnpm --filter @dashboard-agent/renderer dev",
+    "dev": "pnpm --parallel --filter \"@dashboard-agent/{main,renderer}\" run dev",
     "prepare": "husky"
   },
   "devDependencies": {}
