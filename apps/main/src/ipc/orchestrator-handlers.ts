@@ -7,6 +7,7 @@ import {
   type Message,
   type ToolCallView,
 } from "@dashboard-agent/shared";
+import { redactString } from "../auth/token-redact.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
@@ -158,10 +159,13 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
                   }
                 }
               } catch {
-                // not JSON; ignore (claude diagnostics)
+                // not JSON — likely a claude diagnostic. Log it (redacted) so we can
+                // diagnose subprocess errors during M3 manual testing.
+                console.error(`[claude:${agent.id}] stderr: ${redactString(line)}`);
               }
             },
             onExit: (code) => {
+              console.error(`[claude:${agent.id}] exit code: ${String(code)}`);
               removeRunner(agent.id);
               agents.updateStatus(agent.id, {
                 status: code === 0 ? "idle" : "error",
