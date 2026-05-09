@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@dashboard-agent/shared": "workspace:*",
+    "better-sqlite3": "^11.3.0",
     "electron": "33.0.2"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
     "tsup": "^8.3.0",
     "typescript": "^5.5.4",
     "vitest": "^2.1.1"
