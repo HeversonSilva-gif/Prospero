@@ -4,10 +4,17 @@
   },
   "nav": {
     "dashboard": "Dashboard",
-    "settings": "Settings"
+    "settings": "Settings",
+    "agents": "Agents"
   },
   "dashboard": {
-    "placeholder": "M2 — Auth & Settings done. Dashboard widgets land in M6."
+    "placeholder": "M2 — Auth & Settings done. Dashboard widgets land in M6.",
+    "createDemoCompany": "Create demo company"
+  },
+  "agent": {
+    "composerPlaceholder": "Message to the agent...",
+    "send": "Send",
+    "notFound": "Agent not found."
   },
   "settings": {
     "title": "Settings",

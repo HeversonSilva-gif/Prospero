@@ -4,10 +4,17 @@
   },
   "nav": {
     "dashboard": "Dashboard",
-    "settings": "Configurações"
+    "settings": "Configurações",
+    "agents": "Agentes"
   },
   "dashboard": {
-    "placeholder": "M2 — Autenticação e Configurações concluídas. Os widgets do dashboard chegam em M6."
+    "placeholder": "M2 — Autenticação e Configurações concluídas. Os widgets do dashboard chegam em M6.",
+    "createDemoCompany": "Criar empresa de demonstração"
+  },
+  "agent": {
+    "composerPlaceholder": "Mensagem para o agente...",
+    "send": "Enviar",
+    "notFound": "Agente não encontrado."
   },
   "settings": {
     "title": "Configurações",
