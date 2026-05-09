@@ -38,7 +38,7 @@ export type SpawnOptions = {
 export const buildClaudeArgs = (agent: Agent, mcpConfigPath: string): string[] => {
   const args = [
     "-p",
-    "--system",
+    "--system-prompt",
     agent.systemPrompt,
     "--output-format",
     "stream-json",
