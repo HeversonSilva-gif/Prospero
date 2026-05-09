@@ -47,4 +47,15 @@ export default defineConfig([
     noExternal: ["@dashboard-agent/shared"],
     outExtension: () => ({ js: ".cjs" }),
   },
+  {
+    entry: { "mcp/server": "src/mcp/server.ts" },
+    format: ["esm"],
+    target: "node20",
+    outDir: "dist",
+    splitting: false,
+    sourcemap: true,
+    clean: false,
+    external: ["better-sqlite3"],
+    noExternal: ["@dashboard-agent/shared", "@modelcontextprotocol/sdk"],
+  },
 ]);
