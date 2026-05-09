@@ -18,6 +18,15 @@ const isProcessAlive = (pid) => {
   }
 };
 
+const distEntry = path.join(__dirname, "..", "dist", "index.js");
+
+// tsup --onSuccess fires once per entry (main, preload, mcp/server) and the entries
+// finish in arbitrary order. Skip silently when the main entry isn't ready yet —
+// a later onSuccess will run again once it is.
+if (!existsSync(distEntry)) {
+  process.exit(0);
+}
+
 if (existsSync(lockfile)) {
   const existingPid = Number.parseInt(readFileSync(lockfile, "utf8").trim(), 10);
   if (Number.isFinite(existingPid) && isProcessAlive(existingPid)) {
@@ -31,8 +40,6 @@ if (existsSync(lockfile)) {
     /* ignore */
   }
 }
-
-const distEntry = path.join(__dirname, "..", "dist", "index.js");
 const child = spawn(electron, [distEntry], {
   stdio: "inherit",
   env: { ...process.env, RENDERER_URL: "http://localhost:5173" },
