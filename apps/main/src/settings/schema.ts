@@ -11,5 +11,8 @@ const PartialAppSettingsSchema = AppSettingsSchema.partial();
 export const parseSettings = (raw: unknown): AppSettings => {
   const result = PartialAppSettingsSchema.safeParse(raw);
   if (!result.success) return { ...DEFAULT_SETTINGS };
-  return { ...DEFAULT_SETTINGS, ...result.data };
+  const merged: AppSettings = { ...DEFAULT_SETTINGS };
+  if (result.data.language !== undefined) merged.language = result.data.language;
+  if (result.data.theme !== undefined) merged.theme = result.data.theme;
+  return merged;
 };
