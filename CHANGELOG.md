@@ -5,6 +5,19 @@ Versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — M3 Orchestrator + MCP core (complete)
+
+- Spawn real `claude -p --output-format stream-json --mcp-config ...` per agent, with OAuth token injected via env (never in args, never logged, never crosses to renderer)
+- Hard cap of 4 concurrent agents (per Anthropic ToS for OAuth-based personal plans)
+- Internal MCP server (`@modelcontextprotocol/sdk`) bundled as separate Node entry, exposing 5 mock orchestration tools (`list_agents`, `hire_agent`, `create_issue`, `message_agent`, `notify_user`)
+- Stream-json line parser converts Claude events (session-init, tool-use-start, tool-result, text-delta, message-stop, api-retry) into typed `ParsedEvent`
+- Companies, Agents, Messages, Inbox repositories with TDD (33 new tests, 79 total)
+- Agent chat UI with message bubbles and tool-call cards rendered in real time as Claude streams
+- Sidebar dynamic agents section + "Create demo company" button on Dashboard
+- Session resumption via `--resume <session_id>` persisted in `agents.claude_session_id`
+- Inbox items auto-created when MCP tool calls fire (parsed from MCP server stderr JSONL)
+- i18n keys for agent UI (pt-BR + en-US, fully synchronized)
+
 ### Added — M2 Auth & Settings (complete)
 
 - OAuth token storage via Electron `safeStorage` (DPAPI on Windows; never logged or returned raw to renderer)
