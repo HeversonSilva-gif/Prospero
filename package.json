@@ -15,6 +15,7 @@
     "test": "pnpm -r --parallel run test",
     "build": "pnpm -r run build",
     "dev": "pnpm --parallel --filter \"@dashboard-agent/{main,renderer}\" run dev",
+    "start": "pnpm --filter @dashboard-agent/main run start",
     "prepare": "husky"
   },
   "lint-staged": {
