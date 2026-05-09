@@ -21,17 +21,12 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   external: ["electron", "better-sqlite3"],
+  noExternal: ["@dashboard-agent/shared"],
   onSuccess: async () => {
     // Copy tray asset
     mkdirSync(resolve("dist/resources"), { recursive: true });
-    copyFileSync(
-      resolve("resources/tray-icon.png"),
-      resolve("dist/resources/tray-icon.png"),
-    );
+    copyFileSync(resolve("resources/tray-icon.png"), resolve("dist/resources/tray-icon.png"));
     // Copy SQL migrations (used by Task 9; safe no-op until migrations dir exists)
-    copyTreeIfExists(
-      resolve("src/db/migrations"),
-      resolve("dist/db/migrations"),
-    );
+    copyTreeIfExists(resolve("src/db/migrations"), resolve("dist/db/migrations"));
   },
 });

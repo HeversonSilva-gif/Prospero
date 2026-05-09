@@ -32,8 +32,8 @@ export default ts.config(
     settings: { react: { version: "detect" } },
   },
   {
-    // Root-level config files (*.mjs, *.cjs) are not part of any TS project
-    files: ["*.mjs", "*.cjs"],
+    // Config files (root-level + per-package) are not part of any TS project
+    files: ["*.mjs", "*.cjs", "**/*.config.{ts,js,mjs,cjs}", "**/postcss.config.js"],
     extends: [ts.configs.disableTypeChecked],
   },
   {

@@ -6,7 +6,7 @@
   "main": "./dist/index.js",
   "scripts": {
     "dev": "tsup --watch --onSuccess \"cross-env RENDERER_URL=http://localhost:5173 electron ./dist/index.js\"",
-    "start": "electron ./dist/index.js",
+    "start": "cross-env RENDERER_URL= electron ./dist/index.js",
     "build": "tsup",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
