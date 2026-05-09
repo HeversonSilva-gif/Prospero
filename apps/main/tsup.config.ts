@@ -26,7 +26,8 @@ export default defineConfig({
     // Copy tray asset
     mkdirSync(resolve("dist/resources"), { recursive: true });
     copyFileSync(resolve("resources/tray-icon.png"), resolve("dist/resources/tray-icon.png"));
-    // Copy SQL migrations (used by Task 9; safe no-op until migrations dir exists)
-    copyTreeIfExists(resolve("src/db/migrations"), resolve("dist/db/migrations"));
+    // Copy SQL migrations to dist/migrations (where the bundled code looks for them).
+    // The bundled code's __dirname resolves to dist/, so migrations must be at dist/migrations/.
+    copyTreeIfExists(resolve("src/db/migrations"), resolve("dist/migrations"));
   },
 });
