@@ -19,7 +19,9 @@ tags = ["secret", "anthropic"]
 description = "Allow placeholder strings in tests and docs"
 regexes = [
   '''sk-ant-(api|oat)0?3?-(EXAMPLE|PLACEHOLDER)[A-Z_-]*''',
-  '''sk-ant-(api|oat)0?3?-FAKE[_-][A-Z_-]*''',
+  '''sk-ant-(api|oat)0?3?-FAKE[A-Z_-]*''',
+  '''sk-ant-(api|oat)0?3?-PRODUCTION[_-][A-Z_-]*[a-z0-9]+''',
+  '''sk-ant-api03-A{50,}''',
 ]
 paths = [
   '''pnpm-lock\.yaml''',
