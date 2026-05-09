@@ -12,22 +12,39 @@ const copyTreeIfExists = (srcDir: string, destDir: string): void => {
   }
 };
 
-export default defineConfig({
-  entry: ["src/index.ts", "src/ipc/preload.ts"],
-  format: ["esm"],
-  target: "node20",
-  outDir: "dist",
-  splitting: false,
-  sourcemap: true,
-  clean: true,
-  external: ["electron", "better-sqlite3"],
-  noExternal: ["@dashboard-agent/shared"],
-  onSuccess: async () => {
-    // Copy tray asset
-    mkdirSync(resolve("dist/resources"), { recursive: true });
-    copyFileSync(resolve("resources/tray-icon.png"), resolve("dist/resources/tray-icon.png"));
-    // Copy SQL migrations to dist/migrations (where the bundled code looks for them).
-    // The bundled code's __dirname resolves to dist/, so migrations must be at dist/migrations/.
-    copyTreeIfExists(resolve("src/db/migrations"), resolve("dist/migrations"));
+// Two builds:
+//   1. Main process — ESM (apps/main has "type": "module")
+//   2. Preload — CJS, because Electron with sandbox:true requires CommonJS preload scripts
+export default defineConfig([
+  {
+    entry: ["src/index.ts"],
+    format: ["esm"],
+    target: "node20",
+    outDir: "dist",
+    splitting: false,
+    sourcemap: true,
+    clean: true,
+    external: ["electron", "better-sqlite3"],
+    noExternal: ["@dashboard-agent/shared"],
+    onSuccess: async () => {
+      // Copy tray asset
+      mkdirSync(resolve("dist/resources"), { recursive: true });
+      copyFileSync(resolve("resources/tray-icon.png"), resolve("dist/resources/tray-icon.png"));
+      // Copy SQL migrations to dist/migrations (where the bundled code looks for them).
+      // The bundled code's __dirname resolves to dist/, so migrations must be at dist/migrations/.
+      copyTreeIfExists(resolve("src/db/migrations"), resolve("dist/migrations"));
+    },
   },
-});
+  {
+    entry: { "ipc/preload": "src/ipc/preload.ts" },
+    format: ["cjs"],
+    target: "node20",
+    outDir: "dist",
+    splitting: false,
+    sourcemap: true,
+    clean: false, // first config already cleaned the dist dir
+    external: ["electron"],
+    noExternal: ["@dashboard-agent/shared"],
+    outExtension: () => ({ js: ".cjs" }),
+  },
+]);

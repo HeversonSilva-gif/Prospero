@@ -16,7 +16,7 @@ export const createMainWindow = (): BrowserWindow => {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      preload: resolve(__dirname, "ipc/preload.js"),
+      preload: resolve(__dirname, "ipc/preload.cjs"),
     },
   });
 
