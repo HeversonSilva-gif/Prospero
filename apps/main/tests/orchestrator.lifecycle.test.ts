@@ -31,11 +31,14 @@ const fakeRunner = (id: string, alive: boolean): AgentRunner => ({
 });
 
 describe("buildClaudeArgs", () => {
-  it("includes -p, --system, --output-format stream-json, --mcp-config", () => {
+  it("includes --system-prompt, stream-json IO, --mcp-config — and NOT -p", () => {
     const args = buildClaudeArgs(baseAgent, "/tmp/mcp.json");
-    expect(args[0]).toBe("-p");
+    // -p makes claude wait for stdin EOF; incompatible with our persistent runner.
+    expect(args).not.toContain("-p");
+    expect(args).not.toContain("--print");
     expect(args).toContain("--system-prompt");
     expect(args).toContain("You are CEO.");
+    expect(args).toContain("--input-format");
     expect(args).toContain("--output-format");
     expect(args).toContain("stream-json");
     expect(args).toContain("--verbose");

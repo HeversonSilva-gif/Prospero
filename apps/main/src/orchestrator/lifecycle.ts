@@ -49,9 +49,14 @@ export type SpawnOptions = {
 };
 
 // Internal helper that builds the args (factored out so tests can verify args without spawn)
+//
+// We deliberately omit `-p` (--print): that flag makes claude wait for stdin EOF before
+// emitting any assistant output, which is incompatible with the persistent runner that
+// streams JSONL user messages over time without ever closing stdin. Verified live against
+// claude 2.1.138 — without -p, claude streams `system/init` → `assistant` → `result` per
+// turn and stays alive for follow-ups, which is exactly what the orchestrator needs.
 export const buildClaudeArgs = (agent: Agent, mcpConfigPath: string): string[] => {
   const args = [
-    "-p",
     "--system-prompt",
     agent.systemPrompt,
     "--input-format",
@@ -96,6 +101,11 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
     );
   }
 
+  // TODO(sandbox-leak): the spawned claude inherits the host user's ~/.claude config —
+  // hooks (e.g. superpowers SessionStart adds ~27k tokens), MCP servers (Slack, Drive…),
+  // skills, and slash commands all leak into every agent. Violates token-efficiency and
+  // sandbox guarantees. Fix candidates: --strict-mcp-config + CLAUDE_CONFIG_DIR pointing
+  // at an isolated dir per spawn. Verified live against claude 2.1.138 on 2026-05-09.
   const env: SpawnEnv = buildSpawnEnv(opts.agent, opts.oauthToken);
   const mcpServerPath = opts.mcpServerJsPath ?? resolve(__dirname, "../mcp/server.js");
   const mcpConfigPath = writeMcpConfigFile(mcpServerPath, env);
