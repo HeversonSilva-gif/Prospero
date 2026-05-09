@@ -10,6 +10,7 @@ build/
 .vite/
 .turbo/
 *.tsbuildinfo
+.tsbuild-node/
 
 # Runtime data (Spec §14.1)
 *.db
