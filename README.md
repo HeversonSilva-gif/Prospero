@@ -15,7 +15,8 @@ If you already pay for Claude Max, you shouldn't need a separate API key just to
 ## Status
 
 - [x] M1 — Foundation (Electron + SQLite + tooling) ✓
-- [ ] M2 — Auth & Settings (in progress)
+- [x] M2 — Auth & Settings (OAuth via safeStorage, i18n, themes, first-run wizard) ✓
+- [ ] M3 — Orchestrator + MCP core (next)
 - [ ] M3 — Orchestrator + MCP core
 - [ ] M4 — Companies + Agents UI
 - [ ] M5 — Issues + Inbox + Threads
