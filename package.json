@@ -16,6 +16,7 @@
     "build": "pnpm -r run build",
     "dev": "pnpm --parallel --filter @dashboard-agent/main --filter @dashboard-agent/renderer run dev",
     "start": "pnpm --filter @dashboard-agent/main run start",
+    "rebuild:native": "pnpm --filter @dashboard-agent/main run rebuild:native",
     "prepare": "husky"
   },
   "lint-staged": {

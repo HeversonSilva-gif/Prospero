@@ -5,9 +5,14 @@
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {
-    "dev": "tsup --watch --onSuccess \"cross-env RENDERER_URL=http://localhost:5173 electron ./dist/index.js\"",
-    "start": "cross-env RENDERER_URL= electron ./dist/index.js",
+    "predev": "pnpm run rebuild:electron",
+    "dev": "tsup --watch --onSuccess \"pnpm exec cross-env RENDERER_URL=http://localhost:5173 electron ./dist/index.js\"",
+    "prestart": "pnpm run rebuild:electron",
+    "start": "pnpm exec cross-env RENDERER_URL= electron ./dist/index.js",
     "build": "tsup",
+    "rebuild:electron": "electron-rebuild -f -w better-sqlite3",
+    "rebuild:node": "pnpm rebuild better-sqlite3",
+    "pretest": "pnpm run rebuild:node",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -18,6 +23,7 @@
     "electron": "33.0.2"
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.7.1",
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^20.19.40",
     "cross-env": "^7.0.3",
