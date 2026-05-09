@@ -1,5 +1,6 @@
-import { contextBridge } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
+import { IPC } from "@dashboard-agent/shared";
 
 contextBridge.exposeInMainWorld("dashboardAgent", {
-  ping: () => "pong",
+  ping: (): Promise<string> => ipcRenderer.invoke(IPC.PING),
 });

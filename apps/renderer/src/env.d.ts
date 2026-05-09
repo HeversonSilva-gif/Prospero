@@ -3,7 +3,7 @@
 declare global {
   interface Window {
     dashboardAgent: {
-      ping: () => string;
+      ping: () => Promise<string>;
     };
   }
 }
