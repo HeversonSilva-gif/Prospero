@@ -41,6 +41,8 @@ export const buildClaudeArgs = (agent: Agent, mcpConfigPath: string): string[] =
     "-p",
     "--system-prompt",
     agent.systemPrompt,
+    "--input-format",
+    "stream-json",
     "--output-format",
     "stream-json",
     "--verbose",
@@ -123,7 +125,15 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
     agentId: opts.agent.id,
     send(message) {
       if (child.stdin === null || !child.stdin.writable) return;
-      child.stdin.write(message + "\n");
+      // With --input-format stream-json, claude expects JSONL user messages on stdin.
+      const payload = JSON.stringify({
+        type: "user",
+        message: {
+          role: "user",
+          content: [{ type: "text", text: message }],
+        },
+      });
+      child.stdin.write(payload + "\n");
     },
     kill() {
       if (!child.killed) child.kill();
