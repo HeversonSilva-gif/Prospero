@@ -1,0 +1,49 @@
+{
+  "app": {
+    "title": "Dashboard Agent"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "theme.light": "Light",
+    "theme.dark": "Dark",
+    "language.ptBR": "Portuguese (BR)",
+    "language.enUS": "English (US)",
+    "auth.title": "OAuth Token",
+    "auth.statusEmpty": "No token configured",
+    "auth.statusActive": "Token active",
+    "auth.source.manual": "Entered manually",
+    "auth.source.autoDetect": "Auto-detected",
+    "auth.actionSet": "Save token",
+    "auth.actionClear": "Remove token",
+    "auth.tokenLabel": "Paste token here",
+    "auth.tokenInvalid": "Invalid token. Expected format sk-ant-oat-..."
+  },
+  "wizard": {
+    "title": "Welcome to Dashboard Agent",
+    "subtitle": "Let's set up your OAuth token to get started.",
+    "chooseMethod": "How would you like to configure?",
+    "manualOption": "Manual paste (step-by-step)",
+    "autoOption": "Auto-detect from Claude Code CLI",
+    "manualSteps.title": "How to generate an OAuth token",
+    "manualSteps.step1": "Open a terminal (PowerShell or Windows Terminal)",
+    "manualSteps.step2": "Run: claude setup-token",
+    "manualSteps.step3": "Follow the prompts to authenticate in your browser",
+    "manualSteps.step4": "Copy the generated token and paste it below",
+    "manualSteps.tokenInputPlaceholder": "sk-ant-oat-...",
+    "manualSteps.continue": "Save and continue",
+    "autoSearching": "Searching for token in ~/.claude/.credentials.json...",
+    "autoFound": "Token found! Would you like to import it?",
+    "autoNotFound": "No token found. Use the manual option instead.",
+    "autoConfirm": "Import this token",
+    "autoCancel": "Cancel",
+    "back": "Back",
+    "skipForNow": "Continue without a token (not recommended)"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close"
+  }
+}
