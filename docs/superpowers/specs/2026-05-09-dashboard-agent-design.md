@@ -1,7 +1,7 @@
 # Dashboard Agent — Design Doc
 
 **Data:** 2026-05-09
-**Autor:** Heverson (`REDACTED`)
+**Autor:** Heverson
 **Status:** Spec aprovado — pronto para plano de implementação
 
 > ⚠ **Regra de não-regressão (dura)**: as métricas de **segurança** (testes da §10.2), **testes** (cobertura e suite canônica) e **eficiência de tokens** (multiplicador ≤ 1.3x da §10.3) **não podem regredir** entre releases. Qualquer PR que reduza qualquer uma é bloqueado por CI até justificativa explícita. Vale para v1, v2 e além.

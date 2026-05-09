@@ -52,6 +52,9 @@ export const Settings = () => {
           <div className="space-y-3">
             <p className="text-sm text-ink-muted">{t("settings.auth.statusEmpty")}</p>
             <input
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
               placeholder="sk-ant-oat-..."

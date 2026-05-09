@@ -8,3 +8,5 @@ export type TokenStatus =
       maskedPrefix: string;
       configuredAt: number;
     };
+
+export type DetectResult = { found: false } | { found: true; maskedPrefix: string };

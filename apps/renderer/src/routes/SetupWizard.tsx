@@ -88,6 +88,9 @@ export const SetupWizard = () => {
               <li>{t("wizard.manualSteps.step4")}</li>
             </ol>
             <input
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
               placeholder={t("wizard.manualSteps.tokenInputPlaceholder")}
