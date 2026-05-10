@@ -147,6 +147,13 @@ Sequência sugerida — pode ser ajustada. **Antes de cada um, consultar Papercl
   - [ ] Em `/agents/:id` right panel: campo "Skills" mostrando `skills_json` atual + drag-drop pra adicionar/remover
   - [ ] Aplicação real: agente só pode chamar tools listadas em skills (gate hook)
   - [ ] Templates de role (`role_templates` tabela) usados como starting skills no hire_agent
+- [ ] **Seleção de modelo por agente** ⚡ urgente:
+  - [ ] Adicionar coluna `agents.model` (TEXT, default `claude-sonnet-4-6`) via migration 0003
+  - [ ] Right panel em `/agents/:id`: dropdown com presets (Opus 4.7, Sonnet 4.6, Haiku 4.5) + "custom model id"
+  - [ ] `lifecycle.ts buildClaudeArgs`: passar `--model <agent.model>` no spawn
+  - [ ] MCP tool `hire_agent`: aceitar `model` param opcional (default = company default)
+  - [ ] Settings: campo "Default model for new agents"
+  - [ ] Considerar custo: Opus pra CEO/Architect, Sonnet pra engenheiros, Haiku pra agentes simples (memory: tokens não podem inflar)
 - [ ] **Não-regressão:** segurança, tokens, suite
 
 ### 🔄 M8 — Costs UI + Token Tracking
@@ -189,6 +196,15 @@ Closing items pra v1 ficar feature-complete contra spec §4.
   - [ ] Defaults de mode (`supervised`/`auto`)
   - [ ] Defaults de `always_on`
   - [ ] Banner global pra OAuth token expiring (30d antes)
+- [ ] **Suporte a API key (alternativa ao OAuth Max)** — dual auth:
+  - [ ] Setup wizard: pergunta auth source (OAuth Max recomendado / API key)
+  - [ ] Settings: switch entre OAuth Max e API key (com warning sobre custo: API key cobra por token, OAuth Max é flat-rate)
+  - [ ] `apps/main/src/auth/`: nova função `getActiveAuthMode()` retorna `'oauth' | 'api-key'`
+  - [ ] Storage: `safeStorage.encrypt(apiKey)` igual padrão do OAuth M2; `auth:api-key-set` IPC
+  - [ ] `lifecycle.ts spawnAgent`: se mode='api-key', passar `ANTHROPIC_API_KEY` env var em vez de copiar `.credentials.json`; remover `--strict-mcp-config` lockdown que assume OAuth?
+  - [ ] Limite dos 4 agentes simultâneos: aplicar SÓ pra OAuth Max (ToS Anthropic). Com API key, limite vira o rate limit normal da conta
+  - [ ] Documentar em SECURITY.md as 2 modes + trade-offs
+  - [ ] Memory `project_dashboardagent` precisa atualização (premissa OAuth-only deixa de ser exclusiva)
 - [ ] **Error handling (spec §7):**
   - [ ] Banner global vermelho quando OAuth inválido
   - [ ] Auto-restart do main em crash + 5s timeout
