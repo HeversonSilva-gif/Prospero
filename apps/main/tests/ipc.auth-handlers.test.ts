@@ -69,17 +69,17 @@ describe("auth ipc handlers", () => {
     }
   });
 
-  it("auth:token-detect returns null when no credentials.json", async () => {
+  it("auth:token-detect returns { found: false } when no credentials.json", async () => {
     const { cleanup } = setup();
     try {
       const result = await Promise.resolve(handlers.get("auth:token-detect")!({}));
-      expect(result).toBeNull();
+      expect(result).toEqual({ found: false });
     } finally {
       cleanup();
     }
   });
 
-  it("auth:token-detect returns the token when credentials.json present", async () => {
+  it("auth:token-detect returns ONLY a masked prefix — never the raw token (SEC-01)", async () => {
     const { home, cleanup } = setup();
     try {
       mkdirSync(join(home, ".claude"));
@@ -87,8 +87,49 @@ describe("auth ipc handlers", () => {
         join(home, ".claude", ".credentials.json"),
         JSON.stringify({ claudeAiOauth: { accessToken: RAW } }),
       );
-      const result = await Promise.resolve(handlers.get("auth:token-detect")!({}));
-      expect(result).toBe(RAW);
+      const result = (await Promise.resolve(handlers.get("auth:token-detect")!({}))) as {
+        found: true;
+        maskedPrefix: string;
+      };
+      expect(result.found).toBe(true);
+      expect(result.maskedPrefix).toContain("sk-ant-oat");
+      // The raw token must NEVER be in the IPC response
+      expect(JSON.stringify(result)).not.toContain("PRODUCTION_TOKEN");
+      expect(JSON.stringify(result)).not.toContain(RAW);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it("auth:token-import-detected re-detects + saves and returns status", async () => {
+    const { home, cleanup } = setup();
+    try {
+      mkdirSync(join(home, ".claude"));
+      writeFileSync(
+        join(home, ".claude", ".credentials.json"),
+        JSON.stringify({ claudeAiOauth: { accessToken: RAW } }),
+      );
+      const status = (await Promise.resolve(handlers.get("auth:token-import-detected")!({}))) as {
+        hasToken: true;
+        source: string;
+        maskedPrefix: string;
+      };
+      expect(status.hasToken).toBe(true);
+      expect(status.source).toBe("auto-detect");
+      expect(status.maskedPrefix).toContain("sk-ant-oat");
+      // Raw token still must not leak in the resulting status
+      expect(JSON.stringify(status)).not.toContain("PRODUCTION_TOKEN");
+    } finally {
+      cleanup();
+    }
+  });
+
+  it("auth:token-import-detected throws when nothing is detectable", async () => {
+    const { cleanup } = setup();
+    try {
+      await expect(
+        Promise.resolve(handlers.get("auth:token-import-detected")!({})),
+      ).rejects.toThrow();
     } finally {
       cleanup();
     }

@@ -9,24 +9,27 @@ export const SetupWizard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const setToken = useAuthStore((s) => s.setToken);
+  const importDetected = useAuthStore((s) => s.importDetected);
   const [step, setStep] = useState<Step>("choose");
   const [tokenInput, setTokenInput] = useState("");
-  const [autoToken, setAutoToken] = useState<string | null>(null);
+  // We only ever hold the masked prefix in renderer state — never the raw token.
+  // The actual import is done main-side via importDetected (re-runs detection + saves).
+  const [autoPrefix, setAutoPrefix] = useState<string | null>(null);
   const [autoSearched, setAutoSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const goAuto = async () => {
     setStep("auto");
     setError(null);
-    const found = await window.dashboardAgent.auth.detect();
-    setAutoToken(found);
+    const result = await window.dashboardAgent.auth.detect();
+    setAutoPrefix(result.found ? result.maskedPrefix : null);
     setAutoSearched(true);
   };
 
   const importAuto = async () => {
-    if (autoToken === null) return;
+    if (autoPrefix === null) return;
     try {
-      await setToken(autoToken, "auto-detect");
+      await importDetected();
       navigate("/dashboard");
     } catch {
       setError(t("settings.auth.tokenInvalid"));
@@ -120,15 +123,15 @@ export const SetupWizard = () => {
         {step === "auto" && (
           <div className="space-y-3">
             {!autoSearched && <p className="text-sm text-ink-muted">{t("wizard.autoSearching")}</p>}
-            {autoSearched && autoToken !== null && (
+            {autoSearched && autoPrefix !== null && (
               <>
                 <p className="text-sm text-ink">{t("wizard.autoFound")}</p>
                 <code className="block text-xs bg-surface-soft p-2 rounded text-ink-muted">
-                  {autoToken.slice(0, 14)}...
+                  {autoPrefix}
                 </code>
               </>
             )}
-            {autoSearched && autoToken === null && (
+            {autoSearched && autoPrefix === null && (
               <p className="text-sm text-ink-muted">{t("wizard.autoNotFound")}</p>
             )}
             {error && <p className="text-xs text-semantic-danger">{error}</p>}
@@ -140,7 +143,7 @@ export const SetupWizard = () => {
               >
                 {t("wizard.back")}
               </button>
-              {autoSearched && autoToken !== null && (
+              {autoSearched && autoPrefix !== null && (
                 <button
                   onClick={() => void importAuto()}
                   className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded"

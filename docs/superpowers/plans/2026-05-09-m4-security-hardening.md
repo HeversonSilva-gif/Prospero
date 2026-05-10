@@ -4,7 +4,7 @@
 
 ## Pendências de segurança herdadas de M2/M3
 
-### SEC-01 (ALTO): `AUTH_TOKEN_DETECT` retorna token bruto pro renderer
+### SEC-01 (ALTO): `AUTH_TOKEN_DETECT` retorna token bruto pro renderer — ✅ CORRIGIDO (2026-05-10)
 
 **Onde:** `apps/main/src/ipc/auth-handlers.ts:31-33`, `apps/main/src/ipc/preload.ts:16`, `apps/renderer/src/routes/SetupWizard.tsx` (fluxo `goAuto` → `importAuto`).
 
@@ -43,6 +43,8 @@
    - `packages/shared/tests/settings.test.ts` e `packages/shared/tests/ipc-channels.test.ts`: adicionar `AUTH_TOKEN_IMPORT_DETECTED`.
 
 **Tentativa anterior:** tentei aplicar em 2026-05-09 mas as edições nos 3 arquivos do main/IPC foram revertidas (provavelmente por conflito com sessão paralela do M3). Re-tentar quando M3 estiver mergeado e estável.
+
+**Resolução (2026-05-10):** aplicado conforme plano. `AUTH_TOKEN_DETECT` agora retorna `DetectResult` (apenas `maskedPrefix`); novo `AUTH_TOKEN_IMPORT_DETECTED` re-detecta e salva no main; renderer atualizado pra nunca segurar o raw em estado React; regression-guard test garante que o raw token nunca aparece na resposta do IPC. Commit fecha o invariante do M2 ("token nunca cruza pro renderer").
 
 ### SEC-02 (MÉDIO): `verifyMcpToken` é no-op em `mcp/server.ts:38`
 
@@ -98,7 +100,7 @@ Recomendação: (a) por enquanto, (b) quando/se mudarmos transport.
 
 ## Critério de pronto pro M4
 
-- [ ] SEC-01 corrigido com testes verdes em `ipc.auth-handlers.test.ts` e em testes do SetupWizard.
+- [x] SEC-01 corrigido com testes verdes em `ipc.auth-handlers.test.ts` (regression-guard valida que raw token nunca está na resposta).
 - [ ] SEC-02 resolvido (remover ou implementar de verdade).
 - [ ] SEC-03 e SEC-04 decididos antes do primeiro push (se for público, rewrite executado).
 - [ ] SEC-05 fechado se decidirmos virar offline-first puro.

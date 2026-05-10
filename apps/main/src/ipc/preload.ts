@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import {
   IPC,
   type AppSettings,
+  type DetectResult,
   type TokenSource,
   type TokenStatus,
   type Agent,
@@ -21,7 +22,9 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
     status: () => ipcRenderer.invoke(IPC.AUTH_TOKEN_STATUS) as Promise<TokenStatus>,
     set: (raw: string, source: TokenSource) =>
       ipcRenderer.invoke(IPC.AUTH_TOKEN_SET, { raw, source }) as Promise<TokenStatus>,
-    detect: () => ipcRenderer.invoke(IPC.AUTH_TOKEN_DETECT) as Promise<string | null>,
+    detect: () => ipcRenderer.invoke(IPC.AUTH_TOKEN_DETECT) as Promise<DetectResult>,
+    importDetected: () =>
+      ipcRenderer.invoke(IPC.AUTH_TOKEN_IMPORT_DETECTED) as Promise<TokenStatus>,
     clear: () => ipcRenderer.invoke(IPC.AUTH_TOKEN_CLEAR) as Promise<TokenStatus>,
   },
   companies: {

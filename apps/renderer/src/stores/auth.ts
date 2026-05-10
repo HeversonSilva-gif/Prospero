@@ -6,6 +6,7 @@ type State = {
   loaded: boolean;
   load: () => Promise<void>;
   setToken: (raw: string, source: TokenSource) => Promise<void>;
+  importDetected: () => Promise<void>;
   clearToken: () => Promise<void>;
 };
 
@@ -20,6 +21,11 @@ export const useAuthStore = create<State>((set) => ({
 
   setToken: async (raw, source) => {
     const status = await window.dashboardAgent.auth.set(raw, source);
+    set({ status });
+  },
+
+  importDetected: async () => {
+    const status = await window.dashboardAgent.auth.importDetected();
     set({ status });
   },
 

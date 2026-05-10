@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import type {
   AppSettings,
+  DetectResult,
   TokenSource,
   TokenStatus,
   Agent,
@@ -20,7 +21,8 @@ declare global {
       auth: {
         status: () => Promise<TokenStatus>;
         set: (raw: string, source: TokenSource) => Promise<TokenStatus>;
-        detect: () => Promise<string | null>;
+        detect: () => Promise<DetectResult>;
+        importDetected: () => Promise<TokenStatus>;
         clear: () => Promise<TokenStatus>;
       };
       companies: {

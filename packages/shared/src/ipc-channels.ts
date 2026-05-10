@@ -5,6 +5,7 @@ export const IPC = {
   AUTH_TOKEN_STATUS: "auth:token-status",
   AUTH_TOKEN_SET: "auth:token-set",
   AUTH_TOKEN_DETECT: "auth:token-detect",
+  AUTH_TOKEN_IMPORT_DETECTED: "auth:token-import-detected",
   AUTH_TOKEN_CLEAR: "auth:token-clear",
   COMPANY_LIST: "company:list",
   COMPANY_CREATE_DEMO: "company:create-demo",

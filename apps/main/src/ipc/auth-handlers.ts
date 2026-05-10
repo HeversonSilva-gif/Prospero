@@ -1,9 +1,15 @@
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
 import { homedir } from "node:os";
-import { IPC, type TokenSource, type TokenStatus } from "@dashboard-agent/shared";
+import {
+  IPC,
+  type DetectResult,
+  type TokenSource,
+  type TokenStatus,
+} from "@dashboard-agent/shared";
 import { saveToken, loadTokenStatus, clearToken } from "../auth/token-storage.js";
 import { detectClaudeCliToken } from "../auth/token-detect.js";
+import { redactToken } from "../auth/token-redact.js";
 
 type SetPayload = { raw: string; source: TokenSource };
 
@@ -28,9 +34,26 @@ export const registerAuthHandlers = (
     });
   });
 
-  ipcMain.handle(IPC.AUTH_TOKEN_DETECT, (): string | null =>
-    detectClaudeCliToken(homeDirProvider()),
-  );
+  // Returns only a masked prefix — never the raw token. The renderer uses this to show a
+  // preview ("we found sk-ant-oat-***") and then calls AUTH_TOKEN_IMPORT_DETECTED to
+  // actually import. The raw token never crosses the process boundary toward the renderer.
+  ipcMain.handle(IPC.AUTH_TOKEN_DETECT, (): DetectResult => {
+    const raw = detectClaudeCliToken(homeDirProvider());
+    if (raw === null) return { found: false };
+    return { found: true, maskedPrefix: redactToken(raw) };
+  });
+
+  // Re-detects and saves in one shot, all on the main side. Returns the resulting status.
+  ipcMain.handle(IPC.AUTH_TOKEN_IMPORT_DETECTED, (): Promise<TokenStatus> => {
+    return Promise.resolve().then(() => {
+      const raw = detectClaudeCliToken(homeDirProvider());
+      if (raw === null) {
+        throw new Error("No Claude CLI token detected to import");
+      }
+      saveToken(db, { raw, source: "auto-detect" });
+      return loadTokenStatus(db);
+    });
+  });
 
   ipcMain.handle(IPC.AUTH_TOKEN_CLEAR, (): TokenStatus => {
     clearToken(db);
