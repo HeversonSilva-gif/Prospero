@@ -28,6 +28,13 @@ export const IPC = {
   PROJECTS_OPEN_FOLDER: "projects:open-folder",
   PROJECTS_CHECK_PATHS: "projects:check-paths",
   AGENTS_SET_ALLOWED_PROJECTS: "agents:set-allowed-projects",
+  ISSUES_LIST: "issues:list",
+  ISSUES_GET: "issues:get",
+  ISSUES_CREATE: "issues:create",
+  ISSUES_UPDATE: "issues:update",
+  ISSUES_DELETE: "issues:delete",
+  ISSUES_ADD_COMMENT: "issues:add-comment",
+  ISSUES_CHANGED: "issues:changed",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

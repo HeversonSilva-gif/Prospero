@@ -13,6 +13,11 @@ import type {
   PermissionResolution,
   Project,
   ProjectPathStatus,
+  Issue,
+  IssueDetail,
+  IssueComment,
+  IssueStatus,
+  IssuePriority,
 } from "@dashboard-agent/shared";
 
 declare global {
@@ -72,6 +77,38 @@ declare global {
         delete: (id: string) => Promise<{ ok: true }>;
         openFolder: (id: string) => Promise<{ opened: boolean }>;
         checkPaths: (companyId: string) => Promise<Record<string, ProjectPathStatus>>;
+      };
+      issues: {
+        list: (payload: {
+          companyId: string;
+          projectId?: string;
+          assigneeId?: string;
+          status?: IssueStatus;
+        }) => Promise<Issue[]>;
+        get: (id: string) => Promise<IssueDetail | null>;
+        create: (input: {
+          companyId: string;
+          projectId: string | null;
+          title: string;
+          description?: string | null;
+          assigneeId?: string | null;
+          priority?: IssuePriority;
+          parentId?: string | null;
+        }) => Promise<Issue>;
+        update: (input: {
+          id: string;
+          title?: string;
+          description?: string | null;
+          status?: IssueStatus;
+          assigneeId?: string | null;
+          priority?: IssuePriority;
+          parentId?: string | null;
+        }) => Promise<Issue | null>;
+        delete: (id: string) => Promise<{ ok: true }>;
+        addComment: (issueId: string, content: string) => Promise<IssueComment>;
+        onChanged: (
+          cb: (event: { kind: string; issueId: string; companyId: string }) => void,
+        ) => () => void;
       };
     };
   }

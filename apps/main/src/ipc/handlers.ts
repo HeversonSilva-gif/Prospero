@@ -9,6 +9,7 @@ import { registerOrchestratorHandlers } from "./orchestrator-handlers.js";
 import { registerPermissionHandlers } from "./permission-handlers.js";
 import { registerInboxHandlers } from "./inbox-handlers.js";
 import { registerProjectsHandlers } from "./projects-handlers.js";
+import { registerIssuesHandlers } from "./issues-handlers.js";
 
 export const registerIpcHandlers = (db: Database.Database): void => {
   ipcMain.handle(IPC.PING, () => "pong");
@@ -20,4 +21,5 @@ export const registerIpcHandlers = (db: Database.Database): void => {
   registerPermissionHandlers(db);
   registerInboxHandlers(db);
   registerProjectsHandlers(db);
+  registerIssuesHandlers(db);
 };

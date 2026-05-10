@@ -14,6 +14,11 @@ import {
   type PermissionRequest,
   type Project,
   type ProjectPathStatus,
+  type Issue,
+  type IssueDetail,
+  type IssueComment,
+  type IssueStatus,
+  type IssuePriority,
 } from "@dashboard-agent/shared";
 
 contextBridge.exposeInMainWorld("dashboardAgent", {
@@ -91,5 +96,41 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
       ipcRenderer.invoke(IPC.PROJECTS_CHECK_PATHS, { companyId }) as Promise<
         Record<string, ProjectPathStatus>
       >,
+  },
+  issues: {
+    list: (payload: {
+      companyId: string;
+      projectId?: string;
+      assigneeId?: string;
+      status?: IssueStatus;
+    }) => ipcRenderer.invoke(IPC.ISSUES_LIST, payload) as Promise<Issue[]>,
+    get: (id: string) => ipcRenderer.invoke(IPC.ISSUES_GET, { id }) as Promise<IssueDetail | null>,
+    create: (input: {
+      companyId: string;
+      projectId: string | null;
+      title: string;
+      description?: string | null;
+      assigneeId?: string | null;
+      priority?: IssuePriority;
+      parentId?: string | null;
+    }) => ipcRenderer.invoke(IPC.ISSUES_CREATE, input) as Promise<Issue>,
+    update: (input: {
+      id: string;
+      title?: string;
+      description?: string | null;
+      status?: IssueStatus;
+      assigneeId?: string | null;
+      priority?: IssuePriority;
+      parentId?: string | null;
+    }) => ipcRenderer.invoke(IPC.ISSUES_UPDATE, input) as Promise<Issue | null>,
+    delete: (id: string) => ipcRenderer.invoke(IPC.ISSUES_DELETE, { id }) as Promise<{ ok: true }>,
+    addComment: (issueId: string, content: string) =>
+      ipcRenderer.invoke(IPC.ISSUES_ADD_COMMENT, { issueId, content }) as Promise<IssueComment>,
+    onChanged: (cb: (event: { kind: string; issueId: string; companyId: string }) => void) => {
+      const handler = (_e: unknown, ev: { kind: string; issueId: string; companyId: string }) =>
+        cb(ev);
+      ipcRenderer.on(IPC.ISSUES_CHANGED, handler);
+      return () => ipcRenderer.removeListener(IPC.ISSUES_CHANGED, handler);
+    },
   },
 });
