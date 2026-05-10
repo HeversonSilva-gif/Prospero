@@ -1,0 +1,13 @@
+{
+  "captured_at": "2026-05-10T00:00:00Z",
+  "captured_against_commit": "5d2d879",
+  "fixture": "ceo-creates-3-issues-and-lists",
+  "totals": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+  },
+  "ratio_ceiling": 1.3,
+  "note": "M6 token-budget test compares against this baseline. Update only when an architecture change justifies it. Zeros indicate the user has not yet run the M5 fixture; m6-token-budget.test.ts skips the assertion when totals sum to 0."
+}
