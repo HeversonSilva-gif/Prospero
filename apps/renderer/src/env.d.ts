@@ -8,6 +8,8 @@ import type {
   AgentEvent,
   Company,
   Message,
+  PermissionRequest,
+  PermissionResolution,
 } from "@dashboard-agent/shared";
 
 declare global {
@@ -38,6 +40,10 @@ declare global {
       };
       messages: {
         list: (companyId: string, participants: string[]) => Promise<Message[]>;
+      };
+      permissions: {
+        resolve: (toolUseId: string, resolution: PermissionResolution) => Promise<void>;
+        onRequest: (cb: (req: PermissionRequest) => void) => () => void;
       };
     };
   }

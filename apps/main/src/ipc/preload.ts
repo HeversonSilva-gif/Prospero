@@ -9,6 +9,8 @@ import {
   type AgentEvent,
   type Company,
   type Message,
+  type PermissionResolution,
+  type PermissionRequest,
 } from "@dashboard-agent/shared";
 
 contextBridge.exposeInMainWorld("dashboardAgent", {
@@ -47,5 +49,14 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
   messages: {
     list: (companyId: string, participants: string[]) =>
       ipcRenderer.invoke(IPC.MESSAGE_LIST, { companyId, participants }) as Promise<Message[]>,
+  },
+  permissions: {
+    resolve: (toolUseId: string, resolution: PermissionResolution) =>
+      ipcRenderer.invoke(IPC.PERMISSION_RESOLVE, { toolUseId, resolution }) as Promise<void>,
+    onRequest: (cb: (req: PermissionRequest) => void) => {
+      const handler = (_e: unknown, req: PermissionRequest) => cb(req);
+      ipcRenderer.on(IPC.PERMISSION_REQUEST, handler);
+      return () => ipcRenderer.removeListener(IPC.PERMISSION_REQUEST, handler);
+    },
   },
 });

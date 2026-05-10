@@ -15,6 +15,8 @@ export const IPC = {
   AGENT_KILL: "agent:kill",
   AGENT_EVENT: "agent:event",
   MESSAGE_LIST: "message:list",
+  PERMISSION_REQUEST: "permission:request",
+  PERMISSION_RESOLVE: "permission:resolve",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
