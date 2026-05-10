@@ -3,20 +3,31 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { SpawnEnv } from "./env.js";
 
+// In Electron's main process, `process.execPath` points to electron.exe, not node.
+// Spawning that to run a plain JS file launches a GUI app shell and hangs the MCP
+// handshake — claude then waits forever for the MCP server to initialize and never
+// emits any output. ELECTRON_RUN_AS_NODE=1 makes the Electron binary behave as a
+// regular Node runtime for that child process, which is the documented workaround.
+const isElectronBinary = /electron(\.exe)?$/i.test(process.execPath);
+
 export const writeMcpConfigFile = (mcpServerJsPath: string, env: SpawnEnv): string => {
   const dir = mkdtempSync(join(tmpdir(), "da-mcp-"));
   const configPath = join(dir, "mcp.json");
+  const childEnv: Record<string, string> = {
+    AGENT_ID: env.AGENT_ID,
+    COMPANY_ID: env.COMPANY_ID,
+    MCP_TOKEN: env.MCP_TOKEN,
+  };
+  if (isElectronBinary) {
+    childEnv.ELECTRON_RUN_AS_NODE = "1";
+  }
   const config = {
     mcpServers: {
       dashboard: {
         type: "stdio",
         command: process.execPath,
         args: [mcpServerJsPath],
-        env: {
-          AGENT_ID: env.AGENT_ID,
-          COMPANY_ID: env.COMPANY_ID,
-          MCP_TOKEN: env.MCP_TOKEN,
-        },
+        env: childEnv,
       },
     },
   };

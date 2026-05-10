@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from "electron";
+import { ipcMain, BrowserWindow, app } from "electron";
 import type Database from "better-sqlite3";
 import {
   IPC,
@@ -59,7 +59,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         const collectedToolCalls = new Map<string, ToolCallView>();
 
         runner = spawnAgent(
-          { agent, oauthToken: token },
+          { agent, oauthToken: token, userDataDir: app.getPath("userData") },
           {
             onEvent: (ev: ParsedEvent) => {
               if (ev.kind === "session-init") {

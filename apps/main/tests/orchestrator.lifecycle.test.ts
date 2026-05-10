@@ -47,6 +47,14 @@ describe("buildClaudeArgs", () => {
     expect(args).toContain("/tmp/mcp.json");
   });
 
+  it("includes --strict-mcp-config to enforce sandbox (regression guard)", () => {
+    // Without this flag, the spawned claude inherits the user's globally-configured MCP
+    // servers (Slack, Drive, etc.) — sandbox break. Combined with CLAUDE_CONFIG_DIR
+    // isolation in spawnAgent, this enforces a real per-agent sandbox.
+    const args = buildClaudeArgs(baseAgent, "/tmp/mcp.json");
+    expect(args).toContain("--strict-mcp-config");
+  });
+
   it("does NOT include --resume when claudeSessionId is null", () => {
     const args = buildClaudeArgs(baseAgent, "/tmp/mcp.json");
     expect(args).not.toContain("--resume");
