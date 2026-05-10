@@ -85,13 +85,15 @@ Recomendação: (a) por enquanto, (b) quando/se mudarmos transport.
 2. Reescrever histórico via `git filter-repo --email-callback` substituindo o email antigo pelo noreply.
 3. Repetir antes do primeiro push.
 
-### SEC-05 (BAIXO): Google Fonts externo no renderer
+### SEC-05 (BAIXO): Google Fonts externo no renderer — ✅ CORRIGIDO (2026-05-10)
 
 **Onde:** `apps/renderer/index.html:11-14`
 
 **Problema:** app desktop "offline-first" carrega Poppins via `https://fonts.googleapis.com`. Vaza User-Agent + IP pro Google em cada launch. CSP atual permite a origem (`style-src ... https://fonts.googleapis.com`).
 
 **Correção proposta:** bundle Poppins via `@fontsource/poppins` ou similar, importar no CSS principal, remover `<link>` externo do `index.html`, apertar CSP removendo `fonts.googleapis.com` e `fonts.gstatic.com`.
+
+**Resolução (2026-05-10):** aplicado conforme plano. `@fontsource/poppins` adicionado em `apps/renderer`; weights 400/500/600/700 importados em `main.tsx` (antes do CSS principal). `<link>` removido do `index.html`, CSP apertado pra `style-src 'self' 'unsafe-inline'` e `font-src 'self' data:` — sem mais origens externas. Vite empacota WOFF/WOFF2 como assets locais; subsets non-latin (devanagari) só são baixados se a UI tiver glyphs daquele script (não acontece em PT-BR/EN).
 
 ## Mitigações já aplicadas em 2026-05-09
 
@@ -105,5 +107,5 @@ Recomendação: (a) por enquanto, (b) quando/se mudarmos transport.
 - [x] SEC-01 corrigido com testes verdes em `ipc.auth-handlers.test.ts` (regression-guard valida que raw token nunca está na resposta).
 - [x] SEC-02 resolvido (removido — opção (a)).
 - [ ] SEC-03 e SEC-04 decididos antes do primeiro push (se for público, rewrite executado).
-- [ ] SEC-05 fechado se decidirmos virar offline-first puro.
+- [x] SEC-05 fechado — Poppins bundleada via `@fontsource/poppins`, CSP apertado.
 - [ ] Suite gitleaks roda local + CI sem novos achados.
