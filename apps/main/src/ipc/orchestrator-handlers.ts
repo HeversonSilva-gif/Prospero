@@ -17,6 +17,7 @@ import type { Sender } from "../orchestrator/router.js";
 import type { ParsedEvent } from "../orchestrator/stream-parser.js";
 import { databasePath } from "../db/path.js";
 import { getPermissionsDir } from "../security/permissions-dir.js";
+import { broadcastIssueChanged } from "./issue-events-broadcast.js";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -181,6 +182,22 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
               ) {
                 // hire_agent created a new agent in DB — refresh the sidebar list.
                 broadcast({ kind: "roster-changed", companyId: agent.companyId });
+              } else if (
+                (k === "issue.created" || k === "issue.updated") &&
+                typeof payloadObj === "object" &&
+                payloadObj !== null
+              ) {
+                const p = payloadObj as { issueId: string };
+                const issueRow = db
+                  .prepare("SELECT company_id FROM issues WHERE id = ?")
+                  .get(p.issueId) as { company_id: string } | undefined;
+                if (issueRow !== undefined) {
+                  broadcastIssueChanged({
+                    kind: k === "issue.created" ? "created" : "updated",
+                    issueId: p.issueId,
+                    companyId: issueRow.company_id,
+                  });
+                }
               }
             }
           } catch {

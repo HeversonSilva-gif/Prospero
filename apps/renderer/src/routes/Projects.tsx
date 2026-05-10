@@ -1,8 +1,9 @@
-import { useEffect, useState, type FC } from "react";
+import { useEffect, useMemo, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import type { Project } from "@dashboard-agent/shared";
 import { useProjectsStore } from "../stores/projects.js";
 import { useAgentsStore } from "../stores/agents.js";
+import { useIssuesStore } from "../stores/issues.js";
 import { ProjectListItem } from "../components/projects/ProjectListItem.js";
 import { ProjectDetail } from "../components/projects/ProjectDetail.js";
 import { ProjectFormModal } from "../components/projects/ProjectFormModal.js";
@@ -19,6 +20,7 @@ export const Projects: FC = () => {
   const updateProj = useProjectsStore((s) => s.update);
   const deleteProj = useProjectsStore((s) => s.delete);
   const agents = useAgentsStore((s) => s.agents);
+  const allIssues = useIssuesStore((s) => s.issues);
 
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -41,6 +43,16 @@ export const Projects: FC = () => {
   }, [companyId, refreshPaths]);
 
   const selected = projects.find((p) => p.id === selectedId) ?? null;
+
+  const projectIssues = useMemo(
+    () => allIssues.filter((i) => i.projectId === selected?.id),
+    [allIssues, selected?.id],
+  );
+  const doingCount = projectIssues.filter((i) => i.status === "doing").length;
+  const recentIssues = projectIssues
+    .slice()
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 5);
 
   return (
     <div className="flex h-full">
@@ -82,8 +94,8 @@ export const Projects: FC = () => {
             project={selected}
             pathStatus={pathStatuses[selected.id]}
             agents={agents}
-            recentIssues={[]}
-            doingCount={0}
+            recentIssues={recentIssues}
+            doingCount={doingCount}
             onEdit={() => {
               setEditing(selected);
               setShowForm(true);
