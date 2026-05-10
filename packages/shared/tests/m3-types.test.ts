@@ -27,6 +27,7 @@ describe("m3 types and channels", () => {
       status: "idle",
       claudeSessionId: null,
       currentAction: null,
+      allowedProjects: [],
     };
     expect(a.status).toBe("idle");
   });

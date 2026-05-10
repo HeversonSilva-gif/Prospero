@@ -43,6 +43,8 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
     sendMessage: (agentId: string, content: string) =>
       ipcRenderer.invoke(IPC.AGENT_SEND_MESSAGE, { agentId, content }) as Promise<Message>,
     kill: (agentId: string) => ipcRenderer.invoke(IPC.AGENT_KILL, { agentId }) as Promise<void>,
+    setAllowedProjects: (agentId: string, projectIds: string[]) =>
+      ipcRenderer.invoke(IPC.AGENTS_SET_ALLOWED_PROJECTS, { agentId, projectIds }) as Promise<void>,
     onEvent: (cb: (event: AgentEvent) => void) => {
       const handler = (_e: unknown, event: AgentEvent) => cb(event);
       ipcRenderer.on(IPC.AGENT_EVENT, handler);

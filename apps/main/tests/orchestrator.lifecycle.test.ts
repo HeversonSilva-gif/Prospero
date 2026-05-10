@@ -21,6 +21,7 @@ const baseAgent: Agent = {
   status: "idle",
   claudeSessionId: null,
   currentAction: null,
+  allowedProjects: [],
 };
 
 const fakeRunner = (id: string, alive: boolean): AgentRunner => ({

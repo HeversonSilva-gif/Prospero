@@ -16,6 +16,7 @@ const agent: Agent = {
   status: "idle",
   claudeSessionId: null,
   currentAction: null,
+  allowedProjects: [],
 };
 
 describe(

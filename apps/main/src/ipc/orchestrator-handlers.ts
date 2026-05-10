@@ -237,6 +237,13 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   });
 
   ipcMain.handle(
+    IPC.AGENTS_SET_ALLOWED_PROJECTS,
+    (_e, payload: { agentId: string; projectIds: string[] }): void => {
+      agents.setAllowedProjects(payload.agentId, payload.projectIds);
+    },
+  );
+
+  ipcMain.handle(
     IPC.AGENT_SEND_MESSAGE,
     (_e, payload: { agentId: string; content: string }): Promise<Message> => {
       const agent = agents.getById(payload.agentId);

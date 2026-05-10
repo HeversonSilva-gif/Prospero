@@ -39,6 +39,7 @@ declare global {
         list: (companyId: string) => Promise<Agent[]>;
         sendMessage: (agentId: string, content: string) => Promise<Message>;
         kill: (agentId: string) => Promise<void>;
+        setAllowedProjects: (agentId: string, projectIds: string[]) => Promise<void>;
         onEvent: (cb: (event: AgentEvent) => void) => () => void;
       };
       messages: {

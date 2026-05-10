@@ -15,6 +15,7 @@ describe("buildSpawnEnv", () => {
         status: "idle",
         claudeSessionId: null,
         currentAction: null,
+        allowedProjects: [],
       },
       "sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_xyz123",
       "/tmp/db/dashboard-agent.db",

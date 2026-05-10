@@ -27,6 +27,7 @@ export const IPC = {
   PROJECTS_DELETE: "projects:delete",
   PROJECTS_OPEN_FOLDER: "projects:open-folder",
   PROJECTS_CHECK_PATHS: "projects:check-paths",
+  AGENTS_SET_ALLOWED_PROJECTS: "agents:set-allowed-projects",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

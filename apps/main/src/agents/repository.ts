@@ -32,6 +32,7 @@ const rowToAgent = (r: Row): Agent => ({
   status: r.status as AgentStatus,
   claudeSessionId: r.claude_session_id,
   currentAction: r.current_action,
+  allowedProjects: JSON.parse(r.allowed_projects_json) as string[],
 });
 
 export type CreateAgentInput = {
@@ -50,6 +51,7 @@ export type AgentsRepository = {
   updateStatus(id: string, patch: { status: AgentStatus; currentAction: string | null }): void;
   setSessionId(id: string, sessionId: string): void;
   clearSessionId(id: string): void;
+  setAllowedProjects(id: string, projectIds: string[]): void;
 };
 
 export const createAgentsRepository = (db: Database.Database): AgentsRepository => {
@@ -103,6 +105,13 @@ export const createAgentsRepository = (db: Database.Database): AgentsRepository 
     },
     clearSessionId(id) {
       clearSessionStmt.run(Date.now(), id);
+    },
+    setAllowedProjects(id, projectIds) {
+      db.prepare("UPDATE agents SET allowed_projects_json = ?, updated_at = ? WHERE id = ?").run(
+        JSON.stringify(projectIds),
+        Date.now(),
+        id,
+      );
     },
   };
 };

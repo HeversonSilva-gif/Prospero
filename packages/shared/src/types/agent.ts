@@ -12,4 +12,5 @@ export type Agent = {
   status: AgentStatus;
   claudeSessionId: string | null;
   currentAction: string | null;
+  allowedProjects: string[];
 };

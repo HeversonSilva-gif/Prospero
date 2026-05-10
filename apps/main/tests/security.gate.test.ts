@@ -13,6 +13,7 @@ const agent = (mode: "supervised" | "auto"): Agent => ({
   status: "idle",
   claudeSessionId: null,
   currentAction: null,
+  allowedProjects: [],
 });
 
 const WS = "C:\\Workspace";
