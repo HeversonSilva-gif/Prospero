@@ -27,7 +27,7 @@ describe(
       const stop = startPermissionWatcher({
         dir,
         getAgent: () => ({ ...agent, mode: "auto" }),
-        getWorkspaceCwd: () => "C:\\Workspace",
+        getAllowedProjectPaths: () => ["C:\\Workspace"],
         onUserDecision: vi.fn(),
       });
 
@@ -57,7 +57,7 @@ describe(
       const stop = startPermissionWatcher({
         dir,
         getAgent: () => ({ ...agent, mode: "auto" }),
-        getWorkspaceCwd: () => "C:\\Workspace",
+        getAllowedProjectPaths: () => ["C:\\Workspace"],
         onUserDecision: vi.fn(),
       });
 
@@ -80,7 +80,7 @@ describe(
         message: string;
       };
       expect(body.behavior).toBe("deny");
-      expect(body.message).toMatch(/outside workspace/i);
+      expect(body.message).toMatch(/outside allowed projects/i);
 
       await stop();
       rmSync(dir, { recursive: true, force: true });
@@ -92,7 +92,7 @@ describe(
       const stop = startPermissionWatcher({
         dir,
         getAgent: () => agent,
-        getWorkspaceCwd: () => "C:\\Workspace",
+        getAllowedProjectPaths: () => ["C:\\Workspace"],
         onUserDecision: vi.fn(),
         onResolved,
       });
@@ -110,7 +110,7 @@ describe(
       const stop = startPermissionWatcher({
         dir,
         getAgent: () => agent,
-        getWorkspaceCwd: () => "C:\\Workspace",
+        getAllowedProjectPaths: () => ["C:\\Workspace"],
         onUserDecision,
       });
 

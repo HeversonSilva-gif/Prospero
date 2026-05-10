@@ -35,7 +35,11 @@ void app.whenReady().then(() => {
   stopPermissionWatcher = startPermissionWatcher({
     dir: permissionsDir,
     getAgent: (id) => agentsRepo.getById(id),
-    getWorkspaceCwd: () => resolveWorkspaceCwd(settingsRepo.read().workspaceCwd),
+    getAllowedProjectPaths: () => {
+      const cwd = resolveWorkspaceCwd(settingsRepo.read().workspaceCwd);
+      // Task 12 will wire real per-project allowedProjects here; for now fall back to single workspace cwd.
+      return cwd !== "" ? [cwd] : [];
+    },
     onUserDecision: (req, reason) => {
       console.log(
         `[m5/permission] onUserDecision toolUseId=${req.toolUseId} agentId=${req.agentId} tool=${req.toolName} reason=${reason}`,

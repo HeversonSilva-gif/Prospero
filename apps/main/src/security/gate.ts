@@ -7,7 +7,8 @@ export type GateInput = {
   toolName: string;
   toolInput: unknown;
   agent: Agent;
-  workspaceCwd: string;
+  /** List of absolute project root paths the agent is allowed to access. */
+  allowedProjectPaths: string[];
 };
 
 export type GateDecision =
@@ -28,17 +29,20 @@ const extractPathLikeTokens = (cmd: string): string[] => {
   );
 };
 
-const isInsideWorkspace = (path: string, workspace: string): boolean => {
+const isInsideAnyAllowed = (path: string, allowed: string[]): boolean => {
+  if (allowed.length === 0) return false;
   const abs = resolve(expandHome(path));
-  const wsAbs = resolve(workspace);
-  return abs === wsAbs || abs.startsWith(wsAbs + (process.platform === "win32" ? "\\" : "/"));
+  return allowed.some((root) => {
+    const rootAbs = resolve(root);
+    return abs === rootAbs || abs.startsWith(rootAbs + (process.platform === "win32" ? "\\" : "/"));
+  });
 };
 
 const asObject = (v: unknown): Record<string, unknown> =>
   v !== null && typeof v === "object" ? (v as Record<string, unknown>) : {};
 
 export const evaluatePermission = (input: GateInput): GateDecision => {
-  const { toolName, toolInput, agent, workspaceCwd } = input;
+  const { toolName, toolInput, agent, allowedProjectPaths } = input;
   const ti = asObject(toolInput);
 
   if (toolName === "Bash") {
@@ -52,8 +56,8 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
         return { action: "request_user", reason: "always-blocked path in bash arg" };
       }
       if (!isAbsolute(expanded) && !tok.startsWith("..")) continue;
-      if (!isInsideWorkspace(expanded, workspaceCwd)) {
-        return { action: "request_user", reason: `bash path outside workspace: ${tok}` };
+      if (!isInsideAnyAllowed(expanded, allowedProjectPaths)) {
+        return { action: "request_user", reason: `bash path outside any allowed project: ${tok}` };
       }
     }
   } else if (FS_TOOLS.has(toolName)) {
@@ -66,8 +70,8 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
         return { action: "request_user", reason: "always-blocked sensitive path" };
       }
       const abs = resolve(expanded);
-      if (!isInsideWorkspace(abs, workspaceCwd)) {
-        return { action: "deny", reason: "path outside workspace" };
+      if (!isInsideAnyAllowed(abs, allowedProjectPaths)) {
+        return { action: "deny", reason: "path outside allowed projects" };
       }
     }
   }

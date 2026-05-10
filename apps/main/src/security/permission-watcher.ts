@@ -8,7 +8,8 @@ import { evaluatePermission } from "./gate.js";
 export type WatcherOptions = {
   dir: string;
   getAgent: (agentId: string) => Agent | null;
-  getWorkspaceCwd: () => string;
+  /** Returns the list of allowed project root paths for the gate. Task 12 wires the real value. */
+  getAllowedProjectPaths: () => string[];
   onUserDecision: (request: PermissionRequest, reason: string) => void;
   onResolved?: (toolUseId: string, resolution: PermissionResolution) => void;
 };
@@ -51,7 +52,7 @@ export const startPermissionWatcher = (opts: WatcherOptions): (() => Promise<voi
       toolName: body.tool_name,
       toolInput: body.tool_input,
       agent,
-      workspaceCwd: opts.getWorkspaceCwd(),
+      allowedProjectPaths: opts.getAllowedProjectPaths(),
     });
     if (decision.action === "allow") {
       writeFileSync(
