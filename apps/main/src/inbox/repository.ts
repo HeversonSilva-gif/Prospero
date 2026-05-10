@@ -22,6 +22,7 @@ const rowToItem = (r: Row): InboxItem => ({
   actorId: r.actor_id,
   title: r.title,
   preview: r.preview,
+  payloadJson: r.payload_json,
   requiresAction: r.requires_action === 1,
   readAt: r.read_at,
   createdAt: r.created_at,
@@ -34,21 +35,24 @@ export type CreateInboxInput = {
   title: string;
   preview?: string | null;
   requiresAction?: boolean;
+  payloadJson?: string | null;
 };
 
 export type InboxRepository = {
   create(input: CreateInboxInput): InboxItem;
   listByCompany(companyId: string): InboxItem[];
+  markRead(id: string): void;
 };
 
 export const createInboxRepository = (db: Database.Database): InboxRepository => {
   const insert = db.prepare(`
     INSERT INTO inbox_items (id, company_id, kind, actor_id, title, preview, payload_json, requires_action, read_at, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
   `);
   const list = db.prepare(
     "SELECT * FROM inbox_items WHERE company_id = ? ORDER BY created_at DESC",
   );
+  const markReadStmt = db.prepare("UPDATE inbox_items SET read_at = ? WHERE id = ?");
 
   return {
     create(input) {
@@ -61,6 +65,7 @@ export const createInboxRepository = (db: Database.Database): InboxRepository =>
         input.actorId ?? null,
         input.title,
         input.preview ?? null,
+        input.payloadJson ?? null,
         input.requiresAction === true ? 1 : 0,
         now,
       );
@@ -71,6 +76,7 @@ export const createInboxRepository = (db: Database.Database): InboxRepository =>
         actorId: input.actorId ?? null,
         title: input.title,
         preview: input.preview ?? null,
+        payloadJson: input.payloadJson ?? null,
         requiresAction: input.requiresAction === true,
         readAt: null,
         createdAt: now,
@@ -79,6 +85,9 @@ export const createInboxRepository = (db: Database.Database): InboxRepository =>
     listByCompany(companyId) {
       const rows = list.all(companyId) as Row[];
       return rows.map(rowToItem);
+    },
+    markRead(id) {
+      markReadStmt.run(Date.now(), id);
     },
   };
 };
