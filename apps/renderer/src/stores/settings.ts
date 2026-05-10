@@ -12,7 +12,7 @@ type State = {
 };
 
 export const useSettingsStore = create<State>((set) => ({
-  settings: { language: "pt-BR", theme: "light" },
+  settings: { language: "pt-BR", theme: "light", workspaceCwd: null },
   loaded: false,
 
   load: async () => {
