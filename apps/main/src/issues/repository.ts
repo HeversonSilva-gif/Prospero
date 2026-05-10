@@ -207,7 +207,7 @@ export const createIssuesRepository = (db: Database.Database): IssuesRepository 
       return { issue, comments, events, subtasks, toolHistory, assignee, project };
     },
     list(filter) {
-      const clauses = ["company_id = ?"];
+      const clauses = ["company_id = ?", "parent_id IS NULL"];
       const params: unknown[] = [filter.companyId];
       if (filter.projectId !== undefined) {
         clauses.push("project_id = ?");

@@ -180,6 +180,33 @@ describe("issues repository", () => {
     expect(detail!.project?.name).toBe("Web");
   });
 
+  it("list excludes subtasks (parent_id IS NULL)", () => {
+    const { issues, companyId, projectId } = setup();
+    const parent = issues.create({
+      companyId,
+      projectId,
+      title: "Parent",
+      description: null,
+      assigneeId: null,
+      priority: "low",
+      parentId: null,
+      createdBy: null,
+    });
+    issues.create({
+      companyId,
+      projectId,
+      title: "Sub",
+      description: null,
+      assigneeId: null,
+      priority: "low",
+      parentId: parent.id,
+      createdBy: null,
+    });
+    const list = issues.list({ companyId });
+    expect(list).toHaveLength(1);
+    expect(list[0]!.id).toBe(parent.id);
+  });
+
   it("resolveProjectByNameOrId returns id when name matches uniquely", () => {
     const { issues, companyId, projectId } = setup();
     expect(issues.resolveProjectByNameOrId(companyId, "Web")).toEqual({

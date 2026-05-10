@@ -4,6 +4,7 @@ import { applyMigrations } from "../src/db/migrations.js";
 import { createCompaniesRepository } from "../src/companies/repository.js";
 import { createAgentsRepository } from "../src/agents/repository.js";
 import { createProjectsRepository } from "../src/projects/repository.js";
+import { createIssuesRepository } from "../src/issues/repository.js";
 import { toolDefinitions } from "../src/mcp/tools.js";
 
 const setup = () => {
@@ -116,5 +117,33 @@ describe("MCP tools — issues", () => {
     ) as { id: string; status: string };
     expect(status.id).toBe(created.id);
     expect(status.status).toBe("todo");
+  });
+
+  it("update_issue rejects issue from another company", async () => {
+    const { ctx, tool, db } = setup();
+    const otherCompany = createCompaniesRepository(db).create({ name: "Other" });
+    const otherProj = createProjectsRepository(db).create({
+      companyId: otherCompany.id,
+      name: "OtherProj",
+      path: "C:/o",
+      color: "#000",
+    });
+    const otherIssue = createIssuesRepository(db).create({
+      companyId: otherCompany.id,
+      projectId: otherProj.id,
+      title: "X",
+      description: null,
+      assigneeId: null,
+      priority: "low",
+      parentId: null,
+      createdBy: null,
+    });
+    const result = JSON.parse(
+      await (tool("update_issue").run as (i: unknown, c: unknown) => Promise<string>)(
+        { id: otherIssue.id, status: "done" },
+        ctx,
+      ),
+    ) as { ok: boolean; error?: string };
+    expect(result.ok).toBe(false);
   });
 });

@@ -278,6 +278,10 @@ export const toolDefinitions = [
       ctx: ToolContext,
     ): Promise<string> => {
       const issues = createIssuesRepository(ctx.db);
+      const existing = issues.getById(input.id);
+      if (existing === null || existing.companyId !== ctx.companyId) {
+        return JSON.stringify({ ok: false, error: "issue not found" });
+      }
       const patch: Parameters<typeof issues.update>[1] = {};
       if (input.status !== undefined) patch.status = input.status;
       if (input.description !== undefined) patch.description = input.description;
@@ -315,6 +319,16 @@ export const toolDefinitions = [
       ctx: ToolContext,
     ): Promise<string> => {
       const issues = createIssuesRepository(ctx.db);
+      const existing = issues.getById(input.issue_id);
+      if (existing === null || existing.companyId !== ctx.companyId) {
+        return JSON.stringify({ ok: false, error: "issue not found" });
+      }
+      const targetAgent = ctx.db
+        .prepare("SELECT id FROM agents WHERE id = ? AND company_id = ?")
+        .get(input.agent_id, ctx.companyId) as { id: string } | undefined;
+      if (targetAgent === undefined) {
+        return JSON.stringify({ ok: false, error: "agent not found" });
+      }
       const next = issues.update(
         input.issue_id,
         { assigneeId: input.agent_id },
@@ -372,7 +386,8 @@ export const toolDefinitions = [
     run: async (input: { issue_id: string }, ctx: ToolContext): Promise<string> => {
       const issues = createIssuesRepository(ctx.db);
       const i = issues.getById(input.issue_id);
-      if (i === null) return JSON.stringify({ ok: false, error: "not found" });
+      if (i === null || i.companyId !== ctx.companyId)
+        return JSON.stringify({ ok: false, error: "not found" });
       return JSON.stringify({
         id: i.id,
         status: i.status,
