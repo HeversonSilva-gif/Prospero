@@ -4,7 +4,7 @@
 >
 > **Spec base:** [docs/superpowers/specs/2026-05-09-dashboard-agent-design.md](docs/superpowers/specs/2026-05-09-dashboard-agent-design.md)
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
-> **Última atualização:** 2026-05-10 (M5 mergeado — `fbcff14`)
+> **Última atualização:** 2026-05-10 (M5 mergeado — `fbcff14`; Paperclip wishlist tracker adicionado)
 
 ## Status atual
 
@@ -194,6 +194,18 @@ Closing items pra v1 ficar feature-complete contra spec §4.
   - [ ] Auto-restart do main em crash + 5s timeout
   - [ ] Backoff exponencial em rate limit + banner amarelo
   - [ ] Heartbeat do agente (5min timeout → status='error' + inbox + restart button)
+- [ ] **AGENTS.md configurations** (Paperclip wishlist):
+  - [ ] Suporte a `<workspaceCwd>/AGENTS.md` no formato declarativo (front-matter YAML + lista de agents)
+  - [ ] Settings UI: "Import from AGENTS.md" — parseia, lista preview, click "Hire all" cria os agents
+  - [ ] Reverso: "Export AGENTS.md" gera o arquivo a partir dos agents da company atual
+- [ ] **companies.sh import/export** (Paperclip wishlist):
+  - [ ] Settings UI: botão "Export company..." — gera JSON com agents + threads + messages + inbox + projects + issues + costs_log da company selecionada
+  - [ ] Settings UI: botão "Import company..." — file picker, valida shape, INSERT cascade
+  - [ ] Caso de uso: backup, snapshot pré-experimento, share entre instalações
+- [ ] **Agent Reviews UX polish** (Paperclip wishlist + spec §6.4):
+  - [ ] Em `/issues/:id`: aba "Review" com diff/output do agent assignee, botões Approve+merge / Request changes / Reject
+  - [ ] Inline comments no diff
+  - [ ] Status="review" já existe no M6 — esse milestone só polish UX
 
 ---
 
@@ -229,15 +241,60 @@ Detalhes em [project_repo_will_be_public.md](memory).
 
 ---
 
+## Paperclip wishlist tracker
+
+Mapeamento de cada item da wishlist do [Paperclip](https://github.com/paperclipai/paperclip) com nosso status. **Nem tudo do Paperclip é desejado pra nós** — alguns explicitamente fora de escopo (ex: multi-user, cloud deployments).
+
+| Item Paperclip | Status nosso | Onde |
+|---|---|---|
+| **Desktop App** | ✅ Pronto | M1 (Electron) |
+| **CEO Chat** | ✅ Pronto | M3 (chat 1-1) + M5 (multi-agente real) |
+| **Skills Manager** | 🔄 Planejado | M7 (UI cards + drag-drop em /skills + right panel) |
+| **Better Budgeting** | 🔄 Planejado | M8 (token tracking + % Max + por agente/projeto) |
+| **Scheduled Routines** | 🔄 Planejado | v2 (Routines — cron-like recurring tasks) |
+| **Cloud / Sandbox agents** | 🔄 Planejado | v2 (suporte a Cursor, Codex, e2b — adapter pattern) |
+| **Easy AGENTS.md configurations** | 🆕 Candidato v1 | Adicionar a M9 — config file declarativo pra hire-from-file |
+| **companies.sh — import/export** | 🆕 Candidato v1 | Adicionar a M9 — JSON dump+restore via Settings (útil já pra teste e backup user-driven) |
+| **Agent Reviews and Approvals** | 🟡 Parcial | Issue status='review' já existe (M6). Falta UX rica de side-by-side diff + comments inline → débito M9 polish |
+| **Plugin system** | 🆕 v2+ | Knowledge base / custom tracing / queues como sub-features. Big architectural change, v2 mínimo |
+| **Get OpenClaw / claw-style agent employees** | 🆕 v2+ | Marketplace/template-store de agent personas pré-configurados (extensão do `role_templates`) |
+| **Memory / Knowledge** | 🆕 v2+ | Knowledge base por agente (RAG-style). Vector DB ou sqlite-vss. Big new dep + design |
+| **Artifacts & Work Products** | 🆕 v2+ | Tabela `artifacts` pra deliverables (arquivos criados, PRs, snapshots). Distinto de issues |
+| **Enforced Outcomes** | 🆕 v2+ | Garantia de "tests passam", "compile OK" antes de marcar issue=done. Integra com CI/build |
+| **Deep Planning** | 🆕 v2+ | Plan-mode estendido (claude já tem `--permission-mode plan`). Ritual de plan-then-execute com aprovação intermediária |
+| **MAXIMIZER MODE** | 🆕 v2+ | Aggressive auto mode com fewer constraints. Cuidado com regra dura de tokens — provavelmente exclude de Max OAuth, exige API key opcional |
+| **Work Queues** | 🆕 v2+ | Queue-based task processing (distinto de issues — issues = formal tickets, queues = continuous stream). Aproveita a router FIFO já existente |
+| **Self-Organization** | 🆕 v3+ | Agentes reorganizando hierarquia entre si (hire/fire dinâmico baseado em workload). Avançado |
+| **Automatic Organizational Learning** | 🆕 v3+ | Meta-feature: agentes aprendem de history (cross-agent patterns, recurring failures). Avançado |
+| **Multiple Human Users** | ❌ Out-of-scope | Single-user explícito por ToS Anthropic Max. Não fazer |
+| **Cloud deployments** | ❌ Out-of-scope | Spec é local-only. Memory `project_dashboardagent.md` reforça |
+
+**Como decidir incluir ou não no v1:**
+- Item marca o produto como "diferenciado" do CEO Chat puro? → considerar pra v1
+- Item é pré-requisito pra outra feature já planejada? → mover pra milestone correspondente
+- Item é nice-to-have sem alterar core flow? → v2+
+
+---
+
 ## v2+ (fora do v1)
 
 Tudo daqui pra baixo é post-v1. Listado pra não esquecer:
 
-- **Routines** — tasks recorrentes (cron-like) atribuídas a agentes
+- **Routines** — tasks recorrentes (cron-like) atribuídas a agentes (Paperclip: "Scheduled Routines")
 - **Goals** — objetivos longos que se decompõem em issues
 - **Activity Log audit-grade** — log estruturado de tudo que cada agente fez
 - **"New Issue" hotkey global** — atalho de teclado mesmo com app não focado
-- **Suporte a outros agents** — Cursor, Codex, custom CLI agents
+- **Suporte a outros agents** — Cursor, Codex, custom CLI agents (Paperclip: "Cloud / Sandbox agents")
+- **Plugin system** — extensions architecture (knowledge base, tracing, queues)
+- **OpenClaw-style template marketplace** — agent personas compartilhados
+- **Memory / Knowledge base** — RAG por agente (vector DB)
+- **Artifacts & Work Products** — tracking de deliverables
+- **Enforced Outcomes** — garantias pré-merge (tests/build)
+- **Deep Planning mode** — plan-then-execute ritual
+- **MAXIMIZER MODE** — aggressive auto (talvez requer API key opcional)
+- **Work Queues** — continuous-stream task processing
+- **Self-Organization** — agentes reorganizam hierarquia
+- **Automatic Organizational Learning** — meta-learning cross-agent
 - **CSP restritivo no renderer** se ainda em débito
 - **Auto-update via rede** com signatura/notarização
 - **Telemetria opcional** (default OFF, opt-in, sem conteúdo de mensagens)
