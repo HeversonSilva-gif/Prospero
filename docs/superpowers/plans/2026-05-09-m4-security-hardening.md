@@ -62,7 +62,7 @@ Recomendação: (a) por enquanto, (b) quando/se mudarmos transport.
 
 **Resolução (2026-05-10):** opção (a) aplicada. `apps/main/src/mcp/auth.ts` deletado, chamada removida do server, env `MCP_TOKEN` retirado de `SpawnEnv` e `mcp-config`. Comentário no `server.ts` agora documenta explicitamente que stdio MCP é pipe privado pai-filho — sem auth aplicacional necessário enquanto não mudarmos transport.
 
-### SEC-03 (BAIXO): Email pessoal em git history
+### SEC-03 (BAIXO): Email pessoal em git history — ✅ CORRIGIDO (2026-05-10)
 
 **Onde:** commit `419239276ab71d293673207c61b1430a562da15b` ("chore(gitleaks): allow placeholder tokens in design docs")
 
@@ -74,7 +74,9 @@ Recomendação: (a) por enquanto, (b) quando/se mudarmos transport.
 - Se nunca for público: deixar como está, commitar a remoção do working tree.
 - Se for público: rewrite de história com `git filter-repo --replace-text replacements.txt` onde `replacements.txt` contém uma linha mapeando o email pessoal para `REDACTED`. Único commit afetado = `4192392`. Rewrite é seguro porque não há remote ainda. **NÃO USAR `--no-verify`** ao recommitar.
 
-### SEC-04 (BAIXO/INFO): Author email pessoal em todos os commits
+**Resolução (2026-05-10):** repo confirmado como vai-virar-público. Aplicado `git filter-repo --replace-text` substituindo `<email-redacted>` → `REDACTED` em todos os blobs históricos. Validado: `git log --all -S "<email-redacted>"` retorna vazio. Commit afetado renumerado (era `4192392`, agora `8bf5462` na nova história).
+
+### SEC-04 (BAIXO/INFO): Author email pessoal em todos os commits — ✅ CORRIGIDO (2026-05-10)
 
 **Onde:** metadata de autor/committer de todos os commits do branch.
 
@@ -84,6 +86,8 @@ Recomendação: (a) por enquanto, (b) quando/se mudarmos transport.
 1. `git config user.email "<github-user-id>+<github-username>@users.noreply.github.com"` (achar o numeric user id em `https://api.github.com/users/<github-username>`).
 2. Reescrever histórico via `git filter-repo --email-callback` substituindo o email antigo pelo noreply.
 3. Repetir antes do primeiro push.
+
+**Resolução (2026-05-10):** numeric id obtido via `https://api.github.com/users/HeversonSilva-gif` = `202877675`. Aplicado `git filter-repo --mailmap` substituindo `<email-redacted>` → `202877675+HeversonSilva-gif@users.noreply.github.com` em author + committer de TODOS os commits (executado junto com SEC-03 num único pass). Local repo `git config user.email` atualizado pro noreply (global preservado). Validado: único email em `git log --format="%ae"` é o noreply. Branch backup `pre-filter-repo-backup` mantida pelo prazo do reflog (~30 dias) caso precise reverter.
 
 ### SEC-05 (BAIXO): Google Fonts externo no renderer — ✅ CORRIGIDO (2026-05-10)
 
@@ -106,6 +110,6 @@ Recomendação: (a) por enquanto, (b) quando/se mudarmos transport.
 
 - [x] SEC-01 corrigido com testes verdes em `ipc.auth-handlers.test.ts` (regression-guard valida que raw token nunca está na resposta).
 - [x] SEC-02 resolvido (removido — opção (a)).
-- [ ] SEC-03 e SEC-04 decididos antes do primeiro push (se for público, rewrite executado).
+- [x] SEC-03 e SEC-04 resolvidos — rewrite com `git filter-repo` aplicado, autor uniformemente trocado pro noreply, email pessoal removido de todos os blobs.
 - [x] SEC-05 fechado — Poppins bundleada via `@fontsource/poppins`, CSP apertado.
 - [ ] Suite gitleaks roda local + CI sem novos achados.
