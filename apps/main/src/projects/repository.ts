@@ -1,0 +1,95 @@
+import type Database from "better-sqlite3";
+import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
+import type { Project, ProjectPathStatus } from "@dashboard-agent/shared";
+
+type Row = {
+  id: string;
+  company_id: string;
+  name: string;
+  path: string;
+  color: string;
+  created_at: number;
+};
+
+const rowToProject = (r: Row): Project => ({
+  id: r.id,
+  companyId: r.company_id,
+  name: r.name,
+  path: r.path,
+  color: r.color,
+  createdAt: r.created_at,
+});
+
+export type CreateProjectInput = {
+  companyId: string;
+  name: string;
+  path: string;
+  color: string;
+};
+
+export type UpdateProjectInput = {
+  name?: string;
+  path?: string;
+  color?: string;
+};
+
+export type ProjectsRepository = {
+  create(input: CreateProjectInput): Project;
+  getById(id: string): Project | null;
+  listByCompany(companyId: string): Project[];
+  update(id: string, patch: UpdateProjectInput): Project | null;
+  delete(id: string): void;
+  checkPaths(companyId: string): Record<string, ProjectPathStatus>;
+};
+
+export const createProjectsRepository = (db: Database.Database): ProjectsRepository => {
+  const insert = db.prepare(
+    "INSERT INTO projects (id, company_id, name, path, color, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+  );
+  const byId = db.prepare("SELECT * FROM projects WHERE id = ?");
+  const byCompany = db.prepare(
+    "SELECT * FROM projects WHERE company_id = ? ORDER BY created_at ASC",
+  );
+  const del = db.prepare("DELETE FROM projects WHERE id = ?");
+
+  return {
+    create(input) {
+      const id = `proj_${randomUUID()}`;
+      insert.run(id, input.companyId, input.name, input.path, input.color, Date.now());
+      return rowToProject(byId.get(id) as Row);
+    },
+    getById(id) {
+      const row = byId.get(id) as Row | undefined;
+      return row ? rowToProject(row) : null;
+    },
+    listByCompany(companyId) {
+      return (byCompany.all(companyId) as Row[]).map(rowToProject);
+    },
+    update(id, patch) {
+      const current = byId.get(id) as Row | undefined;
+      if (current === undefined) return null;
+      const next = {
+        name: patch.name ?? current.name,
+        path: patch.path ?? current.path,
+        color: patch.color ?? current.color,
+      };
+      db.prepare("UPDATE projects SET name = ?, path = ?, color = ? WHERE id = ?").run(
+        next.name,
+        next.path,
+        next.color,
+        id,
+      );
+      return rowToProject(byId.get(id) as Row);
+    },
+    delete(id) {
+      del.run(id);
+    },
+    checkPaths(companyId) {
+      const rows = byCompany.all(companyId) as Row[];
+      const out: Record<string, ProjectPathStatus> = {};
+      for (const r of rows) out[r.id] = existsSync(r.path) ? "available" : "missing";
+      return out;
+    },
+  };
+};

@@ -6,3 +6,4 @@ export * from "./company.js";
 export * from "./message.js";
 export * from "./inbox.js";
 export * from "./permission.js";
+export * from "./project.js";
