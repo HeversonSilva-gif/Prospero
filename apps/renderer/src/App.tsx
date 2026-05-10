@@ -14,6 +14,8 @@ import { Agent as AgentRoute } from "./routes/Agent.js";
 import { Inbox } from "./routes/Inbox.js";
 import { Projects } from "./routes/Projects.js";
 import { useProjectsStore } from "./stores/projects.js";
+import { Issues } from "./routes/Issues.js";
+import { useIssuesStore } from "./stores/issues.js";
 import { SidebarFooter } from "./components/SidebarFooter.js";
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
@@ -60,6 +62,14 @@ const Sidebar = () => {
           }
         >
           {t("nav.projects")}
+        </NavLink>
+        <NavLink
+          to="/issues"
+          className={({ isActive }) =>
+            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
+          }
+        >
+          {t("nav.issues")}
         </NavLink>
         <NavLink
           to="/settings"
@@ -135,6 +145,7 @@ export const App = () => {
         await loadAgents(cid);
         await loadInbox(cid);
         await useProjectsStore.getState().load(cid);
+        await useIssuesStore.getState().load(cid);
       }
     })();
   }, [hasToken, loadAgents, loadInbox]);
@@ -219,6 +230,18 @@ export const App = () => {
             hasToken ? (
               <Layout>
                 <Projects />
+              </Layout>
+            ) : (
+              <Navigate to="/setup" replace />
+            )
+          }
+        />
+        <Route
+          path="/issues"
+          element={
+            hasToken ? (
+              <Layout>
+                <Issues />
               </Layout>
             ) : (
               <Navigate to="/setup" replace />
