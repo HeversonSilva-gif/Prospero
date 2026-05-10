@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
+import { createIssuesRepository } from "../issues/repository.js";
 
 export type ToolContext = {
   agentId: string;
@@ -140,18 +141,47 @@ export const toolDefinitions = [
   },
   {
     name: "create_issue",
-    description: "Create a new issue assigned to an agent.",
+    description: "Create a new issue. project may be a project ID or a project name.",
     inputSchema: z.object({
       project: z.string(),
-      title: z.string(),
+      title: z.string().min(1),
       description: z.string().optional(),
       assignee: z.string().optional(),
       priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+      parent_id: z.string().optional(),
     }),
     // eslint-disable-next-line @typescript-eslint/require-await
-    run: async (input: unknown, ctx: ToolContext): Promise<string> => {
-      ctx.emit({ kind: "create_issue.called", payload: input });
-      return JSON.stringify({ ok: true, mocked: true, would_create: input });
+    run: async (
+      input: {
+        project: string;
+        title: string;
+        description?: string;
+        assignee?: string;
+        priority?: "low" | "medium" | "high" | "urgent";
+        parent_id?: string;
+      },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const issues = createIssuesRepository(ctx.db);
+      const lookup = issues.resolveProjectByNameOrId(ctx.companyId, input.project);
+      if (lookup.matches === 0) return JSON.stringify({ ok: false, error: "project not found" });
+      if (lookup.matches > 1)
+        return JSON.stringify({ ok: false, error: "multiple projects match" });
+      const created = issues.create(
+        {
+          companyId: ctx.companyId,
+          projectId: lookup.id,
+          title: input.title,
+          description: input.description ?? null,
+          assigneeId: input.assignee ?? null,
+          priority: input.priority ?? "medium",
+          parentId: input.parent_id ?? null,
+          createdBy: ctx.agentId,
+        },
+        { actorKind: "agent", actorId: ctx.agentId },
+      );
+      ctx.emit({ kind: "issue.created", payload: { issueId: created.id } });
+      return JSON.stringify({ id: created.id, title: created.title });
     },
   },
   {
@@ -222,6 +252,133 @@ export const toolDefinitions = [
         requiresAction: input.requires_action ?? false,
       });
       return JSON.stringify({ ok: true });
+    },
+  },
+  {
+    name: "update_issue",
+    description: "Update fields of an issue. Status 'done' notifies the user via Inbox.",
+    inputSchema: z.object({
+      id: z.string(),
+      status: z.enum(["backlog", "todo", "doing", "review", "done", "cancelled"]).optional(),
+      description: z.string().optional(),
+      title: z.string().optional(),
+      assignee: z.string().optional(),
+      priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+    }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (
+      input: {
+        id: string;
+        status?: "backlog" | "todo" | "doing" | "review" | "done" | "cancelled";
+        description?: string;
+        title?: string;
+        assignee?: string;
+        priority?: "low" | "medium" | "high" | "urgent";
+      },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const issues = createIssuesRepository(ctx.db);
+      const patch: Parameters<typeof issues.update>[1] = {};
+      if (input.status !== undefined) patch.status = input.status;
+      if (input.description !== undefined) patch.description = input.description;
+      if (input.title !== undefined) patch.title = input.title;
+      if (input.assignee !== undefined) patch.assigneeId = input.assignee;
+      if (input.priority !== undefined) patch.priority = input.priority;
+      const next = issues.update(input.id, patch, { actorKind: "agent", actorId: ctx.agentId });
+      if (next === null) return JSON.stringify({ ok: false, error: "issue not found" });
+      if (input.status === "done") {
+        const inbox = createInboxRepository(ctx.db);
+        const caller = ctx.db.prepare("SELECT name FROM agents WHERE id = ?").get(ctx.agentId) as
+          | { name: string }
+          | undefined;
+        inbox.create({
+          companyId: ctx.companyId,
+          kind: "completed",
+          actorId: ctx.agentId,
+          title: `${next.title} — done`,
+          preview: caller !== undefined ? `marked done by ${caller.name}` : null,
+          requiresAction: false,
+          payloadJson: JSON.stringify({ issueId: next.id, byAgent: caller?.name ?? null }),
+        });
+      }
+      ctx.emit({ kind: "issue.updated", payload: { issueId: next.id } });
+      return JSON.stringify({ id: next.id, status: next.status });
+    },
+  },
+  {
+    name: "assign_issue",
+    description: "Assign an issue to an agent.",
+    inputSchema: z.object({ issue_id: z.string(), agent_id: z.string() }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (
+      input: { issue_id: string; agent_id: string },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const issues = createIssuesRepository(ctx.db);
+      const next = issues.update(
+        input.issue_id,
+        { assigneeId: input.agent_id },
+        { actorKind: "agent", actorId: ctx.agentId },
+      );
+      if (next === null) return JSON.stringify({ ok: false, error: "issue not found" });
+      ctx.emit({ kind: "issue.updated", payload: { issueId: next.id } });
+      return JSON.stringify({ id: next.id, assignee: next.assigneeId });
+    },
+  },
+  {
+    name: "list_issues",
+    description: "List issues with optional filters (project, status, assignee).",
+    inputSchema: z.object({
+      project: z.string().optional(),
+      status: z.enum(["backlog", "todo", "doing", "review", "done", "cancelled"]).optional(),
+      assignee: z.string().optional(),
+    }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (
+      input: {
+        project?: string;
+        status?: "backlog" | "todo" | "doing" | "review" | "done" | "cancelled";
+        assignee?: string;
+      },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const issues = createIssuesRepository(ctx.db);
+      const filter: Parameters<typeof issues.list>[0] = { companyId: ctx.companyId };
+      if (input.project !== undefined) {
+        const lookup = issues.resolveProjectByNameOrId(ctx.companyId, input.project);
+        if (lookup.matches !== 1)
+          return JSON.stringify({ ok: false, error: "project lookup failed" });
+        filter.projectId = lookup.id;
+      }
+      if (input.status !== undefined) filter.status = input.status;
+      if (input.assignee !== undefined) filter.assigneeId = input.assignee;
+      const list = issues.list(filter);
+      return JSON.stringify({
+        issues: list.map((i) => ({
+          id: i.id,
+          title: i.title,
+          status: i.status,
+          assignee: i.assigneeId,
+          priority: i.priority,
+        })),
+      });
+    },
+  },
+  {
+    name: "check_status",
+    description: "Get current status of an issue.",
+    inputSchema: z.object({ issue_id: z.string() }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (input: { issue_id: string }, ctx: ToolContext): Promise<string> => {
+      const issues = createIssuesRepository(ctx.db);
+      const i = issues.getById(input.issue_id);
+      if (i === null) return JSON.stringify({ ok: false, error: "not found" });
+      return JSON.stringify({
+        id: i.id,
+        status: i.status,
+        assignee: i.assigneeId,
+        updated_at: i.updatedAt,
+      });
     },
   },
   {
