@@ -7,6 +7,7 @@ export type InboxItem = {
   actorId: string | null;
   title: string;
   preview: string | null;
+  payloadJson: string | null;
   requiresAction: boolean;
   readAt: number | null;
   createdAt: number;

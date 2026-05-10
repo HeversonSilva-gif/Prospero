@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../stores/auth.js";
+import { useSettingsStore } from "../stores/settings.js";
 
 export const Settings = () => {
   const { t } = useTranslation();
+  const workspaceCwd = useSettingsStore((s) => s.settings.workspaceCwd);
+  const pickAndSetWorkspace = useSettingsStore((s) => s.pickAndSetWorkspace);
   const status = useAuthStore((s) => s.status);
   const setToken = useAuthStore((s) => s.setToken);
   const clearToken = useAuthStore((s) => s.clearToken);
@@ -71,6 +74,31 @@ export const Settings = () => {
             </button>
           </div>
         )}
+      </section>
+
+      <section className="bg-surface-card border border-surface-border rounded-lg p-5 mb-4">
+        <h2 className="text-base font-semibold text-brand-dark mb-3">
+          {t("settings.workspaceFolder")}
+        </h2>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={workspaceCwd ?? ""}
+              readOnly
+              placeholder="~/DashboardAgent-Workspace"
+              className="flex-1 px-3 py-2 bg-surface-soft border border-surface-border rounded text-sm font-mono"
+            />
+            <button
+              onClick={() => void pickAndSetWorkspace()}
+              className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded"
+              type="button"
+            >
+              {t("settings.workspaceFolderBrowse")}
+            </button>
+          </div>
+          <p className="text-xs text-ink-muted">{t("settings.workspaceFolderHint")}</p>
+        </div>
       </section>
     </div>
   );

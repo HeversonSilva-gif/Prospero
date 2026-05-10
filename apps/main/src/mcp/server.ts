@@ -1,6 +1,7 @@
 // Spawned as a child by claude CLI. stderr is forwarded as JSONL events to parent.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import Database from "better-sqlite3";
 import { toolDefinitions, type ToolContext } from "./tools.js";
 
 const agentId = process.env["AGENT_ID"];
@@ -16,9 +17,26 @@ if (agentId === undefined || companyId === undefined) {
   process.exit(1);
 }
 
+const dbPath = process.env["DB_PATH"];
+const permissionsDir = process.env["PERMISSIONS_DIR"];
+if (dbPath === undefined || permissionsDir === undefined) {
+  process.stderr.write(
+    JSON.stringify({
+      kind: "mcp.fatal",
+      error: "MCP server requires DB_PATH and PERMISSIONS_DIR env vars",
+    }) + "\n",
+  );
+  process.exit(1);
+}
+
+const db = new Database(dbPath);
+db.pragma("journal_mode = WAL");
+
 const ctx: ToolContext = {
   agentId,
   companyId,
+  db,
+  permissionsDir,
   emit: (event) => {
     process.stderr.write(JSON.stringify({ ...event, agentId, companyId }) + "\n");
   },

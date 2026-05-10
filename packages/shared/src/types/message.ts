@@ -35,4 +35,5 @@ export type AgentEvent =
       result: string;
       error?: string;
     }
-  | { kind: "error"; agentId: string; message: string };
+  | { kind: "error"; agentId: string; message: string }
+  | { kind: "roster-changed"; companyId: string };

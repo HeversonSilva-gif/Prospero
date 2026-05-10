@@ -9,6 +9,9 @@ import {
   type AgentEvent,
   type Company,
   type Message,
+  type InboxItem,
+  type PermissionResolution,
+  type PermissionRequest,
 } from "@dashboard-agent/shared";
 
 contextBridge.exposeInMainWorld("dashboardAgent", {
@@ -17,6 +20,7 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
     get: () => ipcRenderer.invoke(IPC.SETTINGS_GET) as Promise<AppSettings>,
     update: (patch: Partial<AppSettings>) =>
       ipcRenderer.invoke(IPC.SETTINGS_UPDATE, patch) as Promise<AppSettings>,
+    pickWorkspace: () => ipcRenderer.invoke(IPC.SETTINGS_PICK_WORKSPACE) as Promise<string | null>,
   },
   auth: {
     status: () => ipcRenderer.invoke(IPC.AUTH_TOKEN_STATUS) as Promise<TokenStatus>,
@@ -46,5 +50,26 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
   messages: {
     list: (companyId: string, participants: string[]) =>
       ipcRenderer.invoke(IPC.MESSAGE_LIST, { companyId, participants }) as Promise<Message[]>,
+    listByAgent: (agentId: string) =>
+      ipcRenderer.invoke(IPC.MESSAGE_LIST_BY_AGENT, { agentId }) as Promise<Message[]>,
+  },
+  inbox: {
+    list: (companyId: string) =>
+      ipcRenderer.invoke(IPC.INBOX_LIST, { companyId }) as Promise<InboxItem[]>,
+    markRead: (id: string) => ipcRenderer.invoke(IPC.INBOX_MARK_READ, { id }) as Promise<void>,
+    onUpdate: (cb: () => void) => {
+      const handler = () => cb();
+      ipcRenderer.on(IPC.INBOX_UPDATE, handler);
+      return () => ipcRenderer.removeListener(IPC.INBOX_UPDATE, handler);
+    },
+  },
+  permissions: {
+    resolve: (toolUseId: string, resolution: PermissionResolution) =>
+      ipcRenderer.invoke(IPC.PERMISSION_RESOLVE, { toolUseId, resolution }) as Promise<void>,
+    onRequest: (cb: (req: PermissionRequest) => void) => {
+      const handler = (_e: unknown, req: PermissionRequest) => cb(req);
+      ipcRenderer.on(IPC.PERMISSION_REQUEST, handler);
+      return () => ipcRenderer.removeListener(IPC.PERMISSION_REQUEST, handler);
+    },
   },
 });

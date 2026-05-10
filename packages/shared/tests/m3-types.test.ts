@@ -63,6 +63,7 @@ describe("m3 types and channels", () => {
       actorId: null,
       title: "done",
       preview: null,
+      payloadJson: null,
       requiresAction: false,
       readAt: null,
       createdAt: 1,

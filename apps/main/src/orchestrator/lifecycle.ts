@@ -3,7 +3,15 @@ import crossSpawn from "cross-spawn";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve, join } from "node:path";
-import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import {
+  appendFileSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import type { Agent } from "@dashboard-agent/shared";
 import { parseStreamLine, type ParsedEvent } from "./stream-parser.js";
@@ -85,6 +93,10 @@ export type SpawnOptions = {
    * When omitted (tests / non-Electron callers), falls back to an ephemeral mkdtemp dir.
    */
   userDataDir?: string;
+  /** Absolute path to the SQLite database file — forwarded to the MCP child process. */
+  dbPath: string;
+  /** Absolute path to the permissions directory — forwarded to the MCP child process. */
+  permissionsDir: string;
 };
 
 // Internal helper that builds the args (factored out so tests can verify args without spawn)
@@ -112,6 +124,14 @@ export const buildClaudeArgs = (agent: Agent, mcpConfigPath: string): string[] =
     "--mcp-config",
     mcpConfigPath,
     "--strict-mcp-config",
+    // Permission gating is configured via per-agent CLAUDE_CONFIG_DIR/settings.json
+    // (written in spawnAgent before this CLI invokes). Settings allow our MCP
+    // orchestration tools and ask for filesystem tools. The --permission-prompt-tool
+    // is the route claude uses to ask in non-interactive stream-json mode.
+    "--permission-mode",
+    "default",
+    "--permission-prompt-tool",
+    "mcp__dashboard__request_permission",
   ];
   if (agent.claudeSessionId !== null) {
     args.push("--resume", agent.claudeSessionId);
@@ -139,6 +159,16 @@ export const activeRunnerCount = (): number => {
   return count;
 };
 
+export type EnsureRunnerOptions = SpawnOptions;
+
+export const ensureRunner = (opts: EnsureRunnerOptions, cb: RunnerCallbacks): AgentRunner => {
+  const existing = getRunner(opts.agent.id);
+  if (existing !== undefined && existing.isAlive()) return existing;
+  const r = spawnAgent(opts, cb);
+  registerRunner(r);
+  return r;
+};
+
 export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner => {
   if (activeRunnerCount() >= MAX_CONCURRENT_AGENTS) {
     throw new Error(
@@ -146,7 +176,12 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
     );
   }
 
-  const env: SpawnEnv = buildSpawnEnv(opts.agent, opts.oauthToken);
+  const env: SpawnEnv = buildSpawnEnv(
+    opts.agent,
+    opts.oauthToken,
+    opts.dbPath,
+    opts.permissionsDir,
+  );
   // tsup bundles src/index.ts → dist/index.js (single file, splitting:false), so at
   // runtime __dirname resolves to dist/, not dist/orchestrator/. The MCP server is a
   // separate entry → dist/mcp/server.js. Resolve relative to dist/, not the source layout.
@@ -186,6 +221,32 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
     } catch (e) {
       dlog(`WARN: could not copy host credentials to sandbox: ${(e as Error).message}`);
     }
+  }
+
+  // Per-agent settings.json: route filesystem tools through --permission-prompt-tool
+  // (ask) and pre-allow our orchestration MCP tools (allow). Required because in
+  // stream-json non-interactive mode, --permission-prompt-tool only fires when claude
+  // is told to ask via permissions config, not by default.
+  const settingsPath = join(agentConfigDir, "settings.json");
+  const settingsContent = {
+    permissions: {
+      ask: ["Bash", "Edit", "Write", "Read", "Glob", "Grep", "MultiEdit", "NotebookEdit"],
+      allow: [
+        "mcp__dashboard__list_agents",
+        "mcp__dashboard__hire_agent",
+        "mcp__dashboard__fire_agent",
+        "mcp__dashboard__message_agent",
+        "mcp__dashboard__notify_user",
+        "mcp__dashboard__create_issue",
+        "mcp__dashboard__read_thread",
+        "mcp__dashboard__request_permission",
+      ],
+    },
+  };
+  try {
+    writeFileSync(settingsPath, JSON.stringify(settingsContent, null, 2), "utf8");
+  } catch (e) {
+    dlog(`WARN: could not write sandbox settings.json: ${(e as Error).message}`);
   }
   const spawnEnv: NodeJS.ProcessEnv = {
     ...process.env,

@@ -12,19 +12,19 @@ const setup = () => {
 describe("settings repository", () => {
   it("returns defaults on empty db", () => {
     const { repo } = setup();
-    expect(repo.read()).toEqual({ language: "pt-BR", theme: "light" });
+    expect(repo.read()).toEqual({ language: "pt-BR", theme: "light", workspaceCwd: null });
   });
 
   it("persists a single field via write()", () => {
     const { repo } = setup();
     repo.write({ theme: "dark" });
-    expect(repo.read()).toEqual({ language: "pt-BR", theme: "dark" });
+    expect(repo.read()).toEqual({ language: "pt-BR", theme: "dark", workspaceCwd: null });
   });
 
   it("persists multiple fields", () => {
     const { repo } = setup();
     repo.write({ language: "en-US", theme: "dark" });
-    expect(repo.read()).toEqual({ language: "en-US", theme: "dark" });
+    expect(repo.read()).toEqual({ language: "en-US", theme: "dark", workspaceCwd: null });
   });
 
   it("ignores invalid values silently", () => {

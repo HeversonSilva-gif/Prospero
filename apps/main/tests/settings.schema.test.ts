@@ -17,17 +17,46 @@ describe("settings schema", () => {
   });
 
   it("parseSettings fills defaults for missing fields", () => {
-    expect(parseSettings({})).toEqual({ language: "pt-BR", theme: "light" });
+    expect(parseSettings({})).toEqual({ language: "pt-BR", theme: "light", workspaceCwd: null });
   });
 
   it("parseSettings preserves valid partial input", () => {
-    expect(parseSettings({ theme: "dark" })).toEqual({ language: "pt-BR", theme: "dark" });
+    expect(parseSettings({ theme: "dark" })).toEqual({
+      language: "pt-BR",
+      theme: "dark",
+      workspaceCwd: null,
+    });
   });
 
   it("parseSettings drops unknown keys", () => {
     expect(parseSettings({ language: "en-US", garbage: "ignored" })).toEqual({
       language: "en-US",
       theme: "light",
+      workspaceCwd: null,
     });
+  });
+
+  it("accepts workspaceCwd null", () => {
+    const result = AppSettingsSchema.safeParse({
+      language: "pt-BR",
+      theme: "light",
+      workspaceCwd: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts workspaceCwd absolute path string", () => {
+    const result = AppSettingsSchema.safeParse({
+      language: "pt-BR",
+      theme: "light",
+      workspaceCwd: "C:\\Workspace",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("parseSettings backwards-compat: missing workspaceCwd defaults to null", () => {
+    const merged = parseSettings({ language: "en-US", theme: "dark" });
+    expect(merged.workspaceCwd).toBe(null);
+    expect(merged.language).toBe("en-US");
   });
 });

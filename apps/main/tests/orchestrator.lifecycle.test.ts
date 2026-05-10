@@ -47,6 +47,13 @@ describe("buildClaudeArgs", () => {
     expect(args).toContain("/tmp/mcp.json");
   });
 
+  it("wires --permission-prompt-tool to dashboard.request_permission (M5 §6.1)", () => {
+    const args = buildClaudeArgs(baseAgent, "/tmp/mcp.json");
+    const idx = args.indexOf("--permission-prompt-tool");
+    expect(idx).toBeGreaterThan(-1);
+    expect(args[idx + 1]).toBe("mcp__dashboard__request_permission");
+  });
+
   it("includes --strict-mcp-config to enforce sandbox (regression guard)", () => {
     // Without this flag, the spawned claude inherits the user's globally-configured MCP
     // servers (Slack, Drive, etc.) — sandbox break. Combined with CLAUDE_CONFIG_DIR

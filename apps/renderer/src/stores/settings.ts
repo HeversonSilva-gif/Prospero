@@ -9,10 +9,12 @@ type State = {
   load: () => Promise<void>;
   setLanguage: (lang: Language) => Promise<void>;
   setTheme: (theme: Theme) => Promise<void>;
+  setWorkspaceCwd: (path: string | null) => Promise<void>;
+  pickAndSetWorkspace: () => Promise<void>;
 };
 
 export const useSettingsStore = create<State>((set) => ({
-  settings: { language: "pt-BR", theme: "light" },
+  settings: { language: "pt-BR", theme: "light", workspaceCwd: null },
   loaded: false,
 
   load: async () => {
@@ -31,6 +33,18 @@ export const useSettingsStore = create<State>((set) => ({
   setTheme: async (theme) => {
     const next = await window.dashboardAgent.settings.update({ theme });
     applyTheme(next.theme);
+    set({ settings: next });
+  },
+
+  setWorkspaceCwd: async (path) => {
+    const next = await window.dashboardAgent.settings.update({ workspaceCwd: path });
+    set({ settings: next });
+  },
+
+  pickAndSetWorkspace: async () => {
+    const picked = await window.dashboardAgent.settings.pickWorkspace();
+    if (picked === null) return;
+    const next = await window.dashboardAgent.settings.update({ workspaceCwd: picked });
     set({ settings: next });
   },
 }));

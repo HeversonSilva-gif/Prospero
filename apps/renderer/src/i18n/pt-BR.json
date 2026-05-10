@@ -4,6 +4,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "inbox": "Inbox",
     "settings": "Configurações",
     "agents": "Agentes"
   },
@@ -32,7 +33,10 @@
     "auth.actionSet": "Salvar token",
     "auth.actionClear": "Remover token",
     "auth.tokenLabel": "Cole o token aqui",
-    "auth.tokenInvalid": "Token inválido. Esperado formato sk-ant-oat-..."
+    "auth.tokenInvalid": "Token inválido. Esperado formato sk-ant-oat-...",
+    "workspaceFolder": "Pasta de Trabalho",
+    "workspaceFolderHint": "Onde os agentes vão executar comandos. Padrão: ~/DashboardAgent-Workspace",
+    "workspaceFolderBrowse": "Selecionar..."
   },
   "wizard": {
     "title": "Bem-vindo ao Dashboard Agent",
@@ -54,6 +58,26 @@
     "autoCancel": "Cancelar",
     "back": "Voltar",
     "skipForNow": "Continuar sem token (não recomendado)"
+  },
+  "inbox": {
+    "title": "Inbox",
+    "empty": "Inbox vazia.",
+    "approve": "Aprovar",
+    "reject": "Rejeitar",
+    "markRead": "Marcar como lido",
+    "filter": {
+      "all": "Todos",
+      "approval": "Aprovações",
+      "completed": "Concluídos",
+      "suggestion": "Sugestões",
+      "error": "Erros",
+      "security_alert": "Segurança"
+    }
+  },
+  "approval": {
+    "approve": "Aprovar",
+    "reject": "Rejeitar",
+    "toolCall": "Aprovar uso de {{name}}?"
   },
   "common": {
     "save": "Salvar",

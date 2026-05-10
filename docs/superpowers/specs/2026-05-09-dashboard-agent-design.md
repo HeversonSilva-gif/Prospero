@@ -365,6 +365,8 @@ Segurança é prioridade dura. Os agentes têm acesso a Bash/Edit/Write na máqu
 - **Bash**: tokenização do comando + heurística estática rejeita acessos a paths sensíveis (`~/.claude/`, `~/.ssh/`, `%APPDATA%\Microsoft\Credentials`, `*.credentials.json`). Comandos com `cd` que escapam são reescritos ou rejeitados.
 - **Working directory**: agente sempre roda com `--cwd` num projeto permitido. Não confia só no `--cwd`; reforça em cada tool call.
 
+> **Em milestones anteriores ao Projects CRUD (M5..M5.x):** o allowlist é o `settings.workspaceCwd` único — todos os agentes da company compartilham este root. Quando Projects CRUD aterriza (M6), migra-se para `agents.allowed_projects_json` resolvido via `projects.path` por agente.
+
 ### 8.3 Lista de comandos sempre-bloqueados
 
 Mesmo em modo `auto`, comandos abaixo **sempre** exigem aprovação (não bypass):
@@ -381,12 +383,13 @@ Mesmo em modo `auto`, comandos abaixo **sempre** exigem aprovação (não bypass
 - **Auto degradado para Bash**: opção (default ligado) "agente em auto ainda confirma Bash". Reduz risco mantendo eficiência em Read/Write/Edit.
 - Modo auto **expira**: 24h de auto sem interação humana → sistema volta pra supervised automaticamente. Reativa-se com 1 click.
 
-### 8.5 MCP server local autenticado
+### 8.5 MCP server local
 
-- MCP server NÃO é simplesmente loopback aberto.
-- Cada agente spawnado recebe um **token efêmero** (UUID) gerado no momento, válido só pra essa sessão. Token vai no `--mcp-config` e identifica o agent_id.
-- Server rejeita request sem token válido. Outros processos locais (malware, CLIs) não conseguem chamar.
-- Token expira ao matar a sessão; nunca persistido em disco.
+O MCP server roda como stdio child do `claude` (parent). stdio é um pipe privado entre parent e child — outros processos no host não podem se conectar nem injetar mensagens. Por isso, **não há auth aplicacional** sobre cada chamada de tool: o canal já é privado por construção do SO.
+
+O MCP child recebe `AGENT_ID` e `COMPANY_ID` via env do parent, usados para escopo de queries (filtra por company, identifica agent). Isso não é segurança — é apenas escopo.
+
+**Se transport mudar para HTTP/WS no futuro**: reintroduzir token validation por sessão. Documentado como debt em milestone futuro.
 
 ### 8.6 Anti-prompt-injection (camada Orchestrator)
 

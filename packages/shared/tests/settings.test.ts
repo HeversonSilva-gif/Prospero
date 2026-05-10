@@ -15,7 +15,7 @@ describe("settings types and channels", () => {
   });
 
   it("AppSettings is structurally constructable", () => {
-    const s: AppSettings = { language: "pt-BR", theme: "light" };
+    const s: AppSettings = { language: "pt-BR", theme: "light", workspaceCwd: null };
     expect(s.language).toBe("pt-BR");
     expect(s.theme).toBe("light");
   });

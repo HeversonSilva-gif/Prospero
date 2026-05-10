@@ -39,11 +39,21 @@ export type AppendInput = {
   toolCalls?: ToolCallView[] | null;
 };
 
+export type AppendToThreadIdInput = {
+  threadId: string;
+  senderKind: SenderKind;
+  senderId: string | null;
+  content: string;
+  toolCalls?: ToolCallView[] | null;
+};
+
 export type MessagesRepository = {
   ensureThread(companyId: string, participants: string[]): { id: string };
   append(input: AppendInput): Message;
+  appendToThreadId(input: AppendToThreadIdInput): Message;
   list(threadId: string): Message[];
   listByParticipants(companyId: string, participants: string[]): Message[];
+  listByAgentParticipating(agentId: string): Message[];
 };
 
 export const createMessagesRepository = (db: Database.Database): MessagesRepository => {
@@ -98,6 +108,32 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
         createdAt: now,
       };
     },
+    appendToThreadId(input) {
+      const id = `msg_${randomUUID()}`;
+      const now = Date.now();
+      const toolCallsJson =
+        input.toolCalls === null || input.toolCalls === undefined
+          ? null
+          : JSON.stringify(input.toolCalls);
+      insertMessage.run(
+        id,
+        input.threadId,
+        input.senderKind,
+        input.senderId,
+        input.content,
+        toolCallsJson,
+        now,
+      );
+      return {
+        id,
+        threadId: input.threadId,
+        senderKind: input.senderKind,
+        senderId: input.senderId,
+        content: input.content,
+        toolCalls: input.toolCalls ?? null,
+        createdAt: now,
+      };
+    },
     list(threadId) {
       const rows = listByThread.all(threadId) as MessageRow[];
       return rows.map(rowToMessage);
@@ -106,6 +142,17 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
       const thread = findThread.get(companyId, threadKey(participants)) as ThreadRow | undefined;
       if (!thread) return [];
       const rows = listByThread.all(thread.id) as MessageRow[];
+      return rows.map(rowToMessage);
+    },
+    listByAgentParticipating(agentId) {
+      const rows = db
+        .prepare(
+          `SELECT m.* FROM messages m
+           JOIN threads t ON m.thread_id = t.id
+           WHERE t.participants_json LIKE ?
+           ORDER BY m.created_at ASC, m.id ASC`,
+        )
+        .all(`%${agentId}%`) as MessageRow[];
       return rows.map(rowToMessage);
     },
   };
