@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import type { Message, PermissionRequest, PermissionResolution } from "@dashboard-agent/shared";
 import { useAgentsStore } from "../stores/agents.js";
-import { useMessagesStore } from "../stores/messages.js";
+import { ApprovalCard } from "../components/ApprovalCard.js";
 import { MessageList } from "../components/MessageList.js";
 import { Composer } from "../components/Composer.js";
 
@@ -10,25 +11,54 @@ export const Agent = () => {
   const { t } = useTranslation();
   const { id: agentId } = useParams<{ id: string }>();
   const agent = useAgentsStore((s) => s.agents.find((a) => a.id === agentId));
-  const loadMessages = useMessagesStore((s) => s.load);
-  const [threadId, setThreadId] = useState<string | null>(null);
-  const messages = useMessagesStore((s) =>
-    threadId === null ? [] : (s.byThreadId[threadId] ?? []),
-  );
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<PermissionRequest[]>([]);
 
+  // Load all messages for this agent across all threads
   useEffect(() => {
     if (agent === undefined) return;
-    void loadMessages(agent.companyId, ["user", agent.id]).then((tid) => {
-      if (tid !== null) setThreadId(tid);
+    void (async () => {
+      const all = await window.dashboardAgent.messages.listByAgent(agent.id);
+      setMessages(all);
+    })();
+  }, [agent]);
+
+  // Subscribe to agent events and refetch messages on new message-append
+  useEffect(() => {
+    if (agent === undefined) return;
+    const off = window.dashboardAgent.agents.onEvent((ev) => {
+      if (ev.kind === "message-append") {
+        void (async () => {
+          const all = await window.dashboardAgent.messages.listByAgent(agent.id);
+          setMessages(all);
+        })();
+      }
     });
-  }, [agent, loadMessages]);
+    return off;
+  }, [agent]);
+
+  // Subscribe to permission requests for this agent
+  useEffect(() => {
+    const unsub = window.dashboardAgent.permissions.onRequest((req) => {
+      if (agent !== undefined && req.agentId === agent.id) {
+        setPendingApprovals((prev) => [...prev, req]);
+      }
+    });
+    return unsub;
+  }, [agent]);
+
+  const resolve = (req: PermissionRequest, allow: boolean) => {
+    const resolution: PermissionResolution = allow
+      ? { behavior: "allow" }
+      : { behavior: "deny", message: "User rejected" };
+    void window.dashboardAgent.permissions.resolve(req.toolUseId, resolution);
+    setPendingApprovals((prev) => prev.filter((r) => r.toolUseId !== req.toolUseId));
+  };
 
   const onSend = async (content: string) => {
     if (agent === undefined) return;
-    const userMsg = await window.dashboardAgent.agents.sendMessage(agent.id, content);
-    if (threadId === null) setThreadId(userMsg.threadId);
-    // The global onEvent listener (in App.tsx) handles message-append broadcast,
-    // so we don't double-append here.
+    await window.dashboardAgent.agents.sendMessage(agent.id, content);
+    // The agent event subscription above handles refetching messages after send.
   };
 
   if (agent === undefined) {
@@ -49,6 +79,13 @@ export const Agent = () => {
         </div>
       </header>
       <MessageList messages={messages} />
+      {pendingApprovals.map((req) => (
+        <ApprovalCard
+          key={req.toolUseId}
+          request={req}
+          onResolve={(allow) => resolve(req, allow)}
+        />
+      ))}
       <Composer onSubmit={(text) => void onSend(text)} />
     </div>
   );
