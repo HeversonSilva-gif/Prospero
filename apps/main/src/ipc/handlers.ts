@@ -16,6 +16,6 @@ export const registerIpcHandlers = (db: Database.Database): void => {
   registerCompaniesHandlers(db);
   registerMessagesHandlers(db);
   registerOrchestratorHandlers(db);
-  registerPermissionHandlers();
+  registerPermissionHandlers(db);
   registerInboxHandlers(db);
 };
