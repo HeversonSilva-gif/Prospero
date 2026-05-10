@@ -16,14 +16,54 @@ const makeCtx = (emit = vi.fn()): ToolContext => {
 };
 
 describe("mcp tools (M3 mocks)", () => {
-  it("list_agents emits and returns ok", async () => {
-    const emit = vi.fn();
+  it("list_agents returns agents from DB filtered by company", async () => {
+    const ctx = makeCtx();
+    // makeCtx already creates an in-memory DB with migrations applied (Task 4.1)
+    ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
+    ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c2','Other',1)`).run();
+    ctx.db
+      .prepare(
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a1','c','Alice','FE','sp','[]','[]','supervised',0,'idle',1,1)`,
+      )
+      .run();
+    ctx.db
+      .prepare(
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a2','c2','Bob','BE','sp','[]','[]','supervised',0,'idle',1,1)`,
+      )
+      .run();
+
     const def = toolDefinitions.find((t) => t.name === "list_agents");
     expect(def).toBeDefined();
-    const result = await def!.run({}, makeCtx(emit));
-    const parsed = JSON.parse(result) as { ok: boolean };
-    expect(parsed.ok).toBe(true);
-    expect(emit).toHaveBeenCalledWith(expect.objectContaining({ kind: "list_agents.called" }));
+    const result = await def!.run({}, ctx);
+    const parsed = JSON.parse(result) as { agents: Array<{ id: string; name: string }> };
+    expect(parsed.agents).toHaveLength(1);
+    expect(parsed.agents[0].name).toBe("Alice");
+  });
+
+  it("read_thread returns ordered messages between two agents", async () => {
+    const ctx = makeCtx();
+    ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
+    // thread participants_json must use the canonical threadKey ("a|alice" sorted = "a|alice"; "a"<"alice" lexicographically)
+    ctx.db
+      .prepare(
+        `INSERT INTO threads(id,company_id,participants_json,created_at) VALUES('t1','c','a|alice',1)`,
+      )
+      .run();
+    ctx.db
+      .prepare(
+        `INSERT INTO messages(id,thread_id,sender_kind,sender_id,content,created_at) VALUES('m1','t1','agent','a','hi',10)`,
+      )
+      .run();
+    ctx.db
+      .prepare(
+        `INSERT INTO messages(id,thread_id,sender_kind,sender_id,content,created_at) VALUES('m2','t1','agent','alice','reply',20)`,
+      )
+      .run();
+
+    const def = toolDefinitions.find((t) => t.name === "read_thread");
+    const result = await def!.run({ other_agent_id: "alice" }, ctx);
+    const parsed = JSON.parse(result) as { messages: Array<{ content: string }> };
+    expect(parsed.messages.map((m) => m.content)).toEqual(["hi", "reply"]);
   });
 
   it("hire_agent rejects empty role at parse time", () => {
