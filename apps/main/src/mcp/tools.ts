@@ -56,12 +56,51 @@ export const toolDefinitions = [
   },
   {
     name: "hire_agent",
-    description: "Hire a new agent with the given role.",
-    inputSchema: z.object({ role: z.string(), name: z.string().optional() }),
+    description: "Hire a new agent with detailed name, role, and persona system_prompt.",
+    inputSchema: z.object({
+      name: z.string().min(1),
+      role: z.string().min(1),
+      system_prompt: z.string().min(20),
+      mode: z.enum(["supervised", "auto"]).optional(),
+      reports_to: z.string().optional(),
+    }),
     // eslint-disable-next-line @typescript-eslint/require-await
-    run: async (input: { role: string; name?: string }, ctx: ToolContext): Promise<string> => {
-      ctx.emit({ kind: "hire_agent.called", payload: input });
-      return JSON.stringify({ ok: true, mocked: true, would_create: input });
+    run: async (
+      input: {
+        name: string;
+        role: string;
+        system_prompt: string;
+        mode?: "supervised" | "auto";
+        reports_to?: string;
+      },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const agents = createAgentsRepository(ctx.db);
+      const messages = createMessagesRepository(ctx.db);
+      const agent = agents.create({
+        companyId: ctx.companyId,
+        name: input.name,
+        role: input.role,
+        systemPrompt: input.system_prompt,
+        mode: input.mode ?? "supervised",
+        alwaysOn: false,
+      });
+      const reportsTo = input.reports_to ?? ctx.agentId;
+      ctx.db.prepare("UPDATE agents SET reports_to = ? WHERE id = ?").run(reportsTo, agent.id);
+      messages.ensureThread(ctx.companyId, [ctx.agentId, agent.id]);
+      ctx.emit({ kind: "agent.spawn-needed", payload: { agentId: agent.id } });
+      return JSON.stringify({ id: agent.id, name: agent.name, role: agent.role });
+    },
+  },
+  {
+    name: "fire_agent",
+    description: "Remove an agent and kill its runner if alive.",
+    inputSchema: z.object({ agent_id: z.string() }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (input: { agent_id: string }, ctx: ToolContext): Promise<string> => {
+      ctx.emit({ kind: "agent.kill", payload: { agentId: input.agent_id } });
+      ctx.db.prepare("DELETE FROM agents WHERE id = ?").run(input.agent_id);
+      return JSON.stringify({ ok: true });
     },
   },
   {

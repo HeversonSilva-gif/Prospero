@@ -101,4 +101,69 @@ describe("mcp tools (M3 mocks)", () => {
     expect(def!.inputSchema.safeParse({ agent: "a" }).success).toBe(false);
     expect(def!.inputSchema.safeParse({ content: "c" }).success).toBe(false);
   });
+
+  it("hire_agent creates agent + thread, sets reports_to to caller", async () => {
+    const ctx = makeCtx();
+    ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
+    ctx.db
+      .prepare(
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
+      )
+      .run();
+
+    const def = toolDefinitions.find((t) => t.name === "hire_agent");
+    const result = await def!.run(
+      {
+        name: "Alice",
+        role: "FE",
+        system_prompt: "you are alice, a frontend engineer focused on react and typescript work",
+      },
+      ctx,
+    );
+    const parsed = JSON.parse(result) as { id: string; name: string; role: string };
+    expect(parsed.name).toBe("Alice");
+    expect(parsed.role).toBe("FE");
+
+    const row = ctx.db.prepare("SELECT * FROM agents WHERE id = ?").get(parsed.id) as {
+      reports_to: string | null;
+      mode: string;
+      system_prompt: string;
+    };
+    expect(row.reports_to).toBe("a");
+    expect(row.mode).toBe("supervised");
+    expect(row.system_prompt).toMatch(/alice/i);
+
+    // thread between caller and new agent must exist
+    const thr = ctx.db
+      .prepare("SELECT participants_json FROM threads WHERE company_id = ?")
+      .get("c") as { participants_json: string } | undefined;
+    expect(thr).toBeDefined();
+  });
+
+  it("hire_agent rejects short system_prompt", () => {
+    const def = toolDefinitions.find((t) => t.name === "hire_agent");
+    const result = def!.inputSchema.safeParse({ name: "X", role: "Y", system_prompt: "too short" });
+    expect(result.success).toBe(false);
+  });
+
+  it("fire_agent emits agent.kill control event + deletes from DB", async () => {
+    const ctx = makeCtx();
+    ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
+    ctx.db
+      .prepare(
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('victim','c','x','y','sp','[]','[]','supervised',0,'idle',1,1)`,
+      )
+      .run();
+
+    const def = toolDefinitions.find((t) => t.name === "fire_agent");
+    await def!.run({ agent_id: "victim" }, ctx);
+    expect(ctx.emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "agent.kill",
+        payload: { agentId: "victim" },
+      }),
+    );
+    const row = ctx.db.prepare("SELECT * FROM agents WHERE id = ?").get("victim");
+    expect(row).toBeUndefined();
+  });
 });
