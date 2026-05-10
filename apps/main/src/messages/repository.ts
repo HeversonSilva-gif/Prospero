@@ -39,9 +39,18 @@ export type AppendInput = {
   toolCalls?: ToolCallView[] | null;
 };
 
+export type AppendToThreadIdInput = {
+  threadId: string;
+  senderKind: SenderKind;
+  senderId: string | null;
+  content: string;
+  toolCalls?: ToolCallView[] | null;
+};
+
 export type MessagesRepository = {
   ensureThread(companyId: string, participants: string[]): { id: string };
   append(input: AppendInput): Message;
+  appendToThreadId(input: AppendToThreadIdInput): Message;
   list(threadId: string): Message[];
   listByParticipants(companyId: string, participants: string[]): Message[];
 };
@@ -91,6 +100,32 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
       return {
         id,
         threadId: thread.id,
+        senderKind: input.senderKind,
+        senderId: input.senderId,
+        content: input.content,
+        toolCalls: input.toolCalls ?? null,
+        createdAt: now,
+      };
+    },
+    appendToThreadId(input) {
+      const id = `msg_${randomUUID()}`;
+      const now = Date.now();
+      const toolCallsJson =
+        input.toolCalls === null || input.toolCalls === undefined
+          ? null
+          : JSON.stringify(input.toolCalls);
+      insertMessage.run(
+        id,
+        input.threadId,
+        input.senderKind,
+        input.senderId,
+        input.content,
+        toolCallsJson,
+        now,
+      );
+      return {
+        id,
+        threadId: input.threadId,
         senderKind: input.senderKind,
         senderId: input.senderId,
         content: input.content,

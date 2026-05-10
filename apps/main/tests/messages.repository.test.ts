@@ -43,6 +43,26 @@ describe("messages repository", () => {
     expect(all).toHaveLength(1);
   });
 
+  it("appendToThreadId writes to existing thread without participants", () => {
+    const { repo, companyId, ceoId } = setup();
+    // Create a thread first via append
+    const first = repo.append({
+      companyId,
+      participants: ["user", ceoId],
+      senderKind: "user",
+      senderId: null,
+      content: "first",
+    });
+    const m = repo.appendToThreadId({
+      threadId: first.threadId,
+      senderKind: "agent",
+      senderId: ceoId,
+      content: "hi",
+    });
+    expect(m.threadId).toBe(first.threadId);
+    expect(repo.list(first.threadId)).toHaveLength(2);
+  });
+
   it("preserves tool calls JSON round-trip", () => {
     const { repo, companyId, ceoId } = setup();
     repo.append({
