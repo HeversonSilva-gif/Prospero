@@ -116,6 +116,8 @@ export const buildClaudeArgs = (agent: Agent, mcpConfigPath: string): string[] =
     "--mcp-config",
     mcpConfigPath,
     "--strict-mcp-config",
+    "--permission-prompt-tool",
+    "mcp__dashboard__request_permission",
   ];
   if (agent.claudeSessionId !== null) {
     args.push("--resume", agent.claudeSessionId);
