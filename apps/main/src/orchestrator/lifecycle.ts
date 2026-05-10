@@ -85,6 +85,10 @@ export type SpawnOptions = {
    * When omitted (tests / non-Electron callers), falls back to an ephemeral mkdtemp dir.
    */
   userDataDir?: string;
+  /** Absolute path to the SQLite database file — forwarded to the MCP child process. */
+  dbPath: string;
+  /** Absolute path to the permissions directory — forwarded to the MCP child process. */
+  permissionsDir: string;
 };
 
 // Internal helper that builds the args (factored out so tests can verify args without spawn)
@@ -146,7 +150,12 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
     );
   }
 
-  const env: SpawnEnv = buildSpawnEnv(opts.agent, opts.oauthToken);
+  const env: SpawnEnv = buildSpawnEnv(
+    opts.agent,
+    opts.oauthToken,
+    opts.dbPath,
+    opts.permissionsDir,
+  );
   // tsup bundles src/index.ts → dist/index.js (single file, splitting:false), so at
   // runtime __dirname resolves to dist/, not dist/orchestrator/. The MCP server is a
   // separate entry → dist/mcp/server.js. Resolve relative to dist/, not the source layout.

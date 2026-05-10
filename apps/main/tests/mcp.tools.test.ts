@@ -1,11 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
+import Database from "better-sqlite3";
+import { applyMigrations } from "../src/db/migrations.js";
 import { toolDefinitions, type ToolContext } from "../src/mcp/tools.js";
 
-const makeCtx = (emit = vi.fn()): ToolContext => ({
-  agentId: "a",
-  companyId: "c",
-  emit,
-});
+const makeCtx = (emit = vi.fn()): ToolContext => {
+  const db = new Database(":memory:");
+  applyMigrations(db);
+  return {
+    agentId: "a",
+    companyId: "c",
+    db,
+    permissionsDir: "/tmp/perm",
+    emit,
+  };
+};
 
 describe("mcp tools (M3 mocks)", () => {
   it("list_agents emits and returns ok", async () => {

@@ -1,8 +1,11 @@
 import { z } from "zod";
+import type Database from "better-sqlite3";
 
 export type ToolContext = {
   agentId: string;
   companyId: string;
+  db: Database.Database;
+  permissionsDir: string;
   emit: (event: { kind: string; payload: unknown }) => void;
 };
 

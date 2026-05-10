@@ -14,6 +14,8 @@ import { createInboxRepository } from "../inbox/repository.js";
 import { loadDecryptedToken } from "../auth/token-storage.js";
 import { spawnAgent, getRunner, registerRunner, removeRunner } from "../orchestrator/lifecycle.js";
 import type { ParsedEvent } from "../orchestrator/stream-parser.js";
+import { databasePath } from "../db/path.js";
+import { getPermissionsDir } from "../security/permissions-dir.js";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -59,7 +61,13 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         const collectedToolCalls = new Map<string, ToolCallView>();
 
         runner = spawnAgent(
-          { agent, oauthToken: token, userDataDir: app.getPath("userData") },
+          {
+            agent,
+            oauthToken: token,
+            userDataDir: app.getPath("userData"),
+            dbPath: databasePath(),
+            permissionsDir: getPermissionsDir(app.getPath("userData")),
+          },
           {
             onEvent: (ev: ParsedEvent) => {
               if (ev.kind === "session-init") {
