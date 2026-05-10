@@ -4,6 +4,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "inbox": "Inbox",
     "settings": "Settings",
     "agents": "Agents"
   },
@@ -57,6 +58,26 @@
     "autoCancel": "Cancel",
     "back": "Back",
     "skipForNow": "Continue without a token (not recommended)"
+  },
+  "inbox": {
+    "title": "Inbox",
+    "empty": "Inbox is empty.",
+    "approve": "Approve",
+    "reject": "Reject",
+    "markRead": "Mark as read",
+    "filter": {
+      "all": "All",
+      "approval": "Approvals",
+      "completed": "Completed",
+      "suggestion": "Suggestions",
+      "error": "Errors",
+      "security_alert": "Security"
+    }
+  },
+  "approval": {
+    "approve": "Approve",
+    "reject": "Reject",
+    "toolCall": "Approve use of {{name}}?"
   },
   "common": {
     "save": "Save",

@@ -1,19 +1,31 @@
 import { useEffect } from "react";
 import { HashRouter, Routes, Route, Navigate, NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import type { AgentStatus } from "@dashboard-agent/shared";
 import { useSettingsStore } from "./stores/settings.js";
 import { useAuthStore } from "./stores/auth.js";
 import { useAgentsStore } from "./stores/agents.js";
 import { useMessagesStore } from "./stores/messages.js";
+import { useInboxStore } from "./stores/inbox.js";
 import { Dashboard } from "./routes/Dashboard.js";
 import { Settings } from "./routes/Settings.js";
 import { SetupWizard } from "./routes/SetupWizard.js";
 import { Agent as AgentRoute } from "./routes/Agent.js";
+import { Inbox } from "./routes/Inbox.js";
 import { SidebarFooter } from "./components/SidebarFooter.js";
+
+const STATUS_COLOR: Record<AgentStatus, string> = {
+  idle: "bg-ink-soft",
+  thinking: "bg-brand",
+  working: "bg-semantic-success",
+  waiting: "bg-semantic-warning",
+  error: "bg-semantic-danger",
+};
 
 const Sidebar = () => {
   const { t } = useTranslation();
   const agents = useAgentsStore((s) => s.agents);
+  const inboxUnread = useInboxStore((s) => s.unread);
   return (
     <aside className="w-56 bg-surface border-r border-surface-border flex flex-col p-3">
       <h1 className="px-2 mb-4 text-sm font-bold text-brand-dark">{t("app.title")}</h1>
@@ -25,6 +37,19 @@ const Sidebar = () => {
           }
         >
           {t("nav.dashboard")}
+        </NavLink>
+        <NavLink
+          to="/inbox"
+          className={({ isActive }) =>
+            `px-2 py-1 rounded flex items-center justify-between ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
+          }
+        >
+          <span>{t("nav.inbox")}</span>
+          {inboxUnread > 0 && (
+            <span className="text-[10px] font-bold bg-semantic-danger text-white rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+              {inboxUnread}
+            </span>
+          )}
         </NavLink>
         <NavLink
           to="/settings"
@@ -50,9 +75,8 @@ const Sidebar = () => {
                 }
               >
                 <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    a.status === "idle" ? "bg-ink-soft" : "bg-semantic-success"
-                  }`}
+                  className={`w-1.5 h-1.5 rounded-full ${STATUS_COLOR[a.status]}`}
+                  title={a.status}
                 />
                 <span className="truncate">{a.name}</span>
               </NavLink>
@@ -82,23 +106,33 @@ export const App = () => {
   const applyStatus = useAgentsStore((s) => s.applyStatus);
   const appendMessage = useMessagesStore((s) => s.append);
   const patchToolCall = useMessagesStore((s) => s.patchToolCallResult);
+  const loadInbox = useInboxStore((s) => s.load);
+  const subscribeInbox = useInboxStore((s) => s.subscribe);
 
   useEffect(() => {
     void loadSettings();
     void loadAuth();
   }, [loadSettings, loadAuth]);
 
-  // After token is configured, ensure first company's agents are loaded so sidebar shows them
+  // After token is configured, ensure first company's agents and inbox are loaded
   useEffect(() => {
-    const init = async () => {
-      if (!hasToken) return;
+    const init = async (): Promise<(() => void) | undefined> => {
+      if (!hasToken) return undefined;
       const companies = await window.dashboardAgent.companies.list();
       if (companies.length > 0) {
-        await loadAgents(companies[0]!.id);
+        const cid = companies[0]!.id;
+        await loadAgents(cid);
+        await loadInbox(cid);
+        return subscribeInbox(cid);
       }
+      return undefined;
     };
-    void init();
-  }, [hasToken, loadAgents]);
+    let unsub: undefined | (() => void);
+    void init().then((u) => {
+      if (typeof u === "function") unsub = u;
+    });
+    return () => unsub?.();
+  }, [hasToken, loadAgents, loadInbox, subscribeInbox]);
 
   // Subscribe to agent:event broadcasts
   useEffect(() => {
@@ -143,6 +177,18 @@ export const App = () => {
             <Layout>
               <Settings />
             </Layout>
+          }
+        />
+        <Route
+          path="/inbox"
+          element={
+            hasToken ? (
+              <Layout>
+                <Inbox />
+              </Layout>
+            ) : (
+              <Navigate to="/setup" replace />
+            )
           }
         />
         <Route
