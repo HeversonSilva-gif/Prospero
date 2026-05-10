@@ -58,4 +58,20 @@ describe("migration 0002", () => {
         .run(),
     ).toThrow();
   });
+
+  it("issue_events enforces actor_kind enum", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1', 'Acme', 0)").run();
+    db.prepare(
+      "INSERT INTO issues (id, company_id, title, created_at, updated_at) VALUES ('i1', 'c1', 'T', 0, 0)",
+    ).run();
+    expect(() =>
+      db
+        .prepare(
+          "INSERT INTO issue_events (id, issue_id, kind, actor_kind, payload_json, created_at) VALUES ('e1', 'i1', 'created', 'bogus', '{}', 0)",
+        )
+        .run(),
+    ).toThrow();
+  });
 });
