@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
     get: () => ipcRenderer.invoke(IPC.SETTINGS_GET) as Promise<AppSettings>,
     update: (patch: Partial<AppSettings>) =>
       ipcRenderer.invoke(IPC.SETTINGS_UPDATE, patch) as Promise<AppSettings>,
+    pickWorkspace: () => ipcRenderer.invoke(IPC.SETTINGS_PICK_WORKSPACE) as Promise<string | null>,
   },
   auth: {
     status: () => ipcRenderer.invoke(IPC.AUTH_TOKEN_STATUS) as Promise<TokenStatus>,

@@ -1,6 +1,7 @@
 export const IPC = {
   PING: "ping",
   SETTINGS_GET: "settings:get",
+  SETTINGS_PICK_WORKSPACE: "settings:pick-workspace",
   SETTINGS_UPDATE: "settings:update",
   AUTH_TOKEN_STATUS: "auth:token-status",
   AUTH_TOKEN_SET: "auth:token-set",
