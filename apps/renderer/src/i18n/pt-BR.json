@@ -110,5 +110,44 @@
       "counts": "{{agents}} agentes · {{issues}} issues · {{doing}} doing",
       "pathMissing": "Pasta indisponível"
     }
+  },
+  "issues": {
+    "title": "Issues",
+    "newButton": "+ Nova issue",
+    "filters": {
+      "project": "Projeto",
+      "assignee": "Responsável",
+      "priority": "Prioridade",
+      "all": "Todas"
+    },
+    "columns": {
+      "backlog": "Backlog",
+      "todo": "A fazer",
+      "doing": "Em progresso",
+      "review": "Revisão",
+      "done": "Concluído",
+      "cancelled": "Cancelada"
+    },
+    "form": {
+      "title": "Título",
+      "description": "Descrição",
+      "project": "Projeto",
+      "assignee": "Responsável",
+      "priority": "Prioridade",
+      "create": "Criar issue",
+      "cancel": "Cancelar"
+    },
+    "detail": {
+      "subtasks": "Sub-tarefas",
+      "addSubtask": "+ Adicionar sub-tarefa",
+      "comments": "Comentários",
+      "commentPlaceholder": "Escreva um comentário...",
+      "send": "Enviar",
+      "toolHistory": "Histórico de tool calls",
+      "expand": "expandir",
+      "reassign": "Reatribuir",
+      "delete": "Excluir issue",
+      "confirmDelete": "Excluir essa issue e todas as sub-tarefas?"
+    }
   }
 }

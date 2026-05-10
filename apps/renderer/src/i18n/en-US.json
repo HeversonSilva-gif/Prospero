@@ -110,5 +110,44 @@
       "counts": "{{agents}} agents · {{issues}} issues · {{doing}} doing",
       "pathMissing": "Path unavailable"
     }
+  },
+  "issues": {
+    "title": "Issues",
+    "newButton": "+ New issue",
+    "filters": {
+      "project": "Project",
+      "assignee": "Assignee",
+      "priority": "Priority",
+      "all": "All"
+    },
+    "columns": {
+      "backlog": "Backlog",
+      "todo": "Todo",
+      "doing": "Doing",
+      "review": "Review",
+      "done": "Done",
+      "cancelled": "Cancelled"
+    },
+    "form": {
+      "title": "Title",
+      "description": "Description",
+      "project": "Project",
+      "assignee": "Assignee",
+      "priority": "Priority",
+      "create": "Create issue",
+      "cancel": "Cancel"
+    },
+    "detail": {
+      "subtasks": "Sub-tasks",
+      "addSubtask": "+ Add sub-task",
+      "comments": "Comments",
+      "commentPlaceholder": "Type a comment...",
+      "send": "Send",
+      "toolHistory": "Tool call history",
+      "expand": "expand",
+      "reassign": "Reassign",
+      "delete": "Delete issue",
+      "confirmDelete": "Delete this issue and all its sub-tasks?"
+    }
   }
 }
