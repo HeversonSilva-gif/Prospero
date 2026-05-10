@@ -27,7 +27,7 @@ describe(
       const stop = startPermissionWatcher({
         dir,
         getAgent: () => ({ ...agent, mode: "auto" }),
-        getAllowedProjectPaths: () => ["C:\\Workspace"],
+        getAllowedProjectPaths: (_agentId: string) => ["C:\\Workspace"],
         onUserDecision: vi.fn(),
       });
 
@@ -57,7 +57,7 @@ describe(
       const stop = startPermissionWatcher({
         dir,
         getAgent: () => ({ ...agent, mode: "auto" }),
-        getAllowedProjectPaths: () => ["C:\\Workspace"],
+        getAllowedProjectPaths: (_agentId: string) => ["C:\\Workspace"],
         onUserDecision: vi.fn(),
       });
 
@@ -92,7 +92,7 @@ describe(
       const stop = startPermissionWatcher({
         dir,
         getAgent: () => agent,
-        getAllowedProjectPaths: () => ["C:\\Workspace"],
+        getAllowedProjectPaths: (_agentId: string) => ["C:\\Workspace"],
         onUserDecision: vi.fn(),
         onResolved,
       });
@@ -110,7 +110,7 @@ describe(
       const stop = startPermissionWatcher({
         dir,
         getAgent: () => agent,
-        getAllowedProjectPaths: () => ["C:\\Workspace"],
+        getAllowedProjectPaths: (_agentId: string) => ["C:\\Workspace"],
         onUserDecision,
       });
 

@@ -9,12 +9,11 @@ import { openDatabase } from "./db/client.js";
 import { databasePath } from "./db/path.js";
 import { startPermissionWatcher } from "./security/permission-watcher.js";
 import { getPermissionsDir } from "./security/permissions-dir.js";
-import { resolveWorkspaceCwd } from "./settings/workspace.js";
 import { broadcastPermissionRequest } from "./ipc/permission-handlers.js";
 import { broadcastInboxUpdate } from "./ipc/inbox-handlers.js";
 import { createInboxRepository } from "./inbox/repository.js";
-import { createSettingsRepository } from "./settings/repository.js";
 import { createAgentsRepository } from "./agents/repository.js";
+import { createProjectsRepository } from "./projects/repository.js";
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -28,17 +27,19 @@ void app.whenReady().then(() => {
   registerIpcHandlers(db);
 
   // Permission watcher (M5 spec §6.4)
-  const settingsRepo = createSettingsRepository(db);
   const agentsRepo = createAgentsRepository(db);
+  const projectsRepo = createProjectsRepository(db);
   const inboxRepo = createInboxRepository(db);
   const permissionsDir = getPermissionsDir(app.getPath("userData"));
   stopPermissionWatcher = startPermissionWatcher({
     dir: permissionsDir,
     getAgent: (id) => agentsRepo.getById(id),
-    getAllowedProjectPaths: () => {
-      const cwd = resolveWorkspaceCwd(settingsRepo.read().workspaceCwd);
-      // Task 12 will wire real per-project allowedProjects here; for now fall back to single workspace cwd.
-      return cwd !== "" ? [cwd] : [];
+    getAllowedProjectPaths: (agentId: string) => {
+      const agent = agentsRepo.getById(agentId);
+      if (agent === null) return [];
+      const projects = projectsRepo.listByCompany(agent.companyId);
+      if (agent.allowedProjects.length === 0) return projects.map((p) => p.path);
+      return projects.filter((p) => agent.allowedProjects.includes(p.id)).map((p) => p.path);
     },
     onUserDecision: (req, reason) => {
       console.log(
