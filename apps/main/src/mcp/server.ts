@@ -2,9 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { toolDefinitions, type ToolContext } from "./tools.js";
-import { verifyMcpToken } from "./auth.js";
 
-const expectedToken = process.env["MCP_TOKEN"];
 const agentId = process.env["AGENT_ID"];
 const companyId = process.env["COMPANY_ID"];
 
@@ -44,9 +42,9 @@ for (const def of toolDefinitions) {
     def.name,
     { description: def.description, inputSchema: def.inputSchema.shape },
     async (input: unknown) => {
-      // stdio MCP can't carry custom auth headers, so we validate the env presence as a soft guard.
-      // Future hardening: rotate MCP_TOKEN per-call via a request_id challenge.
-      verifyMcpToken(expectedToken, expectedToken);
+      // stdio MCP is a private parent-child pipe — no other process can connect, so no
+      // application-level auth token is meaningful. AGENT_ID/COMPANY_ID still come from
+      // env to scope the tool context. If we ever switch transport to HTTP/WS, revisit.
       const result = await def.run(input as never, ctx);
       return { content: [{ type: "text" as const, text: result }] };
     },

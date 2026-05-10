@@ -46,7 +46,7 @@
 
 **Resolução (2026-05-10):** aplicado conforme plano. `AUTH_TOKEN_DETECT` agora retorna `DetectResult` (apenas `maskedPrefix`); novo `AUTH_TOKEN_IMPORT_DETECTED` re-detecta e salva no main; renderer atualizado pra nunca segurar o raw em estado React; regression-guard test garante que o raw token nunca aparece na resposta do IPC. Commit fecha o invariante do M2 ("token nunca cruza pro renderer").
 
-### SEC-02 (MÉDIO): `verifyMcpToken` é no-op em `mcp/server.ts:38`
+### SEC-02 (MÉDIO): `verifyMcpToken` é no-op em `mcp/server.ts:38` — ✅ CORRIGIDO (2026-05-10)
 
 **Onde:** `apps/main/src/mcp/server.ts:38`
 
@@ -59,6 +59,8 @@
 - (b) Implementar challenge real: primeiro tool call do client precisa ser um `authenticate` que envia o token via input, e o server mantém estado de `authenticated: bool` por sessão. Outras tools rejeitam até autenticar.
 
 Recomendação: (a) por enquanto, (b) quando/se mudarmos transport.
+
+**Resolução (2026-05-10):** opção (a) aplicada. `apps/main/src/mcp/auth.ts` deletado, chamada removida do server, env `MCP_TOKEN` retirado de `SpawnEnv` e `mcp-config`. Comentário no `server.ts` agora documenta explicitamente que stdio MCP é pipe privado pai-filho — sem auth aplicacional necessário enquanto não mudarmos transport.
 
 ### SEC-03 (BAIXO): Email pessoal em git history
 
@@ -101,7 +103,7 @@ Recomendação: (a) por enquanto, (b) quando/se mudarmos transport.
 ## Critério de pronto pro M4
 
 - [x] SEC-01 corrigido com testes verdes em `ipc.auth-handlers.test.ts` (regression-guard valida que raw token nunca está na resposta).
-- [ ] SEC-02 resolvido (remover ou implementar de verdade).
+- [x] SEC-02 resolvido (removido — opção (a)).
 - [ ] SEC-03 e SEC-04 decididos antes do primeiro push (se for público, rewrite executado).
 - [ ] SEC-05 fechado se decidirmos virar offline-first puro.
 - [ ] Suite gitleaks roda local + CI sem novos achados.

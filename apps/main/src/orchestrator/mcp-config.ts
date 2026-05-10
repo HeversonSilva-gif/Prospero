@@ -16,7 +16,6 @@ export const writeMcpConfigFile = (mcpServerJsPath: string, env: SpawnEnv): stri
   const childEnv: Record<string, string> = {
     AGENT_ID: env.AGENT_ID,
     COMPANY_ID: env.COMPANY_ID,
-    MCP_TOKEN: env.MCP_TOKEN,
   };
   if (isElectronBinary) {
     childEnv.ELECTRON_RUN_AS_NODE = "1";

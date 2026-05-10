@@ -8,7 +8,6 @@ describe("writeMcpConfigFile", () => {
       CLAUDE_CODE_OAUTH_TOKEN: "t",
       AGENT_ID: "a",
       COMPANY_ID: "c",
-      MCP_TOKEN: "m",
     });
     type McpConfig = {
       mcpServers: {
@@ -22,7 +21,8 @@ describe("writeMcpConfigFile", () => {
     const parsed = JSON.parse(readFileSync(path, "utf8")) as McpConfig;
     expect(parsed.mcpServers.dashboard.type).toBe("stdio");
     expect(parsed.mcpServers.dashboard.args).toContain("/fake/server.js");
-    expect(parsed.mcpServers.dashboard.env["MCP_TOKEN"]).toBe("m");
+    expect(parsed.mcpServers.dashboard.env["AGENT_ID"]).toBe("a");
+    expect(parsed.mcpServers.dashboard.env["COMPANY_ID"]).toBe("c");
   });
 
   it("does NOT include CLAUDE_CODE_OAUTH_TOKEN in the mcp config file", () => {
@@ -30,7 +30,6 @@ describe("writeMcpConfigFile", () => {
       CLAUDE_CODE_OAUTH_TOKEN: "sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_secret",
       AGENT_ID: "a",
       COMPANY_ID: "c",
-      MCP_TOKEN: "m",
     });
     const raw = readFileSync(path, "utf8");
     expect(raw).not.toContain("sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_secret");
