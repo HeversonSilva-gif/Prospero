@@ -40,7 +40,7 @@ describe("mcp tools (M3 mocks)", () => {
     const result = await def!.run({}, ctx);
     const parsed = JSON.parse(result) as { agents: Array<{ id: string; name: string }> };
     expect(parsed.agents).toHaveLength(1);
-    expect(parsed.agents[0].name).toBe("Alice");
+    expect(parsed.agents[0]!.name).toBe("Alice");
   });
 
   it("read_thread returns ordered messages between two agents", async () => {
@@ -198,7 +198,7 @@ describe("mcp tools (M3 mocks)", () => {
       content: string;
     }>;
     expect(msgs).toHaveLength(1);
-    expect(msgs[0].content).toBe("do X");
+    expect(msgs[0]!.content).toBe("do X");
   });
 
   it("message_agent fails gracefully when target agent not found", async () => {
@@ -233,9 +233,9 @@ describe("mcp tools (M3 mocks)", () => {
       preview: string | null;
     }>;
     expect(items).toHaveLength(1);
-    expect(items[0].kind).toBe("completed");
-    expect(items[0].title).toBe("Done!");
-    expect(items[0].preview).toBe("task X");
+    expect(items[0]!.kind).toBe("completed");
+    expect(items[0]!.title).toBe("Done!");
+    expect(items[0]!.preview).toBe("task X");
   });
 
   it("notify_user accepts kind security_alert", async () => {
@@ -253,8 +253,8 @@ describe("mcp tools (M3 mocks)", () => {
       kind: string;
       requires_action: number;
     }>;
-    expect(items[0].kind).toBe("security_alert");
-    expect(items[0].requires_action).toBe(1);
+    expect(items[0]!.kind).toBe("security_alert");
+    expect(items[0]!.requires_action).toBe(1);
   });
 
   it("waitForResolution returns when res.json appears", async () => {
