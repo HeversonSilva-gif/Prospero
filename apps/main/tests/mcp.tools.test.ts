@@ -166,4 +166,91 @@ describe("mcp tools (M3 mocks)", () => {
     const row = ctx.db.prepare("SELECT * FROM agents WHERE id = ?").get("victim");
     expect(row).toBeUndefined();
   });
+
+  it("message_agent appends to thread + emits agent.deliver", async () => {
+    const ctx = makeCtx();
+    ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
+    ctx.db
+      .prepare(
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
+      )
+      .run();
+    ctx.db
+      .prepare(
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('alice','c','Alice','FE','sp','[]','[]','supervised',0,'idle',1,1)`,
+      )
+      .run();
+
+    const def = toolDefinitions.find((t) => t.name === "message_agent");
+    const result = await def!.run({ agent_id: "alice", content: "do X" }, ctx);
+    expect(JSON.parse(result)).toMatchObject({ queued: true });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "agent.deliver",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        payload: expect.objectContaining({ targetId: "alice", senderName: "CEO", content: "do X" }),
+      }),
+    );
+    const msgs = ctx.db.prepare("SELECT * FROM messages WHERE sender_id = 'a'").all() as Array<{
+      content: string;
+    }>;
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0].content).toBe("do X");
+  });
+
+  it("message_agent fails gracefully when target agent not found", async () => {
+    const ctx = makeCtx();
+    ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
+    ctx.db
+      .prepare(
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
+      )
+      .run();
+
+    const def = toolDefinitions.find((t) => t.name === "message_agent");
+    const result = await def!.run({ agent_id: "ghost", content: "?" }, ctx);
+    const parsed = JSON.parse(result) as { ok: boolean; error?: string };
+    expect(parsed.ok).toBe(false);
+  });
+
+  it("notify_user inserts inbox_item with kind default 'completed'", async () => {
+    const ctx = makeCtx();
+    ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
+    ctx.db
+      .prepare(
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
+      )
+      .run();
+
+    const def = toolDefinitions.find((t) => t.name === "notify_user");
+    await def!.run({ title: "Done!", body: "task X" }, ctx);
+    const items = ctx.db.prepare("SELECT * FROM inbox_items WHERE actor_id = 'a'").all() as Array<{
+      kind: string;
+      title: string;
+      preview: string | null;
+    }>;
+    expect(items).toHaveLength(1);
+    expect(items[0].kind).toBe("completed");
+    expect(items[0].title).toBe("Done!");
+    expect(items[0].preview).toBe("task X");
+  });
+
+  it("notify_user accepts kind security_alert", async () => {
+    const ctx = makeCtx();
+    ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
+    ctx.db
+      .prepare(
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
+      )
+      .run();
+
+    const def = toolDefinitions.find((t) => t.name === "notify_user");
+    await def!.run({ title: "alert!", kind: "security_alert", requires_action: true }, ctx);
+    const items = ctx.db.prepare("SELECT * FROM inbox_items WHERE actor_id = 'a'").all() as Array<{
+      kind: string;
+      requires_action: number;
+    }>;
+    expect(items[0].kind).toBe("security_alert");
+    expect(items[0].requires_action).toBe(1);
+  });
 });

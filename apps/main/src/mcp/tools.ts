@@ -2,6 +2,7 @@ import { z } from "zod";
 import type Database from "better-sqlite3";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
+import { createInboxRepository } from "../inbox/repository.js";
 
 export type ToolContext = {
   agentId: string;
@@ -121,26 +122,72 @@ export const toolDefinitions = [
   },
   {
     name: "message_agent",
-    description: "Send a message directly to another agent.",
-    inputSchema: z.object({ agent: z.string(), content: z.string() }),
+    description: "Send a message to another agent (async fire-and-forget).",
+    inputSchema: z.object({ agent_id: z.string(), content: z.string().min(1) }),
     // eslint-disable-next-line @typescript-eslint/require-await
-    run: async (input: unknown, ctx: ToolContext): Promise<string> => {
-      ctx.emit({ kind: "message_agent.called", payload: input });
-      return JSON.stringify({ ok: true, mocked: true, would_send: input });
+    run: async (
+      input: { agent_id: string; content: string },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const agents = createAgentsRepository(ctx.db);
+      const messages = createMessagesRepository(ctx.db);
+      const sender = agents.getById(ctx.agentId);
+      if (sender === null) {
+        return JSON.stringify({ ok: false, error: "sender not found" });
+      }
+      const target = agents.getById(input.agent_id);
+      if (target === null) {
+        return JSON.stringify({ ok: false, error: "target not found" });
+      }
+      const msg = messages.append({
+        companyId: ctx.companyId,
+        participants: [ctx.agentId, input.agent_id],
+        senderKind: "agent",
+        senderId: ctx.agentId,
+        content: input.content,
+      });
+      ctx.emit({
+        kind: "agent.deliver",
+        payload: {
+          targetId: input.agent_id,
+          threadId: msg.threadId,
+          senderName: sender.name,
+          senderId: sender.id,
+          content: input.content,
+        },
+      });
+      return JSON.stringify({ queued: true, message_id: msg.id });
     },
   },
   {
     name: "notify_user",
-    description: "Push a notification to the user's inbox.",
+    description: "Push a notification to the user's Inbox.",
     inputSchema: z.object({
-      title: z.string(),
+      title: z.string().min(1),
       body: z.string().optional(),
+      kind: z.enum(["completed", "suggestion", "error", "security_alert"]).optional(),
       requires_action: z.boolean().optional(),
     }),
     // eslint-disable-next-line @typescript-eslint/require-await
-    run: async (input: unknown, ctx: ToolContext): Promise<string> => {
-      ctx.emit({ kind: "notify_user.called", payload: input });
-      return JSON.stringify({ ok: true, mocked: true });
+    run: async (
+      input: {
+        title: string;
+        body?: string;
+        kind?: "completed" | "suggestion" | "error" | "security_alert";
+        requires_action?: boolean;
+      },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const inbox = createInboxRepository(ctx.db);
+      inbox.create({
+        companyId: ctx.companyId,
+        kind: input.kind ?? "completed",
+        actorId: ctx.agentId,
+        title: input.title,
+        preview: input.body ?? null,
+        requiresAction: input.requires_action ?? false,
+      });
+      return JSON.stringify({ ok: true });
     },
   },
 ] as const;
