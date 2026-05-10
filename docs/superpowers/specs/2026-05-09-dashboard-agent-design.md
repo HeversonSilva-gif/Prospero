@@ -365,6 +365,8 @@ Segurança é prioridade dura. Os agentes têm acesso a Bash/Edit/Write na máqu
 - **Bash**: tokenização do comando + heurística estática rejeita acessos a paths sensíveis (`~/.claude/`, `~/.ssh/`, `%APPDATA%\Microsoft\Credentials`, `*.credentials.json`). Comandos com `cd` que escapam são reescritos ou rejeitados.
 - **Working directory**: agente sempre roda com `--cwd` num projeto permitido. Não confia só no `--cwd`; reforça em cada tool call.
 
+> **Em milestones anteriores ao Projects CRUD (M5..M5.x):** o allowlist é o `settings.workspaceCwd` único — todos os agentes da company compartilham este root. Quando Projects CRUD aterriza (M6), migra-se para `agents.allowed_projects_json` resolvido via `projects.path` por agente.
+
 ### 8.3 Lista de comandos sempre-bloqueados
 
 Mesmo em modo `auto`, comandos abaixo **sempre** exigem aprovação (não bypass):
