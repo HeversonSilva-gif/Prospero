@@ -8,8 +8,8 @@ import type {
   IssueComment,
   IssueEvent,
   IssueEventKind,
-  ToolCallRef,
 } from "@dashboard-agent/shared";
+import { getToolHistory } from "./tool-history.js";
 
 type IssueRow = {
   id: string;
@@ -203,8 +203,7 @@ export const createIssuesRepository = (db: Database.Database): IssuesRepository 
           .get(issue.projectId) as { id: string; name: string; color: string } | undefined;
         if (p !== undefined) project = p;
       }
-      // Tool history: stays empty here; populated via getToolHistory in Task 15 (re-import once added)
-      const toolHistory: ToolCallRef[] = [];
+      const toolHistory = getToolHistory(db, id);
       return { issue, comments, events, subtasks, toolHistory, assignee, project };
     },
     list(filter) {
