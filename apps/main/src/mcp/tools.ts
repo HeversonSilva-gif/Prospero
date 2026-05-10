@@ -227,27 +227,54 @@ export const toolDefinitions = [
   {
     name: "request_permission",
     description: "(internal) permission gate — claude calls this before each side-effect tool.",
+    // Claude Code sends the gated tool's actual input under the key `input` (not
+    // `tool_input`). The tool_use_id may also arrive under `permission_request_id`
+    // or `tool_use_id` depending on version. We accept both via z.unknown() and
+    // normalize at runtime.
     inputSchema: z.object({
       tool_name: z.string(),
-      tool_input: z.unknown(),
-      tool_use_id: z.string(),
+      input: z.record(z.unknown()).optional(),
+      tool_input: z.unknown().optional(),
+      tool_use_id: z.string().optional(),
+      permission_request_id: z.string().optional(),
     }),
     run: async (
-      input: { tool_name: string; tool_input: unknown; tool_use_id: string },
+      rawInput: {
+        tool_name: string;
+        input?: Record<string, unknown>;
+        tool_input?: unknown;
+        tool_use_id?: string;
+        permission_request_id?: string;
+      },
       ctx: ToolContext,
     ): Promise<string> => {
-      const reqPath = join(ctx.permissionsDir, `${input.tool_use_id}.req.json`);
+      // Normalize input — claude code sends gated tool input under `input` (current
+      // SDK) or `tool_input` (older docs). Use whichever is present, defaulting to
+      // empty object so updatedInput is always a valid record.
+      const toolInput: Record<string, unknown> =
+        rawInput.input ??
+        (typeof rawInput.tool_input === "object" && rawInput.tool_input !== null
+          ? (rawInput.tool_input as Record<string, unknown>)
+          : {});
+      const toolUseId = rawInput.tool_use_id ?? rawInput.permission_request_id ?? "unknown";
+      const reqPath = join(ctx.permissionsDir, `${toolUseId}.req.json`);
       writeFileSync(
         reqPath,
         JSON.stringify({
-          tool_use_id: input.tool_use_id,
+          tool_use_id: toolUseId,
           agentId: ctx.agentId,
-          tool_name: input.tool_name,
-          tool_input: input.tool_input,
+          tool_name: rawInput.tool_name,
+          tool_input: toolInput,
         }),
       );
-      const result = await waitForResolution(ctx.permissionsDir, input.tool_use_id, 5 * 60_000);
+      const result = await waitForResolution(ctx.permissionsDir, toolUseId, 30 * 60_000);
       safeUnlink(reqPath);
+      // Claude Code's --permission-prompt-tool requires `updatedInput` (a Record) on
+      // allow responses. Without it, the response fails Zod validation on claude's
+      // side and the gated tool gets an "invalid_union" error.
+      if (result.behavior === "allow") {
+        return JSON.stringify({ behavior: "allow", updatedInput: toolInput });
+      }
       return JSON.stringify(result);
     },
   },

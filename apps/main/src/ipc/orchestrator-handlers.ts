@@ -123,6 +123,11 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
             const status = stillBusy ? "thinking" : "idle";
             agents.updateStatus(agent.id, { status, currentAction: null });
             broadcast({ kind: "status", agentId: agent.id, status, currentAction: null });
+            // Refresh agents roster on every turn-complete. Covers the case where this
+            // turn called hire_agent/fire_agent and the renderer needs to see the new
+            // sidebar state. stderr-based agent.spawn-needed events don't always reach
+            // us through claude's stdio pipes on Windows, so this is the reliable path.
+            broadcast({ kind: "roster-changed", companyId: agent.companyId });
           } else if (ev.kind === "api-retry") {
             broadcast({
               kind: "error",
@@ -168,6 +173,18 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
                 const r = getRunner(p.agentId);
                 r?.kill();
                 removeRunner(p.agentId);
+                broadcast({ kind: "roster-changed", companyId: agent.companyId });
+              } else if (
+                k === "agent.spawn-needed" &&
+                typeof payloadObj === "object" &&
+                payloadObj !== null
+              ) {
+                // hire_agent created a new agent in DB. Tell the renderer to refresh
+                // the sidebar list.
+                console.log(
+                  `[m5/roster] agent.spawn-needed received → broadcasting roster-changed companyId=${agent.companyId}`,
+                );
+                broadcast({ kind: "roster-changed", companyId: agent.companyId });
               }
             }
           } catch {

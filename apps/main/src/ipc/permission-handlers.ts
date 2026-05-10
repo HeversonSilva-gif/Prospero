@@ -5,7 +5,11 @@ import { IPC, type PermissionResolution, type PermissionRequest } from "@dashboa
 import { getPermissionsDir } from "../security/permissions-dir.js";
 
 export const broadcastPermissionRequest = (req: PermissionRequest): void => {
-  for (const win of BrowserWindow.getAllWindows()) {
+  const wins = BrowserWindow.getAllWindows();
+  console.log(
+    `[m5/permission] broadcast PERMISSION_REQUEST toolUseId=${req.toolUseId} agentId=${req.agentId} wins=${String(wins.length)}`,
+  );
+  for (const win of wins) {
     win.webContents.send(IPC.PERMISSION_REQUEST, req);
   }
 };
@@ -16,10 +20,11 @@ export const registerPermissionHandlers = (): void => {
     (_e, payload: { toolUseId: string; resolution: PermissionResolution }): void => {
       const dir = getPermissionsDir(app.getPath("userData"));
       const filename = payload.resolution.behavior === "allow" ? "res.json" : "deny.json";
-      writeFileSync(
-        join(dir, `${payload.toolUseId}.${filename}`),
-        JSON.stringify(payload.resolution),
+      const target = join(dir, `${payload.toolUseId}.${filename}`);
+      console.log(
+        `[m5/permission] resolve toolUseId=${payload.toolUseId} behavior=${payload.resolution.behavior} → writing ${target}`,
       );
+      writeFileSync(target, JSON.stringify(payload.resolution));
     },
   );
 };

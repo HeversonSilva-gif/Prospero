@@ -39,7 +39,11 @@ export const Agent = () => {
 
   // Subscribe to permission requests for this agent
   useEffect(() => {
+    console.log(`[m5/agent] subscribe permissions.onRequest agent=${agent?.id ?? "(undefined)"}`);
     const unsub = window.dashboardAgent.permissions.onRequest((req) => {
+      console.log(
+        `[m5/agent] received permission request toolUseId=${req.toolUseId} reqAgentId=${req.agentId} myAgentId=${agent?.id ?? "(undefined)"}`,
+      );
       if (agent !== undefined && req.agentId === agent.id) {
         setPendingApprovals((prev) => [...prev, req]);
       }

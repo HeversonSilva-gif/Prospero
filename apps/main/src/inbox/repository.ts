@@ -42,6 +42,7 @@ export type InboxRepository = {
   create(input: CreateInboxInput): InboxItem;
   listByCompany(companyId: string): InboxItem[];
   markRead(id: string): void;
+  markReadByToolUseId(toolUseId: string): InboxItem | null;
 };
 
 export const createInboxRepository = (db: Database.Database): InboxRepository => {
@@ -88,6 +89,18 @@ export const createInboxRepository = (db: Database.Database): InboxRepository =>
     },
     markRead(id) {
       markReadStmt.run(Date.now(), id);
+    },
+    markReadByToolUseId(toolUseId) {
+      // Find inbox item whose payload_json contains this toolUseId. Naive substring match
+      // against JSON string — adequate for the small inbox sizes expected in v1.
+      const row = db
+        .prepare(
+          `SELECT * FROM inbox_items WHERE kind = 'approval' AND read_at IS NULL AND payload_json LIKE ? LIMIT 1`,
+        )
+        .get(`%${toolUseId}%`) as Row | undefined;
+      if (row === undefined) return null;
+      markReadStmt.run(Date.now(), row.id);
+      return rowToItem({ ...row, read_at: Date.now() });
     },
   };
 };

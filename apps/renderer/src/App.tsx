@@ -107,32 +107,44 @@ export const App = () => {
   const appendMessage = useMessagesStore((s) => s.append);
   const patchToolCall = useMessagesStore((s) => s.patchToolCallResult);
   const loadInbox = useInboxStore((s) => s.load);
-  const subscribeInbox = useInboxStore((s) => s.subscribe);
 
   useEffect(() => {
     void loadSettings();
     void loadAuth();
   }, [loadSettings, loadAuth]);
 
-  // After token is configured, ensure first company's agents and inbox are loaded
+  // After token is configured, ensure first company's agents and inbox are loaded.
+  // Initial load only — subscription is registered separately below so it survives
+  // late-arriving companies (e.g. user created demo company after first mount).
   useEffect(() => {
-    const init = async (): Promise<(() => void) | undefined> => {
-      if (!hasToken) return undefined;
+    if (!hasToken) return;
+    void (async () => {
       const companies = await window.dashboardAgent.companies.list();
       if (companies.length > 0) {
         const cid = companies[0]!.id;
         await loadAgents(cid);
         await loadInbox(cid);
-        return subscribeInbox(cid);
       }
-      return undefined;
-    };
-    let unsub: undefined | (() => void);
-    void init().then((u) => {
-      if (typeof u === "function") unsub = u;
+    })();
+  }, [hasToken, loadAgents, loadInbox]);
+
+  // Permanent inbox-update subscription. On every broadcast, re-resolve the current
+  // company (via fresh companies.list()) and reload its inbox. This works whether or
+  // not a company existed at App mount time.
+  useEffect(() => {
+    if (!hasToken) return;
+    const off = window.dashboardAgent.inbox.onUpdate(() => {
+      console.log("[m5/inbox] onUpdate broadcast received");
+      void (async () => {
+        const companies = await window.dashboardAgent.companies.list();
+        if (companies.length > 0) {
+          await loadInbox(companies[0]!.id);
+          console.log("[m5/inbox] reloaded for companyId=" + companies[0]!.id);
+        }
+      })();
     });
-    return () => unsub?.();
-  }, [hasToken, loadAgents, loadInbox, subscribeInbox]);
+    return off;
+  }, [hasToken, loadInbox]);
 
   // Subscribe to agent:event broadcasts
   useEffect(() => {
@@ -140,9 +152,13 @@ export const App = () => {
       if (ev.kind === "message-append") appendMessage(ev.message);
       else if (ev.kind === "tool-result") patchToolCall(ev.threadId, ev.toolCallId, ev.result);
       else if (ev.kind === "status") applyStatus(ev.agentId, ev.status, ev.currentAction);
+      else if (ev.kind === "roster-changed") {
+        console.log(`[m5/agents] roster-changed for companyId=${ev.companyId}, reloading list`);
+        void loadAgents(ev.companyId);
+      }
     });
     return off;
-  }, [appendMessage, patchToolCall, applyStatus]);
+  }, [appendMessage, patchToolCall, applyStatus, loadAgents]);
 
   if (!settingsLoaded || !authLoaded) {
     return (

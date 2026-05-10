@@ -11,6 +11,7 @@ import { startPermissionWatcher } from "./security/permission-watcher.js";
 import { getPermissionsDir } from "./security/permissions-dir.js";
 import { resolveWorkspaceCwd } from "./settings/workspace.js";
 import { broadcastPermissionRequest } from "./ipc/permission-handlers.js";
+import { broadcastInboxUpdate } from "./ipc/inbox-handlers.js";
 import { createInboxRepository } from "./inbox/repository.js";
 import { createSettingsRepository } from "./settings/repository.js";
 import { createAgentsRepository } from "./agents/repository.js";
@@ -36,9 +37,16 @@ void app.whenReady().then(() => {
     getAgent: (id) => agentsRepo.getById(id),
     getWorkspaceCwd: () => resolveWorkspaceCwd(settingsRepo.read().workspaceCwd),
     onUserDecision: (req, reason) => {
+      const wins = BrowserWindow.getAllWindows();
+      console.log(
+        `[m5/permission] onUserDecision toolUseId=${req.toolUseId} agentId=${req.agentId} tool=${req.toolName} reason=${reason} wins=${String(wins.length)}`,
+      );
       broadcastPermissionRequest(req);
       const agent = agentsRepo.getById(req.agentId);
-      if (agent === null) return;
+      if (agent === null) {
+        console.log(`[m5/permission] WARN agent not found: ${req.agentId}`);
+        return;
+      }
       inboxRepo.create({
         companyId: agent.companyId,
         kind: "approval",
@@ -56,17 +64,35 @@ void app.whenReady().then(() => {
           reason,
         }),
       });
+      broadcastInboxUpdate(agent.companyId);
       agentsRepo.updateStatus(req.agentId, {
         status: "waiting",
         currentAction: `Awaiting approval: ${req.toolName}`.slice(0, 80),
       });
-      for (const win of BrowserWindow.getAllWindows()) {
+      for (const win of wins) {
         win.webContents.send(IPC.AGENT_EVENT, {
           kind: "status",
           agentId: req.agentId,
           status: "waiting",
           currentAction: `Awaiting approval: ${req.toolName}`.slice(0, 80),
         });
+      }
+    },
+    onResolved: (toolUseId, resolution) => {
+      console.log(
+        `[m5/permission] onResolved FIRED toolUseId=${toolUseId} behavior=${resolution.behavior}`,
+      );
+      // When a permission is resolved (.res.json or .deny.json appears), find the
+      // matching inbox approval item and mark it read. Works for both inline
+      // ApprovalCard and Inbox-route approvals — both write the same fence file.
+      const updated = inboxRepo.markReadByToolUseId(toolUseId);
+      if (updated !== null) {
+        console.log(
+          `[m5/permission] onResolved markRead HIT itemId=${updated.id} companyId=${updated.companyId}`,
+        );
+        broadcastInboxUpdate(updated.companyId);
+      } else {
+        console.log(`[m5/permission] onResolved markRead NO-HIT for ${toolUseId}`);
       }
     },
   });

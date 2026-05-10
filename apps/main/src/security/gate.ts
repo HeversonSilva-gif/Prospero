@@ -34,11 +34,15 @@ const isInsideWorkspace = (path: string, workspace: string): boolean => {
   return abs === wsAbs || abs.startsWith(wsAbs + (process.platform === "win32" ? "\\" : "/"));
 };
 
+const asObject = (v: unknown): Record<string, unknown> =>
+  v !== null && typeof v === "object" ? (v as Record<string, unknown>) : {};
+
 export const evaluatePermission = (input: GateInput): GateDecision => {
   const { toolName, toolInput, agent, workspaceCwd } = input;
+  const ti = asObject(toolInput);
 
   if (toolName === "Bash") {
-    const cmd = (toolInput as { command?: string }).command ?? "";
+    const cmd = typeof ti["command"] === "string" ? ti["command"] : "";
     if (matchesBlockedBash(cmd)) {
       return { action: "request_user", reason: "always-blocked bash pattern" };
     }
@@ -53,8 +57,9 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
       }
     }
   } else if (FS_TOOLS.has(toolName)) {
-    const ti = toolInput as { file_path?: string; path?: string };
-    const path = ti.file_path ?? ti.path ?? "";
+    const fp = ti["file_path"];
+    const p = ti["path"];
+    const path = typeof fp === "string" ? fp : typeof p === "string" ? p : "";
     if (path !== "") {
       const expanded = expandHome(path);
       if (matchesBlockedPath(expanded)) {
