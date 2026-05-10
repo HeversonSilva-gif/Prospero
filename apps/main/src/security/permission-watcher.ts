@@ -1,6 +1,7 @@
 import chokidar, { type FSWatcher } from "chokidar";
 import { readFileSync, writeFileSync, unlinkSync, existsSync, readdirSync } from "node:fs";
 import { join, basename } from "node:path";
+import type { PermissionResolution } from "@dashboard-agent/shared";
 import type { Agent, PermissionRequest } from "@dashboard-agent/shared";
 import { evaluatePermission } from "./gate.js";
 
@@ -9,6 +10,7 @@ export type WatcherOptions = {
   getAgent: (agentId: string) => Agent | null;
   getWorkspaceCwd: () => string;
   onUserDecision: (request: PermissionRequest, reason: string) => void;
+  onResolved?: (toolUseId: string, resolution: PermissionResolution) => void;
 };
 
 const safeUnlink = (p: string): void => {
@@ -74,12 +76,28 @@ export const startPermissionWatcher = (opts: WatcherOptions): (() => Promise<voi
     }
   };
 
+  const handleResolution = (filePath: string): void => {
+    if (opts.onResolved === undefined) return;
+    const name = basename(filePath);
+    const m = /^(.+)\.(res|deny)\.json$/.exec(name);
+    if (m === null) return;
+    try {
+      const body = JSON.parse(readFileSync(filePath, "utf8")) as PermissionResolution;
+      opts.onResolved(m[1] ?? "", body);
+    } catch {
+      /* best effort */
+    }
+  };
+
   const watcher: FSWatcher = chokidar.watch(opts.dir, {
     ignoreInitial: true,
     persistent: true,
     awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 20 },
   });
-  watcher.on("add", handle);
+  watcher.on("add", (p) => {
+    handle(p);
+    handleResolution(p);
+  });
 
   return async () => {
     await watcher.close();

@@ -85,6 +85,24 @@ describe(
       rmSync(dir, { recursive: true, force: true });
     });
 
+    it("invokes onResolved when res.json appears", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "pw-"));
+      const onResolved = vi.fn();
+      const stop = startPermissionWatcher({
+        dir,
+        getAgent: () => agent,
+        getWorkspaceCwd: () => "C:\\Workspace",
+        onUserDecision: vi.fn(),
+        onResolved,
+      });
+      await new Promise((r) => setTimeout(r, 200));
+      writeFileSync(join(dir, "tu99.res.json"), JSON.stringify({ behavior: "allow" }));
+      await new Promise((r) => setTimeout(r, 500));
+      expect(onResolved).toHaveBeenCalledWith("tu99", { behavior: "allow" });
+      await stop();
+      rmSync(dir, { recursive: true, force: true });
+    });
+
     it("calls onUserDecision callback for request_user", async () => {
       const dir = mkdtempSync(join(tmpdir(), "pw-"));
       const onUserDecision = vi.fn();

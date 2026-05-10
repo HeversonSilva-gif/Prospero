@@ -23,7 +23,7 @@ describe("router state machine", () => {
     expect(writes).toHaveLength(1); // queued, not written yet
     r.onTurnComplete("a1");
     expect(writes).toHaveLength(2);
-    expect(writes[1].content).toBe("[from: CEO] msg2");
+    expect(writes[1]?.content).toBe("[from: CEO] msg2");
     expect(r.getCurrentThread("a1")).toBe("thr2");
     r.onTurnComplete("a1");
     expect(r.getCurrentThread("a1")).toBe(null);

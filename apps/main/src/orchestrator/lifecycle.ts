@@ -143,6 +143,16 @@ export const activeRunnerCount = (): number => {
   return count;
 };
 
+export type EnsureRunnerOptions = SpawnOptions;
+
+export const ensureRunner = (opts: EnsureRunnerOptions, cb: RunnerCallbacks): AgentRunner => {
+  const existing = getRunner(opts.agent.id);
+  if (existing !== undefined && existing.isAlive()) return existing;
+  const r = spawnAgent(opts, cb);
+  registerRunner(r);
+  return r;
+};
+
 export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner => {
   if (activeRunnerCount() >= MAX_CONCURRENT_AGENTS) {
     throw new Error(

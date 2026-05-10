@@ -1,6 +1,7 @@
-import { app } from "electron";
-import type { BrowserWindow, Tray } from "electron";
+import { app, BrowserWindow } from "electron";
+import type { Tray } from "electron";
 import type Database from "better-sqlite3";
+import { IPC } from "@dashboard-agent/shared";
 import { createMainWindow } from "./window/main-window.js";
 import { registerIpcHandlers } from "./ipc/handlers.js";
 import { createTray } from "./tray/index.js";
@@ -55,6 +56,18 @@ void app.whenReady().then(() => {
           reason,
         }),
       });
+      agentsRepo.updateStatus(req.agentId, {
+        status: "waiting",
+        currentAction: `Awaiting approval: ${req.toolName}`.slice(0, 80),
+      });
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send(IPC.AGENT_EVENT, {
+          kind: "status",
+          agentId: req.agentId,
+          status: "waiting",
+          currentAction: `Awaiting approval: ${req.toolName}`.slice(0, 80),
+        });
+      }
     },
   });
 
