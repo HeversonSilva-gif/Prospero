@@ -15,6 +15,10 @@ export const IPC = {
   AGENT_KILL: "agent:kill",
   AGENT_EVENT: "agent:event",
   MESSAGE_LIST: "message:list",
+  MESSAGE_LIST_BY_AGENT: "message:list-by-agent",
+  INBOX_LIST: "inbox:list",
+  INBOX_MARK_READ: "inbox:mark-read",
+  INBOX_UPDATE: "inbox:update",
   PERMISSION_REQUEST: "permission:request",
   PERMISSION_RESOLVE: "permission:resolve",
 } as const;
