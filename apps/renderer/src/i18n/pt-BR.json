@@ -6,7 +6,9 @@
     "dashboard": "Dashboard",
     "inbox": "Inbox",
     "settings": "Configurações",
-    "agents": "Agentes"
+    "agents": "Agentes",
+    "projects": "Projetos",
+    "issues": "Issues"
   },
   "dashboard": {
     "placeholder": "M2 — Autenticação e Configurações concluídas. Os widgets do dashboard chegam em M6.",
@@ -83,5 +85,28 @@
     "save": "Salvar",
     "cancel": "Cancelar",
     "close": "Fechar"
+  },
+  "projects": {
+    "title": "Projetos",
+    "newButton": "+ Novo projeto",
+    "empty": "Sem projetos ainda — crie um pra começar.",
+    "form": {
+      "name": "Nome",
+      "path": "Pasta",
+      "color": "Cor",
+      "pickFolder": "Escolher pasta...",
+      "save": "Salvar",
+      "cancel": "Cancelar",
+      "delete": "Excluir projeto",
+      "confirmDelete": "Excluir esse projeto? As issues continuam mas perdem o vínculo."
+    },
+    "detail": {
+      "openInExplorer": "Abrir no Explorer",
+      "edit": "Editar",
+      "agentsWithAccess": "Agentes com acesso",
+      "recentIssues": "Issues recentes",
+      "counts": "{{agents}} agentes · {{issues}} issues · {{doing}} doing",
+      "pathMissing": "Pasta indisponível"
+    }
   }
 }

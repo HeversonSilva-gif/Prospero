@@ -6,7 +6,9 @@
     "dashboard": "Dashboard",
     "inbox": "Inbox",
     "settings": "Settings",
-    "agents": "Agents"
+    "agents": "Agents",
+    "projects": "Projects",
+    "issues": "Issues"
   },
   "dashboard": {
     "placeholder": "M2 — Auth & Settings done. Dashboard widgets land in M6.",
@@ -83,5 +85,28 @@
     "save": "Save",
     "cancel": "Cancel",
     "close": "Close"
+  },
+  "projects": {
+    "title": "Projects",
+    "newButton": "+ New project",
+    "empty": "No projects yet — create one to start.",
+    "form": {
+      "name": "Name",
+      "path": "Folder path",
+      "color": "Color",
+      "pickFolder": "Choose folder...",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete project",
+      "confirmDelete": "Delete this project? Issues remain but lose their project link."
+    },
+    "detail": {
+      "openInExplorer": "Open in Explorer",
+      "edit": "Edit",
+      "agentsWithAccess": "Agents with access",
+      "recentIssues": "Recent issues",
+      "counts": "{{agents}} agents · {{issues}} issues · {{doing}} doing",
+      "pathMissing": "Path unavailable"
+    }
   }
 }
