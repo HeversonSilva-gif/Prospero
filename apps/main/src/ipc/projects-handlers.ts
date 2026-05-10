@@ -1,0 +1,47 @@
+import { ipcMain, shell } from "electron";
+import type Database from "better-sqlite3";
+import { IPC, type Project, type ProjectPathStatus } from "@dashboard-agent/shared";
+import { createProjectsRepository } from "../projects/repository.js";
+
+export const registerProjectsHandlers = (db: Database.Database): void => {
+  const repo = createProjectsRepository(db);
+
+  ipcMain.handle(IPC.PROJECTS_LIST, (_e, payload: { companyId: string }): Project[] =>
+    repo.listByCompany(payload.companyId),
+  );
+
+  ipcMain.handle(
+    IPC.PROJECTS_CREATE,
+    (_e, payload: { companyId: string; name: string; path: string; color: string }): Project =>
+      repo.create(payload),
+  );
+
+  ipcMain.handle(
+    IPC.PROJECTS_UPDATE,
+    (_e, payload: { id: string; name?: string; path?: string; color?: string }): Project | null => {
+      const { id, ...patch } = payload;
+      return repo.update(id, patch);
+    },
+  );
+
+  ipcMain.handle(IPC.PROJECTS_DELETE, (_e, payload: { id: string }): { ok: true } => {
+    repo.delete(payload.id);
+    return { ok: true };
+  });
+
+  ipcMain.handle(
+    IPC.PROJECTS_OPEN_FOLDER,
+    async (_e, payload: { id: string }): Promise<{ opened: boolean }> => {
+      const p = repo.getById(payload.id);
+      if (p === null) return { opened: false };
+      const err = await shell.openPath(p.path);
+      return { opened: err === "" };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.PROJECTS_CHECK_PATHS,
+    (_e, payload: { companyId: string }): Record<string, ProjectPathStatus> =>
+      repo.checkPaths(payload.companyId),
+  );
+};

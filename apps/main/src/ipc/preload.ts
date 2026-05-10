@@ -12,6 +12,8 @@ import {
   type InboxItem,
   type PermissionResolution,
   type PermissionRequest,
+  type Project,
+  type ProjectPathStatus,
 } from "@dashboard-agent/shared";
 
 contextBridge.exposeInMainWorld("dashboardAgent", {
@@ -71,5 +73,21 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
       ipcRenderer.on(IPC.PERMISSION_REQUEST, handler);
       return () => ipcRenderer.removeListener(IPC.PERMISSION_REQUEST, handler);
     },
+  },
+  projects: {
+    list: (companyId: string) =>
+      ipcRenderer.invoke(IPC.PROJECTS_LIST, { companyId }) as Promise<Project[]>,
+    create: (input: { companyId: string; name: string; path: string; color: string }) =>
+      ipcRenderer.invoke(IPC.PROJECTS_CREATE, input) as Promise<Project>,
+    update: (input: { id: string; name?: string; path?: string; color?: string }) =>
+      ipcRenderer.invoke(IPC.PROJECTS_UPDATE, input) as Promise<Project | null>,
+    delete: (id: string) =>
+      ipcRenderer.invoke(IPC.PROJECTS_DELETE, { id }) as Promise<{ ok: true }>,
+    openFolder: (id: string) =>
+      ipcRenderer.invoke(IPC.PROJECTS_OPEN_FOLDER, { id }) as Promise<{ opened: boolean }>,
+    checkPaths: (companyId: string) =>
+      ipcRenderer.invoke(IPC.PROJECTS_CHECK_PATHS, { companyId }) as Promise<
+        Record<string, ProjectPathStatus>
+      >,
   },
 });

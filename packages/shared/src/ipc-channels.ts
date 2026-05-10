@@ -21,6 +21,12 @@ export const IPC = {
   INBOX_UPDATE: "inbox:update",
   PERMISSION_REQUEST: "permission:request",
   PERMISSION_RESOLVE: "permission:resolve",
+  PROJECTS_LIST: "projects:list",
+  PROJECTS_CREATE: "projects:create",
+  PROJECTS_UPDATE: "projects:update",
+  PROJECTS_DELETE: "projects:delete",
+  PROJECTS_OPEN_FOLDER: "projects:open-folder",
+  PROJECTS_CHECK_PATHS: "projects:check-paths",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

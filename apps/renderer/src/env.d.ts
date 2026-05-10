@@ -11,6 +11,8 @@ import type {
   InboxItem,
   PermissionRequest,
   PermissionResolution,
+  Project,
+  ProjectPathStatus,
 } from "@dashboard-agent/shared";
 
 declare global {
@@ -51,6 +53,24 @@ declare global {
       permissions: {
         resolve: (toolUseId: string, resolution: PermissionResolution) => Promise<void>;
         onRequest: (cb: (req: PermissionRequest) => void) => () => void;
+      };
+      projects: {
+        list: (companyId: string) => Promise<Project[]>;
+        create: (input: {
+          companyId: string;
+          name: string;
+          path: string;
+          color: string;
+        }) => Promise<Project>;
+        update: (input: {
+          id: string;
+          name?: string;
+          path?: string;
+          color?: string;
+        }) => Promise<Project | null>;
+        delete: (id: string) => Promise<{ ok: true }>;
+        openFolder: (id: string) => Promise<{ opened: boolean }>;
+        checkPaths: (companyId: string) => Promise<Record<string, ProjectPathStatus>>;
       };
     };
   }
