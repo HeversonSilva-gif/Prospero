@@ -4,16 +4,16 @@
 >
 > **Spec base:** [docs/superpowers/specs/2026-05-09-dashboard-agent-design.md](docs/superpowers/specs/2026-05-09-dashboard-agent-design.md)
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
-> **Última atualização:** 2026-05-10 (M5 mergeado — `fbcff14`; Paperclip wishlist tracker adicionado)
+> **Última atualização:** 2026-05-10 (M6 mergeado — `3ef6a68`; Issues + Projects CRUD shipped)
 
 ## Status atual
 
 | Métrica | Valor |
 |---|---|
-| Milestones fechados | M1, M2, M3, M4, M5 (5/8 do v1 plano original) |
-| Testes | 147 passing, 26 test files, 0 lint/typecheck errors |
-| Commits no master | ~70 |
-| LoC (apps + packages) | ~9k TS/TSX |
+| Milestones fechados | M1, M2, M3, M4, M5, M6 (6/8 do v1 plano original) |
+| Testes | 185 passing, 37 test files, 0 lint/typecheck errors |
+| Commits no master | ~95 |
+| LoC (apps + packages) | ~13k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · vitest |
 
 ---
@@ -27,13 +27,13 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 | **Multi-empresa** | 🟡 Parcial | Backend pronto (`companies` table, `company:create-demo` IPC). UI: dropdown topo da sidebar pra trocar entre empresas **AINDA NÃO**. Sidebar mostra a primeira company por default. |
 | **Dashboard** | 🟡 Stub | Rota `/dashboard` existe (placeholder M2). 4 widgets do spec §6.4 (Agentes Ativos, Issues, Inbox, Custos hoje) **NÃO** implementados. |
 | **Inbox** | ✅ Completo | Rota `/inbox` com filter pills (All/Approvals/Completed/Suggestions/Errors/Security). Approve/Reject inline pra approval items. Auto-mark-read no resolve. Badge unread no sidebar. |
-| **Issues** | ❌ Não iniciado | Tabela `issues` existe (M1 schema). MCP tools `create_issue`/`update_issue`/`assign_issue`/`list_issues` ainda STUBS. UI kanban (`/issues`) e detail (`/issues/:id`) zerados. |
-| **Projects** | ❌ Não iniciado | Tabela `projects` existe (M1 schema). UI `/projects` e `/projects/:id` zerados. Hoje todos agentes compartilham `settings.workspaceCwd` único (M5 trade-off, spec §8.2). |
+| **Issues** | ✅ Completo | MCP tools (create/update/assign/list/check_status) reais. Kanban /issues com 5 colunas + drag-drop. Modal de detail com comments + sub-tasks + tool history. Auto-allow consistente com M5. |
+| **Projects** | ✅ Completo | Rota /projects master/detail com folder picker + color picker. Auto-cria 'Default Workspace' migration do workspaceCwd legado. Allowlist per agent via chip toggle. |
 | **Agents** | 🟡 Parcial | Sidebar lista todos com status colors. Rota `/agents/:id` chat 1-1 com unified cross-thread stream. Rota lista `/agents` com galeria de templates **NÃO** implementada. Right panel (persona/skills/projetos/issues/stats) **NÃO**. |
 | **Org Chart** | ❌ Não iniciado | Coluna `agents.reports_to` existe e é setada no `hire_agent`. Rota `/org` zerada. |
 | **Skills** | ❌ Não iniciado | Tabelas `skills_catalog` + `role_templates` existem com seed. Rota `/skills` zerada. Coluna `agents.skills_json` existe mas não tem UI pra editar. |
 | **Costs** | ❌ Não iniciado | Tabela `costs_log` existe. Tracking automático de tokens ainda **NÃO** liga (claude `result.usage` não persistido). Rota `/costs` zerada. |
-| **Settings** | ✅ Completo | OAuth token (manual + auto-detect M2), language, theme, workspace folder picker. Defaults de mode/always_on **NÃO** UI ainda — só DB defaults. |
+| **Settings** | ✅ Completo | OAuth token (manual + auto-detect M2), language, theme. Workspace folder picker removido (link pra /projects). Defaults de mode/always_on **NÃO** UI ainda — só DB defaults. |
 
 ---
 
@@ -108,30 +108,30 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 **Trade-offs aceitos em M5:**
 - Approval gate pra MCP orchestration tools (hire_agent etc) **dropped** — auto-allow via settings.json. Justificativa: side-effects são DB writes visíveis imediato em sidebar/inbox; user observability cobre auditoria sem prompt pré-execução. Fácil reverter movendo de `permissions.allow` pra `permissions.ask`.
 
+### ✅ M6 — Issues + Projects CRUD
+
+**Mergeado:** 2026-05-10 (`3ef6a68`, ~25 commits)
+**Lições:** [project_m6_lessons.md](memory)
+
+- [x] Migration 0002 — issue_comments + issue_events tables
+- [x] Post-migration: auto-cria "Default Workspace" project a partir do `settings.workspaceCwd` legado
+- [x] Projects backend: repository (CRUD + checkPaths) + 6 IPC channels
+- [x] /projects route master/detail com ProjectFormModal + AllowlistEditor (chip toggle por agente)
+- [x] Sandbox migration: `gate.ts` agora aceita `allowedProjectPaths: string[]` (uniao filtrada por agent.allowed_projects); permission-watcher resolve por agent
+- [x] Issues backend: repository com event writer + tool history derivation + comments repo + 7 IPC channels
+- [x] 5 MCP tools reais: create_issue (com lookup name OR id), update_issue, assign_issue, list_issues, check_status
+- [x] update_issue status=done dispara inbox `completed` notification
+- [x] /issues kanban (5 colunas) com @dnd-kit drag-drop + filtros project/assignee/priority
+- [x] IssueDetailModal: comments timeline + sub-tasks + tool call history accordion + reassign dropdown
+- [x] Real-time: orchestrator emite issue.created/updated → broadcastIssueChanged → renderer
+- [x] Settings UI: workspace folder picker removido (link pra /projects)
+- [x] Token budget non-regression test (skip-while-zero até user capturar baseline real)
+
 ---
 
 ## Pendências da v1 (próximos milestones)
 
 Sequência sugerida — pode ser ajustada. **Antes de cada um, consultar Paperclip** (`reference_paperclip` memory) pra UX/código.
-
-### 🔄 M6 — Issues + Projects CRUD (próximo natural)
-
-**Por que primeiro:** Issues são o "trabalho formalizado" do produto. Sem isso, agentes só conversam mas não geram artefatos rastreáveis. Projects libera per-project workspace allowlist (substitui o single-`workspaceCwd` do M5).
-
-- [ ] **Projects:**
-  - [ ] Rota `/projects` com lista de cards
-  - [ ] Modal "+" com campo path (Electron folder picker) + cor + nome
-  - [ ] Rota `/projects/:id` detail (lista agentes com acesso, issues do projeto)
-  - [ ] `agents.allowed_projects_json` real (allow per agent, default = todos da empresa)
-  - [ ] Migra workspace allowlist do `settings.workspaceCwd` único pra `projects.path` per-agent
-  - [ ] Path "indisponível" handling (spec §7) se folder some
-- [ ] **Issues:**
-  - [ ] Real implementations das MCP tools `create_issue`, `update_issue`, `assign_issue`, `list_issues`, `check_status`
-  - [ ] Rota `/issues` kanban com 5 colunas (Backlog/Todo/Doing/Review/Done) + filtros (project, assignee)
-  - [ ] Rota `/issues/:id` detail (descrição, comentários, tool call history, sub-tasks via `parent_id`)
-  - [ ] Drag-drop entre colunas pra mudar status
-  - [ ] Approval flow pra `assign_issue`/`update_issue` quando agente caller é supervised
-- [ ] **Não-regressão:** segurança (M4+M5 testes), tokens (≤1.3x baseline), suite verde
 
 ### 🔄 M7 — Org Chart + Skills
 

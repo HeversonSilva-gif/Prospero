@@ -3,6 +3,36 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## M6 — Issues + Projects (2026-05-10)
+
+### Added
+- Two new tables: `issue_comments` and `issue_events` (migration 0002)
+- Auto-migration: `settings.workspaceCwd` becomes a "Default Workspace" project on first M6 startup
+- `/projects` route with master/detail layout, folder picker, fixed-palette color picker, per-agent allowlist toggle
+- `/issues` kanban (5 status columns) with `@dnd-kit` drag-drop and project/assignee/priority filters
+- Issue detail modal (URL `/issues?selected=<id>`) with comments timeline, sub-tasks tree, tool-call history accordion, reassign dropdown
+- 5 real MCP tools for agents: `create_issue`, `update_issue`, `assign_issue`, `list_issues`, `check_status`
+- `update_issue` with `status=done` writes a `completed` inbox notification
+- Real-time renderer updates: orchestrator emits `issue.created`/`issue.updated` → broadcast → kanban refresh
+
+### Changed
+- Sandbox: `gate.ts` now accepts `allowedProjectPaths: string[]` (union of projects the agent has access to) instead of a single `workspaceCwd`. Existing tests + permission-watcher updated.
+- Agent type gains `allowedProjects: string[]` field (empty = allow all per spec)
+- Settings UI: workspace folder picker removed; replaced with deprecation note linking to /projects
+
+### Removed
+- Stub `create_issue` MCP tool (returned mocked payload) — replaced with real persistence
+
+### Dependencies
+- `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` (~10kb gzipped, MIT)
+
+### Tests
+- 147 → 185 passing
+- Lint + typecheck: 0 errors
+- New regression-guards: project-aware sandbox gate, migration 0002 enums, post-migration idempotency, MCP tools issues
+
+---
+
 ## [Unreleased]
 
 ### Added — M3 Orchestrator + MCP core (complete)
