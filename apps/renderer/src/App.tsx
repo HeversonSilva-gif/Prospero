@@ -134,12 +134,10 @@ export const App = () => {
   useEffect(() => {
     if (!hasToken) return;
     const off = window.dashboardAgent.inbox.onUpdate(() => {
-      console.log("[m5/inbox] onUpdate broadcast received");
       void (async () => {
         const companies = await window.dashboardAgent.companies.list();
         if (companies.length > 0) {
           await loadInbox(companies[0]!.id);
-          console.log("[m5/inbox] reloaded for companyId=" + companies[0]!.id);
         }
       })();
     });
@@ -152,10 +150,7 @@ export const App = () => {
       if (ev.kind === "message-append") appendMessage(ev.message);
       else if (ev.kind === "tool-result") patchToolCall(ev.threadId, ev.toolCallId, ev.result);
       else if (ev.kind === "status") applyStatus(ev.agentId, ev.status, ev.currentAction);
-      else if (ev.kind === "roster-changed") {
-        console.log(`[m5/agents] roster-changed for companyId=${ev.companyId}, reloading list`);
-        void loadAgents(ev.companyId);
-      }
+      else if (ev.kind === "roster-changed") void loadAgents(ev.companyId);
     });
     return off;
   }, [appendMessage, patchToolCall, applyStatus, loadAgents]);

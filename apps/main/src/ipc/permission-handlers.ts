@@ -8,11 +8,7 @@ import { createInboxRepository } from "../inbox/repository.js";
 import { broadcastInboxUpdate } from "./inbox-handlers.js";
 
 export const broadcastPermissionRequest = (req: PermissionRequest): void => {
-  const wins = BrowserWindow.getAllWindows();
-  console.log(
-    `[m5/permission] broadcast PERMISSION_REQUEST toolUseId=${req.toolUseId} agentId=${req.agentId} wins=${String(wins.length)}`,
-  );
-  for (const win of wins) {
+  for (const win of BrowserWindow.getAllWindows()) {
     win.webContents.send(IPC.PERMISSION_REQUEST, req);
   }
 };

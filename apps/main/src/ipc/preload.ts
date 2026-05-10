@@ -67,16 +67,8 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
     resolve: (toolUseId: string, resolution: PermissionResolution) =>
       ipcRenderer.invoke(IPC.PERMISSION_RESOLVE, { toolUseId, resolution }) as Promise<void>,
     onRequest: (cb: (req: PermissionRequest) => void) => {
-      const handler = (_e: unknown, req: PermissionRequest) => {
-        console.log(
-          `[m5/preload] permission:request received toolUseId=${req.toolUseId} agentId=${req.agentId}`,
-        );
-        cb(req);
-      };
+      const handler = (_e: unknown, req: PermissionRequest) => cb(req);
       ipcRenderer.on(IPC.PERMISSION_REQUEST, handler);
-      console.log(
-        `[m5/preload] permissions.onRequest listener registered (channel=${IPC.PERMISSION_REQUEST})`,
-      );
       return () => ipcRenderer.removeListener(IPC.PERMISSION_REQUEST, handler);
     },
   },

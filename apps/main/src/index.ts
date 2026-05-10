@@ -37,16 +37,12 @@ void app.whenReady().then(() => {
     getAgent: (id) => agentsRepo.getById(id),
     getWorkspaceCwd: () => resolveWorkspaceCwd(settingsRepo.read().workspaceCwd),
     onUserDecision: (req, reason) => {
-      const wins = BrowserWindow.getAllWindows();
       console.log(
-        `[m5/permission] onUserDecision toolUseId=${req.toolUseId} agentId=${req.agentId} tool=${req.toolName} reason=${reason} wins=${String(wins.length)}`,
+        `[m5/permission] onUserDecision toolUseId=${req.toolUseId} agentId=${req.agentId} tool=${req.toolName} reason=${reason}`,
       );
       broadcastPermissionRequest(req);
       const agent = agentsRepo.getById(req.agentId);
-      if (agent === null) {
-        console.log(`[m5/permission] WARN agent not found: ${req.agentId}`);
-        return;
-      }
+      if (agent === null) return;
       inboxRepo.create({
         companyId: agent.companyId,
         kind: "approval",
@@ -69,7 +65,7 @@ void app.whenReady().then(() => {
         status: "waiting",
         currentAction: `Awaiting approval: ${req.toolName}`.slice(0, 80),
       });
-      for (const win of wins) {
+      for (const win of BrowserWindow.getAllWindows()) {
         win.webContents.send(IPC.AGENT_EVENT, {
           kind: "status",
           agentId: req.agentId,
@@ -78,23 +74,10 @@ void app.whenReady().then(() => {
         });
       }
     },
-    onResolved: (toolUseId, resolution) => {
-      console.log(
-        `[m5/permission] onResolved FIRED toolUseId=${toolUseId} behavior=${resolution.behavior}`,
-      );
-      // When a permission is resolved (.res.json or .deny.json appears), find the
-      // matching inbox approval item and mark it read. Works for both inline
-      // ApprovalCard and Inbox-route approvals — both write the same fence file.
-      const updated = inboxRepo.markReadByToolUseId(toolUseId);
-      if (updated !== null) {
-        console.log(
-          `[m5/permission] onResolved markRead HIT itemId=${updated.id} companyId=${updated.companyId}`,
-        );
-        broadcastInboxUpdate(updated.companyId);
-      } else {
-        console.log(`[m5/permission] onResolved markRead NO-HIT for ${toolUseId}`);
-      }
-    },
+    // Note: inbox markRead + broadcast on user-decision approve/reject is handled
+    // directly inside the IPC permission:resolve handler (avoids a chokidar race
+    // where MCP child polling can unlink the fence file before chokidar fires `add`
+    // due to awaitWriteFinish stability window).
   });
 
   mainWindow = createMainWindow();

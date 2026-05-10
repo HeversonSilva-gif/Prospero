@@ -179,11 +179,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
                 typeof payloadObj === "object" &&
                 payloadObj !== null
               ) {
-                // hire_agent created a new agent in DB. Tell the renderer to refresh
-                // the sidebar list.
-                console.log(
-                  `[m5/roster] agent.spawn-needed received → broadcasting roster-changed companyId=${agent.companyId}`,
-                );
+                // hire_agent created a new agent in DB — refresh the sidebar list.
                 broadcast({ kind: "roster-changed", companyId: agent.companyId });
               }
             }
