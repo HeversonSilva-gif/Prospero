@@ -38,7 +38,9 @@
     "auth.tokenInvalid": "Invalid token. Expected format sk-ant-oat-...",
     "workspaceFolder": "Workspace Folder",
     "workspaceFolderHint": "Where agents execute commands. Default: ~/DashboardAgent-Workspace",
-    "workspaceFolderBrowse": "Browse..."
+    "workspaceFolderBrowse": "Browse...",
+    "workspace.label": "Workspace Folder",
+    "workspace.deprecatedNote": "Workspaces are now managed in"
   },
   "wizard": {
     "title": "Welcome to Dashboard Agent",
