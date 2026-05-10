@@ -1,5 +1,7 @@
 import { z } from "zod";
 import type Database from "better-sqlite3";
+import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { join } from "node:path";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
@@ -10,6 +12,38 @@ export type ToolContext = {
   db: Database.Database;
   permissionsDir: string;
   emit: (event: { kind: string; payload: unknown }) => void;
+};
+
+const safeUnlink = (p: string): void => {
+  try {
+    if (existsSync(p)) unlinkSync(p);
+  } catch {
+    /* best effort */
+  }
+};
+
+export const waitForResolution = async (
+  dir: string,
+  toolUseId: string,
+  timeoutMs: number,
+): Promise<{ behavior: "allow" } | { behavior: "deny"; message: string }> => {
+  const res = join(dir, `${toolUseId}.res.json`);
+  const den = join(dir, `${toolUseId}.deny.json`);
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (existsSync(res)) {
+      const r = JSON.parse(readFileSync(res, "utf8")) as { behavior: "allow" };
+      safeUnlink(res);
+      return r;
+    }
+    if (existsSync(den)) {
+      const d = JSON.parse(readFileSync(den, "utf8")) as { behavior: "deny"; message: string };
+      safeUnlink(den);
+      return d;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return { behavior: "deny", message: "Approval timeout" };
 };
 
 export const toolDefinitions = [
@@ -188,6 +222,33 @@ export const toolDefinitions = [
         requiresAction: input.requires_action ?? false,
       });
       return JSON.stringify({ ok: true });
+    },
+  },
+  {
+    name: "request_permission",
+    description: "(internal) permission gate — claude calls this before each side-effect tool.",
+    inputSchema: z.object({
+      tool_name: z.string(),
+      tool_input: z.unknown(),
+      tool_use_id: z.string(),
+    }),
+    run: async (
+      input: { tool_name: string; tool_input: unknown; tool_use_id: string },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const reqPath = join(ctx.permissionsDir, `${input.tool_use_id}.req.json`);
+      writeFileSync(
+        reqPath,
+        JSON.stringify({
+          tool_use_id: input.tool_use_id,
+          agentId: ctx.agentId,
+          tool_name: input.tool_name,
+          tool_input: input.tool_input,
+        }),
+      );
+      const result = await waitForResolution(ctx.permissionsDir, input.tool_use_id, 5 * 60_000);
+      safeUnlink(reqPath);
+      return JSON.stringify(result);
     },
   },
 ] as const;

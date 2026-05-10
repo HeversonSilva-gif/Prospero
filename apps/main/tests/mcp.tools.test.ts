@@ -1,7 +1,10 @@
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations } from "../src/db/migrations.js";
-import { toolDefinitions, type ToolContext } from "../src/mcp/tools.js";
+import { toolDefinitions, waitForResolution, type ToolContext } from "../src/mcp/tools.js";
 
 const makeCtx = (emit = vi.fn()): ToolContext => {
   const db = new Database(":memory:");
@@ -252,5 +255,38 @@ describe("mcp tools (M3 mocks)", () => {
     }>;
     expect(items[0].kind).toBe("security_alert");
     expect(items[0].requires_action).toBe(1);
+  });
+
+  it("waitForResolution returns when res.json appears", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "rp-"));
+    const promise = waitForResolution(dir, "tu1", 5000);
+    setTimeout(() => {
+      writeFileSync(join(dir, "tu1.res.json"), JSON.stringify({ behavior: "allow" }));
+    }, 150);
+    const result = await promise;
+    expect(result).toEqual({ behavior: "allow" });
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("waitForResolution returns deny when deny.json appears", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "rp-"));
+    const promise = waitForResolution(dir, "tu2", 5000);
+    setTimeout(() => {
+      writeFileSync(
+        join(dir, "tu2.deny.json"),
+        JSON.stringify({ behavior: "deny", message: "nope" }),
+      );
+    }, 150);
+    const result = await promise;
+    expect(result).toEqual({ behavior: "deny", message: "nope" });
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("waitForResolution times out with deny after configured ms", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "rp-"));
+    const result = await waitForResolution(dir, "tu_timeout", 200);
+    expect(result.behavior).toBe("deny");
+    expect((result as { message: string }).message).toMatch(/timeout/i);
+    rmSync(dir, { recursive: true, force: true });
   });
 });
