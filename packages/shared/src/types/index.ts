@@ -7,3 +7,4 @@ export * from "./message.js";
 export * from "./inbox.js";
 export * from "./permission.js";
 export * from "./project.js";
+export * from "./issue.js";
