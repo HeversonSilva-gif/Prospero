@@ -51,13 +51,35 @@ Após M5, o usuário pode:
 
 Schema do M1 já tem todas as tabelas necessárias (`agents`, `threads`, `messages`, `inbox_items`). Sem tabela nova.
 
-### 4.1 Migration 0002 — workspace_cwd default
+### 4.1 Estender `AppSettings` (sem migration nova)
 
-`apps/main/src/db/migrations/0002_workspace_cwd.sql`:
-```sql
-INSERT OR IGNORE INTO settings (key, value) VALUES ('workspace_cwd', '');
+Settings já são serializadas como JSON sob a key `app-settings` (ver [apps/main/src/settings/repository.ts](apps/main/src/settings/repository.ts)). Adiciona campo opcional ao type + schema:
+
+```ts
+// packages/shared/src/types/settings.ts
+export type AppSettings = {
+  language: Language;
+  theme: Theme;
+  workspaceCwd: string | null;   // null = use default <homedir>/DashboardAgent-Workspace
+};
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  language: "pt-BR",
+  theme: "light",
+  workspaceCwd: null,
+};
 ```
-Valor vazio sinaliza "use default" (`path.join(homedir(), 'DashboardAgent-Workspace')`). UI Settings preenche o real.
+
+```ts
+// apps/main/src/settings/schema.ts
+export const AppSettingsSchema = z.object({
+  language: z.enum(["pt-BR", "en-US"]),
+  theme: z.enum(["light", "dark"]),
+  workspaceCwd: z.string().nullable(),
+});
+```
+
+`parseSettings` faz merge com DEFAULT_SETTINGS, preservando backward-compat com settings antigos sem o campo. Sem migration SQL.
 
 ### 4.2 Estado em memória (não persistido)
 
@@ -404,7 +426,7 @@ Documentado no plan, executado antes de declarar M5 completo:
 
 Sequência que minimiza dependências circulares e permite testar incrementalmente:
 
-1. **Migration 0002 + workspace_cwd default + Settings UI** — base de infraestrutura
+1. **Extend AppSettings type/schema + Settings UI workspace folder field** — base de infraestrutura
 2. **Security gate puro** (`evaluatePermission` + blocklist) — testável sem fs
 3. **Permission watcher** (file fence) + IPC `permission:resolve` — testável standalone
 4. **MCP tools reais** (DB connection da MCP child via env DB_PATH) — testável sem orchestrator
