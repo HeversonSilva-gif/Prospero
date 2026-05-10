@@ -17,6 +17,7 @@ declare global {
       settings: {
         get: () => Promise<AppSettings>;
         update: (patch: Partial<AppSettings>) => Promise<AppSettings>;
+        pickWorkspace: () => Promise<string | null>;
       };
       auth: {
         status: () => Promise<TokenStatus>;

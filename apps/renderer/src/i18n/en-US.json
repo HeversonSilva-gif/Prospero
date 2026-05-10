@@ -32,7 +32,10 @@
     "auth.actionSet": "Save token",
     "auth.actionClear": "Remove token",
     "auth.tokenLabel": "Paste token here",
-    "auth.tokenInvalid": "Invalid token. Expected format sk-ant-oat-..."
+    "auth.tokenInvalid": "Invalid token. Expected format sk-ant-oat-...",
+    "workspaceFolder": "Workspace Folder",
+    "workspaceFolderHint": "Where agents execute commands. Default: ~/DashboardAgent-Workspace",
+    "workspaceFolderBrowse": "Browse..."
   },
   "wizard": {
     "title": "Welcome to Dashboard Agent",
