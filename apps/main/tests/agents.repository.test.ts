@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations } from "../src/db/migrations.js";
 import { createAgentsRepository } from "../src/agents/repository.js";
@@ -60,7 +60,7 @@ describe("agents repository", () => {
   });
 });
 
-describe("AgentsRepository — model field", () => {
+describe("AgentsRepository - model field", () => {
   it("returns model field from rowToAgent (default sonnet)", () => {
     const db = new Database(":memory:");
     applyMigrations(db);
@@ -109,5 +109,46 @@ describe("AgentsRepository — model field", () => {
       model: "",
     });
     expect(a.model).toBe("claude-sonnet-4-6");
+  });
+});
+
+describe("AgentsRepository - skills + templateId", () => {
+  it("returns empty skills + null templateId for a freshly created agent", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1', 'X', 0)").run();
+    const repo = createAgentsRepository(db);
+    const a = repo.create({
+      companyId: "c1",
+      name: "Eng",
+      role: "Engineer",
+      systemPrompt: "long enough system prompt",
+      mode: "supervised",
+      alwaysOn: false,
+    });
+    expect(a.skills).toEqual([]);
+    expect(a.templateId).toBeNull();
+  });
+
+  it("create() persists skills + templateId when provided", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1', 'X', 0)").run();
+    const repo = createAgentsRepository(db);
+    const a = repo.create({
+      companyId: "c1",
+      name: "Eng",
+      role: "Engineer",
+      systemPrompt: "long enough system prompt",
+      mode: "supervised",
+      alwaysOn: false,
+      skills: ["shell", "fs-write"],
+      templateId: "role-engineer",
+    });
+    expect(a.skills).toEqual(["shell", "fs-write"]);
+    expect(a.templateId).toBe("role-engineer");
+    const back = repo.getById(a.id);
+    expect(back?.skills).toEqual(["shell", "fs-write"]);
+    expect(back?.templateId).toBe("role-engineer");
   });
 });
