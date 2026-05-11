@@ -65,6 +65,8 @@ export type AgentsRepository = {
   setSessionId(id: string, sessionId: string): void;
   clearSessionId(id: string): void;
   setAllowedProjects(id: string, projectIds: string[]): void;
+  setModel(id: string, model: string): void;
+  setSystemPrompt(id: string, systemPrompt: string): void;
 };
 
 export const createAgentsRepository = (db: Database.Database): AgentsRepository => {
@@ -125,6 +127,20 @@ export const createAgentsRepository = (db: Database.Database): AgentsRepository 
     setAllowedProjects(id, projectIds) {
       db.prepare("UPDATE agents SET allowed_projects_json = ?, updated_at = ? WHERE id = ?").run(
         JSON.stringify(projectIds),
+        Date.now(),
+        id,
+      );
+    },
+    setModel(id, model) {
+      db.prepare("UPDATE agents SET model = ?, updated_at = ? WHERE id = ?").run(
+        model,
+        Date.now(),
+        id,
+      );
+    },
+    setSystemPrompt(id, systemPrompt) {
+      db.prepare("UPDATE agents SET system_prompt = ?, updated_at = ? WHERE id = ?").run(
+        systemPrompt,
         Date.now(),
         id,
       );
