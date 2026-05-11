@@ -12,13 +12,15 @@
 
 Após usar o Paperclip o usuário identificou **três classes de gap** que o roadmap atual não cobre com a prioridade certa:
 
-1. **Liberdade de mexer no agente direto pela UI** — hoje quase tudo passa pelo CEO via MCP. Paperclip permite editar persona, model, mode, skills, projetos e pausar/demitir direto na UI.
-2. **Goals como feature first-class com CEO-planner automático** — usuário define um objetivo, o CEO lê, **propõe um plano completo** (issues + agents a contratar + tempo + custo), e o usuário aprova em formato PR-review.
-3. **Interface menos limitante** em geral — diversos IPC channels existem **sem handler** (`AGENTS_SET_MODEL`, `SET_ROLE`, `SET_SYSTEM_PROMPT`, `SET_REPORTS_TO`), criação de agente só por CEO, sem botão Fire/Pause na UI.
+1. **Liberdade de mexer no agente direto pela UI** — hoje a maior parte passa pelo CEO via MCP. M7-C **já entregou** parte (right panel, edit role/model/persona/projects + IPC handlers). Faltam: reports_to UI, skills toggle, mode, always_on, **ações stateful** (Pause/Fire/Assign Task/wake-up), Runs timeline, form de criação.
+2. **Goals como feature first-class com CEO-planner automático** — usuário define objetivo, o CEO lê, **propõe plano completo** (issues + agents a contratar + tempo + custo), usuário aprova em formato PR-review.
+3. **Interface menos limitante** em geral — completar handlers IPC ausentes, expor ações no UI, permitir criação de agente sem mediação de CEO, edição de persona não-disruptiva (banner + restart-now button).
 
-Esses três viram **dois milestones novos** (M7.6 Agent Studio + M8.5 Goals/CEO Planning) inseridos depois do M7-C + M7.5 + M8 já planejados. O chat-first do produto **permanece intacto** — Paperclip-style tab full-page é explicitamente rejeitado.
+Esses três viram **dois milestones novos** (M7.6 Agent Studio + M8.5 Goals/CEO Planning) inseridos depois do M7-C + M7.5 + M8. O chat-first do produto **permanece intacto** — Paperclip-style tab full-page é rejeitado.
 
 **Importante:** Goals + CEO-planner é uma **evolução além do Paperclip**. Lá, goals são puramente declarativos (sem automação). A geração automática do plano é diferenciador nosso.
+
+**Importante 2:** após inspeção atualizada do código (commits M7-C `3aa5861`..`8b9d9c3` em master), o escopo de M7.6 reduziu de 6-8 dias pra 4-5 dias. M7-C entregou o panel base + 5 IPC handlers + edit inline de persona/model/role.
 
 ---
 
@@ -45,50 +47,70 @@ Dashboard widgets + multi-empresa + AGENTS.md + companies.sh + Reviews UX + API 
 
 ## Estado atual da UI de agentes (gaps observados)
 
-Verificado por inspeção do código (`apps/renderer/src/routes/Agent.tsx`, `apps/main/src/db/migrations/*`, `packages/shared/src/ipc-channels.ts`):
+Verificado por inspeção do código atual em master (commits M7-C recentes — `3aa5861`..`8b9d9c3`):
 
-| Capacidade | Hoje | Como? |
+**Importante:** M7-C **já entregou** uma boa parte do que originalmente seria M7.6. A análise inicial subestimou o estado atual. Tabela corrigida:
+
+| Capacidade | Hoje | Onde / Como |
 |---|---|---|
-| Editar persona/system_prompt | ❌ Sem UI | CEO via MCP — sem handler IPC ainda |
-| Trocar model do agente | ❌ Sem UI | IPC `AGENTS_SET_MODEL` definido mas SEM handler |
-| Trocar mode (supervised/auto) | ❌ Sem UI | Idem |
-| Trocar reports_to | ❌ Sem UI | IPC `AGENTS_SET_REPORTS_TO` definido sem handler |
-| Toggle allowed_projects | 🟡 Em `/projects` AllowlistEditor | Mas não no agent page |
-| Toggle skills per-agent | ❌ Sem UI | `/skills` é read-only |
+| Editar persona/system_prompt inline | ✅ **M7-C** | `ConfigTab` textarea com debounced save 500ms |
+| Trocar model do agente | ✅ **M7-C** | `ConfigTab` dropdown preset + custom + regex |
+| Trocar role (template) | ✅ **M7-C** | `ChangeRoleModal` com preserve-model option |
+| Toggle allowed_projects per-agent | ✅ **M7-C** | `AgentProjectsEditor` no ConfigTab |
+| Ver issues atribuídas | ✅ **M7-C** | `IssuesTab` no right panel |
+| Ver stats (tokens/runs) | 🟡 **M7-C parcial** | `StatsTab` existe — dados reais dependem M8 |
+| IPC handlers `agents:set-model/set-role/set-system-prompt/set-reports-to/stats` | ✅ **M7-C** | `apps/main/src/ipc/agents-handlers.ts` |
+| Trocar reports_to | 🟡 **M7-C parcial** | IPC + store prontos, **mas SEM UI** ainda |
+| Toggle skills per-agent | ❌ Display only | `ConfigTab` mostra chips read-only |
+| Trocar mode (supervised/auto) | ❌ Sem UI | Coluna existe, IPC não |
+| Toggle always_on | ❌ Sem UI | Coluna existe, IPC não |
 | Pausar agente (retomável) | ❌ Conceito não existe | Status enum não tem `paused` |
-| Demitir agente | ❌ Sem botão UI | Só via CEO `fire_agent` MCP |
-| Criar agente | ❌ Sem form UI | Só via `createDemo` ou CEO `hire_agent` |
-| Ver runs/turns como timeline | ❌ Sem UI | Dado existe em `messages` + `costs_log` |
-| Ver tokens consumidos por agente | ❌ Sem UI | `costs_log` ainda não populado (M8 pendente) |
-| Goals | ❌ Inexistente | Item v2+ no roadmap atual |
+| Demitir agente | ❌ Sem botão UI | Só via CEO `fire_agent` MCP. Sem status `terminated` |
+| Criar agente direto pela UI | ❌ Sem form UI | Só via `createDemo` ou CEO `hire_agent` |
+| Assign Task button (atalho) | ❌ Sem UI | User vai pro `/issues` e cria manual |
+| Manual run / wake-up button | ❌ Conceito não existe | Streaming arch não tem |
+| Ver runs/turns como timeline | ❌ Sem UI | Dado existe em `messages` |
+| Header sticky com status + ações | ❌ Sem UI | Status badge fica só no sidebar |
+| Org chart `/org` | ❌ Não iniciado | Rota planejada em M7-C PR-C |
+| Goals + CEO planning | ❌ Inexistente | Item v2+ no roadmap atual |
 
-**Conclusão:** o "menos limitante" do usuário tem base concreta — a infra já está parcialmente preparada (IPC channels declarados, schema com campos não usados), só falta UI + completar handlers.
+**Conclusão revisada:** o panel + IPC layer + edição básica de persona/model/role/projects **já existe**. Os gaps remanescentes são (a) **ações stateful** (pause/terminate/assign-task/wake-up), (b) **edição de fields que ainda não têm UI** (reports_to, skills, mode, always_on), (c) **form de criação direta**, (d) **runs timeline**, e (e) **org chart**. Mais magro que minha estimativa inicial.
 
 ---
 
-## Seção 1 — Agent Studio (M7.6)
+## Seção 1 — Agent Studio (M7.6) — completion sobre M7-C
 
-### Decisão de layout: chat-first híbrido
+### Base já existente
 
-**Aprovado pelo usuário em 2026-05-11.**
+M7-C entregou layout chat-first híbrido funcional:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  [Avatar] Nome  [Role]  [Status badge]   [▶ Pause] [+ Task]  [⋯] │  ← header sticky
-├──────────────────────────────────────────────┬──────────────┤
-│                                              │  Configuration│
-│  Chat / Delegations (tabs como hoje)         │  Stats        │  ← right panel
-│  MessageList + Composer                      │  Schedule     │     (3 tabs leves)
-│                                              │               │
-│                                              │  [Edit Instructions] │
-│                                              │  [View Runs]         │  ← buttons abrem modal
-└──────────────────────────────────────────────┴──────────────┘
+│  Chat / Delegations tabs                       │  Config    │  ← right panel já existe
+│  MessageList + Composer                        │  Issues    │     (3 tabs)
+│                                                │  Stats     │
+│                                                │            │
+│                                                │  ConfigTab:│
+│                                                │  • role    │
+│                                                │  • model   │
+│                                                │  • skills (display) │
+│                                                │  • persona (inline) │
+│                                                │  • projects (toggle)│
+└────────────────────────────────────────────────┴────────────┘
 ```
 
+**M7.6 completa esse layout com:**
+- **Header sticky** acima do chat com: status badge + Pause toggle + Assign Task button + `⋯` menu (Fire, Reset session, Copy Agent ID)
+- **ConfigTab ganha:** dropdown `reports_to`, **skills toggle** (não só display), `mode` radio, `always_on` switch
+- **Schedule sub-section** no ConfigTab ou tab nova: Always-on + Manual trigger button
+- **Modal full-screen** opcional pra Instructions editor markdown (atualmente é textarea simples — basta pra MVP, modal full vira polish)
+- **Modal full-screen** pra Runs timeline (novo)
+- **Form `/agents/new`** pra criação direta pela UI
+
 **Por que híbrido (não Paperclip 1:1):**
-- Nosso chat é diferencial (usuário confirmou em conversa). Não pode virar uma de 6 tabs.
-- Right panel cobre os toggles rápidos (model, mode, projects, skills) sem sair do chat.
-- Modal full-screen reserva real estate só pros editores complexos (Instructions com markdown + Runs com timeline).
+- Nosso chat é diferencial (usuário confirmou). Não pode virar uma de 6 tabs.
+- Right panel já cobre toggles rápidos.
+- Modal full-screen reserva real estate só pros editores complexos.
 - Ações destrutivas (Fire) ficam no `⋯` menu — não-acidentais por design.
 
 ### 1.1 Header de ações (sticky)
@@ -106,40 +128,45 @@ Verificado por inspeção do código (`apps/renderer/src/routes/Agent.tsx`, `app
 
 **Componente:** `apps/renderer/src/components/AgentRightPanel.tsx` (novo).
 
-#### Tab Configuration
-Form auto-save (debounce 250ms, padrão Paperclip):
-- **Model** (dropdown presets `claude-opus-4-7` / `claude-sonnet-4-6` / `claude-haiku-4-5` + custom) — IPC `agents:set-model`
-- **Mode** (radio supervised | auto) — IPC `agents:set-mode`
-- **Always-on** (switch) — IPC `agents:set-always-on`
-- **Reports to** (dropdown lista agents da company exceto si próprio) — IPC `agents:set-reports-to`
-- **Allowed projects** (chip toggles) — IPC `agents:set-allowed-projects` (replica componente de `/projects`)
-- **Skills** (checkboxes do catálogo, com required/optional segregadas como Paperclip) — IPC `agents:set-skills`
+#### Tab Configuration — ADIÇÕES sobre M7-C
 
-Toast de confirmação no save. Erros em banner inline acima do form.
+Base atual (M7-C): role, model, persona inline, allowed projects, skills display read-only.
 
-#### Tab Stats
-Read-only:
+**Faltam adicionar:**
+- **Reports to** (dropdown lista agents da company exceto si próprio + descendentes) — IPC `agents:set-reports-to` (já existe), cycle-detection já no repo
+- **Mode** (radio supervised | auto) — **novo** IPC `agents:set-mode` + handler + repo method
+- **Always-on** (switch) — **novo** IPC `agents:set-always-on` + handler + repo method
+- **Skills** (checkboxes do catálogo, com required/optional segregadas como Paperclip — required vem do role template e fica disabled) — **novo** IPC `agents:set-skills` + handler + repo method
+
+Manter padrão M7-C: debounced auto-save (500ms), banner inline pra erros, mensagem `personaSavedAt` style pra feedback.
+
+#### Tab Stats (existe, expandir)
+Atual (M7-C): tem `StatsTab` mas verificar quais campos. **Expandir com:**
 - **Tokens consumidos** (input + output + cache) — agregado de `costs_log` (M8 alimenta)
 - **Runs count** — `SELECT count(*) FROM messages WHERE agent_id = ? AND role = 'assistant' AND turn_complete IS NOT NULL`
 - **Last active** — relative time
-- **Issues atribuídas** — count + link pra kanban filtrado
 - **Custo estimado mês corrente** (USD/BRL/% Max) — depende M8
 
-#### Tab Schedule (placeholder M7.6, expande v2)
+#### Tab Issues (existe — não mexer)
+Atual (M7-C): IssuesTab lista issues atribuídas. Manter.
+
+#### Schedule (NOVO — adicionar como sub-section em ConfigTab ou nova 4ª tab)
 - **Always-on** (switch — duplica Config; user-friendly aqui)
 - **Manual trigger** button = `agents:wake-up(id, reason)` — força um turn no chat com mensagem system "User requested manual run". Equivale ao Paperclip `Run Heartbeat` adaptado pra nossa arch.
 - *(v2)*: cron-like routines.
 
-### 1.3 Instructions modal (full-screen)
+**Decisão de UI:** colocar Schedule como sub-section dentro do ConfigTab (mais simples) OU criar 4ª tab. Recomendo **sub-section** pra evitar fragmentação — tab nova só se Schedule crescer.
 
-**Componente:** `apps/renderer/src/components/AgentInstructionsModal.tsx` (novo).
+### 1.3 Instructions editor — atual e evolução
 
-Editor markdown simples (`@uiw/react-md-editor` ou `react-textarea-autosize` plain) — **MVP é editor único, não file tree como Paperclip**. File tree fica como evolução v2 se houver demanda.
+**Estado M7-C:** textarea inline com debounced save 500ms via IPC `agents:set-system-prompt`. **Funciona.**
 
-- Carrega `agents.system_prompt` atual
-- Save → IPC `agents:set-system-prompt(id, content)` → escreve coluna + bumpa `updated_at`
-- Banner: "Mudança aplica no próximo turn. [Restart agent now] pra aplicar agora" — Restart = kill+respawn preservando `--resume`
-- Cancelar fecha sem salvar
+**Polish M7.6 (opcional):**
+- Botão "Expand to full screen" abre modal com mesmo textarea em viewport maior — útil pra personas longas.
+- Banner "Mudança aplica no próximo turn. [Restart agent now] pra aplicar agora" — Restart = kill+respawn preservando `--resume`. Sem o banner hoje a UX é silenciosa.
+- *(v2 opcional)* upgrade pra markdown editor com preview (`@uiw/react-md-editor`) — só se demanda real.
+
+**File tree (Paperclip):** explicitamente **fora** do M7.6. MVP single-file é suficiente.
 
 ### 1.4 Runs modal (full-screen, read-only)
 
@@ -189,27 +216,26 @@ Sandbox lifecycle:
 - `paused`: processo claude **fica vivo**, router não enfileira mensagens novas. Resume → drena queue.
 - `terminated`: processo claude killed, row do agente fica (soft delete) com `terminated_at != NULL`. UI esconde de listas default. Histórico de mensagens preservado.
 
-### 1.7 IPC handlers ausentes (wire it up)
+### 1.7 IPC handlers — feito e a fazer
 
-Em `apps/main/src/ipc/agents-handlers.ts` (provavelmente já existe — adicionar handlers):
+**Já em master (M7-C):**
+- `agents:set-model`
+- `agents:set-role`
+- `agents:set-system-prompt`
+- `agents:set-reports-to`
+- `agents:fetch-stats`
 
-```ts
-ipcMain.handle(AGENTS_SET_MODEL, (_, id, model) => agentsRepo.setModel(id, model));
-ipcMain.handle(AGENTS_SET_ROLE, ...);
-ipcMain.handle(AGENTS_SET_SYSTEM_PROMPT, ...);
-ipcMain.handle(AGENTS_SET_REPORTS_TO, ...);
-ipcMain.handle(AGENTS_SET_MODE, ...);
-ipcMain.handle(AGENTS_SET_ALWAYS_ON, ...);
-ipcMain.handle(AGENTS_SET_ALLOWED_PROJECTS, ...);
-ipcMain.handle(AGENTS_SET_SKILLS, ...);
-ipcMain.handle(AGENTS_PAUSE, ...);
-ipcMain.handle(AGENTS_RESUME, ...);
-ipcMain.handle(AGENTS_TERMINATE, ...);
-ipcMain.handle(AGENTS_WAKE_UP, ...);
-ipcMain.handle(AGENTS_HIRE_FROM_UI, ...);
-```
+**A adicionar em M7.6:**
+- `agents:set-mode`
+- `agents:set-always-on`
+- `agents:set-skills`
+- `agents:pause` / `agents:resume`
+- `agents:terminate` (soft delete, status `terminated`, `terminated_at = now`)
+- `agents:wake-up` (manual trigger)
+- `agents:hire-from-ui` (criação via form)
+- `agents:reset-session` (limpa `--resume` checkpoint do CLAUDE_CONFIG_DIR)
 
-Cada handler valida `safeStorage` token presence, escreve no DB, emite `AGENT_EVENT` broadcast pra renderer re-render.
+Cada handler novo segue padrão M7-C: valida token, escreve no DB, emite `AGENT_EVENT` broadcast pra renderer re-render. Cycle-detection pro `setReportsTo` já está no repo.
 
 ### 1.8 Testes M7.6
 
@@ -223,15 +249,16 @@ Cada handler valida `safeStorage` token presence, escreve no DB, emite `AGENT_EV
 
 Cada string nova em PT-BR + EN-US em `apps/renderer/src/i18n/{ptBR,enUS}/agent.ts` (file existe). Regra dura — sem hardcoded strings.
 
-### 1.10 Custos M7.6
+### 1.10 Custos M7.6 (revisado pós-inspeção M7-C)
 
-Estimativa: ~6–8 dias de trabalho.
-- Header + right panel + IPC wiring: 2 dias
-- Form `/agents/new`: 1 dia
-- Instructions modal: 1 dia
-- Runs modal: 1.5 dias
-- Pause/terminate + migration: 1 dia
-- Testes + i18n + polish: 1.5 dias
+Estimativa: **~4–5 dias** (era 6–8; reduziu porque M7-C já entregou panel base + 5 IPC handlers).
+- Header sticky com status + 3 botões (Pause/Assign Task/⋯ menu): 1 dia
+- Faltantes no ConfigTab (reports_to dropdown + skills toggle + mode radio + always_on switch + 4 IPC handlers novos): 1 dia
+- Pause/Terminate + Migration 0008 + cycle no router: 1 dia
+- Wake-up + reset-session + Assign Task modal: 0.5 dia
+- Form `/agents/new`: 0.5 dia
+- Runs timeline modal: 1 dia
+- Testes + i18n + polish: 1 dia
 
 ---
 
@@ -520,8 +547,9 @@ Estimativa: ~10–12 dias.
 Itens que não fecham seção própria mas atravessam M7.6/M8.5/M9. Lista pra não esquecer.
 
 ### 3.1 Wires faltantes
-- IPC handlers `AGENTS_SET_*` (cobertos pelo M7.6)
-- `AGENT_KILL` exposto na UI (botão Fire — M7.6)
+- IPC handlers `agents:set-model/set-role/set-system-prompt/set-reports-to/stats` ✅ feitos em M7-C
+- IPC handlers `agents:set-mode/set-always-on/set-skills/pause/resume/terminate/wake-up/reset-session/hire-from-ui` — **M7.6**
+- `AGENT_KILL` exposto na UI (botão Fire em `⋯` menu — M7.6)
 - Auto-update do badge tray quando inbox unread cresce (item já em débito)
 
 ### 3.2 Caminhos paralelos UI ↔ CEO
@@ -533,9 +561,11 @@ Cada ação CEO-via-MCP ganha equivalente UI:
 - Cancel/archive issue (futuro polish)
 
 ### 3.3 Edição de persona não-disruptiva
-- Save no Instructions modal **não reinicia agente** por default — aplica próximo turn.
-- Botão "Restart now" pra forçar.
-- Próximo turn: spawn novo com `--append-system-prompt` lendo `agents.system_prompt` atualizado.
+- Persona atual: textarea inline no ConfigTab com debounced save 500ms (M7-C — funciona).
+- **Faltam adicionar (M7.6):**
+  - Banner contextual ao salvar: "Mudança aplica no próximo turn. [Restart agent now] pra aplicar agora."
+  - Botão "Restart now" pra forçar (kill+respawn preservando `--resume`).
+- Próximo turn já lê `agents.system_prompt` atualizado via `--append-system-prompt` (comportamento de M7-C).
 
 ### 3.4 Visibilidade de progresso
 - **Current action granular** (já planejado em M7.5) — mostra "Editing src/foo.ts" em vez de "working".
@@ -549,25 +579,27 @@ Paperclip tem `agent.permissions.canCreateAgents`, `canAssignTasks` — concedid
 
 ## Seção 4 — Plano de milestones
 
-### 🆕 M7.6 — Agent Studio
-**Posição:** depois de M7-C (org + right panel) e M7.5 (foundations). Pode rodar parcialmente em paralelo com M8.
+### 🆕 M7.6 — Agent Studio (completion)
+**Posição:** depois de M7-C (right panel base, IPC core — JÁ ENTREGUE) e M7.5 (foundations). Pode rodar parcialmente em paralelo com M8.
 
-**Escopo:**
-- Header de ações em `/agents/:id`
-- Right panel com Configuration / Stats / Schedule
-- Instructions modal full-screen
-- Runs modal full-screen (read-only)
+**Escopo (delta sobre M7-C):**
+- Header sticky de ações em `/agents/:id` (status badge + Pause + Assign Task + `⋯` menu)
+- Completar ConfigTab: dropdown `reports_to`, skills toggle, mode radio, always_on switch
+- 4 IPC handlers novos: `agents:set-mode`, `set-always-on`, `set-skills`, `hire-from-ui`
+- IPC `agents:pause/resume/terminate/wake-up/reset-session` (5 novos)
+- Runs modal full-screen (read-only timeline derivada de messages)
 - Form `/agents/new` + galeria de templates
-- Wire IPC handlers `AGENTS_SET_*` + `AGENTS_PAUSE/RESUME/TERMINATE/WAKE_UP/HIRE_FROM_UI`
-- Migration 0008: `paused_at`, `terminated_at`, `pause_reason` em `agents`
-- Status enum ganha `paused` e `terminated`
+- Schedule sub-section (always-on + wake-up button)
+- Migration 0008: `paused_at`, `terminated_at`, `pause_reason` em `agents`. Status enum (string col) aceita `paused` e `terminated`.
+- Router: ignorar enqueue pra agente paused
 
 **Não-regressão:**
 - Segurança (token leak, sandbox escape, fence file)
 - M6.1 smoke test continua passando
 - Token budget non-regression (skip-while-zero)
+- Todos os fluxos M7-C continuam (não quebrar ConfigTab atual)
 
-**Custos:** 6–8 dias. **Pré-req:** M7-C (right panel base).
+**Custos:** 4–5 dias. **Pré-req:** M7-C completo (right panel + IPC).
 
 ### 🆕 M8.5 — Goals + CEO Planning
 **Posição:** depois de M8 (cost tracking pra estimates reais).
