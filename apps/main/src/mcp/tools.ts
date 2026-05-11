@@ -120,13 +120,15 @@ export const toolDefinitions = [
   },
   {
     name: "hire_agent",
-    description: "Hire a new agent with detailed name, role, and persona system_prompt.",
+    description:
+      "Hire a new agent. Optionally pass role_template_id (e.g. 'role-engineer') to seed skills + model from a role.",
     inputSchema: z.object({
       name: z.string().min(1),
       role: z.string().min(1),
       system_prompt: z.string().min(20),
       mode: z.enum(["supervised", "auto"]).optional(),
       reports_to: z.string().optional(),
+      role_template_id: z.string().optional(),
     }),
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (
@@ -136,12 +138,32 @@ export const toolDefinitions = [
         system_prompt: string;
         mode?: "supervised" | "auto";
         reports_to?: string;
+        role_template_id?: string;
       },
       ctx: ToolContext,
     ): Promise<string> => {
       const agents = createAgentsRepository(ctx.db);
       const messages = createMessagesRepository(ctx.db);
       const settings = createSettingsRepository(ctx.db).read();
+
+      // Resolve role template if provided. Skip silently if id is unknown
+      // (defensive — agent gets empty skills + settings default model).
+      let roleSkills: string[] = [];
+      let roleModel: string | null = null;
+      let templateId: string | null = null;
+      if (input.role_template_id !== undefined) {
+        const row = ctx.db
+          .prepare("SELECT default_skills_json, default_model FROM role_templates WHERE id = ?")
+          .get(input.role_template_id) as
+          | { default_skills_json: string; default_model: string }
+          | undefined;
+        if (row !== undefined) {
+          roleSkills = JSON.parse(row.default_skills_json) as string[];
+          roleModel = row.default_model;
+          templateId = input.role_template_id;
+        }
+      }
+
       const agent = agents.create({
         companyId: ctx.companyId,
         name: input.name,
@@ -149,7 +171,9 @@ export const toolDefinitions = [
         systemPrompt: input.system_prompt,
         mode: input.mode ?? "supervised",
         alwaysOn: false,
-        model: settings.defaultModelForNewAgents,
+        model: roleModel ?? settings.defaultModelForNewAgents,
+        skills: roleSkills,
+        templateId,
       });
       const reportsTo = input.reports_to ?? ctx.agentId;
       ctx.db.prepare("UPDATE agents SET reports_to = ? WHERE id = ?").run(reportsTo, agent.id);
