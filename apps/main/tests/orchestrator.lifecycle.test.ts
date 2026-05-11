@@ -23,6 +23,8 @@ const baseAgent: Agent = {
   currentAction: null,
   allowedProjects: [],
   model: "claude-sonnet-4-6",
+  skills: [],
+  templateId: null,
 };
 
 const fakeRunner = (id: string, alive: boolean): AgentRunner => ({
