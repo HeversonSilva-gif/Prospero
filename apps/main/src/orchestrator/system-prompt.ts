@@ -1,3 +1,5 @@
+import { ensureChatSkill, resolveSkillTools } from "@dashboard-agent/shared";
+
 // Global preamble prepended to every agent's system prompt. Establishes the
 // sandbox contract (isolated cwd, list_projects discovery, absolute paths) and
 // the inter-agent delegation pattern (end your turn after message_agent —
@@ -41,5 +43,29 @@ work, then call \`message_agent\` back to the sender with the result.
 
 `;
 
-export const buildAgentSystemPrompt = (userSystemPrompt: string): string =>
-  PREAMBLE + userSystemPrompt;
+// buildAgentSystemPrompt assembles the full system prompt for a spawned agent:
+//   1. PREAMBLE — sandbox + delegation contract (project-wide).
+//   2. User-defined system prompt (from agent.systemPrompt).
+//   3. Skills block — informs the agent which canonical skills it has and the
+//      resolved list of Claude tool names that are visible to it. Without this
+//      block the agent might attempt tools it cannot see (e.g. Bash without
+//      shell skill) and get confused when the tool fails to surface.
+export const buildAgentSystemPrompt = (userSystemPrompt: string, skills: string[]): string => {
+  const effectiveSkills = ensureChatSkill(skills);
+  const resolvedTools = resolveSkillTools(skills);
+  const skillsBlock = `
+
+---
+
+# Your skills and available tools
+
+You have the following skills: ${effectiveSkills.join(", ")}.
+
+The host has filtered your visible Claude tools to: ${resolvedTools.join(", ")}.
+
+Tools outside this list are not available to you and will fail if you attempt
+to call them. If you need a capability you don't have, ask the user to update
+your role.
+`;
+  return PREAMBLE + userSystemPrompt + skillsBlock;
+};

@@ -102,6 +102,35 @@ describe("buildClaudeArgs", () => {
     const idx = args.indexOf("--model");
     expect(args[idx + 1]).toBe("claude-opus-4-7");
   });
+
+  it("includes --allowedTools resolved from agent.skills", () => {
+    const args = buildClaudeArgs({ ...baseAgent, skills: ["shell", "fs-read"] }, "/tmp/mcp.json");
+    const idx = args.indexOf("--allowedTools");
+    expect(idx).toBeGreaterThan(-1);
+    const value = args[idx + 1]!;
+    const tools = value.split(",");
+    expect(tools).toContain("Bash");
+    expect(tools).toContain("Read");
+    expect(tools).toContain("Glob");
+    expect(tools).toContain("Grep");
+    expect(tools).toContain("mcp__dashboard__request_permission");
+    expect(tools).not.toContain("Edit");
+    expect(tools).not.toContain("Write");
+  });
+
+  it("auto-injects chat skill when missing from agent.skills", () => {
+    const args = buildClaudeArgs({ ...baseAgent, skills: ["shell"] }, "/tmp/mcp.json");
+    const idx = args.indexOf("--allowedTools");
+    const tools = args[idx + 1]!.split(",");
+    expect(tools).toContain("mcp__dashboard__request_permission");
+  });
+
+  it("falls back to chat-only when skills array is empty", () => {
+    const args = buildClaudeArgs({ ...baseAgent, skills: [] }, "/tmp/mcp.json");
+    const idx = args.indexOf("--allowedTools");
+    const tools = args[idx + 1]!.split(",");
+    expect(tools).toEqual(["mcp__dashboard__request_permission"]);
+  });
 });
 
 describe("runner registry", () => {

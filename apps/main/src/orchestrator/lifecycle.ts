@@ -13,7 +13,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import type { Agent } from "@dashboard-agent/shared";
+import { resolveSkillTools, type Agent } from "@dashboard-agent/shared";
 import { parseStreamLine, type ParsedEvent } from "./stream-parser.js";
 import { buildSpawnEnv, type SpawnEnv } from "./env.js";
 import { writeMcpConfigFile } from "./mcp-config.js";
@@ -126,11 +126,14 @@ export const getAgentSandboxCwd = (userDataDir: string, agentId: string): string
 // configured (Slack, Drive, Meta Ads, etc). Combined with CLAUDE_CONFIG_DIR pointing at
 // an empty per-spawn dir (set in spawnAgent), this enforces the agent sandbox.
 export const buildClaudeArgs = (agent: Agent, mcpConfigPath: string): string[] => {
+  const allowedTools = resolveSkillTools(agent.skills);
   const args = [
     "--system-prompt",
-    buildAgentSystemPrompt(agent.systemPrompt),
+    buildAgentSystemPrompt(agent.systemPrompt, agent.skills),
     "--model",
     agent.model,
+    "--allowedTools",
+    allowedTools.join(","),
     "--input-format",
     "stream-json",
     "--output-format",
