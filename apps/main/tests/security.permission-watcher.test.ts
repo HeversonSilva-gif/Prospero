@@ -17,6 +17,7 @@ const agent: Agent = {
   claudeSessionId: null,
   currentAction: null,
   allowedProjects: [],
+  model: "claude-sonnet-4-6",
 };
 
 describe(
