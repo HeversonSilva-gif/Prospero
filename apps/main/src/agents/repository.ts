@@ -68,6 +68,7 @@ export type AgentsRepository = {
   setModel(id: string, model: string): void;
   setSystemPrompt(id: string, systemPrompt: string): void;
   setRole(id: string, roleTemplateId: string, opts?: { preserveModel?: boolean }): void;
+  setReportsTo(id: string, newParentId: string | null): void;
 };
 
 export const createAgentsRepository = (db: Database.Database): AgentsRepository => {
@@ -142,6 +143,31 @@ export const createAgentsRepository = (db: Database.Database): AgentsRepository 
     setSystemPrompt(id, systemPrompt) {
       db.prepare("UPDATE agents SET system_prompt = ?, updated_at = ? WHERE id = ?").run(
         systemPrompt,
+        Date.now(),
+        id,
+      );
+    },
+    setReportsTo(id, newParentId) {
+      if (newParentId === null) {
+        db.prepare("UPDATE agents SET reports_to = NULL, updated_at = ? WHERE id = ?").run(
+          Date.now(),
+          id,
+        );
+        return;
+      }
+      if (newParentId === id) throw new Error("Agent cannot report to itself (cycle)");
+      const stmt = db.prepare("SELECT reports_to FROM agents WHERE id = ?");
+      let cursor: string | null = newParentId;
+      const seen = new Set<string>();
+      while (cursor !== null) {
+        if (cursor === id) throw new Error(`reports_to would create a cycle through ${id}`);
+        if (seen.has(cursor)) break;
+        seen.add(cursor);
+        const row = stmt.get(cursor) as { reports_to: string | null } | undefined;
+        cursor = row?.reports_to ?? null;
+      }
+      db.prepare("UPDATE agents SET reports_to = ?, updated_at = ? WHERE id = ?").run(
+        newParentId,
         Date.now(),
         id,
       );

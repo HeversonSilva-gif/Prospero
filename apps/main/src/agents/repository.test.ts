@@ -86,3 +86,40 @@ describe("setRole", () => {
     expect(() => repo.setRole(agent.id, "role-nonexistent")).toThrow();
   });
 });
+
+describe("setReportsTo", () => {
+  it("updates reports_to to a new parent", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const ceo = repo.create(baseInput({ name: "CEO" }));
+    const eng = repo.create(baseInput({ name: "Eng" }));
+    repo.setReportsTo(eng.id, ceo.id);
+    expect(repo.getById(eng.id)?.reportsTo).toBe(ceo.id);
+  });
+
+  it("accepts null parent (detach to root)", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const ceo = repo.create(baseInput({ name: "CEO" }));
+    const eng = repo.create(baseInput({ name: "Eng" }));
+    repo.setReportsTo(eng.id, ceo.id);
+    repo.setReportsTo(eng.id, null);
+    expect(repo.getById(eng.id)?.reportsTo).toBeNull();
+  });
+
+  it("rejects self as parent", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput());
+    expect(() => repo.setReportsTo(a.id, a.id)).toThrow(/cycle|self/i);
+  });
+
+  it("rejects a descendant as parent (cycle)", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const ceo = repo.create(baseInput({ name: "CEO" }));
+    const eng = repo.create(baseInput({ name: "Eng" }));
+    repo.setReportsTo(eng.id, ceo.id);
+    expect(() => repo.setReportsTo(ceo.id, eng.id)).toThrow(/cycle/i);
+  });
+});
