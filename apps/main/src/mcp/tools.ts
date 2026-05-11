@@ -7,6 +7,7 @@ import { createMessagesRepository } from "../messages/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
+import { createSettingsRepository } from "../settings/repository.js";
 
 export type ToolContext = {
   agentId: string;
@@ -140,6 +141,7 @@ export const toolDefinitions = [
     ): Promise<string> => {
       const agents = createAgentsRepository(ctx.db);
       const messages = createMessagesRepository(ctx.db);
+      const settings = createSettingsRepository(ctx.db).read();
       const agent = agents.create({
         companyId: ctx.companyId,
         name: input.name,
@@ -147,6 +149,7 @@ export const toolDefinitions = [
         systemPrompt: input.system_prompt,
         mode: input.mode ?? "supervised",
         alwaysOn: false,
+        model: settings.defaultModelForNewAgents,
       });
       const reportsTo = input.reports_to ?? ctx.agentId;
       ctx.db.prepare("UPDATE agents SET reports_to = ? WHERE id = ?").run(reportsTo, agent.id);

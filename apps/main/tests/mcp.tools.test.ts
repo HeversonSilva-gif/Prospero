@@ -5,6 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations } from "../src/db/migrations.js";
 import { toolDefinitions, waitForResolution, type ToolContext } from "../src/mcp/tools.js";
+import { createSettingsRepository } from "../src/settings/repository.js";
+import { createAgentsRepository } from "../src/agents/repository.js";
 
 const makeCtx = (emit = vi.fn()): ToolContext => {
   const db = new Database(":memory:");
@@ -288,5 +290,33 @@ describe("mcp tools (M3 mocks)", () => {
     expect(result.behavior).toBe("deny");
     expect((result as { message: string }).message).toMatch(/timeout/i);
     rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("hire_agent uses settings.defaultModelForNewAgents when no override", async () => {
+    const ctx = makeCtx();
+    ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
+    ctx.db
+      .prepare(
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','Caller','C','sp','[]','[]','supervised',0,'idle',1,1)`,
+      )
+      .run();
+
+    // Set the global default to opus
+    const settings = createSettingsRepository(ctx.db);
+    settings.write({ defaultModelForNewAgents: "claude-opus-4-7" });
+
+    const def = toolDefinitions.find((t) => t.name === "hire_agent");
+    expect(def).toBeDefined();
+    const result = await def!.run(
+      {
+        name: "Eng",
+        role: "Engineer",
+        system_prompt: "you are an engineer, write good code",
+      },
+      ctx,
+    );
+    const parsed = JSON.parse(result) as { id: string };
+    const created = createAgentsRepository(ctx.db).getById(parsed.id);
+    expect(created?.model).toBe("claude-opus-4-7");
   });
 });

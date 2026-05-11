@@ -20,4 +20,5 @@ export type Agent = {
   claudeSessionId: string | null;
   currentAction: string | null;
   allowedProjects: string[];
+  model: string;
 };

@@ -14,6 +14,7 @@ const fakeAgent = (mode: "supervised" | "auto" = "auto"): Agent => ({
   claudeSessionId: null,
   currentAction: null,
   allowedProjects: [],
+  model: "claude-sonnet-4-6",
 });
 
 describe("evaluatePermission with project allowlist", () => {

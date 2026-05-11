@@ -1,6 +1,11 @@
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type { Agent, AgentMode, AgentStatus } from "@dashboard-agent/shared";
+import {
+  DEFAULT_CLAUDE_MODEL,
+  type Agent,
+  type AgentMode,
+  type AgentStatus,
+} from "@dashboard-agent/shared";
 
 type Row = {
   id: string;
@@ -17,6 +22,7 @@ type Row = {
   claude_session_id: string | null;
   status: string;
   current_action: string | null;
+  model: string;
   created_at: number;
   updated_at: number;
 };
@@ -33,6 +39,7 @@ const rowToAgent = (r: Row): Agent => ({
   claudeSessionId: r.claude_session_id,
   currentAction: r.current_action,
   allowedProjects: JSON.parse(r.allowed_projects_json) as string[],
+  model: r.model,
 });
 
 export type CreateAgentInput = {
@@ -42,6 +49,7 @@ export type CreateAgentInput = {
   systemPrompt: string;
   mode: AgentMode;
   alwaysOn: boolean;
+  model?: string;
 };
 
 export type AgentsRepository = {
@@ -56,8 +64,8 @@ export type AgentsRepository = {
 
 export const createAgentsRepository = (db: Database.Database): AgentsRepository => {
   const insert = db.prepare(`
-    INSERT INTO agents (id, company_id, name, role, system_prompt, skills_json, allowed_projects_json, mode, always_on, status, current_action, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, '[]', '[]', ?, ?, 'idle', NULL, ?, ?)
+    INSERT INTO agents (id, company_id, name, role, system_prompt, skills_json, allowed_projects_json, mode, always_on, status, current_action, model, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, '[]', '[]', ?, ?, 'idle', NULL, ?, ?, ?)
   `);
   const byId = db.prepare("SELECT * FROM agents WHERE id = ?");
   const byCompany = db.prepare("SELECT * FROM agents WHERE company_id = ? ORDER BY created_at ASC");
@@ -83,6 +91,7 @@ export const createAgentsRepository = (db: Database.Database): AgentsRepository 
         input.systemPrompt,
         input.mode,
         input.alwaysOn ? 1 : 0,
+        input.model || DEFAULT_CLAUDE_MODEL,
         now,
         now,
       );

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { AppSettings, Language, Theme } from "@dashboard-agent/shared";
+import { DEFAULT_CLAUDE_MODEL } from "@dashboard-agent/shared";
 import { setLanguage } from "../i18n/index.js";
 import { applyTheme } from "../theme/ThemeProvider.js";
 
@@ -10,11 +11,17 @@ type State = {
   setLanguage: (lang: Language) => Promise<void>;
   setTheme: (theme: Theme) => Promise<void>;
   setWorkspaceCwd: (path: string | null) => Promise<void>;
+  setModel: (model: string) => Promise<void>;
   pickAndSetWorkspace: () => Promise<void>;
 };
 
 export const useSettingsStore = create<State>((set) => ({
-  settings: { language: "pt-BR", theme: "light", workspaceCwd: null },
+  settings: {
+    language: "pt-BR",
+    theme: "light",
+    workspaceCwd: null,
+    defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+  },
   loaded: false,
 
   load: async () => {
@@ -38,6 +45,11 @@ export const useSettingsStore = create<State>((set) => ({
 
   setWorkspaceCwd: async (path) => {
     const next = await window.dashboardAgent.settings.update({ workspaceCwd: path });
+    set({ settings: next });
+  },
+
+  setModel: async (model) => {
+    const next = await window.dashboardAgent.settings.update({ defaultModelForNewAgents: model });
     set({ settings: next });
   },
 

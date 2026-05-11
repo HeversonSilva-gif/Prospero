@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { IPC, type AppSettings, type TokenStatus, type TokenSource } from "../src/index.js";
+import {
+  IPC,
+  type AppSettings,
+  type TokenStatus,
+  type TokenSource,
+  DEFAULT_CLAUDE_MODEL,
+} from "../src/index.js";
 
 describe("settings types and channels", () => {
   it("defines settings IPC channels", () => {
@@ -15,7 +21,12 @@ describe("settings types and channels", () => {
   });
 
   it("AppSettings is structurally constructable", () => {
-    const s: AppSettings = { language: "pt-BR", theme: "light", workspaceCwd: null };
+    const s: AppSettings = {
+      language: "pt-BR",
+      theme: "light",
+      workspaceCwd: null,
+      defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+    };
     expect(s.language).toBe("pt-BR");
     expect(s.theme).toBe("light");
   });

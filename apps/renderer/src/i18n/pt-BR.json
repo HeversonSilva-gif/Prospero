@@ -50,7 +50,17 @@
     "workspaceFolderHint": "Onde os agentes vão executar comandos. Padrão: ~/DashboardAgent-Workspace",
     "workspaceFolderBrowse": "Selecionar...",
     "workspace.label": "Pasta de Trabalho",
-    "workspace.deprecatedNote": "Workspaces agora são gerenciados em"
+    "workspace.deprecatedNote": "Workspaces agora são gerenciados em",
+    "model.title": "Modelo padrão",
+    "model.hint": "Usado para novos agentes contratados. Mudança não afeta agentes existentes.",
+    "model.preset": "Preset",
+    "model.custom": "Model id customizado",
+    "model.customPlaceholder": "claude-...",
+    "model.invalid": "Model id tem caracteres inválidos. Use a-z, 0-9 e hífens.",
+    "model.presetOpus": "Opus 4.7 (melhor raciocínio)",
+    "model.presetSonnet": "Sonnet 4.6 (balanceado — recomendado)",
+    "model.presetHaiku": "Haiku 4.5 (mais rápido, mais barato)",
+    "model.saved": "Salvo"
   },
   "wizard": {
     "title": "Bem-vindo ao Dashboard Agent",

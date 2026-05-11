@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
+import { DEFAULT_CLAUDE_MODEL } from "@dashboard-agent/shared";
 import { applyMigrations } from "../src/db/migrations.js";
 import { createSettingsRepository } from "../src/settings/repository.js";
 
@@ -12,19 +13,34 @@ const setup = () => {
 describe("settings repository", () => {
   it("returns defaults on empty db", () => {
     const { repo } = setup();
-    expect(repo.read()).toEqual({ language: "pt-BR", theme: "light", workspaceCwd: null });
+    expect(repo.read()).toEqual({
+      language: "pt-BR",
+      theme: "light",
+      workspaceCwd: null,
+      defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+    });
   });
 
   it("persists a single field via write()", () => {
     const { repo } = setup();
     repo.write({ theme: "dark" });
-    expect(repo.read()).toEqual({ language: "pt-BR", theme: "dark", workspaceCwd: null });
+    expect(repo.read()).toEqual({
+      language: "pt-BR",
+      theme: "dark",
+      workspaceCwd: null,
+      defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+    });
   });
 
   it("persists multiple fields", () => {
     const { repo } = setup();
     repo.write({ language: "en-US", theme: "dark" });
-    expect(repo.read()).toEqual({ language: "en-US", theme: "dark", workspaceCwd: null });
+    expect(repo.read()).toEqual({
+      language: "en-US",
+      theme: "dark",
+      workspaceCwd: null,
+      defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+    });
   });
 
   it("ignores invalid values silently", () => {
