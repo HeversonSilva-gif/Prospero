@@ -19,6 +19,7 @@ describe("buildSpawnEnv", () => {
         model: "claude-sonnet-4-6",
         skills: [],
         templateId: null,
+        reportsTo: null,
       },
       "sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_xyz123",
       "/tmp/db/dashboard-agent.db",

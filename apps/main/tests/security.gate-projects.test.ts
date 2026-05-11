@@ -17,6 +17,7 @@ const fakeAgent = (mode: "supervised" | "auto" = "auto"): Agent => ({
   model: "claude-sonnet-4-6",
   skills: [],
   templateId: null,
+  reportsTo: null,
 });
 
 describe("evaluatePermission with project allowlist", () => {

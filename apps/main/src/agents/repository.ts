@@ -42,6 +42,7 @@ const rowToAgent = (r: Row): Agent => ({
   model: r.model,
   skills: JSON.parse(r.skills_json) as string[],
   templateId: r.template_id,
+  reportsTo: r.reports_to,
 });
 
 export type CreateAgentInput = {

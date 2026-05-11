@@ -20,6 +20,7 @@ const agent: Agent = {
   model: "claude-sonnet-4-6",
   skills: [],
   templateId: null,
+  reportsTo: null,
 };
 
 describe(
