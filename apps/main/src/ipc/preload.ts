@@ -7,6 +7,7 @@ import {
   type TokenStatus,
   type Agent,
   type AgentEvent,
+  type AgentStats,
   type Company,
   type Message,
   type InboxItem,
@@ -52,6 +53,24 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
     kill: (agentId: string) => ipcRenderer.invoke(IPC.AGENT_KILL, { agentId }) as Promise<void>,
     setAllowedProjects: (agentId: string, projectIds: string[]) =>
       ipcRenderer.invoke(IPC.AGENTS_SET_ALLOWED_PROJECTS, { agentId, projectIds }) as Promise<void>,
+    setModel: (agentId: string, model: string) =>
+      ipcRenderer.invoke(IPC.AGENTS_SET_MODEL, { agentId, model }) as Promise<{ ok: true }>,
+    setRole: (agentId: string, roleTemplateId: string, opts?: { preserveModel?: boolean }) =>
+      ipcRenderer.invoke(IPC.AGENTS_SET_ROLE, {
+        agentId,
+        roleTemplateId,
+        ...(opts ?? {}),
+      }) as Promise<{ ok: true }>,
+    setSystemPrompt: (agentId: string, systemPrompt: string) =>
+      ipcRenderer.invoke(IPC.AGENTS_SET_SYSTEM_PROMPT, { agentId, systemPrompt }) as Promise<{
+        ok: true;
+      }>,
+    setReportsTo: (agentId: string, reportsTo: string | null) =>
+      ipcRenderer.invoke(IPC.AGENTS_SET_REPORTS_TO, { agentId, reportsTo }) as Promise<{
+        ok: true;
+      }>,
+    stats: (agentId: string) =>
+      ipcRenderer.invoke(IPC.AGENTS_STATS, { agentId }) as Promise<AgentStats>,
     onEvent: (cb: (event: AgentEvent) => void) => {
       const handler = (_e: unknown, event: AgentEvent) => cb(event);
       ipcRenderer.on(IPC.AGENT_EVENT, handler);

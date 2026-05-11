@@ -6,6 +6,7 @@ import type {
   TokenStatus,
   Agent,
   AgentEvent,
+  AgentStats,
   Company,
   Message,
   InboxItem,
@@ -47,6 +48,15 @@ declare global {
         sendMessage: (agentId: string, content: string) => Promise<Message>;
         kill: (agentId: string) => Promise<void>;
         setAllowedProjects: (agentId: string, projectIds: string[]) => Promise<void>;
+        setModel: (agentId: string, model: string) => Promise<{ ok: true }>;
+        setRole: (
+          agentId: string,
+          roleTemplateId: string,
+          opts?: { preserveModel?: boolean },
+        ) => Promise<{ ok: true }>;
+        setSystemPrompt: (agentId: string, systemPrompt: string) => Promise<{ ok: true }>;
+        setReportsTo: (agentId: string, reportsTo: string | null) => Promise<{ ok: true }>;
+        stats: (agentId: string) => Promise<AgentStats>;
         onEvent: (cb: (event: AgentEvent) => void) => () => void;
       };
       messages: {
