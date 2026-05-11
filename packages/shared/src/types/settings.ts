@@ -15,7 +15,7 @@ export const CLAUDE_MODEL_PRESETS = [
 
 // Permitted characters in a Claude model id. Prevents command injection when
 // the id is shell-spawned with --model. claude.com model ids match this shape.
-export const MODEL_ID_REGEX = /^[a-z0-9-]+$/;
+export const MODEL_ID_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
 
 export type AppSettings = {
   language: Language;
