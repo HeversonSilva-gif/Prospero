@@ -18,6 +18,8 @@ import type {
   IssueComment,
   IssueStatus,
   IssuePriority,
+  RoleTemplate,
+  RoleDetail,
 } from "@dashboard-agent/shared";
 
 declare global {
@@ -109,6 +111,10 @@ declare global {
         onChanged: (
           cb: (event: { kind: string; issueId: string; companyId: string }) => void,
         ) => () => void;
+      };
+      roles: {
+        list: () => Promise<Array<RoleTemplate & { agentCount: number }>>;
+        get: (id: string) => Promise<RoleDetail | null>;
       };
     };
   }

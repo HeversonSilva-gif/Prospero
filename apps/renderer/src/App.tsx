@@ -16,6 +16,7 @@ import { Projects } from "./routes/Projects.js";
 import { useProjectsStore } from "./stores/projects.js";
 import { Issues } from "./routes/Issues.js";
 import { useIssuesStore } from "./stores/issues.js";
+import { Skills } from "./routes/Skills.js";
 import { SidebarFooter } from "./components/SidebarFooter.js";
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
@@ -70,6 +71,14 @@ const Sidebar = () => {
           }
         >
           {t("nav.issues")}
+        </NavLink>
+        <NavLink
+          to="/skills"
+          className={({ isActive }) =>
+            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
+          }
+        >
+          {t("nav.skills")}
         </NavLink>
         <NavLink
           to="/settings"
@@ -242,6 +251,18 @@ export const App = () => {
             hasToken ? (
               <Layout>
                 <Issues />
+              </Layout>
+            ) : (
+              <Navigate to="/setup" replace />
+            )
+          }
+        />
+        <Route
+          path="/skills"
+          element={
+            hasToken ? (
+              <Layout>
+                <Skills />
               </Layout>
             ) : (
               <Navigate to="/setup" replace />
