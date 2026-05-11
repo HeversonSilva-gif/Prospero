@@ -1,6 +1,13 @@
 export type AgentMode = "supervised" | "auto";
 export type AgentStatus = "idle" | "thinking" | "working" | "waiting" | "error";
 
+// Sentinel for allowedProjects representing "explicit no access".
+// allowedProjects = [] means "all projects allowed" (no restriction). To express
+// "this agent has access to zero projects" we store [NO_ACCESS_SENTINEL]. The
+// security gate's includes() check against real project IDs never matches it,
+// so access is correctly denied.
+export const NO_ACCESS_SENTINEL = "__none__";
+
 export type Agent = {
   id: string;
   companyId: string;

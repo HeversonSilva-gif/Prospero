@@ -17,6 +17,11 @@ import type { Sender } from "../orchestrator/router.js";
 import type { ParsedEvent } from "../orchestrator/stream-parser.js";
 import { databasePath } from "../db/path.js";
 import { getPermissionsDir } from "../security/permissions-dir.js";
+import { getEventsDir } from "../orchestrator/events-dir.js";
+import {
+  startEventsWatcher,
+  type AgentEvent as AgentSideEvent,
+} from "../orchestrator/events-watcher.js";
 import { broadcastIssueChanged } from "./issue-events-broadcast.js";
 
 const broadcast = (event: AgentEvent): void => {
@@ -36,6 +41,99 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     },
   });
 
+  // Dispatch agent-emitted side-channel events (inter-agent delivery, hire/fire,
+  // issue notifications). Called from the file-based events watcher; previously
+  // ran inside the per-agent onStderr handler but stderr forwarding from the MCP
+  // child through claude is unreliable on Windows.
+  const dispatchAgentEvent = (event: AgentSideEvent): void => {
+    const { kind, companyId, payload } = event;
+    if (kind === "agent.deliver" && typeof payload === "object" && payload !== null) {
+      const p = payload as {
+        targetId: string;
+        threadId: string;
+        senderName: string;
+        senderId: string | null;
+        senderKind?: "user" | "agent";
+        content: string;
+      };
+      const target = agents.getById(p.targetId);
+      if (target === null) return;
+      ensureAgentRunner(target);
+      const sender: Sender = {
+        kind: p.senderKind ?? "agent",
+        id: p.senderId,
+        name: p.senderName,
+      };
+      router.enqueue(p.targetId, p.threadId, p.content, sender);
+    } else if (kind === "agent.kill" && typeof payload === "object" && payload !== null) {
+      const p = payload as { agentId: string };
+      const r = getRunner(p.agentId);
+      r?.kill();
+      removeRunner(p.agentId);
+      broadcast({ kind: "roster-changed", companyId });
+    } else if (kind === "agent.spawn-needed") {
+      broadcast({ kind: "roster-changed", companyId });
+    } else if (kind === "user.message-append" && typeof payload === "object" && payload !== null) {
+      // report_to_user appended a message to the agent's user thread but
+      // can't broadcast directly from the MCP child. Re-broadcast here so
+      // the renderer's message-append listener refetches and shows it.
+      const p = payload as { agentId: string; messageId: string };
+      const row = db
+        .prepare(
+          `SELECT m.id, m.thread_id, m.sender_kind, m.sender_id, m.content,
+                  m.tool_calls_json, m.created_at FROM messages m WHERE m.id = ?`,
+        )
+        .get(p.messageId) as
+        | {
+            id: string;
+            thread_id: string;
+            sender_kind: string;
+            sender_id: string | null;
+            content: string;
+            tool_calls_json: string | null;
+            created_at: number;
+          }
+        | undefined;
+      if (row !== undefined) {
+        broadcast({
+          kind: "message-append",
+          agentId: p.agentId,
+          message: {
+            id: row.id,
+            threadId: row.thread_id,
+            senderKind: row.sender_kind as "agent" | "user" | "system",
+            senderId: row.sender_id,
+            content: row.content,
+            toolCalls:
+              row.tool_calls_json === null
+                ? null
+                : (JSON.parse(row.tool_calls_json) as ToolCallView[]),
+            createdAt: row.created_at,
+          },
+        });
+      }
+    } else if (
+      (kind === "issue.created" || kind === "issue.updated") &&
+      typeof payload === "object" &&
+      payload !== null
+    ) {
+      const p = payload as { issueId: string };
+      const issueRow = db.prepare("SELECT company_id FROM issues WHERE id = ?").get(p.issueId) as
+        | { company_id: string }
+        | undefined;
+      if (issueRow !== undefined) {
+        broadcastIssueChanged({
+          kind: kind === "issue.created" ? "created" : "updated",
+          issueId: p.issueId,
+          companyId: issueRow.company_id,
+        });
+      }
+    }
+  };
+
+  const eventsDir = getEventsDir(app.getPath("userData"));
+  void startEventsWatcher({ dir: eventsDir, onEvent: dispatchAgentEvent });
+
   const ensureAgentRunner = (agent: Agent): void => {
     const existing = getRunner(agent.id);
     if (existing !== undefined && existing.isAlive()) return;
@@ -52,6 +150,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         userDataDir: app.getPath("userData"),
         dbPath: databasePath(),
         permissionsDir: getPermissionsDir(app.getPath("userData")),
+        eventsDir,
       },
       {
         onEvent: (ev: ParsedEvent) => {
@@ -138,71 +237,10 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
           }
         },
         onStderr: (line: string) => {
-          try {
-            const parsed: unknown = JSON.parse(line);
-            if (
-              parsed !== null &&
-              typeof parsed === "object" &&
-              typeof (parsed as { kind?: unknown }).kind === "string"
-            ) {
-              const k = (parsed as { kind: string }).kind;
-              const payloadObj = (parsed as { payload?: unknown }).payload;
-              if (k === "agent.deliver" && typeof payloadObj === "object" && payloadObj !== null) {
-                const p = payloadObj as {
-                  targetId: string;
-                  threadId: string;
-                  senderName: string;
-                  senderId: string;
-                  content: string;
-                };
-                const target = agents.getById(p.targetId);
-                if (target !== null) {
-                  ensureAgentRunner(target);
-                  const sender: Sender = {
-                    kind: "agent",
-                    id: p.senderId,
-                    name: p.senderName,
-                  };
-                  router.enqueue(p.targetId, p.threadId, p.content, sender);
-                }
-              } else if (
-                k === "agent.kill" &&
-                typeof payloadObj === "object" &&
-                payloadObj !== null
-              ) {
-                const p = payloadObj as { agentId: string };
-                const r = getRunner(p.agentId);
-                r?.kill();
-                removeRunner(p.agentId);
-                broadcast({ kind: "roster-changed", companyId: agent.companyId });
-              } else if (
-                k === "agent.spawn-needed" &&
-                typeof payloadObj === "object" &&
-                payloadObj !== null
-              ) {
-                // hire_agent created a new agent in DB — refresh the sidebar list.
-                broadcast({ kind: "roster-changed", companyId: agent.companyId });
-              } else if (
-                (k === "issue.created" || k === "issue.updated") &&
-                typeof payloadObj === "object" &&
-                payloadObj !== null
-              ) {
-                const p = payloadObj as { issueId: string };
-                const issueRow = db
-                  .prepare("SELECT company_id FROM issues WHERE id = ?")
-                  .get(p.issueId) as { company_id: string } | undefined;
-                if (issueRow !== undefined) {
-                  broadcastIssueChanged({
-                    kind: k === "issue.created" ? "created" : "updated",
-                    issueId: p.issueId,
-                    companyId: issueRow.company_id,
-                  });
-                }
-              }
-            }
-          } catch {
-            console.error(`[claude:${agent.id}] stderr: ${redactString(line)}`);
-          }
+          // Agent-emitted side-channel events now flow via file-based watcher
+          // (see startEventsWatcher above). Stderr is only used for diagnostic
+          // text from claude itself; log it.
+          console.error(`[claude:${agent.id}] stderr: ${redactString(line)}`);
         },
         onExit: (code) => {
           console.error(`[claude:${agent.id}] exit code: ${String(code)}`);

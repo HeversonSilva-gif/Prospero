@@ -23,6 +23,7 @@ describe("evaluatePermission with project allowlist", () => {
       toolInput: { file_path: "C:/foo/bar.txt" },
       agent: fakeAgent(),
       allowedProjectPaths: [],
+      agentCwd: "C:/sandbox",
     });
     expect(decision.action).toBe("deny");
   });
@@ -33,6 +34,7 @@ describe("evaluatePermission with project allowlist", () => {
       toolInput: { file_path: "C:/proj-a/sub/file.ts" },
       agent: fakeAgent(),
       allowedProjectPaths: ["C:/proj-a", "C:/proj-b"],
+      agentCwd: "C:/sandbox",
     });
     expect(decision.action).toBe("allow");
   });
@@ -43,17 +45,19 @@ describe("evaluatePermission with project allowlist", () => {
       toolInput: { file_path: "C:/proj-c/file.ts" },
       agent: fakeAgent(),
       allowedProjectPaths: ["C:/proj-a", "C:/proj-b"],
+      agentCwd: "C:/sandbox",
     });
     expect(decision.action).toBe("deny");
   });
 
-  it("Bash with absolute path outside any allowed project asks user", () => {
+  it("Bash with absolute path outside any allowed project → deny", () => {
     const decision = evaluatePermission({
       toolName: "Bash",
       toolInput: { command: "ls C:/elsewhere" },
       agent: fakeAgent(),
       allowedProjectPaths: ["C:/proj-a"],
+      agentCwd: "C:/sandbox",
     });
-    expect(decision.action).toBe("request_user");
+    expect(decision.action).toBe("deny");
   });
 });

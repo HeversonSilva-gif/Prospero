@@ -29,6 +29,12 @@ type State = {
   delete: (id: string) => Promise<void>;
   addComment: (issueId: string, content: string) => Promise<void>;
   optimisticStatus: (id: string, status: IssueStatus) => void;
+  /** Replace one issue in the array without rebuilding the whole list. */
+  replace: (issue: Issue) => void;
+  /** Remove one issue from the array by id. */
+  remove: (id: string) => void;
+  /** Insert (or update if exists) a single issue, used after backend reports a created event. */
+  upsert: (issue: Issue) => void;
 };
 
 export const useIssuesStore = create<State>((set, get) => ({
@@ -67,4 +73,20 @@ export const useIssuesStore = create<State>((set, get) => ({
   },
   optimisticStatus: (id, status) =>
     set((s) => ({ issues: s.issues.map((i) => (i.id === id ? { ...i, status } : i)) })),
+  replace: (issue) =>
+    set((s) => ({
+      issues: s.issues.map((i) => (i.id === issue.id ? issue : i)),
+      detail: s.detail?.issue.id === issue.id ? { ...s.detail, issue } : s.detail,
+    })),
+  remove: (id) =>
+    set((s) => ({
+      issues: s.issues.filter((i) => i.id !== id),
+      detail: s.detail?.issue.id === id ? null : s.detail,
+    })),
+  upsert: (issue) =>
+    set((s) =>
+      s.issues.some((i) => i.id === issue.id)
+        ? { issues: s.issues.map((i) => (i.id === issue.id ? issue : i)) }
+        : { issues: [issue, ...s.issues] },
+    ),
 }));

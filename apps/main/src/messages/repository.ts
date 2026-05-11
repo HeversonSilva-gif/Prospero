@@ -147,13 +147,18 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
     listByAgentParticipating(agentId) {
       const rows = db
         .prepare(
-          `SELECT m.* FROM messages m
+          `SELECT m.*, t.participants_json AS t_participants_json FROM messages m
            JOIN threads t ON m.thread_id = t.id
            WHERE t.participants_json LIKE ?
            ORDER BY m.created_at ASC, m.id ASC`,
         )
-        .all(`%${agentId}%`) as MessageRow[];
-      return rows.map(rowToMessage);
+        .all(`%${agentId}%`) as Array<MessageRow & { t_participants_json: string }>;
+      // `participants_json` is misleadingly named — threadKey stores a sorted,
+      // pipe-joined string ("agent_x|user"), not actual JSON. Split on `|`.
+      return rows.map((r) => ({
+        ...rowToMessage(r),
+        threadParticipants: r.t_participants_json.split("|"),
+      }));
     },
   };
 };

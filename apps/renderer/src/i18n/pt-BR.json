@@ -17,7 +17,17 @@
   "agent": {
     "composerPlaceholder": "Mensagem para o agente...",
     "send": "Enviar",
-    "notFound": "Agente não encontrado."
+    "notFound": "Agente não encontrado.",
+    "tabs": {
+      "chat": "Chat",
+      "delegations": "Delegações"
+    },
+    "delegations": {
+      "empty": "Sem delegações para outros agentes ainda.",
+      "threadWith": "Com",
+      "messageCount_one": "{{count}} mensagem",
+      "messageCount_other": "{{count}} mensagens"
+    }
   },
   "settings": {
     "title": "Configurações",
@@ -86,7 +96,9 @@
   "common": {
     "save": "Salvar",
     "cancel": "Cancelar",
-    "close": "Fechar"
+    "close": "Fechar",
+    "confirm": "Confirmar",
+    "delete": "Excluir"
   },
   "projects": {
     "title": "Projetos",
@@ -106,6 +118,8 @@
       "openInExplorer": "Abrir no Explorer",
       "edit": "Editar",
       "agentsWithAccess": "Agentes com acesso",
+      "addAgent": "+ Agente",
+      "removeAccessTitle": "Clique para remover acesso",
       "recentIssues": "Issues recentes",
       "counts": "{{agents}} agentes · {{issues}} issues · {{doing}} doing",
       "pathMissing": "Pasta indisponível"

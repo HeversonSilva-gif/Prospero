@@ -8,6 +8,7 @@ import { SubtaskList } from "./SubtaskList.js";
 import { ToolCallHistoryAccordion } from "./ToolCallHistoryAccordion.js";
 import { ReassignDropdown } from "./ReassignDropdown.js";
 import { IssueFormModal } from "./IssueFormModal.js";
+import { ConfirmModal } from "../ConfirmModal.js";
 
 type Props = { issueId: string; onClose: () => void };
 
@@ -20,6 +21,7 @@ export const IssueDetailModal: FC<Props> = ({ issueId, onClose }) => {
   const deleteIssue = useIssuesStore((s) => s.delete);
   const agents = useAgentsStore((s) => s.agents);
   const [showSubtaskForm, setShowSubtaskForm] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     void loadDetail(issueId);
@@ -126,12 +128,7 @@ export const IssueDetailModal: FC<Props> = ({ issueId, onClose }) => {
           />
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm(t("issues.detail.confirmDelete"))) {
-                void deleteIssue(issue.id);
-                onClose();
-              }
-            }}
+            onClick={() => setConfirmingDelete(true)}
             className="text-xs px-3 py-1 bg-semantic-danger text-white rounded ml-auto"
           >
             {t("issues.detail.delete")}
@@ -146,6 +143,20 @@ export const IssueDetailModal: FC<Props> = ({ issueId, onClose }) => {
               setShowSubtaskForm(false);
               void loadDetail(issue.id);
             }}
+          />
+        )}
+        {confirmingDelete && (
+          <ConfirmModal
+            title={issue.title}
+            message={t("issues.detail.confirmDelete")}
+            confirmLabel={t("common.delete")}
+            destructive
+            onConfirm={async () => {
+              await deleteIssue(issue.id);
+              setConfirmingDelete(false);
+              onClose();
+            }}
+            onCancel={() => setConfirmingDelete(false)}
           />
         )}
       </div>

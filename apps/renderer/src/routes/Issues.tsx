@@ -20,6 +20,9 @@ export const Issues: FC = () => {
   const load = useIssuesStore((s) => s.load);
   const updateIssue = useIssuesStore((s) => s.update);
   const optimisticStatus = useIssuesStore((s) => s.optimisticStatus);
+  const replaceIssue = useIssuesStore((s) => s.replace);
+  const removeIssue = useIssuesStore((s) => s.remove);
+  const upsertIssue = useIssuesStore((s) => s.upsert);
   const projects = useProjectsStore((s) => s.projects);
   const agents = useAgentsStore((s) => s.agents);
 
@@ -42,11 +45,28 @@ export const Issues: FC = () => {
   }, [load]);
 
   useEffect(() => {
+    // Targeted refresh: avoid replacing the whole array on every change. The
+    // full reload was wiping dnd-kit's transient state mid-drag and causing
+    // visible jank. Fetching just the changed issue keeps array references
+    // stable so React re-renders only the affected card.
     const off = window.dashboardAgent.issues.onChanged((ev) => {
-      if (companyId !== null && ev.companyId === companyId) void load(companyId);
+      if (companyId === null || ev.companyId !== companyId) return;
+      if (ev.kind === "deleted") {
+        removeIssue(ev.issueId);
+        return;
+      }
+      void (async () => {
+        const detail = await window.dashboardAgent.issues.get(ev.issueId);
+        if (detail === null) return;
+        if (ev.kind === "created") {
+          upsertIssue(detail.issue);
+        } else {
+          replaceIssue(detail.issue);
+        }
+      })();
     });
     return off;
-  }, [companyId, load]);
+  }, [companyId, removeIssue, replaceIssue, upsertIssue]);
 
   const filtered = useMemo(
     () =>

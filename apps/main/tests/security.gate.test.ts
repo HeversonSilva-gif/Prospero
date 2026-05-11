@@ -25,6 +25,7 @@ describe("evaluatePermission §1 always-blocked patterns", () => {
       toolInput: { command: "cat ~/.credentials.json" },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
+      agentCwd: WS,
     });
     expect(r.action).toBe("request_user");
     expect(r.reason).toMatch(/always-blocked/i);
@@ -36,6 +37,7 @@ describe("evaluatePermission §1 always-blocked patterns", () => {
       toolInput: { command: "rm -rf /" },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
+      agentCwd: WS,
     });
     expect(r.action).toBe("request_user");
   });
@@ -48,6 +50,7 @@ describe("evaluatePermission §2 path-tool outside workspace", () => {
       toolInput: { file_path: "/etc/passwd" },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
+      agentCwd: WS,
     });
     expect(r.action).toBe("deny");
     expect(r.reason).toMatch(/outside allowed projects/i);
@@ -59,6 +62,7 @@ describe("evaluatePermission §2 path-tool outside workspace", () => {
       toolInput: { file_path: "C:\\Workspace\\..\\..\\escape.txt" },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
+      agentCwd: WS,
     });
     expect(r.action).toBe("deny");
   });
@@ -69,6 +73,7 @@ describe("evaluatePermission §2 path-tool outside workspace", () => {
       toolInput: { file_path: "C:\\Workspace\\src\\index.ts" },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
+      agentCwd: WS,
     });
     expect(r.action).toBe("allow");
   });
@@ -79,6 +84,7 @@ describe("evaluatePermission §2 path-tool outside workspace", () => {
       toolInput: { file_path: "C:\\Workspace\\src\\index.ts" },
       agent: agent("supervised"),
       allowedProjectPaths: [WS],
+      agentCwd: WS,
     });
     expect(r.action).toBe("request_user");
   });
@@ -91,18 +97,20 @@ describe("evaluatePermission §3 Bash path extraction", () => {
       toolInput: { command: "cat ~/.ssh/id_rsa" },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
+      agentCwd: WS,
     });
     expect(r.action).toBe("request_user");
   });
 
-  it("Bash with absolute path outside workspace → request_user (auto)", () => {
+  it("Bash with absolute path outside workspace → deny (strict isolation)", () => {
     const r = evaluatePermission({
       toolName: "Bash",
       toolInput: { command: "ls C:\\Users\\Other\\file.txt" },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
+      agentCwd: WS,
     });
-    expect(r.action).toBe("request_user");
+    expect(r.action).toBe("deny");
   });
 
   it("Bash echo hello (no path-like) → allow in auto", () => {
@@ -111,6 +119,40 @@ describe("evaluatePermission §3 Bash path extraction", () => {
       toolInput: { command: "echo hello" },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
+      agentCwd: WS,
+    });
+    expect(r.action).toBe("allow");
+  });
+
+  it("Bash with double-quoted path outside workspace → deny (regression: quoted paths used to bypass gate)", () => {
+    const r = evaluatePermission({
+      toolName: "Bash",
+      toolInput: { command: 'ls "D:\\Projetos pessoais\\MTT"' },
+      agent: agent("auto"),
+      allowedProjectPaths: [WS],
+      agentCwd: WS,
+    });
+    expect(r.action).toBe("deny");
+  });
+
+  it("Bash with single-quoted path outside workspace → deny", () => {
+    const r = evaluatePermission({
+      toolName: "Bash",
+      toolInput: { command: "ls '/etc/some path/file'" },
+      agent: agent("auto"),
+      allowedProjectPaths: [WS],
+      agentCwd: WS,
+    });
+    expect(r.action).toBe("deny");
+  });
+
+  it("Bash with quoted path INSIDE workspace → allow in auto", () => {
+    const r = evaluatePermission({
+      toolName: "Bash",
+      toolInput: { command: 'ls "C:\\Workspace\\sub dir\\file.ts"' },
+      agent: agent("auto"),
+      allowedProjectPaths: [WS],
+      agentCwd: WS,
     });
     expect(r.action).toBe("allow");
   });
@@ -123,6 +165,7 @@ describe("evaluatePermission §4 non-fs tools (orchestrator MCP)", () => {
       toolInput: { name: "Alice", role: "FE", system_prompt: "..." },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
+      agentCwd: WS,
     });
     expect(r.action).toBe("allow");
   });
@@ -133,6 +176,7 @@ describe("evaluatePermission §4 non-fs tools (orchestrator MCP)", () => {
       toolInput: { name: "Alice", role: "FE", system_prompt: "..." },
       agent: agent("supervised"),
       allowedProjectPaths: [WS],
+      agentCwd: WS,
     });
     expect(r.action).toBe("request_user");
   });

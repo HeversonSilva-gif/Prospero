@@ -5,6 +5,7 @@ import { createCompaniesRepository } from "../src/companies/repository.js";
 
 vi.mock("electron", () => ({
   ipcMain: { handle: vi.fn() },
+  app: { getPath: (_name: string) => "/tmp/test-userdata" },
   BrowserWindow: { getAllWindows: () => [] },
 }));
 

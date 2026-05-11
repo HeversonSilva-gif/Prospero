@@ -6,6 +6,7 @@ type State = {
   loaded: boolean;
   load: (companyId: string) => Promise<void>;
   applyStatus: (agentId: string, status: AgentStatus, currentAction: string | null) => void;
+  setAllowedProjects: (agentId: string, projectIds: string[]) => Promise<void>;
 };
 
 export const useAgentsStore = create<State>((set) => ({
@@ -19,4 +20,10 @@ export const useAgentsStore = create<State>((set) => ({
     set((s) => ({
       agents: s.agents.map((a) => (a.id === agentId ? { ...a, status, currentAction } : a)),
     })),
+  setAllowedProjects: async (agentId, projectIds) => {
+    await window.dashboardAgent.agents.setAllowedProjects(agentId, projectIds);
+    set((s) => ({
+      agents: s.agents.map((a) => (a.id === agentId ? { ...a, allowedProjects: projectIds } : a)),
+    }));
+  },
 }));

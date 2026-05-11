@@ -1,7 +1,13 @@
-// Spawned as a child by claude CLI. stderr is forwarded as JSONL events to parent.
+// Spawned as a child by claude CLI. Side-channel events are emitted by writing
+// JSON files to EVENTS_DIR, where the orchestrator's chokidar watcher picks
+// them up. Stderr forwarding from this MCP child through claude is unreliable
+// on Windows (events vanish), so file-based delivery is the reliable channel.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import Database from "better-sqlite3";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 import { toolDefinitions, type ToolContext } from "./tools.js";
 
 const agentId = process.env["AGENT_ID"];
@@ -19,11 +25,12 @@ if (agentId === undefined || companyId === undefined) {
 
 const dbPath = process.env["DB_PATH"];
 const permissionsDir = process.env["PERMISSIONS_DIR"];
-if (dbPath === undefined || permissionsDir === undefined) {
+const eventsDir = process.env["EVENTS_DIR"];
+if (dbPath === undefined || permissionsDir === undefined || eventsDir === undefined) {
   process.stderr.write(
     JSON.stringify({
       kind: "mcp.fatal",
-      error: "MCP server requires DB_PATH and PERMISSIONS_DIR env vars",
+      error: "MCP server requires DB_PATH, PERMISSIONS_DIR, and EVENTS_DIR env vars",
     }) + "\n",
   );
   process.exit(1);
@@ -38,7 +45,17 @@ const ctx: ToolContext = {
   db,
   permissionsDir,
   emit: (event) => {
-    process.stderr.write(JSON.stringify({ ...event, agentId, companyId }) + "\n");
+    const filename = `${Date.now()}_${randomUUID()}.json`;
+    try {
+      writeFileSync(
+        join(eventsDir, filename),
+        JSON.stringify({ ...event, agentId, companyId }),
+        "utf8",
+      );
+    } catch (e) {
+      // best effort; surface via stderr as fallback (orchestrator may catch it)
+      process.stderr.write(`[mcp/emit] failed to write event file: ${(e as Error).message}\n`);
+    }
   },
 };
 

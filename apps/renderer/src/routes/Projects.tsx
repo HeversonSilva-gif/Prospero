@@ -7,6 +7,7 @@ import { useIssuesStore } from "../stores/issues.js";
 import { ProjectListItem } from "../components/projects/ProjectListItem.js";
 import { ProjectDetail } from "../components/projects/ProjectDetail.js";
 import { ProjectFormModal } from "../components/projects/ProjectFormModal.js";
+import { ConfirmModal } from "../components/ConfirmModal.js";
 
 export const Projects: FC = () => {
   const { t } = useTranslation();
@@ -25,6 +26,7 @@ export const Projects: FC = () => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState<Project | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -94,15 +96,14 @@ export const Projects: FC = () => {
             project={selected}
             pathStatus={pathStatuses[selected.id]}
             agents={agents}
+            allProjects={projects}
             recentIssues={recentIssues}
             doingCount={doingCount}
             onEdit={() => {
               setEditing(selected);
               setShowForm(true);
             }}
-            onDelete={() => {
-              if (window.confirm(t("projects.form.confirmDelete"))) void deleteProj(selected.id);
-            }}
+            onDelete={() => setConfirmingDelete(selected)}
             onOpenFolder={() => void window.dashboardAgent.projects.openFolder(selected.id)}
           />
         )}
@@ -115,6 +116,19 @@ export const Projects: FC = () => {
             if (editing !== null) await updateProj({ id: editing.id, ...data });
             else await createProj({ companyId, ...data });
           }}
+        />
+      )}
+      {confirmingDelete !== null && (
+        <ConfirmModal
+          title={confirmingDelete.name}
+          message={t("projects.form.confirmDelete")}
+          confirmLabel={t("common.delete")}
+          destructive
+          onConfirm={async () => {
+            await deleteProj(confirmingDelete.id);
+            setConfirmingDelete(null);
+          }}
+          onCancel={() => setConfirmingDelete(null)}
         />
       )}
     </div>

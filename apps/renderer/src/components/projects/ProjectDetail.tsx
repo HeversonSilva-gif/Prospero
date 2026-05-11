@@ -1,12 +1,13 @@
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 import type { Project, Agent, Issue, ProjectPathStatus } from "@dashboard-agent/shared";
-import { AllowlistEditor } from "./AllowlistEditor.js";
+import { AgentAccessSection } from "./AgentAccessSection.js";
 
 type Props = {
   project: Project;
   pathStatus: ProjectPathStatus | undefined;
   agents: Agent[];
+  allProjects: Project[];
   recentIssues: Issue[];
   doingCount: number;
   onEdit: () => void;
@@ -18,6 +19,7 @@ export const ProjectDetail: FC<Props> = ({
   project,
   pathStatus,
   agents,
+  allProjects,
   recentIssues,
   doingCount,
   onEdit,
@@ -51,11 +53,7 @@ export const ProjectDetail: FC<Props> = ({
         <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
           {t("projects.detail.agentsWithAccess")}
         </h3>
-        <div className="flex gap-2 flex-wrap">
-          {agents.map((a) => (
-            <AllowlistEditor key={a.id} agent={a} project={project} />
-          ))}
-        </div>
+        <AgentAccessSection agents={agents} project={project} allProjects={allProjects} />
       </div>
       <div className="mb-4">
         <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">

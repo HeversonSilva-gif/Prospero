@@ -9,6 +9,7 @@ import { openDatabase } from "./db/client.js";
 import { databasePath } from "./db/path.js";
 import { startPermissionWatcher } from "./security/permission-watcher.js";
 import { getPermissionsDir } from "./security/permissions-dir.js";
+import { getAgentSandboxCwd } from "./orchestrator/lifecycle.js";
 import { broadcastPermissionRequest } from "./ipc/permission-handlers.js";
 import { broadcastInboxUpdate } from "./ipc/inbox-handlers.js";
 import { createInboxRepository } from "./inbox/repository.js";
@@ -31,6 +32,7 @@ void app.whenReady().then(() => {
   const projectsRepo = createProjectsRepository(db);
   const inboxRepo = createInboxRepository(db);
   const permissionsDir = getPermissionsDir(app.getPath("userData"));
+  const userDataDir = app.getPath("userData");
   stopPermissionWatcher = startPermissionWatcher({
     dir: permissionsDir,
     getAgent: (id) => agentsRepo.getById(id),
@@ -41,6 +43,7 @@ void app.whenReady().then(() => {
       if (agent.allowedProjects.length === 0) return projects.map((p) => p.path);
       return projects.filter((p) => agent.allowedProjects.includes(p.id)).map((p) => p.path);
     },
+    getAgentCwd: (agentId: string) => getAgentSandboxCwd(userDataDir, agentId),
     onUserDecision: (req, reason) => {
       console.log(
         `[m5/permission] onUserDecision toolUseId=${req.toolUseId} agentId=${req.agentId} tool=${req.toolName} reason=${reason}`,

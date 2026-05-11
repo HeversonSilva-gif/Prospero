@@ -11,6 +11,12 @@ vi.mock("electron", () => ({
       handlers.set(channel, fn);
     },
   },
+  app: {
+    getPath: (_name: string) => "/tmp/test-userdata",
+  },
+  BrowserWindow: {
+    getAllWindows: () => [],
+  },
   safeStorage: {
     isEncryptionAvailable: () => true,
     encryptString: (raw: string) => Buffer.from("ENC:" + raw, "utf8"),

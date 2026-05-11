@@ -63,6 +63,38 @@ describe("messages repository", () => {
     expect(repo.list(first.threadId)).toHaveLength(2);
   });
 
+  it("listByAgentParticipating returns messages with parsed threadParticipants for user and inter-agent threads", () => {
+    const { repo, companyId, ceoId } = setup();
+    const bobId = "agent_bob_test";
+
+    repo.append({
+      companyId,
+      participants: ["user", ceoId],
+      senderKind: "user",
+      senderId: null,
+      content: "user-msg",
+    });
+    repo.append({
+      companyId,
+      participants: [ceoId, bobId],
+      senderKind: "agent",
+      senderId: ceoId,
+      content: "delegate-to-bob",
+    });
+
+    const all = repo.listByAgentParticipating(ceoId);
+    expect(all).toHaveLength(2);
+    const userMsg = all.find((m) => m.content === "user-msg")!;
+    const delegateMsg = all.find((m) => m.content === "delegate-to-bob")!;
+    // Regression: participants_json column stores a pipe-joined string ("a|b"),
+    // NOT JSON. Earlier code used JSON.parse and silently returned [] on error.
+    expect(userMsg.threadParticipants).toContain("user");
+    expect(userMsg.threadParticipants).toContain(ceoId);
+    expect(delegateMsg.threadParticipants).toContain(ceoId);
+    expect(delegateMsg.threadParticipants).toContain(bobId);
+    expect(delegateMsg.threadParticipants).not.toContain("user");
+  });
+
   it("preserves tool calls JSON round-trip", () => {
     const { repo, companyId, ceoId } = setup();
     repo.append({

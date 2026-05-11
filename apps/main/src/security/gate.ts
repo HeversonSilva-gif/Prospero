@@ -9,6 +9,12 @@ export type GateInput = {
   agent: Agent;
   /** List of absolute project root paths the agent is allowed to access. */
   allowedProjectPaths: string[];
+  /**
+   * Agent's spawn CWD (per-agent sandbox dir). Used to resolve relative path tokens
+   * in Bash commands so checks happen against the agent's actual working directory,
+   * not the Electron main process's cwd.
+   */
+  agentCwd: string;
 };
 
 export type GateDecision =
@@ -21,17 +27,48 @@ const FS_TOOLS = new Set(["Read", "Write", "Edit", "Glob", "Grep", "MultiEdit", 
 const expandHome = (p: string): string =>
   p.startsWith("~/") || p === "~" ? p.replace(/^~/, homedir()) : p;
 
+// Tokenize a shell command, respecting single- and double-quoted strings so
+// paths with spaces stay intact (e.g. `ls "D:\My Folder\sub"` → one token, not
+// three). A naïve whitespace split lets agents bypass the gate by quoting
+// absolute paths.
+const tokenizeShell = (cmd: string): string[] => {
+  const tokens: string[] = [];
+  let i = 0;
+  while (i < cmd.length) {
+    while (i < cmd.length && /[\s;|&]/.test(cmd[i] as string)) i++;
+    if (i >= cmd.length) break;
+    let token = "";
+    while (i < cmd.length && !/[\s;|&]/.test(cmd[i] as string)) {
+      const c = cmd[i] as string;
+      if (c === '"' || c === "'") {
+        const quote = c;
+        i++;
+        while (i < cmd.length && cmd[i] !== quote) {
+          token += cmd[i];
+          i++;
+        }
+        if (i < cmd.length) i++;
+      } else {
+        token += c;
+        i++;
+      }
+    }
+    if (token.length > 0) tokens.push(token);
+  }
+  return tokens;
+};
+
 const extractPathLikeTokens = (cmd: string): string[] => {
-  const tokens = cmd.split(/[\s;|&]+/).filter((t) => t.length > 0);
-  return tokens.filter(
+  return tokenizeShell(cmd).filter(
     (t) =>
       t.startsWith("/") || t.startsWith("~") || t.startsWith("..") || /^[A-Za-z]:[\\/]/.test(t),
   );
 };
 
-const isInsideAnyAllowed = (path: string, allowed: string[]): boolean => {
+const isInsideAnyAllowed = (path: string, allowed: string[], cwd: string): boolean => {
   if (allowed.length === 0) return false;
-  const abs = resolve(expandHome(path));
+  // Resolve relative paths against the agent's CWD, not the host process's cwd.
+  const abs = resolve(cwd, expandHome(path));
   return allowed.some((root) => {
     const rootAbs = resolve(root);
     return abs === rootAbs || abs.startsWith(rootAbs + (process.platform === "win32" ? "\\" : "/"));
@@ -42,7 +79,7 @@ const asObject = (v: unknown): Record<string, unknown> =>
   v !== null && typeof v === "object" ? (v as Record<string, unknown>) : {};
 
 export const evaluatePermission = (input: GateInput): GateDecision => {
-  const { toolName, toolInput, agent, allowedProjectPaths } = input;
+  const { toolName, toolInput, agent, allowedProjectPaths, agentCwd } = input;
   const ti = asObject(toolInput);
 
   if (toolName === "Bash") {
@@ -56,8 +93,12 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
         return { action: "request_user", reason: "always-blocked path in bash arg" };
       }
       if (!isAbsolute(expanded) && !tok.startsWith("..")) continue;
-      if (!isInsideAnyAllowed(expanded, allowedProjectPaths)) {
-        return { action: "request_user", reason: `bash path outside any allowed project: ${tok}` };
+      if (!isInsideAnyAllowed(expanded, allowedProjectPaths, agentCwd)) {
+        // Deny outright: the agent has no business touching paths outside its
+        // allowedProjects. Use request_user only for the always-blocked case
+        // above (so the operator can still override sensitive-file ops with
+        // explicit consent).
+        return { action: "deny", reason: `bash path outside any allowed project: ${tok}` };
       }
     }
   } else if (FS_TOOLS.has(toolName)) {
@@ -69,8 +110,8 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
       if (matchesBlockedPath(expanded)) {
         return { action: "request_user", reason: "always-blocked sensitive path" };
       }
-      const abs = resolve(expanded);
-      if (!isInsideAnyAllowed(abs, allowedProjectPaths)) {
+      const abs = resolve(agentCwd, expanded);
+      if (!isInsideAnyAllowed(abs, allowedProjectPaths, agentCwd)) {
         return { action: "deny", reason: "path outside allowed projects" };
       }
     }

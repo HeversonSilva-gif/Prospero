@@ -20,6 +20,13 @@ export type Message = {
   content: string;
   toolCalls: ToolCallView[] | null;
   createdAt: number;
+  /**
+   * Participants of the thread this message belongs to. Populated by
+   * `messages.listByAgent`; absent when the message is broadcast individually
+   * (e.g. via message-append events). Use to distinguish user-agent threads
+   * (contains "user") from inter-agent delegation threads.
+   */
+  threadParticipants?: string[];
 };
 
 export type AgentEvent =

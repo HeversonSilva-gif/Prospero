@@ -1,9 +1,17 @@
-import { useEffect, useRef } from "react";
-import type { Message } from "@dashboard-agent/shared";
+import { useEffect, useMemo, useRef } from "react";
+import type { Agent, Message } from "@dashboard-agent/shared";
 import { ToolCallCard } from "./ToolCallCard.js";
 
-export const MessageList = ({ messages }: { messages: Message[] }) => {
+type Props = {
+  messages: Message[];
+  agents: Agent[];
+};
+
+const initials = (name: string): string => name.slice(0, 2).toUpperCase();
+
+export const MessageList = ({ messages, agents }: Props) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const agentsById = useMemo(() => new Map(agents.map((a) => [a.id, a])), [agents]);
 
   // Auto-scroll to bottom whenever the message list grows or its last message changes.
   // Captures both new appends and tool-call streaming updates within an existing message.
@@ -27,6 +35,9 @@ export const MessageList = ({ messages }: { messages: Message[] }) => {
           );
         }
         const isUser = m.senderKind === "user";
+        const sender = m.senderId !== null ? agentsById.get(m.senderId) : undefined;
+        const avatar = isUser ? "EU" : sender ? initials(sender.name) : "??";
+        const name = isUser ? "Você" : (sender?.name ?? "Agent");
         return (
           <div
             key={m.id}
@@ -36,10 +47,16 @@ export const MessageList = ({ messages }: { messages: Message[] }) => {
               className={`w-7 h-7 rounded-md text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${
                 isUser ? "bg-ink" : "bg-brand-dark"
               }`}
+              title={name}
             >
-              {isUser ? "EU" : "CE"}
+              {avatar}
             </div>
             <div className="space-y-1">
+              {!isUser && (
+                <div className="text-[10px] uppercase tracking-wide text-ink-soft font-semibold">
+                  {name}
+                </div>
+              )}
               {m.content !== "" && (
                 <div
                   className={`px-3.5 py-3 rounded-lg text-sm leading-snug ${

@@ -38,7 +38,10 @@ describe("buildClaudeArgs", () => {
     expect(args).not.toContain("-p");
     expect(args).not.toContain("--print");
     expect(args).toContain("--system-prompt");
-    expect(args).toContain("You are CEO.");
+    // The system-prompt value is the user's prompt prepended with the runtime preamble
+    // (sandbox + delegation instructions). Assert that the user prompt is included.
+    const spIdx = args.indexOf("--system-prompt");
+    expect(args[spIdx + 1]).toContain("You are CEO.");
     expect(args).toContain("--input-format");
     expect(args).toContain("--output-format");
     expect(args).toContain("stream-json");

@@ -6,6 +6,7 @@ import { createAgentsRepository } from "../agents/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
+import { createProjectsRepository } from "../projects/repository.js";
 
 export type ToolContext = {
   agentId: string;
@@ -63,6 +64,32 @@ export const toolDefinitions = [
           role: a.role,
           status: a.status,
           current_action: a.currentAction,
+        })),
+      });
+    },
+  },
+  {
+    name: "list_projects",
+    description:
+      "List projects this agent has access to. Use this to discover absolute paths for the user's projects — your CWD is an empty sandbox dir, so file operations require absolute paths from here.",
+    inputSchema: z.object({}),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (_input: unknown, ctx: ToolContext): Promise<string> => {
+      const agents = createAgentsRepository(ctx.db);
+      const projects = createProjectsRepository(ctx.db);
+      const agent = agents.getById(ctx.agentId);
+      if (agent === null) return JSON.stringify({ projects: [] });
+      const all = projects.listByCompany(ctx.companyId);
+      const visible =
+        agent.allowedProjects.length === 0
+          ? all
+          : all.filter((p) => agent.allowedProjects.includes(p.id));
+      return JSON.stringify({
+        projects: visible.map((p) => ({
+          id: p.id,
+          name: p.name,
+          path: p.path,
+          color: p.color,
         })),
       });
     },
@@ -221,6 +248,28 @@ export const toolDefinitions = [
         },
       });
       return JSON.stringify({ queued: true, message_id: msg.id });
+    },
+  },
+  {
+    name: "report_to_user",
+    description:
+      "Send a message to the user in this agent's main chat (the [user, this-agent] thread). Use this after a delegated agent reports back, to relay the result so the user sees it in the Chat tab. Without this call, your reply stays in the inter-agent Delegações tab and the user never sees it.",
+    inputSchema: z.object({ content: z.string().min(1) }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (input: { content: string }, ctx: ToolContext): Promise<string> => {
+      const messages = createMessagesRepository(ctx.db);
+      const msg = messages.append({
+        companyId: ctx.companyId,
+        participants: ["user", ctx.agentId],
+        senderKind: "agent",
+        senderId: ctx.agentId,
+        content: input.content,
+      });
+      ctx.emit({
+        kind: "user.message-append",
+        payload: { agentId: ctx.agentId, messageId: msg.id },
+      });
+      return JSON.stringify({ ok: true, message_id: msg.id });
     },
   },
   {

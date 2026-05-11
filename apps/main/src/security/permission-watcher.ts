@@ -10,6 +10,8 @@ export type WatcherOptions = {
   getAgent: (agentId: string) => Agent | null;
   /** Returns the list of allowed project root paths for the given agent. */
   getAllowedProjectPaths: (agentId: string) => string[];
+  /** Returns the agent's spawn CWD (per-agent sandbox dir). */
+  getAgentCwd: (agentId: string) => string;
   onUserDecision: (request: PermissionRequest, reason: string) => void;
   onResolved?: (toolUseId: string, resolution: PermissionResolution) => void;
 };
@@ -53,6 +55,7 @@ export const startPermissionWatcher = (opts: WatcherOptions): (() => Promise<voi
       toolInput: body.tool_input,
       agent,
       allowedProjectPaths: opts.getAllowedProjectPaths(body.agentId),
+      agentCwd: opts.getAgentCwd(body.agentId),
     });
     if (decision.action === "allow") {
       writeFileSync(

@@ -3,6 +3,86 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## M6.1 — Smoke-test hardening (2026-05-11)
+
+Follow-up pass on the M6 branch after smoke testing surfaced security gaps,
+orchestration bugs, and UX papercuts.
+
+### Security
+- **Per-agent sandbox CWD.** Agents previously spawned with `process.cwd()`
+  (the Electron main process's own dir), letting `ls`/`pwd`/`cat README.md`
+  leak files the agent had no project access to. Now each agent gets
+  `userData/agent-sandbox/<id>/cwd/` as its working directory — an empty,
+  isolated dir per agent. Project work requires absolute paths (the gate
+  validates them).
+- **Quoted-path bypass closed.** The gate's `extractPathLikeTokens` split
+  commands by whitespace and matched `^[A-Za-z]:[\\/]` at token start —
+  `ls "D:\Projetos pessoais\MTT"` produced `["\"D:\\Projetos", "pessoais\\MTT\""]`,
+  neither matching the pattern, so quoted absolute paths bypassed the check.
+  Replaced the regex split with a shell-aware tokenizer that respects single
+  and double quotes.
+- **Bash path outside allowed → `deny` (was `request_user`).** Consistent
+  with FS tools. The "always-blocked" branch (sensitive system paths) still
+  returns `request_user` so the operator can override with explicit consent.
+- **`NO_ACCESS_SENTINEL`** added to `Agent.allowedProjects` semantics:
+  `[]` continues to mean "all projects" (existing model), `[NO_ACCESS_SENTINEL]`
+  means "no access at all". Without this, revoking the only allowed project
+  from an agent would flip back to "all access".
+- **Gate path resolution** now uses the agent's CWD (passed via `GateInput.agentCwd`)
+  instead of `process.cwd()` for relative-path resolution.
+
+### Orchestration
+- **File-based event channel replaces stderr.** MCP-child events (`agent.deliver`,
+  `agent.kill`, `agent.spawn-needed`, `issue.created/updated`, new
+  `user.message-append`) emitted via JSON files in `userData/agent-events/`
+  watched by chokidar. Stderr forwarding from the MCP child through Claude CLI
+  was unreliable on Windows — inter-agent delivery was silently dropping.
+- **`list_projects` MCP tool** so agents can discover their allowed projects
+  by path. Pre-allowed in the per-agent sandbox `settings.json`.
+- **`report_to_user` MCP tool** lets an agent message the user in the main
+  `[user, agent.id]` thread. Without this, an agent's reply after a delegated
+  agent responded landed only in the inter-agent thread (Delegações tab)
+  and the user never saw the result.
+- **System-prompt preamble** prepended to every agent's `systemPrompt`
+  (sandbox contract, `list_projects` discovery, `message_agent` fire-and-forget
+  semantics, `report_to_user` after delegation).
+- **Issue assignment wake-up.** Creating or reassigning an issue via the UI
+  now writes an `agent.deliver` event with `senderKind: "user"` so the
+  assignee receives a `[issue assigned]` message and the orchestrator
+  spawns/wakes their runner.
+- **Post-migration 0003** clears stale `claude_session_id` once after the CWD
+  change so Claude doesn't fail with "No conversation found" on the first
+  spawn after upgrade. Idempotent via `settings.post_migration_0003_done`.
+
+### UX
+- **Chat / Delegações tabs** on the agent view, split by `Message.threadParticipants`
+  (threads containing `"user"` → Chat; agent↔agent → Delegações).
+- **Delegations panel** groups by other agent with timestamps and directional
+  labels (`Bob → CEO`, `CEO → Bob`).
+- **Avatar fix** — `MessageList` was hardcoded to "CE" for every non-user
+  message; now resolves initials by `senderId` lookup.
+- **`AgentAccessSection`** replaces the per-agent popover with tag-style chips
+  (click chip to revoke; "+ Agente" picker for ungranted agents).
+- **`ConfirmModal`** replaces `window.confirm()` in projects/issues delete
+  flows — same overlay style as `ProjectFormModal`.
+- **Kanban fluidity** — `issue.onChanged` events now target the changed issue
+  via `issues.get(id)` + store-level `replace/upsert/remove`, instead of
+  reloading the whole list. Stable array references keep dnd-kit's transient
+  state intact through drag/drop.
+
+### Bug fixes
+- **`Message.threadParticipants` parsing** — `participants_json` column stores
+  a sorted pipe-joined string (`"agent_x|user"`), not JSON. `JSON.parse` was
+  throwing in `listByAgentParticipating`, silently failing the map and
+  returning empty messages. Split on `|` instead.
+
+### Tests
+- 185 → 194 passing. New: gate-quoted-path regression × 3, post-migration 0003 × 3,
+  `messages.listByAgentParticipating` × 1 (regression for participants parsing),
+  `EVENTS_DIR` propagation.
+
+---
+
 ## M6 — Issues + Projects (2026-05-10)
 
 ### Added

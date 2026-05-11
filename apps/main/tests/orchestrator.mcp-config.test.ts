@@ -10,6 +10,7 @@ describe("writeMcpConfigFile", () => {
       COMPANY_ID: "c",
       DB_PATH: "/tmp/db.sqlite",
       PERMISSIONS_DIR: "/tmp/perm",
+      EVENTS_DIR: "/tmp/events",
     });
     type McpConfig = {
       mcpServers: {
@@ -27,6 +28,7 @@ describe("writeMcpConfigFile", () => {
     expect(parsed.mcpServers.dashboard.env["COMPANY_ID"]).toBe("c");
     expect(parsed.mcpServers.dashboard.env["DB_PATH"]).toBe("/tmp/db.sqlite");
     expect(parsed.mcpServers.dashboard.env["PERMISSIONS_DIR"]).toBe("/tmp/perm");
+    expect(parsed.mcpServers.dashboard.env["EVENTS_DIR"]).toBe("/tmp/events");
   });
 
   it("does NOT include CLAUDE_CODE_OAUTH_TOKEN in the mcp config file", () => {
@@ -36,6 +38,7 @@ describe("writeMcpConfigFile", () => {
       COMPANY_ID: "c",
       DB_PATH: "/tmp/db.sqlite",
       PERMISSIONS_DIR: "/tmp/perm",
+      EVENTS_DIR: "/tmp/events",
     });
     const raw = readFileSync(path, "utf8");
     expect(raw).not.toContain("sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_secret");

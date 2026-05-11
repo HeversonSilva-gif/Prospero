@@ -17,6 +17,7 @@ import type { Agent } from "@dashboard-agent/shared";
 import { parseStreamLine, type ParsedEvent } from "./stream-parser.js";
 import { buildSpawnEnv, type SpawnEnv } from "./env.js";
 import { writeMcpConfigFile } from "./mcp-config.js";
+import { buildAgentSystemPrompt } from "./system-prompt.js";
 
 // On Windows, cross-spawn must wrap `claude.cmd` invocations through `cmd.exe /d /s /c "..."`.
 // When the parent is the Electron main process, that cmd.exe wrapper breaks stdio handle
@@ -85,6 +86,10 @@ export type SpawnOptions = {
   agent: Agent;
   oauthToken: string;
   mcpServerJsPath?: string;
+  /**
+   * Override CWD for the spawned claude process. Production callers should leave this
+   * unset — defaults to the agent's per-agent sandbox cwd dir. Tests pass an explicit cwd.
+   */
   cwd?: string;
   /**
    * Base directory for per-agent sandbox storage. When provided, each agent gets a
@@ -97,7 +102,16 @@ export type SpawnOptions = {
   dbPath: string;
   /** Absolute path to the permissions directory — forwarded to the MCP child process. */
   permissionsDir: string;
+  /** Absolute path to the events directory — forwarded to the MCP child process. */
+  eventsDir: string;
 };
+
+// Per-agent sandbox CWD. The agent spawns inside this empty directory, so tools that
+// operate on CWD (ls, pwd, cat README.md) cannot leak project files even if the agent
+// has misconfigured allowedProjects. Real project work requires absolute paths, which
+// the security gate validates against allowedProjectPaths.
+export const getAgentSandboxCwd = (userDataDir: string, agentId: string): string =>
+  join(userDataDir, "agent-sandbox", agentId, "cwd");
 
 // Internal helper that builds the args (factored out so tests can verify args without spawn)
 //
@@ -114,7 +128,7 @@ export type SpawnOptions = {
 export const buildClaudeArgs = (agent: Agent, mcpConfigPath: string): string[] => {
   const args = [
     "--system-prompt",
-    agent.systemPrompt,
+    buildAgentSystemPrompt(agent.systemPrompt),
     "--input-format",
     "stream-json",
     "--output-format",
@@ -181,6 +195,7 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
     opts.oauthToken,
     opts.dbPath,
     opts.permissionsDir,
+    opts.eventsDir,
   );
   // tsup bundles src/index.ts → dist/index.js (single file, splitting:false), so at
   // runtime __dirname resolves to dist/, not dist/orchestrator/. The MCP server is a
@@ -200,14 +215,19 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
   // — required for --resume to work. Without it (tests), fall back to an ephemeral dir.
   let agentConfigDir: string;
   let isEphemeralConfigDir: boolean;
+  let agentSandboxCwd: string;
   if (opts.userDataDir !== undefined) {
     agentConfigDir = join(opts.userDataDir, "agent-sandbox", opts.agent.id);
     mkdirSync(agentConfigDir, { recursive: true });
+    agentSandboxCwd = getAgentSandboxCwd(opts.userDataDir, opts.agent.id);
+    mkdirSync(agentSandboxCwd, { recursive: true });
     isEphemeralConfigDir = false;
   } else {
     agentConfigDir = mkdtempSync(join(tmpdir(), "da-claude-cfg-"));
+    agentSandboxCwd = mkdtempSync(join(tmpdir(), "da-agent-cwd-"));
     isEphemeralConfigDir = true;
   }
+  const spawnCwd = opts.cwd ?? agentSandboxCwd;
   // claude reads the OAuth Max token from <CLAUDE_CONFIG_DIR>/.credentials.json (keychain)
   // and only falls back to env vars in --bare mode. The agent uses the same Anthropic
   // account as the host user (same machine, same OAuth Max), so seed the sandbox keychain
@@ -233,9 +253,11 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
       ask: ["Bash", "Edit", "Write", "Read", "Glob", "Grep", "MultiEdit", "NotebookEdit"],
       allow: [
         "mcp__dashboard__list_agents",
+        "mcp__dashboard__list_projects",
         "mcp__dashboard__hire_agent",
         "mcp__dashboard__fire_agent",
         "mcp__dashboard__message_agent",
+        "mcp__dashboard__report_to_user",
         "mcp__dashboard__notify_user",
         "mcp__dashboard__create_issue",
         "mcp__dashboard__read_thread",
@@ -258,7 +280,7 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
     CLAUDE_CONFIG_DIR: agentConfigDir,
   };
 
-  dlog(`spawn claude for agent=${opts.agent.id} cwd=${opts.cwd ?? process.cwd()}`);
+  dlog(`spawn claude for agent=${opts.agent.id} cwd=${spawnCwd}`);
   dlog(`configDir=${agentConfigDir} ephemeral=${String(isEphemeralConfigDir)}`);
   dlog(`args: ${JSON.stringify(args)}`);
 
@@ -270,13 +292,13 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
     claudeExe !== null
       ? nodeSpawn(claudeExe, args, {
           env: spawnEnv,
-          cwd: opts.cwd ?? process.cwd(),
+          cwd: spawnCwd,
           stdio: ["pipe", "pipe", "pipe"],
           windowsHide: true,
         })
       : crossSpawn("claude", args, {
           env: spawnEnv,
-          cwd: opts.cwd ?? process.cwd(),
+          cwd: spawnCwd,
           stdio: ["pipe", "pipe", "pipe"],
         });
 
