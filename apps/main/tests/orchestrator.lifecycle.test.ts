@@ -22,6 +22,7 @@ const baseAgent: Agent = {
   claudeSessionId: null,
   currentAction: null,
   allowedProjects: [],
+  model: "claude-sonnet-4-6",
 };
 
 const fakeRunner = (id: string, alive: boolean): AgentRunner => ({
@@ -85,6 +86,19 @@ describe("buildClaudeArgs", () => {
       expect(a.includes("sk-ant-oat")).toBe(false);
       expect(a.includes("sk-ant-api")).toBe(false);
     }
+  });
+
+  it("includes --model from agent.model (default sonnet)", () => {
+    const args = buildClaudeArgs(baseAgent, "/tmp/mcp.json");
+    const idx = args.indexOf("--model");
+    expect(idx).toBeGreaterThan(-1);
+    expect(args[idx + 1]).toBe("claude-sonnet-4-6");
+  });
+
+  it("respects per-agent model override (e.g. opus)", () => {
+    const args = buildClaudeArgs({ ...baseAgent, model: "claude-opus-4-7" }, "/tmp/mcp.json");
+    const idx = args.indexOf("--model");
+    expect(args[idx + 1]).toBe("claude-opus-4-7");
   });
 });
 

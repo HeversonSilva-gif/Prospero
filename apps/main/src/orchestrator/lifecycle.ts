@@ -129,6 +129,8 @@ export const buildClaudeArgs = (agent: Agent, mcpConfigPath: string): string[] =
   const args = [
     "--system-prompt",
     buildAgentSystemPrompt(agent.systemPrompt),
+    "--model",
+    agent.model,
     "--input-format",
     "stream-json",
     "--output-format",
