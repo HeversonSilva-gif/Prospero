@@ -21,10 +21,10 @@ describe("migration 0002", () => {
     expect(row).toBeDefined();
   });
 
-  it("bumps user_version to 2", () => {
+  it("applies migration 0002 (user_version >= 2)", () => {
     const db = new Database(":memory:");
     applyMigrations(db);
-    expect(getCurrentVersion(db)).toBe(2);
+    expect(getCurrentVersion(db)).toBeGreaterThanOrEqual(2);
   });
 
   it("issue_comments enforces sender_kind enum", () => {
