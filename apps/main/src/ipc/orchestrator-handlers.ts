@@ -2,8 +2,10 @@ import { ipcMain, BrowserWindow, app } from "electron";
 import type Database from "better-sqlite3";
 import {
   IPC,
+  MODEL_ID_REGEX,
   type Agent,
   type AgentEvent,
+  type AgentStats,
   type Message,
   type ToolCallView,
 } from "@dashboard-agent/shared";
@@ -280,6 +282,21 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     );
   };
 
+  // Restart helper for config mutations. Trocar --model / --allowedTools /
+  // --system-prompt exige re-spawn (claude lê esses args só na inicialização).
+  // Kills runner if alive, zera claude_session_id pra próxima mensagem não
+  // tentar --resume com session stale, e broadcast roster pra UI re-render.
+  const restartIfRunning = (agentId: string, companyId: string): void => {
+    const runner = getRunner(agentId);
+    if (runner !== undefined && runner.isAlive()) {
+      runner.kill();
+      removeRunner(agentId);
+    }
+    agents.clearSessionId(agentId);
+    agents.updateStatus(agentId, { status: "idle", currentAction: null });
+    broadcast({ kind: "roster-changed", companyId });
+  };
+
   ipcMain.handle(IPC.AGENT_LIST, (_e, payload: { companyId: string }): Agent[] =>
     agents.listByCompany(payload.companyId),
   );
@@ -322,4 +339,72 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       return Promise.resolve(userMessage);
     },
   );
+
+  ipcMain.handle(
+    IPC.AGENTS_SET_MODEL,
+    (_e, payload: { agentId: string; model: string }): { ok: true } => {
+      // Defense-in-depth: re-validate model id even though renderer also validates.
+      // Prevents shell-injection via --model arg if the renderer is bypassed.
+      if (!MODEL_ID_REGEX.test(payload.model)) throw new Error("Invalid model id");
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      agents.setModel(payload.agentId, payload.model);
+      restartIfRunning(payload.agentId, agent.companyId);
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.AGENTS_SET_ROLE,
+    (
+      _e,
+      payload: { agentId: string; roleTemplateId: string; preserveModel?: boolean },
+    ): { ok: true } => {
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      agents.setRole(payload.agentId, payload.roleTemplateId, {
+        preserveModel: payload.preserveModel === true,
+      });
+      restartIfRunning(payload.agentId, agent.companyId);
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.AGENTS_SET_SYSTEM_PROMPT,
+    (_e, payload: { agentId: string; systemPrompt: string }): { ok: true } => {
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      agents.setSystemPrompt(payload.agentId, payload.systemPrompt);
+      restartIfRunning(payload.agentId, agent.companyId);
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.AGENTS_SET_REPORTS_TO,
+    (_e, payload: { agentId: string; reportsTo: string | null }): { ok: true } => {
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      agents.setReportsTo(payload.agentId, payload.reportsTo);
+      // reports_to é metadata visual; não afeta spawn args → não precisa restart.
+      broadcast({ kind: "roster-changed", companyId: agent.companyId });
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(IPC.AGENTS_STATS, (_e, payload: { agentId: string }): AgentStats => {
+    const row = db
+      .prepare(
+        `SELECT COUNT(*) as n, MAX(created_at) as last
+         FROM messages WHERE sender_kind = 'agent' AND sender_id = ?`,
+      )
+      .get(payload.agentId) as { n: number; last: number | null };
+    return {
+      turns: row.n,
+      tokensIn: null,
+      tokensOut: null,
+      lastActivityAt: row.last,
+    };
+  });
 };

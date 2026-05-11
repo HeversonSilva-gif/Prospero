@@ -25,6 +25,7 @@ const baseAgent: Agent = {
   model: "claude-sonnet-4-6",
   skills: [],
   templateId: null,
+  reportsTo: null,
 };
 
 const fakeRunner = (id: string, alive: boolean): AgentRunner => ({

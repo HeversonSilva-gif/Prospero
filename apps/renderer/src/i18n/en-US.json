@@ -9,7 +9,8 @@
     "agents": "Agents",
     "projects": "Projects",
     "issues": "Issues",
-    "skills": "Skills"
+    "skills": "Skills",
+    "orgChart": "Org Chart"
   },
   "dashboard": {
     "placeholder": "M2 — Auth & Settings done. Dashboard widgets land in M6.",
@@ -28,6 +29,67 @@
       "threadWith": "With",
       "messageCount_one": "{{count}} message",
       "messageCount_other": "{{count}} messages"
+    },
+    "panel": {
+      "tabs": {
+        "config": "Config",
+        "issues": "Issues",
+        "stats": "Stats"
+      }
+    },
+    "config": {
+      "role": {
+        "label": "Role",
+        "change": "Change...",
+        "modalTitle": "Change agent role",
+        "modalWarning": "Changing the role restarts the agent. Skills and model are updated per template.",
+        "selectLabel": "New role",
+        "preserveModel": "Keep current model (don't use role default)"
+      },
+      "model": {
+        "label": "Model",
+        "custom": "Custom...",
+        "invalid": "Invalid model id"
+      },
+      "skills": {
+        "label": "Skills",
+        "empty": "No skills assigned.",
+        "hint": "Skills are determined by role. Change the role to update."
+      },
+      "persona": {
+        "label": "Persona",
+        "saved": "Saved"
+      },
+      "projects": {
+        "label": "Projects",
+        "add": "+ add",
+        "removeTitle": "Remove access",
+        "allAccess": "(access to all projects)"
+      }
+    },
+    "issues": {
+      "empty": "No assigned issues."
+    },
+    "stats": {
+      "turns": "Turns",
+      "tokensIn": "Tokens in",
+      "tokensOut": "Tokens out",
+      "lastActivity": "Last activity",
+      "m8Note": "Tracking available in M8."
+    }
+  },
+  "org": {
+    "empty": "No agents hired yet.",
+    "drawer": {
+      "model": "Model",
+      "status": "Status",
+      "openIssues": "Open issues",
+      "openAgent": "Open agent →"
+    },
+    "reassign": {
+      "title": "Change reporting line",
+      "message": "Move {{child}} to report to {{parent}}?",
+      "cycleError": "Cannot: would create a hierarchy cycle."
     }
   },
   "settings": {

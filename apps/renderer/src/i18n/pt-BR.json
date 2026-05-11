@@ -9,7 +9,8 @@
     "agents": "Agentes",
     "projects": "Projetos",
     "issues": "Issues",
-    "skills": "Habilidades"
+    "skills": "Habilidades",
+    "orgChart": "Organograma"
   },
   "dashboard": {
     "placeholder": "M2 — Autenticação e Configurações concluídas. Os widgets do dashboard chegam em M6.",
@@ -28,6 +29,67 @@
       "threadWith": "Com",
       "messageCount_one": "{{count}} mensagem",
       "messageCount_other": "{{count}} mensagens"
+    },
+    "panel": {
+      "tabs": {
+        "config": "Config",
+        "issues": "Issues",
+        "stats": "Stats"
+      }
+    },
+    "config": {
+      "role": {
+        "label": "Papel",
+        "change": "Mudar...",
+        "modalTitle": "Mudar papel do agente",
+        "modalWarning": "Trocar o papel reinicia o agente. Skills e modelo serão atualizados conforme o template.",
+        "selectLabel": "Novo papel",
+        "preserveModel": "Manter o modelo atual (não usar default do papel)"
+      },
+      "model": {
+        "label": "Modelo",
+        "custom": "Customizado...",
+        "invalid": "Model id inválido"
+      },
+      "skills": {
+        "label": "Skills",
+        "empty": "Nenhuma skill atribuída.",
+        "hint": "Skills são definidas pelo papel. Mude o papel para atualizar."
+      },
+      "persona": {
+        "label": "Persona",
+        "saved": "Salvo"
+      },
+      "projects": {
+        "label": "Projetos",
+        "add": "+ adicionar",
+        "removeTitle": "Remover acesso",
+        "allAccess": "(acesso a todos os projetos)"
+      }
+    },
+    "issues": {
+      "empty": "Sem issues atribuídas."
+    },
+    "stats": {
+      "turns": "Turnos",
+      "tokensIn": "Tokens entrada",
+      "tokensOut": "Tokens saída",
+      "lastActivity": "Última atividade",
+      "m8Note": "Tracking disponível em M8."
+    }
+  },
+  "org": {
+    "empty": "Nenhum agente contratado ainda.",
+    "drawer": {
+      "model": "Modelo",
+      "status": "Status",
+      "openIssues": "Issues abertas",
+      "openAgent": "Abrir agente →"
+    },
+    "reassign": {
+      "title": "Mudar reporting line",
+      "message": "Mover {{child}} para reportar a {{parent}}?",
+      "cycleError": "Não é possível: criaria um ciclo na hierarquia."
     }
   },
   "settings": {

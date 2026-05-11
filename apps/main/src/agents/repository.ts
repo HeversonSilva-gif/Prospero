@@ -42,6 +42,7 @@ const rowToAgent = (r: Row): Agent => ({
   model: r.model,
   skills: JSON.parse(r.skills_json) as string[],
   templateId: r.template_id,
+  reportsTo: r.reports_to,
 });
 
 export type CreateAgentInput = {
@@ -64,6 +65,10 @@ export type AgentsRepository = {
   setSessionId(id: string, sessionId: string): void;
   clearSessionId(id: string): void;
   setAllowedProjects(id: string, projectIds: string[]): void;
+  setModel(id: string, model: string): void;
+  setSystemPrompt(id: string, systemPrompt: string): void;
+  setRole(id: string, roleTemplateId: string, opts?: { preserveModel?: boolean }): void;
+  setReportsTo(id: string, newParentId: string | null): void;
 };
 
 export const createAgentsRepository = (db: Database.Database): AgentsRepository => {
@@ -127,6 +132,64 @@ export const createAgentsRepository = (db: Database.Database): AgentsRepository 
         Date.now(),
         id,
       );
+    },
+    setModel(id, model) {
+      db.prepare("UPDATE agents SET model = ?, updated_at = ? WHERE id = ?").run(
+        model,
+        Date.now(),
+        id,
+      );
+    },
+    setSystemPrompt(id, systemPrompt) {
+      db.prepare("UPDATE agents SET system_prompt = ?, updated_at = ? WHERE id = ?").run(
+        systemPrompt,
+        Date.now(),
+        id,
+      );
+    },
+    setReportsTo(id, newParentId) {
+      if (newParentId === null) {
+        db.prepare("UPDATE agents SET reports_to = NULL, updated_at = ? WHERE id = ?").run(
+          Date.now(),
+          id,
+        );
+        return;
+      }
+      if (newParentId === id) throw new Error("Agent cannot report to itself (cycle)");
+      const stmt = db.prepare("SELECT reports_to FROM agents WHERE id = ?");
+      let cursor: string | null = newParentId;
+      const seen = new Set<string>();
+      while (cursor !== null) {
+        if (cursor === id) throw new Error(`reports_to would create a cycle through ${id}`);
+        if (seen.has(cursor)) break;
+        seen.add(cursor);
+        const row = stmt.get(cursor) as { reports_to: string | null } | undefined;
+        cursor = row?.reports_to ?? null;
+      }
+      db.prepare("UPDATE agents SET reports_to = ?, updated_at = ? WHERE id = ?").run(
+        newParentId,
+        Date.now(),
+        id,
+      );
+    },
+    setRole(id, roleTemplateId, opts) {
+      const role = db
+        .prepare("SELECT default_skills_json, default_model FROM role_templates WHERE id = ?")
+        .get(roleTemplateId) as { default_skills_json: string; default_model: string } | undefined;
+      if (role === undefined) throw new Error(`Role template not found: ${roleTemplateId}`);
+      const now = Date.now();
+      const txn = db.transaction(() => {
+        if (opts?.preserveModel === true) {
+          db.prepare(
+            "UPDATE agents SET template_id = ?, skills_json = ?, updated_at = ? WHERE id = ?",
+          ).run(roleTemplateId, role.default_skills_json, now, id);
+        } else {
+          db.prepare(
+            "UPDATE agents SET template_id = ?, skills_json = ?, model = ?, updated_at = ? WHERE id = ?",
+          ).run(roleTemplateId, role.default_skills_json, role.default_model, now, id);
+        }
+      });
+      txn();
     },
   };
 };

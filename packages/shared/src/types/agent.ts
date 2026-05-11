@@ -23,4 +23,12 @@ export type Agent = {
   model: string;
   skills: string[];
   templateId: string | null;
+  reportsTo: string | null;
+};
+
+export type AgentStats = {
+  turns: number;
+  tokensIn: number | null;
+  tokensOut: number | null;
+  lastActivityAt: number | null;
 };
