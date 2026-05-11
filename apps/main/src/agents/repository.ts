@@ -67,6 +67,7 @@ export type AgentsRepository = {
   setAllowedProjects(id: string, projectIds: string[]): void;
   setModel(id: string, model: string): void;
   setSystemPrompt(id: string, systemPrompt: string): void;
+  setRole(id: string, roleTemplateId: string, opts?: { preserveModel?: boolean }): void;
 };
 
 export const createAgentsRepository = (db: Database.Database): AgentsRepository => {
@@ -144,6 +145,25 @@ export const createAgentsRepository = (db: Database.Database): AgentsRepository 
         Date.now(),
         id,
       );
+    },
+    setRole(id, roleTemplateId, opts) {
+      const role = db
+        .prepare("SELECT default_skills_json, default_model FROM role_templates WHERE id = ?")
+        .get(roleTemplateId) as { default_skills_json: string; default_model: string } | undefined;
+      if (role === undefined) throw new Error(`Role template not found: ${roleTemplateId}`);
+      const now = Date.now();
+      const txn = db.transaction(() => {
+        if (opts?.preserveModel === true) {
+          db.prepare(
+            "UPDATE agents SET template_id = ?, skills_json = ?, updated_at = ? WHERE id = ?",
+          ).run(roleTemplateId, role.default_skills_json, now, id);
+        } else {
+          db.prepare(
+            "UPDATE agents SET template_id = ?, skills_json = ?, model = ?, updated_at = ? WHERE id = ?",
+          ).run(roleTemplateId, role.default_skills_json, role.default_model, now, id);
+        }
+      });
+      txn();
     },
   };
 };
