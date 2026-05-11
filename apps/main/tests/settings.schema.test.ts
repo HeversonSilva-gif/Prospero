@@ -92,7 +92,7 @@ describe("AppSettingsSchema — defaultModelForNewAgents", () => {
       workspaceCwd: null,
       defaultModelForNewAgents: "claude-sonnet-4-6; rm -rf /",
     });
-    // Invalid id → falls back to default, not the injected one
+    // Invalid id triggers whole-object parse failure → parseSettings returns full DEFAULT_SETTINGS
     expect(out.defaultModelForNewAgents).toBe(DEFAULT_CLAUDE_MODEL);
   });
 
