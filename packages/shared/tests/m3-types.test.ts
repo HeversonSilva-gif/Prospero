@@ -31,6 +31,7 @@ describe("m3 types and channels", () => {
       model: "claude-sonnet-4-6",
       skills: [],
       templateId: null,
+      reportsTo: null,
     };
     expect(a.status).toBe("idle");
   });
