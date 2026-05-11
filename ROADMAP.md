@@ -4,14 +4,14 @@
 >
 > **Spec base:** [docs/superpowers/specs/2026-05-09-dashboard-agent-design.md](docs/superpowers/specs/2026-05-09-dashboard-agent-design.md)
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
-> **Última atualização:** 2026-05-10 (M6 mergeado — `3ef6a68`; Issues + Projects CRUD shipped)
+> **Última atualização:** 2026-05-11 (M7-A PR-A in progress — model selection scaffolded on `worktree-m7a-model-selection`)
 
 ## Status atual
 
 | Métrica | Valor |
 |---|---|
 | Milestones fechados | M1, M2, M3, M4, M5, M6 (6/8 do v1 plano original) |
-| Testes | 185 passing, 37 test files, 0 lint/typecheck errors |
+| Testes | 205 passing, 38 test files, 0 lint/typecheck errors (master) · M7-A PR-A scaffolded on worktree |
 | Commits no master | ~95 |
 | LoC (apps + packages) | ~13k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · vitest |
@@ -147,13 +147,13 @@ Sequência sugerida — pode ser ajustada. **Antes de cada um, consultar Papercl
   - [ ] Em `/agents/:id` right panel: campo "Skills" mostrando `skills_json` atual + drag-drop pra adicionar/remover
   - [ ] Aplicação real: agente só pode chamar tools listadas em skills (gate hook)
   - [ ] Templates de role (`role_templates` tabela) usados como starting skills no hire_agent
-- [ ] **Seleção de modelo por agente** ⚡ urgente:
-  - [ ] Adicionar coluna `agents.model` (TEXT, default `claude-sonnet-4-6`) via migration 0003
-  - [ ] Right panel em `/agents/:id`: dropdown com presets (Opus 4.7, Sonnet 4.6, Haiku 4.5) + "custom model id"
-  - [ ] `lifecycle.ts buildClaudeArgs`: passar `--model <agent.model>` no spawn
-  - [ ] MCP tool `hire_agent`: aceitar `model` param opcional (default = company default)
-  - [ ] Settings: campo "Default model for new agents"
-  - [ ] Considerar custo: Opus pra CEO/Architect, Sonnet pra engenheiros, Haiku pra agentes simples (memory: tokens não podem inflar)
+- [ ] **Seleção de modelo por agente** ⚡ urgente — **PR-A 🟡 ready for merge** (branch `worktree-m7a-model-selection`):
+  - [x] Adicionar coluna `agents.model` (TEXT, default `claude-sonnet-4-6`) via migration 0003 + `role_templates.default_model`
+  - [ ] Right panel em `/agents/:id`: dropdown com presets (Opus 4.7, Sonnet 4.6, Haiku 4.5) + "custom model id" — **defer to PR-C**
+  - [x] `lifecycle.ts buildClaudeArgs`: passar `--model <agent.model>` no spawn
+  - [ ] MCP tool `hire_agent`: aceitar `model` param opcional explícito — **defer to PR-B** (PR-A: reads `settings.defaultModelForNewAgents` as the default)
+  - [x] Settings: campo "Default model for new agents" (dropdown presets + custom + regex injection guard)
+  - [ ] Considerar custo: Opus pra CEO/Architect, Sonnet pra engenheiros, Haiku pra agentes simples (memory: tokens não podem inflar) — aplicado nos defaults de role em PR-B
 - [ ] **Não-regressão:** segurança, tokens, suite
 
 ### 🔄 M8 — Costs UI + Token Tracking
