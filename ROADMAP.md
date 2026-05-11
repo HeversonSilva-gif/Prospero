@@ -5,7 +5,7 @@
 > **Spec base:** [docs/superpowers/specs/2026-05-09-dashboard-agent-design.md](docs/superpowers/specs/2026-05-09-dashboard-agent-design.md)
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
-> **Última atualização:** 2026-05-11 (M7-A PR-A mergeado — `0caa31b`; **M7-B PR-B mergeado — `8e8efc7`**; PR-C em curso; M7.5 + M10 adicionados após comparação com Paperclip e decisão de hybrid VPS)
+> **Última atualização:** 2026-05-11 (M7-A PR-A mergeado — `0caa31b`; M7-B PR-B mergeado — `8e8efc7`; **M7-C PR-C pronto pra merge — branch `m7-pr-c-org-chart`**; M7.5 + M10 adicionados após comparação com Paperclip e decisão de hybrid VPS)
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 
@@ -14,7 +14,7 @@
 | Métrica | Valor |
 |---|---|
 | Milestones fechados | M1, M2, M3, M4, M5, M6 (6/10 do v1 atualizado: +M7.5 +M10) |
-| Em curso | M7 (PR-A model ✅ · PR-B roles+gate ✅ · PR-C org+panel) |
+| Em curso | M7 (PR-A model ✅ · PR-B roles+gate ✅ · PR-C org+panel ✅ pre-merge) |
 | Testes | 260 passing, 46 test files, 0 lint/typecheck errors |
 | Commits no master | ~125 |
 | LoC (apps + packages) | ~13k TS/TSX |
@@ -35,7 +35,7 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 | **Issues** | ✅ Completo | MCP tools (create/update/assign/list/check_status) reais. Kanban /issues com 5 colunas + drag-drop. Modal de detail com comments + sub-tasks + tool history. Auto-allow consistente com M5. |
 | **Projects** | ✅ Completo | Rota /projects master/detail com folder picker + color picker. Auto-cria 'Default Workspace' migration do workspaceCwd legado. Allowlist per agent via chip toggle. |
 | **Agents** | 🟡 Parcial | Sidebar lista todos com status colors. Rota `/agents/:id` chat 1-1 com unified cross-thread stream. Rota lista `/agents` com galeria de templates **NÃO** implementada. Right panel (persona/skills/projetos/issues/stats) **NÃO**. |
-| **Org Chart** | ❌ Não iniciado | Coluna `agents.reports_to` existe e é setada no `hire_agent`. Rota `/org` zerada. |
+| **Org Chart** | ✅ Completo | Rota `/org` SVG handcrafted vertical tree + click drawer + drag-to-reassign + confirm modal + anti-cycle (backend + UI toast). |
 | **Skills** | ❌ Não iniciado | Tabelas `skills_catalog` + `role_templates` existem com seed. Rota `/skills` zerada. Coluna `agents.skills_json` existe mas não tem UI pra editar. |
 | **Costs** | ❌ Não iniciado | Tabela `costs_log` existe. Tracking automático de tokens ainda **NÃO** liga (claude `result.usage` não persistido). Rota `/costs` zerada. |
 | **Settings** | ✅ Completo | OAuth token (manual + auto-detect M2), language, theme. Workspace folder picker removido (link pra /projects). Defaults de mode/always_on **NÃO** UI ainda — só DB defaults. |
@@ -138,7 +138,7 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 
 Sequência sugerida — pode ser ajustada. **Antes de cada um, consultar Paperclip** (`reference_paperclip` memory) pra UX/código.
 
-### 🔄 M7 — Org Chart + Skills + Model Selection — **EM CURSO**
+### ✅ M7 — Org Chart + Skills + Model Selection — **PR-C READY, PR-A/B MERGED**
 
 **Por que junto:** ambos são views/edits sobre dados que já existem (`reports_to` e `skills_json`). Sem novos backend handlers grandes — UI-heavy.
 
@@ -147,24 +147,26 @@ Sequência sugerida — pode ser ajustada. **Antes de cada um, consultar Papercl
 - **Skills:** manter modelo tag-based (`agents.skills_json` string array). **NÃO** imitar Paperclip code-module + source sync (GitHub/NPM) — fora do nosso threat model. Hard-gate via system prompt + MCP tool whitelist.
 - **Model selection:** preset enum em `packages/shared` + escape "custom". Dropdown mostra **cost hints relativos** (Opus 5× / Sonnet 1× / Haiku 0.2× — referência simbólica). Memory `feedback_token_efficiency` exige aviso ao selecionar Opus pra subagente leve.
 
-- [ ] **Org Chart:**
-  - [ ] Rota `/org` com tree visual (D3 ou React Flow ou simples SVG)
-  - [ ] CEO no topo, sub-agentes filhos via `reports_to`
-  - [ ] Click num node abre painel com info do agente / link pra `/agents/:id`
-  - [ ] Drag pra mudar `reports_to` (com confirm modal)
+- [x] **Org Chart:** — **PR-C 🟢 pronto pra merge — branch `m7-pr-c-org-chart`** (2026-05-11)
+  - [x] Rota `/org` com tree visual (SVG handcrafted, zero deps — `layoutTree.ts` puro com 6 tests)
+  - [x] CEO no topo, sub-agentes filhos via `reports_to` (orphans viram roots)
+  - [x] Click num node abre drawer 320px com info do agente + link pra `/agents/:id`
+  - [x] Drag pra mudar `reports_to` (com confirm modal + anti-cycle backend/UI toast)
 - [x] **Skills:** — **PR-B 🟢 mergeado em `8e8efc7`** (2026-05-11)
   - [x] Rota `/skills` master-detail read-only (5 roles seedados + tools chips agrupados por skill + agentsUsing)
-  - [ ] Em `/agents/:id` right panel: campo "Skills" mostrando `skills_json` atual — **defer pra PR-C**
+  - [x] Em `/agents/:id` right panel: campo "Skills" mostrando `skills_json` atual (read-only chips com hint sobre role) — **PR-C 🟢**
   - [x] Aplicação real: agente só pode chamar tools listadas em skills — via `--allowedTools` no spawn (hard-gate)
   - [x] Templates de role seedados pelo post-migration 0004 + usados via `role_template_id` no `hire_agent`
 - [x] **Seleção de modelo por agente** ⚡ urgente — **PR-A 🟢 mergeado em `0caa31b`** (2026-05-11):
   - [x] Adicionar coluna `agents.model` (TEXT, default `claude-sonnet-4-6`) via migration 0003 + `role_templates.default_model` + index
-  - [ ] Right panel em `/agents/:id`: dropdown com presets — **defer pra PR-C** (precisa do right panel; spec atual atribui isso ao M7-C)
+  - [x] Right panel em `/agents/:id`: dropdown com presets + custom + regex guard — **PR-C 🟢**
   - [x] `lifecycle.ts buildClaudeArgs`: passar `--model <agent.model>` no spawn
-  - [ ] MCP tool `hire_agent`: aceitar `model` param opcional explícito — **defer pra PR-B** (PR-A lê `settings.defaultModelForNewAgents` como default global)
+  - [x] MCP tool `hire_agent`: aceita `role_template_id` (que carrega default_model) — **PR-B 🟢**
   - [x] Settings: campo "Default model for new agents" (dropdown presets + custom + regex injection guard, i18n en+ptBR)
-  - [ ] Considerar custo por role: aplicado nos defaults de role em PR-B (Opus pra CEO, Sonnet engineers, Haiku simples)
-- [ ] **Não-regressão:** segurança, tokens, suite
+  - [x] Considerar custo por role: aplicado nos defaults de role em PR-B (Opus pra CEO, Sonnet engineers, Haiku simples)
+- [x] **Right panel `/agents/:id`** — **PR-C 🟢** 3 tabs (Config/Issues/Stats): role-change modal com preserveModel checkbox, model dropdown preset+custom, skills read-only, persona textarea (debounced 500ms), agent-centric AllowlistEditor, lista de issues assignee, stats (turns + lastActivity; tokens placeholder até M8).
+- [x] **IPC handlers de mutação** — **PR-C 🟢** `agents:set-model` / `:set-role` / `:set-system-prompt` / `:set-reports-to` / `:stats` com `restartIfRunning` (kill+clearSession+broadcast) pras mutações que afetam spawn args.
+- [x] **Não-regressão:** 276 tests passing (vs 260 baseline), 0 lint/typecheck errors, build limpo.
 
 ---
 
