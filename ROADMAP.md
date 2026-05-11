@@ -14,7 +14,7 @@
 
 | Métrica | Valor |
 |---|---|
-| Milestones fechados | M1, M2, M3, M4, M5, M6, **M7** (7/13 do v1: +M7.5 +M7.6 +M7.7 +M8.5 +M10) |
+| Milestones fechados | M1, M2, M3, M4, M5, M6, **M7** (7/14 do v1: M1–M10 + M7.5 + M7.6 + M7.7 + M8.5) |
 | Em curso | — (próximo: **M7.7 Activity foundation** seguido de M7.5/M7.6) |
 | Testes | 276 passing, 0 lint/typecheck errors |
 | Commits no master | ~140 |

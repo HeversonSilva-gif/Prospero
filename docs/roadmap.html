@@ -1,0 +1,2545 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DashboardAgent · Roadmap</title>
+    <style>
+      /* ─────────────────────────────────────────────────────────
+     Engineering devlog · monospace editorial · tangerina elétrica
+     Single file. Sem CDN. System fonts. Offline-first.
+     ───────────────────────────────────────────────────────── */
+
+      :root[data-theme="dark"] {
+        --bg: #0c0c0a;
+        --bg-elev: #141411;
+        --bg-card: #16161270;
+        --ink: #efebe0;
+        --ink-2: #b5b0a0;
+        --ink-3: #6b6760;
+        --rule: #26251f;
+        --rule-2: #1a1a16;
+        --accent: #ff6e47;
+        --accent-dim: #ff6e4720;
+        --done: #82c485;
+        --progress: #ff6e47;
+        --planned: #b5b0a0;
+        --v2: #54514a;
+        --grid-dot: #1f1e18;
+        --shadow: 0 1px 0 0 #00000080;
+      }
+      :root[data-theme="light"] {
+        --bg: #f2efe5;
+        --bg-elev: #fbf8ee;
+        --bg-card: #fffcf270;
+        --ink: #0e0e0c;
+        --ink-2: #4a4a42;
+        --ink-3: #8b8678;
+        --rule: #d7d2be;
+        --rule-2: #e8e3d1;
+        --accent: #e83e1a;
+        --accent-dim: #e83e1a18;
+        --done: #2f6b3a;
+        --progress: #e83e1a;
+        --planned: #5c5c54;
+        --v2: #a89d7e;
+        --grid-dot: #dbd5be;
+        --shadow: 0 1px 0 0 #0000000f;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        font-size: 15px;
+        scroll-behavior: smooth;
+      }
+      body {
+        background-color: var(--bg);
+        color: var(--ink);
+        font-family:
+          ui-monospace, "JetBrains Mono", "Cascadia Code", "Fira Code", "SFMono-Regular", Menlo,
+          Consolas, "Liberation Mono", monospace;
+        font-feature-settings: "ss01", "cv02", "cv05", "cv09", "calt";
+        line-height: 1.5;
+        min-height: 100vh;
+        background-image: radial-gradient(circle at 1px 1px, var(--grid-dot) 1px, transparent 0);
+        background-size: 32px 32px;
+        transition:
+          background-color 240ms ease,
+          color 240ms ease;
+      }
+
+      /* selection */
+      ::selection {
+        background: var(--accent);
+        color: var(--bg);
+      }
+
+      /* scrollbar */
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--rule);
+        border-radius: 0;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--ink-3);
+      }
+
+      /* ─── layout shell ─── */
+      main {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 56px 48px 96px;
+        position: relative;
+      }
+      @media (max-width: 880px) {
+        main {
+          padding: 32px 20px 64px;
+        }
+      }
+
+      /* ─── header ─── */
+      header.masthead {
+        border-top: 1px solid var(--ink);
+        border-bottom: 1px solid var(--ink);
+        padding: 28px 0 22px;
+        margin-bottom: 64px;
+        position: relative;
+      }
+      .masthead .meta-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 24px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--ink-3);
+        margin-bottom: 20px;
+      }
+      .masthead .meta-row .left {
+        display: flex;
+        gap: 18px;
+      }
+      .masthead .meta-row .left span {
+        white-space: nowrap;
+      }
+      .masthead h1 {
+        font-size: clamp(40px, 7vw, 80px);
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        line-height: 0.92;
+        margin-bottom: 18px;
+      }
+      .masthead h1 .slash {
+        color: var(--accent);
+        font-weight: 400;
+        padding: 0 0.1em;
+      }
+      .masthead .subtitle {
+        font-size: 14px;
+        color: var(--ink-2);
+        max-width: 720px;
+        line-height: 1.65;
+        margin-bottom: 12px;
+      }
+      .masthead .subtitle code {
+        background: var(--accent-dim);
+        color: var(--accent);
+        padding: 1px 6px;
+        border-radius: 0;
+        font-size: 12px;
+      }
+      .theme-toggle {
+        position: absolute;
+        top: -1px;
+        right: 0;
+        background: var(--bg);
+        border: 1px solid var(--ink);
+        border-top: none;
+        padding: 8px 14px;
+        font-family: inherit;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--ink);
+        cursor: pointer;
+        transition:
+          background 160ms ease,
+          color 160ms ease;
+      }
+      .theme-toggle:hover {
+        background: var(--ink);
+        color: var(--bg);
+      }
+      .theme-toggle::before {
+        content: "◐";
+        margin-right: 8px;
+        color: var(--accent);
+      }
+
+      /* ─── stats strip ─── */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0;
+        margin-top: 24px;
+        border: 1px solid var(--rule);
+        border-right: none;
+        border-bottom: none;
+      }
+      .stat {
+        border-right: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        padding: 18px 20px;
+        background: var(--bg-elev);
+      }
+      .stat .label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--ink-3);
+        margin-bottom: 8px;
+      }
+      .stat .value {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      .stat .value .unit {
+        font-size: 13px;
+        color: var(--ink-3);
+        font-weight: 400;
+        margin-left: 4px;
+      }
+      .stat:hover .value {
+        color: var(--accent);
+        transition: color 200ms ease;
+      }
+
+      /* ─── section heading ─── */
+      .section {
+        margin-top: 88px;
+        animation: fadeUp 600ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      }
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        gap: 24px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--ink);
+        margin-bottom: 32px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--ink-3);
+      }
+      .section-head .index {
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .section-head h2 {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+        text-transform: none;
+      }
+      .section-head .note {
+        margin-left: auto;
+        color: var(--ink-3);
+        text-transform: none;
+        font-size: 12px;
+        letter-spacing: 0;
+      }
+
+      /* ─── progress overview ─── */
+      .progress-track {
+        background: var(--bg-elev);
+        border: 1px solid var(--rule);
+        padding: 28px 32px;
+        position: relative;
+        overflow: hidden;
+      }
+      .progress-track::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          transparent 40%,
+          var(--accent-dim) 70%,
+          transparent 100%
+        );
+        pointer-events: none;
+      }
+      .progress-row {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        position: relative;
+        margin-top: 8px;
+      }
+      .progress-step {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        position: relative;
+        cursor: pointer;
+      }
+      .progress-step .dot {
+        width: 14px;
+        height: 14px;
+        background: var(--planned);
+        border: 1px solid var(--planned);
+        position: relative;
+        z-index: 2;
+        transition: transform 200ms ease;
+      }
+      .progress-step:hover .dot {
+        transform: scale(1.4);
+      }
+      .progress-step[data-status="done"] .dot {
+        background: var(--done);
+        border-color: var(--done);
+      }
+      .progress-step[data-status="progress"] .dot {
+        background: var(--accent);
+        border-color: var(--accent);
+        animation: pulse 1.8s ease-in-out infinite;
+      }
+      .progress-step[data-status="planned"] .dot {
+        background: transparent;
+      }
+      .progress-step .label {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        color: var(--ink-2);
+        white-space: nowrap;
+      }
+      .progress-step[data-status="progress"] .label {
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .progress-row::before {
+        content: "";
+        position: absolute;
+        top: 6px;
+        left: 4%;
+        right: 4%;
+        height: 1px;
+        background: var(--rule);
+        z-index: 1;
+      }
+      .progress-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        margin-top: 28px;
+        padding-top: 20px;
+        border-top: 1px dashed var(--rule);
+        font-size: 12px;
+        color: var(--ink-2);
+      }
+      .progress-meta strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .progress-meta .badge {
+        background: var(--accent);
+        color: var(--bg);
+        padding: 3px 10px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+
+      /* ─── scope modules grid ─── */
+      .modules {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 0;
+        border-top: 1px solid var(--rule);
+        border-left: 1px solid var(--rule);
+      }
+      .module {
+        border-right: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        padding: 20px 22px;
+        background: var(--bg-elev);
+        position: relative;
+        transition: background 180ms ease;
+      }
+      .module:hover {
+        background: var(--bg-card);
+      }
+      .module .name {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 4px;
+      }
+      .module .status-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+      .module .status-line .sq {
+        width: 8px;
+        height: 8px;
+        display: inline-block;
+      }
+      .module[data-status="complete"] .status-line .sq {
+        background: var(--done);
+      }
+      .module[data-status="complete"] .status-line {
+        color: var(--done);
+      }
+      .module[data-status="partial"] .status-line .sq {
+        background: var(--accent);
+      }
+      .module[data-status="partial"] .status-line {
+        color: var(--accent);
+      }
+      .module[data-status="stub"] .status-line .sq {
+        background: var(--ink-3);
+      }
+      .module[data-status="stub"] .status-line {
+        color: var(--ink-3);
+      }
+      .module[data-status="none"] .status-line .sq {
+        background: transparent;
+        border: 1px dashed var(--ink-3);
+      }
+      .module[data-status="none"] .status-line {
+        color: var(--ink-3);
+      }
+      .module .note {
+        font-size: 12px;
+        color: var(--ink-2);
+        line-height: 1.55;
+      }
+
+      /* ─── filter bar ─── */
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 32px;
+        padding-bottom: 24px;
+        border-bottom: 1px dashed var(--rule);
+      }
+      .filter-chip {
+        background: transparent;
+        border: 1px solid var(--rule);
+        color: var(--ink-2);
+        font-family: inherit;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        padding: 8px 14px;
+        cursor: pointer;
+        transition: all 160ms ease;
+      }
+      .filter-chip:hover {
+        border-color: var(--ink);
+        color: var(--ink);
+      }
+      .filter-chip.active {
+        background: var(--ink);
+        color: var(--bg);
+        border-color: var(--ink);
+      }
+      .filter-chip .count {
+        display: inline-block;
+        margin-left: 8px;
+        font-size: 9px;
+        opacity: 0.6;
+      }
+
+      /* ─── milestone card ─── */
+      .milestone {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 32px;
+        border-top: 1px solid var(--rule);
+        padding: 40px 0;
+        position: relative;
+        animation: fadeUp 600ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+        transition: opacity 240ms ease;
+      }
+      .milestone.hidden {
+        display: none;
+      }
+      .milestone:last-child {
+        border-bottom: 1px solid var(--rule);
+      }
+      .milestone:hover {
+        background: var(--bg-card);
+      }
+      .milestone:hover .ms-rail .num {
+        color: var(--accent);
+      }
+
+      .ms-rail {
+        position: relative;
+        text-align: right;
+      }
+      .ms-rail .num {
+        font-size: clamp(40px, 5vw, 60px);
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        line-height: 0.9;
+        color: var(--ink-3);
+        transition: color 200ms ease;
+      }
+      .ms-rail .status-row {
+        margin-top: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: flex-end;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+      }
+      .ms-rail .status-dot {
+        width: 9px;
+        height: 9px;
+      }
+      .milestone[data-status="done"] .ms-rail .status-dot {
+        background: var(--done);
+      }
+      .milestone[data-status="done"] .ms-rail .status-row {
+        color: var(--done);
+      }
+      .milestone[data-status="done"] .ms-rail .num {
+        color: var(--ink);
+      }
+      .milestone[data-status="progress"] .ms-rail .status-dot {
+        background: var(--accent);
+        animation: pulse 1.8s ease-in-out infinite;
+      }
+      .milestone[data-status="progress"] .ms-rail .status-row {
+        color: var(--accent);
+      }
+      .milestone[data-status="progress"] .ms-rail .num {
+        color: var(--accent);
+      }
+      .milestone[data-status="planned"] .ms-rail .status-dot {
+        background: transparent;
+        border: 1px solid var(--ink-3);
+      }
+      .milestone[data-status="planned"] .ms-rail .status-row {
+        color: var(--ink-3);
+      }
+      .ms-rail .meta {
+        font-size: 10px;
+        color: var(--ink-3);
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        margin-top: 6px;
+      }
+
+      .ms-body h3 {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        color: var(--ink);
+        margin-bottom: 6px;
+      }
+      .ms-body .tagline {
+        font-size: 14px;
+        color: var(--ink-2);
+        margin-bottom: 18px;
+        line-height: 1.5;
+      }
+      .ms-body .tagline strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .ms-body .tagline em {
+        font-style: normal;
+        background: var(--accent-dim);
+        color: var(--accent);
+        padding: 1px 6px;
+      }
+      .ms-body .design-note {
+        border-left: 2px solid var(--accent);
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        background: var(--bg-elev);
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: var(--ink-2);
+      }
+      .ms-body .design-note .label {
+        color: var(--accent);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 10px;
+        margin-bottom: 4px;
+        display: block;
+      }
+
+      .feature-group {
+        margin-bottom: 16px;
+      }
+      .feature-group .group-name {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--ink-3);
+        margin-bottom: 6px;
+        padding-bottom: 4px;
+        border-bottom: 1px dashed var(--rule);
+      }
+      .feature-list {
+        list-style: none;
+      }
+      .feature-list li {
+        padding: 4px 0 4px 24px;
+        position: relative;
+        font-size: 13px;
+        color: var(--ink-2);
+        line-height: 1.55;
+      }
+      .feature-list li::before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: var(--ink-3);
+      }
+      .milestone[data-status="done"] .feature-list li::before {
+        content: "✓";
+        color: var(--done);
+      }
+      .feature-list li code {
+        font-size: 11.5px;
+        background: var(--bg-elev);
+        padding: 1px 5px;
+        color: var(--ink);
+        border: 1px solid var(--rule);
+      }
+
+      /* ─── wishlist ─── */
+      .wishlist {
+        border-top: 1px solid var(--rule);
+        border-left: 1px solid var(--rule);
+      }
+      .wish-row {
+        display: grid;
+        grid-template-columns: 1.4fr 0.6fr 1.4fr;
+        border-right: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+      }
+      .wish-row.head {
+        background: var(--ink);
+        color: var(--bg);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+      }
+      .wish-row.head > div {
+        padding: 12px 16px;
+      }
+      .wish-row.head > div + div {
+        border-left: 1px solid var(--bg);
+      }
+      .wish-row:not(.head) > div {
+        padding: 12px 16px;
+        border-left: 1px solid var(--rule);
+      }
+      .wish-row:not(.head) > div:first-child {
+        border-left: none;
+      }
+      .wish-row:not(.head):hover {
+        background: var(--bg-card);
+      }
+      .wish-row .item-name {
+        color: var(--ink);
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .wish-row .where {
+        color: var(--ink-2);
+        font-size: 12.5px;
+      }
+      .wish-row .where code {
+        background: var(--bg-elev);
+        color: var(--ink);
+        padding: 1px 5px;
+        font-size: 11.5px;
+        border: 1px solid var(--rule);
+      }
+      .wish-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+      }
+      .wish-status .sq {
+        width: 8px;
+        height: 8px;
+        display: inline-block;
+        flex-shrink: 0;
+      }
+      [data-wish="done"] .wish-status {
+        color: var(--done);
+      }
+      [data-wish="done"] .wish-status .sq {
+        background: var(--done);
+      }
+      [data-wish="progress"] .wish-status {
+        color: var(--accent);
+      }
+      [data-wish="progress"] .wish-status .sq {
+        background: var(--accent);
+      }
+      [data-wish="planned"] .wish-status {
+        color: var(--ink);
+      }
+      [data-wish="planned"] .wish-status .sq {
+        background: var(--planned);
+      }
+      [data-wish="v2"] .wish-status {
+        color: var(--v2);
+      }
+      [data-wish="v2"] .wish-status .sq {
+        background: transparent;
+        border: 1px dashed var(--v2);
+      }
+      [data-wish="oos"] .wish-status {
+        color: var(--ink-3);
+        text-decoration: line-through;
+        text-decoration-color: var(--ink-3);
+      }
+      [data-wish="oos"] .wish-status .sq {
+        background: transparent;
+        border: 1px solid var(--ink-3);
+      }
+
+      /* ─── v2 backlog ─── */
+      .v2-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1px;
+        background: var(--rule);
+        border: 1px solid var(--rule);
+      }
+      .v2-group {
+        background: var(--bg-elev);
+        padding: 20px 22px;
+      }
+      .v2-group h4 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--accent);
+        margin-bottom: 12px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .v2-group ul {
+        list-style: none;
+      }
+      .v2-group li {
+        font-size: 12.5px;
+        color: var(--ink-2);
+        padding: 4px 0;
+        line-height: 1.5;
+      }
+      .v2-group li .tag {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--ink-3);
+        margin-right: 6px;
+      }
+
+      /* ─── footer ─── */
+      footer {
+        margin-top: 96px;
+        padding-top: 24px;
+        border-top: 1px solid var(--ink);
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--ink-3);
+      }
+      footer a {
+        color: var(--accent);
+        text-decoration: none;
+        border-bottom: 1px dotted var(--accent);
+      }
+      footer .ascii {
+        font-size: 9px;
+        color: var(--rule);
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      /* ─── animations ─── */
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          box-shadow: 0 0 0 0 var(--accent);
+        }
+        50% {
+          opacity: 0.85;
+          box-shadow: 0 0 0 4px var(--accent-dim);
+        }
+      }
+
+      /* ─── responsive ─── */
+      @media (max-width: 880px) {
+        .milestone {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+        .ms-rail {
+          text-align: left;
+        }
+        .ms-rail .status-row {
+          justify-content: flex-start;
+        }
+        .ms-rail .num {
+          font-size: 44px;
+        }
+        .wish-row {
+          grid-template-columns: 1fr;
+        }
+        .wish-row > div {
+          border-left: none !important;
+        }
+        .progress-step .label {
+          font-size: 9px;
+        }
+        .masthead h1 {
+          font-size: 40px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <!-- ═══════════ HEADER ═══════════ -->
+      <header class="masthead">
+        <button class="theme-toggle" onclick="toggleTheme()">theme</button>
+        <div class="meta-row">
+          <div class="left">
+            <span>v1 · m7 / 14</span>
+            <span>last-update 2026-05-11</span>
+            <span>branch · master</span>
+          </div>
+          <div>roadmap.html</div>
+        </div>
+        <h1>Dashboard<span class="slash">/</span>Agent</h1>
+        <p class="subtitle">
+          Orquestrador local de agentes Claude via OAuth Max. Living doc. Distribuição
+          <code>hybrid</code> — Electron desktop como UI default, adapter pattern (M7.5) permite VPS
+          Docker remoto (M10). Referência ativa: <code>paperclipai/paperclip</code>. Gaps
+          UX/governance:
+          <code>docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md</code>.
+        </p>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Milestones</div>
+            <div class="value">7 <span class="unit">/ 14 fechados</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Testes</div>
+            <div class="value">276 <span class="unit">passing</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Commits</div>
+            <div class="value">~140 <span class="unit">no master</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">LoC apps + packages</div>
+            <div class="value">~13k <span class="unit">TS/TSX</span></div>
+          </div>
+        </div>
+      </header>
+
+      <!-- ═══════════ PROGRESS OVERVIEW ═══════════ -->
+      <section class="section" style="margin-top: 32px; animation-delay: 60ms">
+        <div class="section-head">
+          <span class="index">/01</span>
+          <h2>v1 progress</h2>
+          <span class="note">M1—M10 · M7 fechado · próximo M7.7 Activity foundation</span>
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-row">
+            <div class="progress-step" data-status="done">
+              <div class="dot"></div>
+              <div class="label">M1</div>
+            </div>
+            <div class="progress-step" data-status="done">
+              <div class="dot"></div>
+              <div class="label">M2</div>
+            </div>
+            <div class="progress-step" data-status="done">
+              <div class="dot"></div>
+              <div class="label">M3</div>
+            </div>
+            <div class="progress-step" data-status="done">
+              <div class="dot"></div>
+              <div class="label">M4</div>
+            </div>
+            <div class="progress-step" data-status="done">
+              <div class="dot"></div>
+              <div class="label">M5</div>
+            </div>
+            <div class="progress-step" data-status="done">
+              <div class="dot"></div>
+              <div class="label">M6</div>
+            </div>
+            <div class="progress-step" data-status="done">
+              <div class="dot"></div>
+              <div class="label">M7</div>
+            </div>
+            <div class="progress-step" data-status="planned">
+              <div class="dot"></div>
+              <div class="label">M7.5</div>
+            </div>
+            <div class="progress-step" data-status="planned">
+              <div class="dot"></div>
+              <div class="label">M7.7</div>
+            </div>
+            <div class="progress-step" data-status="planned">
+              <div class="dot"></div>
+              <div class="label">M7.6</div>
+            </div>
+            <div class="progress-step" data-status="planned">
+              <div class="dot"></div>
+              <div class="label">M8</div>
+            </div>
+            <div class="progress-step" data-status="planned">
+              <div class="dot"></div>
+              <div class="label">M8.5</div>
+            </div>
+            <div class="progress-step" data-status="planned">
+              <div class="dot"></div>
+              <div class="label">M9</div>
+            </div>
+            <div class="progress-step" data-status="planned">
+              <div class="dot"></div>
+              <div class="label">M10</div>
+            </div>
+          </div>
+          <div class="progress-meta">
+            <div>
+              <strong>Estágio:</strong> M7 fechado (PR-A model + PR-B skills + PR-C org chart/right
+              panel) — próximo M7.5 → M7.7 → M7.6
+            </div>
+            <div>
+              <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
+              Docker opcional
+            </div>
+            <div>
+              <strong>Stack:</strong> Electron 33 · React 18 · Vite · zustand · better-sqlite3 · MCP
+              SDK
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ SCOPE TRACKER ═══════════ -->
+      <section class="section" style="animation-delay: 120ms">
+        <div class="section-head">
+          <span class="index">/02</span>
+          <h2>v1 scope · módulos</h2>
+          <span class="note">spec §4 · status por módulo funcional</span>
+        </div>
+
+        <div class="modules">
+          <div class="module" data-status="partial">
+            <div class="name">Multi-empresa</div>
+            <div class="status-line"><span class="sq"></span>parcial</div>
+            <div class="note">
+              Backend pronto (companies + IPC). UI dropdown pra trocar entre empresas ainda não —
+              sidebar mostra a primeira por default (M9).
+            </div>
+          </div>
+          <div class="module" data-status="stub">
+            <div class="name">Dashboard</div>
+            <div class="status-line"><span class="sq"></span>stub</div>
+            <div class="note">
+              Rota <code>/dashboard</code> stub. Widgets §6.4 + Recent Activity + Active Agents pra
+              M9 (consome M7.7).
+            </div>
+          </div>
+          <div class="module" data-status="none">
+            <div class="name">Activity stream</div>
+            <div class="status-line"><span class="sq"></span>não iniciado</div>
+            <div class="note">
+              Sem tabela unificada. <code>issue_events</code> só cobre issues. Página
+              <code>/activity</code> cross-cutting pra M7.7 (foundation).
+            </div>
+          </div>
+          <div class="module" data-status="complete">
+            <div class="name">Inbox</div>
+            <div class="status-line"><span class="sq"></span>completo</div>
+            <div class="note">
+              Rota <code>/inbox</code> com filter pills, approve/reject inline, auto-mark-read,
+              badge unread.
+            </div>
+          </div>
+          <div class="module" data-status="complete">
+            <div class="name">Issues</div>
+            <div class="status-line"><span class="sq"></span>completo</div>
+            <div class="note">
+              MCP tools reais. Kanban <code>/issues</code> com 5 colunas + drag-drop. Modal detail
+              com comments + sub-tasks.
+            </div>
+          </div>
+          <div class="module" data-status="complete">
+            <div class="name">Projects</div>
+            <div class="status-line"><span class="sq"></span>completo</div>
+            <div class="note">
+              Rota <code>/projects</code> master/detail com folder picker + color picker. Allowlist
+              per agent.
+            </div>
+          </div>
+          <div class="module" data-status="partial">
+            <div class="name">Agents</div>
+            <div class="status-line"><span class="sq"></span>parcial</div>
+            <div class="note">
+              Sidebar + chat + <strong>right panel M7-C</strong> (Config/Issues/Stats) com edit
+              inline de role/model/persona/projects. Faltam header de ações (Pause/Fire/Assign
+              Task), Runs timeline, mode/always_on/skills toggles, form
+              <code>/agents/new</code> (M7.6).
+            </div>
+          </div>
+          <div class="module" data-status="complete">
+            <div class="name">Org Chart</div>
+            <div class="status-line"><span class="sq"></span>completo</div>
+            <div class="note">
+              Rota <code>/org</code> SVG handcrafted vertical tree + click drawer + drag-to-reassign
+              + confirm modal + anti-cycle (backend + UI toast).
+            </div>
+          </div>
+          <div class="module" data-status="complete">
+            <div class="name">Skills</div>
+            <div class="status-line"><span class="sq"></span>completo (read-only)</div>
+            <div class="note">
+              Rota <code>/skills</code> master-detail (5 roles seedados, tools chips por skill,
+              agentsUsing). Hard-gate via <code>--allowedTools</code>. Edit per-agent: M7.6.
+            </div>
+          </div>
+          <div class="module" data-status="none">
+            <div class="name">Costs</div>
+            <div class="status-line"><span class="sq"></span>não iniciado</div>
+            <div class="note">
+              Tabela <code>costs_log</code> existe. Tracking de tokens não liga ainda. Rota
+              <code>/costs</code> zerada. M8.
+            </div>
+          </div>
+          <div class="module" data-status="none">
+            <div class="name">Goals + CEO Planning</div>
+            <div class="status-line"><span class="sq"></span>não iniciado</div>
+            <div class="note">
+              Sem tabela <code>goals</code>/<code>goal_plans</code>. Feature
+              <strong>além do Paperclip</strong> (CEO-planner automático). M8.5.
+            </div>
+          </div>
+          <div class="module" data-status="complete">
+            <div class="name">Settings</div>
+            <div class="status-line"><span class="sq"></span>completo</div>
+            <div class="note">
+              OAuth + language + theme + default model. Defaults de mode/always_on ainda só DB — UI
+              pra M9.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ MILESTONES TIMELINE ═══════════ -->
+      <section class="section" style="animation-delay: 180ms">
+        <div class="section-head">
+          <span class="index">/03</span>
+          <h2>milestones</h2>
+          <span class="note">timeline · M1 → M10 + V2</span>
+        </div>
+
+        <div class="filters" id="filters">
+          <button class="filter-chip active" data-filter="all">
+            all <span class="count">14</span>
+          </button>
+          <button class="filter-chip" data-filter="done">done <span class="count">7</span></button>
+          <button class="filter-chip" data-filter="progress">
+            in progress <span class="count">0</span>
+          </button>
+          <button class="filter-chip" data-filter="planned">
+            planned <span class="count">7</span>
+          </button>
+        </div>
+
+        <div id="milestones">
+          <!-- ──── M1 ──── -->
+          <article class="milestone" data-status="done">
+            <div class="ms-rail">
+              <div class="num">M01</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">Q1 2026</div>
+            </div>
+            <div class="ms-body">
+              <h3>Foundation</h3>
+              <p class="tagline">Electron + React + SQLite + IPC. Base estrutural do projeto.</p>
+              <div class="feature-group">
+                <div class="group-name">Core</div>
+                <ul class="feature-list">
+                  <li>Electron main + renderer com <code>contextIsolation: true</code></li>
+                  <li>better-sqlite3 com migrations sequenciais</li>
+                  <li>IPC channels constant em <code>packages/shared/src/ipc-channels.ts</code></li>
+                  <li>Schema completo do v1 (companies, projects, agents, issues, threads, …)</li>
+                  <li>Tray icon (sobrevive janela fechada parcialmente — débito)</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M2 ──── -->
+          <article class="milestone" data-status="done">
+            <div class="ms-rail">
+              <div class="num">M02</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">2026-04-30</div>
+            </div>
+            <div class="ms-body">
+              <h3>Auth &amp; Settings</h3>
+              <p class="tagline">
+                OAuth via safeStorage, setup wizard, i18n com regra dura, tema light/dark.
+              </p>
+              <div class="feature-group">
+                <div class="group-name">Features</div>
+                <ul class="feature-list">
+                  <li>OAuth token storage com <code>safeStorage</code> (DPAPI no Windows)</li>
+                  <li>
+                    Setup wizard: paste manual OU auto-detect de
+                    <code>~/.claude/.credentials.json</code>
+                  </li>
+                  <li>Settings UI: language (pt-BR/en-US), theme (light/dark)</li>
+                  <li>i18n via react-i18next com regra dura (sem mistura)</li>
+                  <li>Tema com paleta Subido PRO + Poppins (offline-first via @fontsource)</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M3 ──── -->
+          <article class="milestone" data-status="done">
+            <div class="ms-rail">
+              <div class="num">M03</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">2026-05-09</div>
+            </div>
+            <div class="ms-body">
+              <h3>Orchestrator + MCP Core</h3>
+              <p class="tagline">
+                Claude CLI persistente via <strong>stream-json</strong>, MCP interno, sandbox
+                lockdown.
+              </p>
+              <div class="feature-group">
+                <div class="group-name">Orchestrator</div>
+                <ul class="feature-list">
+                  <li>
+                    AgentRunner com <code>--input-format stream-json</code> persistente (não
+                    <code>-p</code>)
+                  </li>
+                  <li>
+                    Stream parser (session-init, assistant-message, tool-result, turn-complete,
+                    api-retry)
+                  </li>
+                  <li>MCP server interno (stdio child, <code>@modelcontextprotocol/sdk</code>)</li>
+                  <li>CEO seed automático ao criar empresa demo</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Sandbox</div>
+                <ul class="feature-list">
+                  <li>
+                    <code>CLAUDE_CONFIG_DIR</code> isolado per-spawn +
+                    <code>--strict-mcp-config</code>
+                  </li>
+                  <li>Max 4 agentes concorrentes (ToS Anthropic)</li>
+                  <li>
+                    Persistent per-agent config pra <code>--resume</code> funcionar across spawns
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M4 ──── -->
+          <article class="milestone" data-status="done">
+            <div class="ms-rail">
+              <div class="num">M04</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">2026-05-10</div>
+            </div>
+            <div class="ms-body">
+              <h3>Security Hardening</h3>
+              <p class="tagline">
+                SEC-01 a SEC-05 fechados. Token nunca cruza pra renderer. Email pessoal removido do
+                histórico.
+              </p>
+              <div class="feature-group">
+                <div class="group-name">Audit fixes</div>
+                <ul class="feature-list">
+                  <li>
+                    <strong>SEC-01</strong>: OAuth token nunca cruza pra renderer (IPC split
+                    detect/action)
+                  </li>
+                  <li>
+                    <strong>SEC-02</strong>: <code>verifyMcpToken</code> no-op deletado (stdio é
+                    pipe privado)
+                  </li>
+                  <li>
+                    <strong>SEC-03/04</strong>: <code>git filter-repo</code> aplicado — email
+                    pessoal removido
+                  </li>
+                  <li>
+                    <strong>SEC-05</strong>: Fonts offline-first via
+                    <code>@fontsource/poppins</code>
+                  </li>
+                  <li>Regression-guard tests (token leak, sandbox escape, fence file)</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M5 ──── -->
+          <article class="milestone" data-status="done">
+            <div class="ms-rail">
+              <div class="num">M05</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">2026-05-10</div>
+            </div>
+            <div class="ms-body">
+              <h3>Multi-Agent Orchestration</h3>
+              <p class="tagline">
+                7 MCP tools reais. Router FIFO per-agent. Permission gating via fence files.
+                <strong>31 commits</strong>.
+              </p>
+              <div class="feature-group">
+                <div class="group-name">MCP tools</div>
+                <ul class="feature-list">
+                  <li>
+                    <code>list_agents</code>, <code>hire_agent</code>, <code>fire_agent</code>,
+                    <code>message_agent</code>
+                  </li>
+                  <li>
+                    <code>read_thread</code>, <code>notify_user</code>,
+                    <code>request_permission</code>
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Router &amp; Sandbox</div>
+                <ul class="feature-list">
+                  <li>
+                    Per-agent FIFO queue, <code>currentTurnThreadId</code>, sender prefix
+                    <code>[from: name]</code>
+                  </li>
+                  <li>
+                    Bash/Edit/Write gating via <code>--permission-prompt-tool</code> + per-spawn
+                    settings.json
+                  </li>
+                  <li>
+                    Workspace filesystem sandbox (auto-deny path fora de <code>workspaceCwd</code>)
+                  </li>
+                  <li>Lista versionada §8.3 always-blocked patterns</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">UI</div>
+                <ul class="feature-list">
+                  <li>Sidebar: lista agents + 5 status colors + Inbox link com unread badge</li>
+                  <li><code>/inbox</code> route com filter pills + approve/reject inline</li>
+                  <li>Agent route com unified cross-thread stream</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M6 ──── -->
+          <article class="milestone" data-status="done">
+            <div class="ms-rail">
+              <div class="num">M06</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">2026-05-10</div>
+            </div>
+            <div class="ms-body">
+              <h3>Issues + Projects CRUD</h3>
+              <p class="tagline">
+                Kanban com drag-drop, IssueDetailModal completo, allowlist per agent, real-time
+                broadcast.
+              </p>
+              <div class="feature-group">
+                <div class="group-name">Backend</div>
+                <ul class="feature-list">
+                  <li>
+                    Migration 0002 — <code>issue_comments</code> + <code>issue_events</code> tables
+                  </li>
+                  <li>
+                    Post-migration: auto-cria "Default Workspace" project a partir do
+                    <code>workspaceCwd</code> legado
+                  </li>
+                  <li>Projects: repository + 6 IPC channels</li>
+                  <li>
+                    Issues: repository com event writer + tool history derivation + 7 IPC channels
+                  </li>
+                  <li>
+                    5 MCP tools reais: <code>create_issue</code>, <code>update_issue</code>,
+                    <code>assign_issue</code>, <code>list_issues</code>, <code>check_status</code>
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">UI</div>
+                <ul class="feature-list">
+                  <li>
+                    <code>/projects</code> route master/detail com ProjectFormModal +
+                    AllowlistEditor (chip toggle por agente)
+                  </li>
+                  <li>
+                    <code>/issues</code> kanban (5 colunas) com <code>@dnd-kit</code> drag-drop +
+                    filtros
+                  </li>
+                  <li>
+                    IssueDetailModal: comments timeline + sub-tasks + tool call history accordion +
+                    reassign
+                  </li>
+                  <li>
+                    Real-time: orchestrator emite issue.created/updated → broadcastIssueChanged →
+                    renderer
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M7 ──── -->
+          <article class="milestone" data-status="done">
+            <div class="ms-rail">
+              <div class="num">M07</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">mergeado 2026-05-11 · <code>8b03792</code></div>
+            </div>
+            <div class="ms-body">
+              <h3>Org Chart + Skills + Model Selection</h3>
+              <p class="tagline">
+                UI-heavy. 3 PRs mergeados: <strong>PR-A model</strong> (<code>0caa31b</code>) ·
+                <strong>PR-B roles/skills hard-gate</strong> (<code>8e8efc7</code>) ·
+                <strong>PR-C org chart + right panel</strong> (<code>8b03792</code>). 276 tests
+                passing.
+              </p>
+              <div class="design-note">
+                <span class="label">Decisão arquitetural após Paperclip comparison</span>
+                <strong>Org Chart:</strong> SVG handcrafted client-side (~300 LoC), zero deps. Não
+                React Flow, não D3.<br />
+                <strong>Skills:</strong> manter tag-based. <strong>Não imitar</strong> Paperclip
+                code-module + source sync (fora do threat model).<br />
+                <strong>Model:</strong> preset enum + cost hints relativos no dropdown (Opus 5× /
+                Sonnet 1× / Haiku 0.2×).
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Org Chart (PR-C)</div>
+                <ul class="feature-list">
+                  <li>
+                    Rota <code>/org</code> com SVG handcrafted vertical tree + layoutTree.ts pure (6
+                    tests)
+                  </li>
+                  <li>
+                    CEO no topo, sub-agentes filhos via <code>reports_to</code> (orphans viram
+                    roots)
+                  </li>
+                  <li>
+                    Click num node abre drawer 320px com info do agente + link pra
+                    <code>/agents/:id</code>
+                  </li>
+                  <li>
+                    Drag pra mudar <code>reports_to</code> + confirm modal + anti-cycle (backend +
+                    UI toast)
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Skills (PR-B)</div>
+                <ul class="feature-list">
+                  <li>
+                    Rota <code>/skills</code> master-detail (5 roles seedados, tools chips por
+                    skill, agentsUsing)
+                  </li>
+                  <li>Aplicação real: hard-gate via <code>--allowedTools</code> no spawn</li>
+                  <li>
+                    Templates de role usados via <code>role_template_id</code> no
+                    <code>hire_agent</code>
+                  </li>
+                  <li>Skills no right panel: chips read-only com hint (edit per-agent: M7.6)</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Model Selection (PR-A)</div>
+                <ul class="feature-list">
+                  <li>
+                    Migration 0003 — coluna <code>agents.model</code> (default
+                    <code>claude-sonnet-4-6</code>)
+                  </li>
+                  <li>Right panel: dropdown preset + custom + regex injection guard</li>
+                  <li>
+                    <code>lifecycle.ts buildClaudeArgs</code>: passa
+                    <code>--model &lt;agent.model&gt;</code>
+                  </li>
+                  <li>Defaults por role (Opus pra CEO, Sonnet engineers, Haiku simples)</li>
+                  <li>Settings: campo "Default model for new agents"</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Right panel + IPC handlers (PR-C)</div>
+                <ul class="feature-list">
+                  <li>3 tabs no <code>/agents/:id</code>: Config / Issues / Stats</li>
+                  <li>
+                    ConfigTab: role change modal · model preset+custom · skills read-only · persona
+                    inline textarea (debounced 500ms) · allowed_projects toggle
+                  </li>
+                  <li>
+                    IPC handlers de mutação: <code>agents:set-model</code>, <code>set-role</code>,
+                    <code>set-system-prompt</code>, <code>set-reports-to</code>, <code>stats</code>
+                  </li>
+                  <li>
+                    <code>restartIfRunning</code> (kill + clearSession + broadcast) pras mutações
+                    que afetam spawn args
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M7.5 ──── -->
+          <article class="milestone" data-status="planned">
+            <div class="ms-rail">
+              <div class="num">M7.5</div>
+              <div class="status-row"><span class="status-dot"></span>planned</div>
+              <div class="meta">novo · ~2 semanas</div>
+            </div>
+            <div class="ms-body">
+              <h3>Foundations &amp; Paperclip Refactors</h3>
+              <p class="tagline">
+                Origem: itens 🔴 da <strong>Paperclip comparison</strong>. Refatorações estruturais
+                que preparam M8/M9/M10 — especialmente o <em>adapter pattern</em> (pré-requisito do
+                API key e VPS remoto).
+              </p>
+              <div class="design-note">
+                <span class="label">Por que existe</span>
+                Sem essa pausa de foundation, M8/M9/M10 vão inflar <code>lifecycle.ts</code> e
+                <code>mcp/tools.ts</code> até virarem o <code>heartbeat.ts</code> do Paperclip (9.8K
+                linhas).
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Refactors estruturais</div>
+                <ul class="feature-list">
+                  <li>
+                    Modularizar <code>orchestrator/lifecycle.ts</code> (extrair
+                    build/sandbox/binary/handshake)
+                  </li>
+                  <li>Modularizar <code>mcp/tools.ts</code> (1 arquivo por domínio)</li>
+                  <li>PREAMBLE em arquivo <code>.md</code> (não recompilar pra editar prompt)</li>
+                  <li>
+                    System prompt composable:
+                    <code>composeSystemPrompt({preamble, role, skills, model})</code>
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">⚡ Adapter pattern foundation (critical path)</div>
+                <ul class="feature-list">
+                  <li>
+                    Interface <code>AgentAdapter</code> em
+                    <code>packages/shared/src/types/adapter.ts</code>
+                  </li>
+                  <li>
+                    Refatorar <code>lifecycle.ts</code> pra usar
+                    <code>claude-oauth-local</code> como primeiro impl
+                  </li>
+                  <li>Registry em <code>orchestrator/adapters/index.ts</code></li>
+                  <li>100% não-regressão da suíte existente</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Schema &amp; DB</div>
+                <ul class="feature-list">
+                  <li>
+                    Migration <strong>0004</strong> — <code>issues.identifier</code> humano
+                    (PRJ-123)
+                  </li>
+                  <li>
+                    Migration <strong>0005</strong> — <code>messages.kind</code> (message | proposal
+                    | question | confirmation | observation)
+                  </li>
+                  <li>
+                    Migration <strong>0006</strong> — <code>approvals</code> decoupled do inbox
+                  </li>
+                  <li>
+                    Migration <strong>0007</strong> — <code>issue_artifacts</code> (work products:
+                    file_path, commit_sha, pr_url, snapshot)
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Auth foundation (prep M9)</div>
+                <ul class="feature-list">
+                  <li>
+                    <code>auth-mode.ts</code> com <code>getActiveAuthMode()</code> retornando
+                    'oauth' por ora
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">UX</div>
+                <ul class="feature-list">
+                  <li>Current action granular (refletir tool calls em UI)</li>
+                  <li>WebSocket-like granular IPC events (deltas, não snapshots)</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Testes</div>
+                <ul class="feature-list">
+                  <li>
+                    E2E mínimo com Playwright + Electron (onboarding, hire+message, issue lifecycle)
+                  </li>
+                  <li>Cobertura de orchestrator + MCP tools (mock claude CLI)</li>
+                  <li>Snapshot tests da blocklist §8.3</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">VPS prep · stubs (M10 preenche)</div>
+                <ul class="feature-list">
+                  <li><code>infra/docker/agent-runner/Dockerfile</code> stub</li>
+                  <li><code>infra/docker/compose.yml</code> stub</li>
+                  <li>
+                    <code>docs/m10-adapter-wire-protocol.md</code> — JSON-RPC stdin local vs WSS
+                    remote
+                  </li>
+                  <li>SECURITY.md atualizado com threat model do remote adapter</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M7.7 ──── -->
+          <article class="milestone" data-status="planned">
+            <div class="ms-rail">
+              <div class="num">M7.7</div>
+              <div class="status-row"><span class="status-dot"></span>planned</div>
+              <div class="meta">novo · 3-4 dias · foundation</div>
+            </div>
+            <div class="ms-body">
+              <h3>Activity Stream — foundation pra M7.6/M8/M8.5</h3>
+              <p class="tagline">
+                Stream cross-cutting de tudo que acontece. <strong>Origem:</strong> print do user
+                mostrou que o Paperclip oferece <code>/activity</code> na sidebar COMPANY — único
+                surface sem equivalente nosso.
+              </p>
+              <div class="design-note">
+                <span class="label">Por que antes do M7.6 apesar do número</span>
+                Infra do <code>recordActivity()</code> vira pré-req de TODO IPC novo que M7.6
+                introduz (pause/terminate/set-mode/etc). Sem ela, cada IPC novo duplica lógica de
+                logging.<br />
+                <strong>Activity ≠ Inbox:</strong> Activity imutável append-only history · Inbox
+                mutável work surface (mark-read, approve, reject). Approval triggers ambos.
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Schema &amp; helper</div>
+                <ul class="feature-list">
+                  <li>
+                    Migration M7.7-01 — <code>activity_events</code> (company_id, actor_kind,
+                    actor_id, action, entity_kind, entity_id, agent_id, payload_json, created_at)
+                  </li>
+                  <li>4 índices: (company, time), (entity), (agent, time), (action)</li>
+                  <li>Helper central <code>recordActivity()</code> com Zod payload validation</li>
+                  <li>
+                    Enum <code>ActivityAction</code> em shared — ~30 actions v1 (agent.* 10, issue.*
+                    5, approval.* 3, project.* 3, goal.* 4, session/cost 3, company 2)
+                  </li>
+                  <li>
+                    Dual-write em ~15 call sites existentes (issue_events, repository mutations, MCP
+                    tools)
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">IPC + real-time</div>
+                <ul class="feature-list">
+                  <li>Novo channel <code>ACTIVITY_NEW</code> em <code>ipc-channels.ts</code></li>
+                  <li>Broadcast pattern igual <code>AGENT_EVENT</code> (M5)</li>
+                  <li>Granular delta, não snapshot — alinha com refactor M7.5</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">UI — página /activity</div>
+                <ul class="feature-list">
+                  <li>Sidebar item "Activity" entre Inbox e Settings</li>
+                  <li>Flat list desc por created_at, infinite scroll (50/chunk)</li>
+                  <li>Filtros: actor_kind, action, entity_kind, agent_id, date range</li>
+                  <li>Search textual client-side (FTS5 fica v2)</li>
+                  <li>
+                    Click numa entry → navega pra entity (deletada: tooltip "(deleted)" + click
+                    disabled)
+                  </li>
+                  <li>Real-time: subscribe ACTIVITY_NEW → prepend com fade-in 700ms</li>
+                  <li>Payload truncate 4KB hard cap + 200 chars preview</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Não-regressão</div>
+                <ul class="feature-list">
+                  <li>
+                    <code>issue_events</code> continua funcionando (IssueDetailModal não quebra)
+                  </li>
+                  <li>Inbox flow inalterado</li>
+                  <li>Smoke test M6.1 + security suite verde</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M7.6 ──── -->
+          <article class="milestone" data-status="planned">
+            <div class="ms-rail">
+              <div class="num">M7.6</div>
+              <div class="status-row"><span class="status-dot"></span>planned</div>
+              <div class="meta">novo · 4-5 dias · completion sobre M7-C</div>
+            </div>
+            <div class="ms-body">
+              <h3>Agent Studio — completion sobre M7-C</h3>
+              <p class="tagline">
+                Completa a liberdade de mexer no agente direto pela UI. M7-C entregou panel base +
+                edit inline; M7.6 adiciona ações stateful + form de criação + Runs timeline +
+                toggles faltantes.
+              </p>
+              <div class="design-note">
+                <span class="label">Layout chat-first híbrido</span>
+                NÃO Paperclip 1:1 com 6 tabs. Chat segue centro, right panel já existe (M7-C),
+                header sticky novo com ações, modal full-screen pra Runs.<br />
+                <strong>Pause</strong> (status formal retomável) ≠
+                <strong>Terminate</strong> (soft-delete, status='terminated', histórico
+                preserva).<br />
+                Form <code>/agents/new</code> paralelo a <code>hire_agent</code> MCP — ambos
+                caminhos coexistem.
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Header sticky de ações</div>
+                <ul class="feature-list">
+                  <li>
+                    Status badge
+                    (idle/thinking/working/waiting/error/<strong>paused</strong>/terminated)
+                  </li>
+                  <li>
+                    <code>▶ Pause</code> toggle (chama
+                    <code>agents:pause</code>/<code>resume</code>)
+                  </li>
+                  <li>
+                    <code>+ Assign Task</code> button (abre IssueCreateModal com assignee
+                    pré-preenchido)
+                  </li>
+                  <li>
+                    <code>⋯</code> overflow menu: Copy Agent ID, Reset Session,
+                    <strong>Terminate</strong> (confirm modal)
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Completar ConfigTab</div>
+                <ul class="feature-list">
+                  <li>Reports to dropdown (IPC já existe M7-C; só wire UI)</li>
+                  <li>Mode radio (supervised | auto) — IPC novo</li>
+                  <li>Always-on switch — IPC novo</li>
+                  <li>Skills checkboxes (required/optional segregadas) — IPC novo</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Runs timeline modal</div>
+                <ul class="feature-list">
+                  <li><code>AgentRunsModal</code> full-screen</li>
+                  <li>Timeline derivada de <code>messages</code> (assistant + tool calls)</li>
+                  <li>
+                    Por run: timestamp · trigger · tools chamadas · tokens (M8) · duração · status
+                  </li>
+                  <li>Filtros: date range, trigger source, status</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Form /agents/new + IPCs novos</div>
+                <ul class="feature-list">
+                  <li>
+                    Rota <code>/agents/new</code> com form (name, role, model, mode, persona,
+                    skills, projects, reports_to)
+                  </li>
+                  <li>
+                    Submit → <code>agents:hire-from-ui</code> reusa trans do
+                    <code>hire_agent</code> MCP
+                  </li>
+                  <li>
+                    9 IPCs novos: set-mode, set-always-on, set-skills, pause, resume, terminate,
+                    wake-up, reset-session, hire-from-ui
+                  </li>
+                  <li>Cada IPC grava em <code>activity_events</code> via helper M7.7</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Schema &amp; lifecycle</div>
+                <ul class="feature-list">
+                  <li>
+                    Migration 0008 — <code>agents.paused_at</code>, <code>terminated_at</code>,
+                    <code>pause_reason</code>
+                  </li>
+                  <li>Status enum aceita <code>paused</code> e <code>terminated</code></li>
+                  <li>Router: ignorar enqueue pra agente paused (backlog até resume)</li>
+                  <li>Terminated → processo killed, row preservada (soft delete)</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M8 ──── -->
+          <article class="milestone" data-status="planned">
+            <div class="ms-rail">
+              <div class="num">M08</div>
+              <div class="status-row"><span class="status-dot"></span>planned</div>
+              <div class="meta">depende M7.5</div>
+            </div>
+            <div class="ms-body">
+              <h3>Costs UI + Token Tracking</h3>
+              <p class="tagline">
+                Schema <code>cost_events</code> adapter-aware. Soft-stop at
+                <code>turn-complete</code> (não heartbeat). Rota <code>/costs</code> com gráficos.
+              </p>
+              <div class="design-note">
+                <span class="label">Decisão arquitetural</span>
+                Cost tracking compatível com adapter pattern do M7.5 — cada adapter reporta cost via
+                <code>estimateUsage(events)</code>. Enforcement at turn-complete (não temos
+                heartbeat polling). Agente estourou budget → notify_user(security_alert) +
+                agents.status=paused.
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Backend</div>
+                <ul class="feature-list">
+                  <li>
+                    Schema <code>cost_events</code> (drop legacy <code>costs_log</code> se vazio) —
+                    adapter-agnóstico
+                  </li>
+                  <li>
+                    Persistir <code>result.usage</code> via
+                    <code>adapter.estimateUsage(events)</code>
+                  </li>
+                  <li>Calcular % do limite Max via <code>rate_limit_event</code></li>
+                  <li>Aggregations: por agent, project, dia, <strong>adapter</strong></li>
+                  <li>Enforcement at turn-complete</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">UI</div>
+                <ul class="feature-list">
+                  <li>Rota <code>/costs</code> com gráficos (recharts)</li>
+                  <li>Limite Max + progress bar visível</li>
+                  <li>Filtros: agent, project, date range, <strong>adapter</strong></li>
+                  <li>Widget "Custos hoje" no Dashboard</li>
+                  <li>Cost hints relativos no model dropdown (M7a)</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Activity integration</div>
+                <ul class="feature-list">
+                  <li>
+                    <code>cost.day_summary</code> (1 row/dia/agente) gravado via
+                    <code>recordActivity</code> do M7.7
+                  </li>
+                  <li>NÃO per-turn (volume alto demais)</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M8.5 ──── -->
+          <article class="milestone" data-status="planned">
+            <div class="ms-rail">
+              <div class="num">M8.5</div>
+              <div class="status-row"><span class="status-dot"></span>planned</div>
+              <div class="meta">novo · 10-12 dias · além do Paperclip</div>
+            </div>
+            <div class="ms-body">
+              <h3>Goals + CEO Planning — feature além do Paperclip</h3>
+              <p class="tagline">
+                User cria Goal → "Ask CEO to plan" → CEO lê e propõe
+                <strong>plano estruturado</strong> (agents+issues+estimates+riscos) → user aprova em
+                <strong>PR-review UI</strong> → executor atômico cria agents+issues.
+              </p>
+              <div class="design-note">
+                <span class="label">Por que evolução além do Paperclip</span>
+                Lá Goals são puramente declarativos (CRUD). O CEO-planner automático é nosso
+                diferencial — combina Goals + agentic planning + approval gate.<br />
+                <strong>Entidade separada</strong> <code>goals</code> +
+                <code>goal_plans</code> versionado (não <code>issues.kind='goal'</code>). Plano JSON
+                estruturado permite include/exclude, re-propose (v2), edit-before-approve (v2).<br />
+                <strong>PR-review approval-style</strong> (humano sempre aprova v1). Auto-execute =
+                v2.
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Schema (Migration M8.5-01)</div>
+                <ul class="feature-list">
+                  <li>
+                    <code>goals</code>: id, company, title, description, level
+                    (company|team|agent|task), status, parent_goal_id, owner_agent_id,
+                    budget_max_tokens, deadline, success_criteria
+                  </li>
+                  <li>
+                    <code>goal_plans</code>: id, goal_id, version, proposed_by_agent_id, summary,
+                    agents_to_hire_json, issues_to_create_json, estimates (tokens/days/cents),
+                    risks_json, status, user_feedback, proposed_at, decided_at, decided_by
+                  </li>
+                  <li><code>issues.goal_id</code> (FK opcional)</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">MCP tools novas</div>
+                <ul class="feature-list">
+                  <li><code>list_goals</code>, <code>get_goal</code></li>
+                  <li>
+                    <code>submit_goal_plan(goal_id, plan_data)</code> — Zod valida (rejeita index
+                    dangling, deps cyclic, model fora dos presets)
+                  </li>
+                  <li><code>update_goal_status</code>, <code>record_subgoal</code></li>
+                  <li>
+                    System prompt CEO ganha bloco "Goals &amp; Planning" no
+                    <code>composeSystemPrompt</code>
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Fluxo end-to-end</div>
+                <ul class="feature-list">
+                  <li>Goal criado → status='draft'</li>
+                  <li>
+                    "Ask CEO to plan" → status='planning' + orchestrator delivery GOAL_PLAN_REQUEST
+                  </li>
+                  <li>
+                    CEO chama <code>submit_goal_plan</code> → goal_plans v1 + status='proposed' +
+                    inbox <code>goal_proposed</code>
+                  </li>
+                  <li>
+                    <strong>Approve</strong> → trans atômica: cria agents (resolve reports_to_index)
+                    + cria issues (resolve assignee/depends_on) → status='in_progress'
+                  </li>
+                  <li>
+                    <strong>Request Changes</strong> → plan atual 'superseded', CEO recebe feedback,
+                    espera v2
+                  </li>
+                  <li><strong>Reject</strong> → goal 'cancelled', plan 'rejected'</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">UI</div>
+                <ul class="feature-list">
+                  <li>
+                    Rota <code>/goals</code> tree view recursiva, status badges, button "New Goal"
+                  </li>
+                  <li>
+                    Rota <code>/goals/:id</code>: title edit inline, description markdown,
+                    properties panel
+                  </li>
+                  <li>
+                    Tabs: <strong>Plan</strong> (GoalPlanReview component) · Sub-goals · Linked
+                    issues · History
+                  </li>
+                  <li>
+                    <code>GoalPlanReview</code>: Summary card · Agents list (include checkboxes) ·
+                    Issues list (deps visuais) · Estimates panel (tokens/USD-BRL/dias/%Max) · Risks
+                    accordion · 3 buttons (Approve / Request Changes / Reject)
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Inbox + Activity</div>
+                <ul class="feature-list">
+                  <li>
+                    Inbox kinds novos: <code>goal_proposed</code>, <code>goal_executing</code>,
+                    <code>goal_blocked</code>
+                  </li>
+                  <li>
+                    Activity events: <code>goal.created</code>, <code>goal.plan_proposed</code>,
+                    <code>goal.plan_approved</code>, <code>goal.plan_rejected</code>,
+                    <code>goal.status_changed</code>, <code>goal.cancelled</code>
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Pré-req</div>
+                <ul class="feature-list">
+                  <li>M8 (forte — estimates reais usam <code>costs_log</code>)</li>
+                  <li>M7.5 (médio — system prompt composable)</li>
+                  <li>M7.6 (médio — <code>agents:hire-from-ui</code> reusado pelo executor)</li>
+                  <li>M7.7 (logs do fluxo de plan)</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M9 ──── -->
+          <article class="milestone" data-status="planned">
+            <div class="ms-rail">
+              <div class="num">M09</div>
+              <div class="status-row"><span class="status-dot"></span>planned</div>
+              <div class="meta">closing v1 features</div>
+            </div>
+            <div class="ms-body">
+              <h3>Dashboard + Multi-empresa + Polish + Reviews + API key</h3>
+              <p class="tagline">
+                Closing items pra v1 ficar feature-complete. Aproveita foundation do M7.5 (adapter
+                pattern, approvals decoupled, system prompt composable).
+              </p>
+              <div class="feature-group">
+                <div class="group-name">Dashboard widgets (consome Activity M7.7)</div>
+                <ul class="feature-list">
+                  <li>Agentes Ativos (count + lista mini)</li>
+                  <li>Issues em Andamento</li>
+                  <li>Inbox unread</li>
+                  <li>Custos Hoje (tokens + % Max — alimenta de M8)</li>
+                  <li>
+                    <strong>Recent Activity</strong> — últimos 10 eventos de
+                    <code>activity_events</code> com fade-in
+                  </li>
+                  <li>
+                    <strong>Active Agents Panel</strong> — per-agent status com
+                    <code>currentAction</code> granular do M7.5
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Multi-empresa</div>
+                <ul class="feature-list">
+                  <li>Dropdown topo da sidebar pra trocar de company</li>
+                  <li>Criar nova empresa + Deletar (cascade)</li>
+                  <li>Active company persistido em settings</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">API key (2º adapter)</div>
+                <ul class="feature-list">
+                  <li>Setup wizard: pergunta auth source (OAuth Max ou API key)</li>
+                  <li>Settings: switch entre OAuth Max e API key (warning sobre custo)</li>
+                  <li>Novo adapter impl <code>claude-api-key-local</code></li>
+                  <li>Limite dos 4 agentes: aplicar SÓ pra OAuth Max</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Agent Reviews UX (aproveita approvals decoupled M7.5)</div>
+                <ul class="feature-list">
+                  <li><code>/issues/:id</code> aba "Review" com diff side-by-side</li>
+                  <li>Botões Approve+merge / Request changes / Reject</li>
+                  <li>Inline comments via <code>approval_comments</code></li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Portability (Paperclip wishlist)</div>
+                <ul class="feature-list">
+                  <li>
+                    AGENTS.md format próprio (YAML front-matter + <code>gray-matter</code> parser)
+                  </li>
+                  <li>companies.sh import/export JSON único (não ZIP)</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Error handling (spec §7)</div>
+                <ul class="feature-list">
+                  <li>Banner global vermelho quando OAuth inválido</li>
+                  <li>Auto-restart do main em crash + 5s timeout</li>
+                  <li>Backoff exponencial em rate limit + banner amarelo</li>
+                  <li>Heartbeat do agente (5min timeout → status=error + restart)</li>
+                  <li>Banner pra OAuth token expiring (30d antes)</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Right panel /agents/:id</div>
+                <ul class="feature-list">
+                  <li>✅ Entregue M7-C — 3 tabs (Config/Issues/Stats) com edit inline</li>
+                  <li>
+                    Completion em M7.6 — header de ações (Pause/Fire/Assign Task) + Runs timeline +
+                    form <code>/agents/new</code> + faltantes (mode/always_on/skills toggle)
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M10 ──── -->
+          <article class="milestone" data-status="planned">
+            <div class="ms-rail">
+              <div class="num">M10</div>
+              <div class="status-row"><span class="status-dot"></span>planned</div>
+              <div class="meta">novo · fecha v1</div>
+            </div>
+            <div class="ms-body">
+              <h3>VPS Docker Remote Adapter</h3>
+              <p class="tagline">
+                Implementa o terceiro adapter <code>claude-oauth-remote-docker</code> (e variante
+                API key) usando foundation do M7.5. Per-agent toggle:
+                <em>Run on: local | VPS-N</em>. <strong>Fecha v1 com distribuição hybrid.</strong>
+              </p>
+              <div class="design-note">
+                <span class="label">Por que existe</span>
+                Isolamento real de processo (rm -rf no container não afeta seu host), agente
+                sempre-ligado mesmo com PC desligado, acesso 24/7.
+                <strong>Mantém Electron como UI principal</strong> (não vira web app —
+                out-of-scope). Defense-in-depth: blocklist do <code>gate.ts</code> continua ativa
+                mesmo após isolamento.
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Backend</div>
+                <ul class="feature-list">
+                  <li>
+                    Novo adapter <code>remote-docker.ts</code> implementando
+                    <code>AgentAdapter</code>
+                  </li>
+                  <li>HTTPS+WSS protocol pro agent-runner remoto</li>
+                  <li>Reconnect automático com backoff exponencial</li>
+                  <li>Settings UI: gerenciador de VPS (add, test connection, remove)</li>
+                  <li>Per-agent dropdown "Run on: local | vps-N"</li>
+                  <li>Migration <strong>0008</strong> — <code>agents.adapter_name</code></li>
+                  <li>Audit log centralizado: <code>vps_audit_events</code></li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">VPS side (infra/)</div>
+                <ul class="feature-list">
+                  <li>Dockerfile minimal (node:22-alpine + claude CLI + MCP bridge)</li>
+                  <li>compose.yml: N réplicas + reverse proxy (Caddy auto-TLS)</li>
+                  <li>Provision scripts (Hetzner, DigitalOcean — provider-neutral)</li>
+                  <li>MCP bridge server: WSS ↔ claude CLI local no container</li>
+                  <li>Network: HTTPS bind + Anthropic API outbound only</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Security</div>
+                <ul class="feature-list">
+                  <li>TLS obrigatório + cert fingerprint pinning</li>
+                  <li>JWT signed pelo main per turn (TTL curto, replay-protected)</li>
+                  <li>Allowlist de IPs no agent-runner</li>
+                  <li>safeStorage guarda chave SSH + cert fingerprint</li>
+                  <li>Rate limit per VPS</li>
+                  <li><code>docs/security/vps-threat-model.md</code></li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">UX &amp; Docs</div>
+                <ul class="feature-list">
+                  <li>Dashboard widget "VPS health" (latência, agentes, CPU/RAM)</li>
+                  <li>Per-agent indicator (🌐 remote vs 🏠 local)</li>
+                  <li>Onboarding "Connect to VPS" wizard (5 passos)</li>
+                  <li>Connection state indicator no header</li>
+                  <li><code>docs/vps-deployment.md</code> — guia completo</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Tests</div>
+                <ul class="feature-list">
+                  <li>E2E cycle local + remote misturados</li>
+                  <li>Connection drop + auto-reconnect</li>
+                  <li>JWT replay falha, cert MITM falha, outbound forbidden funciona</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ═══════════ PAPERCLIP WISHLIST ═══════════ -->
+      <section class="section" style="animation-delay: 240ms">
+        <div class="section-head">
+          <span class="index">/04</span>
+          <h2>paperclip wishlist tracker</h2>
+          <span class="note"
+            >decisões em paperclip-comparison.md +
+            2026-05-11-paperclip-gaps-ux-governance-design.md</span
+          >
+        </div>
+
+        <div class="wishlist">
+          <div class="wish-row head">
+            <div>item</div>
+            <div>status</div>
+            <div>onde / razão</div>
+          </div>
+
+          <div class="wish-row" data-wish="done">
+            <div class="item-name">Desktop App</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>done</span>
+            </div>
+            <div class="where">M1 — Electron</div>
+          </div>
+          <div class="wish-row" data-wish="done">
+            <div class="item-name">CEO Chat</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>done</span>
+            </div>
+            <div class="where">M3 (chat 1-1) + M5 (multi-agente real)</div>
+          </div>
+          <div class="wish-row" data-wish="done">
+            <div class="item-name">Org chart hierarchy</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>done</span>
+            </div>
+            <div class="where">
+              M7-C · SVG handcrafted client-side + drag-to-reassign + anti-cycle
+            </div>
+          </div>
+          <div class="wish-row" data-wish="done">
+            <div class="item-name">Skills Manager</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>done (read-only)</span>
+            </div>
+            <div class="where">
+              M7-B · UI cards + hard-gate via <code>--allowedTools</code>. Edit per-agent: M7.6.
+              <strong>Não imitar code-module/source-sync</strong> (fora do threat model)
+            </div>
+          </div>
+          <div class="wish-row" data-wish="done">
+            <div class="item-name">Agent config UI (model/persona/projects)</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>done</span>
+            </div>
+            <div class="where">M7-C right panel · edit inline com debounced save</div>
+          </div>
+          <div class="wish-row" data-wish="planned">
+            <div class="item-name">Pause/Terminate/Assign Task</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>planned</span>
+            </div>
+            <div class="where">M7.6 · header de ações em <code>/agents/:id</code></div>
+          </div>
+          <div class="wish-row" data-wish="planned">
+            <div class="item-name">Form de criar agente direto pela UI</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>planned</span>
+            </div>
+            <div class="where">
+              M7.6 · <code>/agents/new</code> paralelo ao <code>hire_agent</code> MCP
+            </div>
+          </div>
+          <div class="wish-row" data-wish="planned">
+            <div class="item-name">Activity stream (<code>/activity</code> cross-cutting)</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>planned</span>
+            </div>
+            <div class="where">
+              M7.7 · <code>activity_events</code> table + página + helper. Dual-write com
+              <code>issue_events</code>/<code>inbox</code> (não migrar dados)
+            </div>
+          </div>
+          <div class="wish-row" data-wish="planned">
+            <div class="item-name">Runs timeline por agente</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>planned</span>
+            </div>
+            <div class="where">M7.6 · modal full-screen derivado de <code>messages</code></div>
+          </div>
+          <div class="wish-row" data-wish="planned">
+            <div class="item-name">Better Budgeting</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>planned</span>
+            </div>
+            <div class="where">M8 · token tracking + % Max + por agente/projeto/adapter</div>
+          </div>
+          <div class="wish-row" data-wish="planned">
+            <div class="item-name">Goals + CEO planning automático</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>planned</span>
+            </div>
+            <div class="where">
+              <strong>M8.5 — evolução além do Paperclip.</strong> Lá goals são declarativos; nosso
+              CEO propõe plano completo (agents+issues+estimates+riscos) → user aprova em PR-review
+            </div>
+          </div>
+          <div class="wish-row" data-wish="planned">
+            <div class="item-name">Issue identifier (<code>PRJ-123</code>)</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>planned</span>
+            </div>
+            <div class="where">M7.5 · migration 0004</div>
+          </div>
+          <div class="wish-row" data-wish="planned">
+            <div class="item-name">Work Products / Artifacts</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>planned</span>
+            </div>
+            <div class="where">M7.5 · <code>issue_artifacts</code> table</div>
+          </div>
+          <div class="wish-row" data-wish="planned">
+            <div class="item-name">Agent Reviews and Approvals</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>planned</span>
+            </div>
+            <div class="where">M7.5 schema + M9 UX · approvals decoupled + diff side-by-side</div>
+          </div>
+          <div class="wish-row" data-wish="planned">
+            <div class="item-name">Dashboard rico (Recent Activity + Active Agents)</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>planned</span>
+            </div>
+            <div class="where">M9 · consome <code>activity_events</code> do M7.7</div>
+          </div>
+          <div class="wish-row" data-wish="planned">
+            <div class="item-name">Cloud / Sandbox agents</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>partial v1 + v2</span>
+            </div>
+            <div class="where">
+              M10 absorve · VPS Docker remote adapter. V2 adiciona Cursor, Codex, e2b.
+            </div>
+          </div>
+          <div class="wish-row" data-wish="planned">
+            <div class="item-name">Easy AGENTS.md configurations</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>planned</span>
+            </div>
+            <div class="where">M9 · format próprio YAML front-matter</div>
+          </div>
+          <div class="wish-row" data-wish="planned">
+            <div class="item-name">companies.sh import/export</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>planned</span>
+            </div>
+            <div class="where">M9 · JSON único (não ZIP)</div>
+          </div>
+          <div class="wish-row" data-wish="v2">
+            <div class="item-name">Scheduled Routines</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>v2+</span>
+            </div>
+            <div class="where">Cron-like recurring tasks</div>
+          </div>
+          <div class="wish-row" data-wish="v2">
+            <div class="item-name">Plugin system</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>v2+</span>
+            </div>
+            <div class="where">Big architectural change. Worker isolation + SDK</div>
+          </div>
+          <div class="wish-row" data-wish="v2">
+            <div class="item-name">Memory / Knowledge base</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>v2+</span>
+            </div>
+            <div class="where">RAG por agente (sqlite-vss ou vector DB)</div>
+          </div>
+          <div class="wish-row" data-wish="v2">
+            <div class="item-name">Plan inline-edit (texto) antes de approve</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>v2</span>
+            </div>
+            <div class="where">M8.5 v1 só include/exclude. Edit texto = v2</div>
+          </div>
+          <div class="wish-row" data-wish="v2">
+            <div class="item-name">CEO auto-approve goal plans</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>v2</span>
+            </div>
+            <div class="where">M8.5 v1 sempre humano aprova. Auto-mode = v2</div>
+          </div>
+          <div class="wish-row" data-wish="v2">
+            <div class="item-name">Activity FTS5 (full-text search)</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>v2</span>
+            </div>
+            <div class="where">
+              M7.7 v1 client-side filter cobre. FTS5 só se base passar 10k events
+            </div>
+          </div>
+          <div class="wish-row" data-wish="v2">
+            <div class="item-name">Enforced Outcomes</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>v2+</span>
+            </div>
+            <div class="where">Tests/build pré-merge antes de issue=done</div>
+          </div>
+          <div class="wish-row" data-wish="v2">
+            <div class="item-name">Deep Planning mode</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>v2+</span>
+            </div>
+            <div class="where">Plan-then-execute ritual</div>
+          </div>
+          <div class="wish-row" data-wish="v2">
+            <div class="item-name">Maximizer mode</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>v2+</span>
+            </div>
+            <div class="where">Aggressive auto — requer API key</div>
+          </div>
+          <div class="wish-row" data-wish="v2">
+            <div class="item-name">Work Queues</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>v2+</span>
+            </div>
+            <div class="where">Continuous-stream processing (distinto de issues)</div>
+          </div>
+          <div class="wish-row" data-wish="oos">
+            <div class="item-name">Multiple Human Users</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>out-of-scope</span>
+            </div>
+            <div class="where">ToS Anthropic Max single-user</div>
+          </div>
+          <div class="wish-row" data-wish="oos">
+            <div class="item-name">Cloud deployments (UI na cloud)</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>out-of-scope</span>
+            </div>
+            <div class="where">
+              UI continua Electron desktop. M10 cobre agente na cloud sem virar web app.
+            </div>
+          </div>
+          <div class="wish-row" data-wish="oos">
+            <div class="item-name">Embedded Postgres</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>out-of-scope</span>
+            </div>
+            <div class="where">sqlite serve perfeitamente desktop</div>
+          </div>
+          <div class="wish-row" data-wish="oos">
+            <div class="item-name">Skill source sync (GitHub/NPM)</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>out-of-scope</span>
+            </div>
+            <div class="where">Threat model: download/exec de código remoto</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ V2 BACKLOG ═══════════ -->
+      <section class="section" style="animation-delay: 300ms">
+        <div class="section-head">
+          <span class="index">/05</span>
+          <h2>v2+ backlog</h2>
+          <span class="note">post-v1 · organizado por tema</span>
+        </div>
+
+        <div class="v2-grid">
+          <div class="v2-group">
+            <h4>Multi-agente avançado</h4>
+            <ul>
+              <li><span class="tag">[PC]</span>Routines (cron-like)</li>
+              <li>
+                <span class="tag">[PC]</span><s>Goals (objetivos longos)</s> —
+                <strong>movido pra v1 M8.5</strong>
+              </li>
+              <li>
+                <span class="tag">[PC+new]</span>Goal v2 extensions (plan inline-edit, auto-approve,
+                templates, sub-goal cascade)
+              </li>
+              <li><span class="tag">[PC]</span>Issue relations (depends_on)</li>
+              <li><span class="tag">[PC]</span>Issue monitors (auto-recheck)</li>
+              <li><span class="tag">[PC]</span><code>issue.kind</code> (task/review/spike)</li>
+              <li><span class="tag">[PC]</span>Work Queues</li>
+              <li><span class="tag">[PC]</span>Self-Organization (v3+)</li>
+              <li><span class="tag">[PC]</span>Auto Org Learning (v3+)</li>
+              <li><span class="tag">[PC]</span>Deep Planning mode</li>
+              <li><span class="tag">[PC]</span>Maximizer mode</li>
+            </ul>
+          </div>
+
+          <div class="v2-group">
+            <h4>Adapter ecosystem</h4>
+            <ul>
+              <li><span class="tag">[PC]</span>Cursor, Codex, OpenClaw, Gemini adapters</li>
+              <li><span class="tag">[PC]</span>OpenClaw-style template marketplace</li>
+              <li><span class="tag">[PC]</span>Plugin sandbox providers (e2b, CF, Daytona)</li>
+            </ul>
+          </div>
+
+          <div class="v2-group">
+            <h4>Plugin system</h4>
+            <ul>
+              <li><span class="tag">[PC]</span>Plugin SDK + worker isolation</li>
+              <li><span class="tag">[PC]</span>Plugin webhooks (outbound HTTP)</li>
+            </ul>
+          </div>
+
+          <div class="v2-group">
+            <h4>Knowledge / Artifacts</h4>
+            <ul>
+              <li><span class="tag">[PC]</span>Memory / Knowledge base (RAG)</li>
+              <li><span class="tag">[new]</span>Artifacts ricos (snapshots, diffs)</li>
+              <li><span class="tag">[PC]</span>Enforced Outcomes</li>
+              <li><span class="tag">[new]</span>Activity Log audit-grade</li>
+            </ul>
+          </div>
+
+          <div class="v2-group">
+            <h4>Refactors estruturais</h4>
+            <ul>
+              <li><span class="tag">[M5]</span>Junction <code>thread_participants</code></li>
+              <li><span class="tag">[PC]</span>Type-safe SQL (Kysely opcional)</li>
+              <li><span class="tag">[PC]</span>Path tokenization via <code>shell-quote</code></li>
+              <li><span class="tag">[PC]</span>Execution workspace per issue (git worktree)</li>
+            </ul>
+          </div>
+
+          <div class="v2-group">
+            <h4>Sandbox / Security avançado</h4>
+            <ul>
+              <li><span class="tag">[M5]</span>Anti-prompt-injection avançado</li>
+              <li><span class="tag">[M5]</span>Auto mode 24h timer</li>
+              <li><span class="tag">[M5]</span>Auto degradado para Bash toggle</li>
+              <li><span class="tag">[M5]</span>Scopes de auto</li>
+              <li><span class="tag">[M5]</span>CSP restritivo no renderer</li>
+            </ul>
+          </div>
+
+          <div class="v2-group">
+            <h4>Inbox / Notifications / Activity</h4>
+            <ul>
+              <li><span class="tag">[PC]</span>Pagination da inbox</li>
+              <li><span class="tag">[new]</span>Archive de inbox/issues (soft-delete)</li>
+              <li>
+                <span class="tag">[PC+new]</span>Activity FTS5 nativo (só se passar 10k events)
+              </li>
+              <li><span class="tag">[new]</span>Activity archiving/TTL (se passar 100k)</li>
+              <li><span class="tag">[new]</span>Global Cmd+K bar (search cross-entity)</li>
+              <li>
+                <span class="tag">[PC]</span>Plugin event mapping (activity → plugin bus, quando
+                plugin system entrar)
+              </li>
+            </ul>
+          </div>
+
+          <div class="v2-group">
+            <h4>UX polish</h4>
+            <ul>
+              <li><span class="tag">[M5]</span>Tray icon completo (badge + submenu)</li>
+              <li><span class="tag">[new]</span>"New Issue" hotkey global</li>
+              <li><span class="tag">[PC]</span>Project icons + nested projects</li>
+              <li><span class="tag">[PC]</span>Skill source sync (só se feedback pedir)</li>
+            </ul>
+          </div>
+
+          <div class="v2-group">
+            <h4>Infra / Distribuição</h4>
+            <ul>
+              <li><span class="tag">[M5]</span>Backup automático diário do DB + restore</li>
+              <li><span class="tag">[M5]</span>File watcher de <code>~/.claude/projects/</code></li>
+              <li><span class="tag">[new]</span>Auto-update via rede + notarização</li>
+              <li><span class="tag">[new]</span>Telemetria opcional (default OFF, opt-in)</li>
+              <li><span class="tag">[new]</span>VPS multi-region / failover</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ FOOTER ═══════════ -->
+      <footer>
+        <div>
+          DashboardAgent · roadmap · <a href="../ROADMAP.md">ROADMAP.md</a> ·
+          <a href="paperclip-comparison.md">comparison.md</a>
+        </div>
+        <div class="ascii">─── built locally · offline-first · no cdn ───</div>
+        <div>generated 2026-05-11</div>
+      </footer>
+    </main>
+
+    <script>
+      // ─── theme toggle ─────────────────────────────────────────
+      function toggleTheme() {
+        const root = document.documentElement;
+        const current = root.getAttribute("data-theme");
+        const next = current === "dark" ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        try {
+          localStorage.setItem("roadmap-theme", next);
+        } catch (e) {}
+      }
+      try {
+        const saved = localStorage.getItem("roadmap-theme");
+        if (saved) document.documentElement.setAttribute("data-theme", saved);
+      } catch (e) {}
+
+      // ─── milestone filter ─────────────────────────────────────
+      const filterBtns = document.querySelectorAll(".filter-chip");
+      const milestones = document.querySelectorAll("#milestones .milestone");
+
+      filterBtns.forEach((btn, idx) => {
+        btn.addEventListener("click", () => {
+          filterBtns.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          const filter = btn.dataset.filter;
+          milestones.forEach((ms) => {
+            if (filter === "all" || ms.dataset.status === filter) {
+              ms.classList.remove("hidden");
+            } else {
+              ms.classList.add("hidden");
+            }
+          });
+        });
+      });
+
+      // ─── stagger animation on load ────────────────────────────
+      milestones.forEach((ms, i) => {
+        ms.style.animationDelay = 350 + i * 70 + "ms";
+      });
+
+      // ─── progress step → scroll to milestone ──────────────────
+      document.querySelectorAll(".progress-step").forEach((step, i) => {
+        step.addEventListener("click", () => {
+          const target = milestones[i];
+          if (target && !target.classList.contains("hidden")) {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
