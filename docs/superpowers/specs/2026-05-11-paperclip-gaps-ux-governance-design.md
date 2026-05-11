@@ -10,17 +10,18 @@
 
 ## TL;DR
 
-Após usar o Paperclip o usuário identificou **três classes de gap** que o roadmap atual não cobre com a prioridade certa:
+Após usar o Paperclip o usuário identificou **quatro classes de gap** que o roadmap atual não cobre com a prioridade certa:
 
 1. **Liberdade de mexer no agente direto pela UI** — hoje a maior parte passa pelo CEO via MCP. M7-C **já entregou** parte (right panel, edit role/model/persona/projects + IPC handlers). Faltam: reports_to UI, skills toggle, mode, always_on, **ações stateful** (Pause/Fire/Assign Task/wake-up), Runs timeline, form de criação.
 2. **Goals como feature first-class com CEO-planner automático** — usuário define objetivo, o CEO lê, **propõe plano completo** (issues + agents a contratar + tempo + custo), usuário aprova em formato PR-review.
-3. **Interface menos limitante** em geral — completar handlers IPC ausentes, expor ações no UI, permitir criação de agente sem mediação de CEO, edição de persona não-disruptiva (banner + restart-now button).
+3. **Interface menos limitante** em geral — completar handlers IPC ausentes, expor ações no UI, permitir criação de agente sem mediação de CEO, edição de persona não-disruptiva.
+4. **Visão e controle do todo** — Paperclip tem `/activity` (stream cross-cutting de TUDO) + Dashboard rico (Recent Activity, Active Agents, Metric Cards, Charts). Nós temos só `issue_events` por issue + `inbox` user-facing. Sem visão consolidada de "o que aconteceu na empresa hoje".
 
-Esses três viram **dois milestones novos** (M7.6 Agent Studio + M8.5 Goals/CEO Planning) inseridos depois do M7-C + M7.5 + M8. O chat-first do produto **permanece intacto** — Paperclip-style tab full-page é rejeitado.
+Esses quatro viram **três milestones novos**: **M7.6 Agent Studio + M7.7 Activity Stream + M8.5 Goals/CEO Planning**. M7.7 vem ANTES de M7.6 porque é foundation — uma vez que `activity_events` exista, M7.6/M8/M8.5 só ADICIONAM eventos novos sem rebuild de infra. O chat-first do produto **permanece intacto**.
 
 **Importante:** Goals + CEO-planner é uma **evolução além do Paperclip**. Lá, goals são puramente declarativos (sem automação). A geração automática do plano é diferenciador nosso.
 
-**Importante 2:** após inspeção atualizada do código (commits M7-C `3aa5861`..`8b9d9c3` em master), o escopo de M7.6 reduziu de 6-8 dias pra 4-5 dias. M7-C entregou o panel base + 5 IPC handlers + edit inline de persona/model/role.
+**Importante 2:** após inspeção atualizada do código (commits M7-C `3aa5861`..`8b9d9c3`), o escopo de M7.6 reduziu de 6-8 dias pra 4-5 dias. M7-C entregou o panel base + 5 IPC handlers + edit inline de persona/model/role + org chart.
 
 ---
 
@@ -577,10 +578,266 @@ Paperclip tem `agent.permissions.canCreateAgents`, `canAssignTasks` — concedid
 
 ---
 
-## Seção 4 — Plano de milestones
+## Seção 4 — Visão & Controle do Todo (M7.7)
+
+### 4.1 Por que isso é gap real
+
+Paperclip oferece uma sidebar "COMPANY" com cinco surfaces: **Org · Skills · Costs · Activity · Settings**. Nós temos as quatro primeiras (parcialmente) mas **Activity não existe** — e é a única que dá ao usuário "o que está acontecendo agora/hoje" sem precisar abrir agente por agente, issue por issue.
+
+Comparação direta:
+
+| Surface | Paperclip | Nós |
+|---|---|---|
+| Org chart | ✅ SVG server-side com 5 temas | ✅ M7-C drag-to-reassign (branch pronta) |
+| Skills | ✅ Cards + agents using | ✅ M7-B mergeado |
+| Costs | ✅ Tabela + gráficos por agente/dia/budget | 🔄 M8 planejado |
+| **Activity** | ✅ **Flat list cross-cutting 60+ action types** | ❌ **Não existe** |
+| Settings | ✅ Per-company | ✅ Global (single-company hoje) |
+| Dashboard | ✅ Recent Activity + Active Agents + Metric Cards + 4 Charts + Active Agents Panel | ❌ Stub (placeholder + createDemo) |
+
+**Dados que JÁ TEMOS, fragmentados em 4 lugares:**
+- `issue_events` table (M6) — só ações em issues (`created`, `status_changed`, `assignee_changed`, `priority_changed`, `reparented`). Só renderizado no `IssueDetailModal`.
+- `inbox_items` table — kinds `approval`, `completed`, `suggestion`, `error`, `security_alert`. User-facing notifications.
+- `costs_log` table (M8 popula) — tokens por turn.
+- `messages` table — chat.
+
+**Problema:** quando user quer saber "o que o agente X fez nas últimas 2 horas que NÃO foi mensagem", precisa abrir issues do X, costs do X, inbox filtrado, e ainda assim perde edições de config/skills/persona (que ninguém grava em lugar nenhum).
+
+### 4.2 Decisão: `activity_events` unificado, mas mantém tabelas atuais
+
+**Princípio:** `activity_events` é o **stream cross-cutting** novo. Tabelas existentes ficam — não migrar dados:
+
+- `issue_events` **continua** alimentando `IssueDetailModal` (UI existente). Dual-write: toda mutation que escreve `issue_events` também escreve `activity_events` (helper central).
+- `inbox_items` **continua** sendo mutable work surface (mark-read, approve, reject). Activity é imutável append-only.
+- `costs_log` **continua** dedicado pra aggregations (M8 charts). Activity NÃO duplica cada cost (volume alto demais) — só logs summarized por turn ou por dia.
+- `messages` **continua** primary content. Activity grava `agent.message_sent`/`user.message_sent` (metadata) sem duplicar conteúdo.
+
+**Trade-off conhecido:** dual-write é redundância. Aceita porque:
+- Migrar `issue_events` quebra `IssueDetailModal` (M6 funciona).
+- Cost volume alto demais pra logar por evento — só sumário.
+- Schema `activity_events` é genérico, query pra rebuild é trivial se precisar consolidar v2.
+
+### 4.3 Schema
+
+**Migration M7.7-01** (numeração após M7.5 ocupar 0004-0007 e M7.6 ocupar 0008):
+
+```sql
+CREATE TABLE activity_events (
+  id TEXT PRIMARY KEY,
+  company_id TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  actor_kind TEXT NOT NULL CHECK (actor_kind IN ('user','agent','system')),
+  actor_id TEXT,  -- NULL pra user (single-user) ou system; agent.id pra agent
+  action TEXT NOT NULL,  -- ex: 'agent.hired', 'issue.status_changed'
+  entity_kind TEXT NOT NULL CHECK (entity_kind IN (
+    'agent','issue','project','goal','approval','company',
+    'message','skill','setting','cost_summary','session'
+  )),
+  entity_id TEXT NOT NULL,  -- FK conceitual; sem ON DELETE — preserve histórico
+  agent_id TEXT REFERENCES agents(id) ON DELETE SET NULL,  -- denorm se actor=agent
+  payload_json TEXT NOT NULL,  -- {description, diff, refs}
+  created_at INTEGER NOT NULL
+);
+
+CREATE INDEX idx_activity_company_time ON activity_events(company_id, created_at DESC);
+CREATE INDEX idx_activity_entity ON activity_events(entity_kind, entity_id);
+CREATE INDEX idx_activity_agent_time ON activity_events(agent_id, created_at DESC);
+CREATE INDEX idx_activity_action ON activity_events(action);
+```
+
+**Não é FK em entity_id por design** — quando issue é deletada, activity preserva audit. Quando precisar mostrar, repository faz lookup tolerante (entity not found → render with strikethrough).
+
+### 4.4 Action vocabulary (~30 actions v1)
+
+Selecionando dos 60+ do Paperclip apenas o que faz sentido pra nós:
+
+**Agent (10):** `agent.hired`, `agent.role_changed`, `agent.model_changed`, `agent.persona_edited`, `agent.skills_changed`, `agent.reports_to_changed`, `agent.allowed_projects_changed`, `agent.paused`, `agent.resumed`, `agent.terminated`
+
+**Issue (5):** `issue.created`, `issue.status_changed`, `issue.assignee_changed`, `issue.priority_changed`, `issue.comment_added` *(comment já existe em issue_comments, activity é só pointer)*
+
+**Approval (3):** `approval.requested` (gate trigger), `approval.approved`, `approval.rejected`
+
+**Project (3):** `project.created`, `project.updated`, `project.deleted`
+
+**Goal (4, depende M8.5):** `goal.created`, `goal.plan_proposed`, `goal.plan_approved`, `goal.status_changed`
+
+**Session/Cost (3):** `session.started`, `session.ended`, `cost.day_summary` *(1 row por dia por agente — não por turn)*
+
+**Company (2):** `company.created`, `company.updated`
+
+Cada action vem com `payload_json` shape esperado (definido em `packages/shared/src/types/activity.ts` com Zod). Helper rejeita action desconhecida em dev mode.
+
+### 4.5 Helper central `recordActivity()`
+
+`apps/main/src/activity/recorder.ts` (novo):
+
+```ts
+export type ActivityEventInput = {
+  companyId: string;
+  actor: { kind: 'user' } | { kind: 'agent'; id: string } | { kind: 'system' };
+  action: ActivityAction;  // enum string
+  entityKind: ActivityEntityKind;
+  entityId: string;
+  payload: ActivityPayload<ActivityAction>;  // discriminated by action
+};
+
+export const recordActivity = (db: Database, input: ActivityEventInput): void => {
+  // validates payload shape via Zod
+  // INSERT row
+  // broadcasts ACTIVITY_NEW via BrowserWindow.webContents.send
+};
+```
+
+Chamada de:
+- `agents/repository.ts` setModel/setRole/setSystemPrompt/setReportsTo + futuras setSkills/setMode/setAlwaysOn/pause/resume/terminate (M7.6 + dual-write)
+- `issues/repository.ts` create/updateStatus/assignIssue (dual-write com issue_events)
+- `projects/repository.ts` create/update/delete
+- `mcp/tools/*` (especialmente `hire_agent`, `fire_agent`)
+- `goals/repository.ts` (quando M8.5 entrar)
+- `permissions/service.ts` request/resolve
+
+### 4.6 IPC e real-time
+
+**Novo channel:** `ACTIVITY_NEW` em `packages/shared/src/ipc-channels.ts`.
+
+Padrão: igual ao `ISSUES_CHANGED` e `AGENT_EVENT` do M5/M6. Renderer subscribe → prepend no estado → CSS animation `activity-row-enter` 700ms (mais conservador que 980ms do Paperclip).
+
+Granular events (delta) — não broadcast completo. Aproveita item 17 listado em `docs/paperclip-comparison.md §1` ("WebSocket-like granular IPC events"). M7.5 já planeja refactor de roster broadcast pra deltas — alinhar.
+
+### 4.7 UI — Página `/activity`
+
+**Rota:** `apps/renderer/src/routes/Activity.tsx` (novo).
+
+Layout:
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Activity                                  [🔍 search ...]   │
+├──────────────────────────────────────────────────────────────┤
+│  Actor: [All ▾] [User ▾] [Agent ▾] [System ▾]                │
+│  Action: [All ▾]  Entity: [All ▾]  Agent: [All ▾]  When: [▾]  │
+├──────────────────────────────────────────────────────────────┤
+│  ◯ 2 min ago · CEO hired BackendEng                          │
+│  ◯ 12 min ago · You changed model of BackendEng → Opus 4.7  │
+│  ◯ 14 min ago · BackendEng requested permission for Bash    │
+│  ◯ 16 min ago · You approved permission                      │
+│  ◯ 30 min ago · CEO created issue BACKEND-7                  │
+│  ...                                                         │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- Lista flat desc por created_at, paginação infinite-scroll (50 por chunk)
+- Filtros: actor_kind, action, entity_kind, agent_id, date range
+- Search textual: client-side filtering inicial (small DB), v2 considera FTS5
+- Click numa entry → navega pra entity (issue → IssueDetailModal, agent → /agents/:id, goal → /goals/:id, approval → /inbox)
+- Live: novo evento via IPC → prepend com fade-in
+- Empty state friendly
+
+**Sidebar:** novo item "Activity" entre Inbox e Settings (não dentro de "Company" porque hoje não temos sidebar agrupada — adiar agrupamento pro M9 multi-empresa).
+
+### 4.8 Dashboard widgets — overhaul mínimo
+
+M9 já planeja 4 widgets fixos: Agentes Ativos, Issues em Andamento, Inbox unread, Custos Hoje. **Adicionar em M9** (M7.7 só entrega infra + página /activity):
+
+- **Recent Activity** (last 10) — pega da `activity_events` ordenado desc
+- **Active Agents Panel** (live status per agent, expand do que sidebar mostra)
+
+Não adicionar charts ainda — M8 traz cost charts; M9 expande.
+
+### 4.9 Diferença Activity ↔ Inbox
+
+Manter separação clara (padrão Paperclip):
+
+| Aspecto | Activity | Inbox |
+|---|---|---|
+| Mutabilidade | Imutável append-only | Mutável (mark-read, approve, reject) |
+| Propósito | Audit/history "o que aconteceu" | Work surface "o que precisa de mim" |
+| Volume | Alto (todo evento) | Baixo (só ações que pedem usuário) |
+| Filtros | Por entidade, actor, ação, data | Por kind, requires_action |
+| Dismiss | Não existe | Mark-read explícito |
+| Real-time | Sim (prepend live) | Sim (já existe M5) |
+
+**Overlap consciente:** approval triggers ambos — 1 inbox item (actionable) + 1 activity event (imutável history). User aprova/rejeita → activity ganha 2º evento (approved/rejected); inbox item vira read.
+
+### 4.10 Search global (cross-cutting)
+
+**V1 escopo:** search dentro de `/activity` (textual sobre `payload_json.description` + action). Sem global Cmd+K cross-entity.
+
+**V2 wishlist (não pra M7.7):** Cmd+K bar que busca activities + issues + messages + agents por nome. Lib `cmdk` quando entrar.
+
+### 4.11 Compliance / audit
+
+Como repositório vai virar público (memory `project_repo_will_be_public`) e a app é single-user local:
+
+- Append-only at app level — repository **só expõe insert + read**, sem update/delete.
+- DB backup já listado como débito M5 ("Backup automático diário do DB") — quando entrar, activity_events vai junto.
+- Sem redaction (single-user; sem usernames de terceiros pra esconder).
+- `gitleaks` pre-public-push já em checklist — se activity payload acidentalmente loga secret (não deveria, mas...), test snapshot pega.
+
+### 4.12 Custos M7.7
+
+Estimativa: **3-4 dias.**
+- Schema + migration + repo + Zod payload types: 0.5 dia
+- Helper `recordActivity` + ~15 call sites dual-write em código existente: 1 dia
+- IPC broadcast + renderer subscribe: 0.5 dia
+- Página `/activity` com filtros + busca + infinite scroll: 1 dia
+- Testes + i18n + non-regression: 0.5 dia
+
+**Pré-req:** nenhum hard — pode rodar antes ou em paralelo com M7.5/M7.6. Recomendo **antes de M7.6** porque M7.6 vai adicionar muitas mutations (pause, terminate, set_mode, etc) que se beneficiam de já ter helper pronto.
+
+### 4.13 Não-regressão M7.7
+- `issue_events` continua sendo escrita (dual-write, IssueDetailModal não quebra)
+- Inbox flow inalterado
+- Performance: índices cobrem queries comuns; sem N+1 na lista
+- Security suite + smoke test (M6.1) continuam verde
+
+---
+
+## Seção 5 — Plano de milestones
+
+### Ordem recomendada
+
+```
+M7-C (merge pendente — branch m7-pr-c-org-chart)
+    ↓
+M7.5 (foundations — adapter pattern, system prompt composable, migrations 0004-0007)
+    ↓
+M7.7 (activity stream — FOUNDATION; helper recordActivity vira pré-req de M7.6 e M8.5)
+    ↓
+M7.6 (agent studio completion — usa recordActivity em todos seus IPC novos)
+    ↓
+M8  (costs tracking — alimenta cost_summary do activity)
+    ↓
+M8.5 (goals + CEO planning — usa activity pra audit do fluxo de plan)
+    ↓
+M9   (dashboard widgets — consume activity stream pra "Recent Activity")
+    ↓
+M10  (VPS Docker remote adapter)
+```
+
+M7.7 vem antes de M7.6 (apesar do número menor) porque a infra de activity é **foundation que M7.6 reutiliza**. Sem ela, cada IPC novo de M7.6 (pause/terminate/etc) duplicaria lógica de logging.
+
+### 🆕 M7.7 — Activity Stream (foundation)
+**Posição:** depois de M7.5, antes de M7.6. Pode ser feito em paralelo com final do M7.5.
+
+**Escopo:**
+- Schema `activity_events` + 4 índices (Migration M7.7-01)
+- Repositório + helper central `recordActivity()` com Zod payload validation
+- Dual-write em ~15 call sites existentes (issues create/update/assign, agents set*, projects, permissions request/resolve)
+- IPC channel `ACTIVITY_NEW` + broadcast pattern (granular delta, não snapshot)
+- Página `/activity` com filtros (actor/action/entity/agent/data) + search textual + infinite scroll + click-to-navigate + fade-in animation
+- Sidebar item "Activity" entre Inbox e Settings
+- i18n PT-BR + EN-US
+
+**Não-regressão:**
+- `issue_events` continua funcionando (dual-write)
+- Inbox flow inalterado
+- Smoke test M6.1 verde
+- Security suite verde
+- Token budget non-regression
+
+**Custos:** 3-4 dias. **Pré-req:** M7.5 (system prompt composable opcional; pode pular se urgente).
 
 ### 🆕 M7.6 — Agent Studio (completion)
-**Posição:** depois de M7-C (right panel base, IPC core — JÁ ENTREGUE) e M7.5 (foundations). Pode rodar parcialmente em paralelo com M8.
+**Posição:** depois de M7-C (right panel base, IPC core — JÁ ENTREGUE), M7.5 (foundations) e M7.7 (activity helper). Pode rodar parcialmente em paralelo com M8.
 
 **Escopo (delta sobre M7-C):**
 - Header sticky de ações em `/agents/:id` (status badge + Pause + Assign Task + `⋯` menu)
@@ -593,13 +850,18 @@ Paperclip tem `agent.permissions.canCreateAgents`, `canAssignTasks` — concedid
 - Migration 0008: `paused_at`, `terminated_at`, `pause_reason` em `agents`. Status enum (string col) aceita `paused` e `terminated`.
 - Router: ignorar enqueue pra agente paused
 
+**Escopo extra (delta sobre nossa decisão M7.6 + M7.7):**
+- Cada IPC novo (pause/resume/terminate/set-mode/etc) chama `recordActivity()` com action correspondente (`agent.paused`, `agent.terminated`, etc) — sem duplicar lógica de logging
+- Form `/agents/new` grava `agent.hired` no activity
+
 **Não-regressão:**
 - Segurança (token leak, sandbox escape, fence file)
 - M6.1 smoke test continua passando
 - Token budget non-regression (skip-while-zero)
 - Todos os fluxos M7-C continuam (não quebrar ConfigTab atual)
+- `activity_events` recebe N events novos sem regressões em filtros
 
-**Custos:** 4–5 dias. **Pré-req:** M7-C completo (right panel + IPC).
+**Custos:** 4–5 dias. **Pré-req:** M7-C completo (right panel + IPC) + M7.7 (recordActivity helper).
 
 ### 🆕 M8.5 — Goals + CEO Planning
 **Posição:** depois de M8 (cost tracking pra estimates reais).
@@ -620,19 +882,21 @@ Paperclip tem `agent.permissions.canCreateAgents`, `canAssignTasks` — concedid
 - M8 cost tracking não regride
 - Tudo dos M1-M7 continua
 
-**Custos:** 10–12 dias. **Pré-req:** M8 (forte), M7.5 (médio), M7.6 (médio).
+**Custos:** 10–12 dias. **Pré-req:** M8 (forte), M7.5 (médio), M7.6 (médio), M7.7 (logs do fluxo de plan).
 
 ### Roadmap update proposto
 
-Adicionar entre M8 e M9 atuais. M9 e M10 não mudam exceto pra integrar:
-- M9 Reviews UX pode aproveitar `goal_plans` history como modelo pra "PR review" interface (consistência).
-- M9 AGENTS.md export ganha campo `goals` opcional.
+Adicionar 3 milestones nessa ordem: **M7.7 (antes de M7.6) · M7.6 · M8.5 (após M8)**. M9 e M10 não mudam estruturalmente, mas integram:
+- M9 Dashboard widgets ganham **Recent Activity** (consume de `activity_events`) + **Active Agents Panel**
+- M9 Reviews UX aproveita `goal_plans` history como modelo pra "PR review" interface (consistência)
+- M9 AGENTS.md export ganha campo `goals` opcional
+- M10 `vps_audit_events` é coluna específica de VPS — pode escrever em `activity_events` com `entity_kind='session'` (futuro)
 
 ---
 
 ## Decisões consciente NÃO incluídas
 
-Pra não inflar M7.6 e M8.5:
+Pra não inflar M7.6 / M7.7 / M8.5:
 
 | Feature Paperclip | Por que não agora |
 |---|---|
@@ -645,6 +909,14 @@ Pra não inflar M7.6 e M8.5:
 | **CEO auto-approve** (modo `auto` no goal) | V2. V1 sempre humano aprova. |
 | **Goal templates / wizards** | V2. V1 form vazio. |
 | **Manual Run Heartbeat** estilo Paperclip puro | Adaptado pra nossa arch via `agents:wake-up` (mensagem system "manual run requested"). |
+| **Plugin event mapping** (activity dispara plugin event bus) | Sem plugin system (out-of-scope v1). |
+| **Activity username redaction** (`censorUsernameInLogs`) | Single-user; sem usernames de terceiros pra esconder. |
+| **DB-level append-only** (triggers que rejeitam UPDATE/DELETE) | Aplicação-level é suficiente — repository não expõe update/delete. v2 considera trigger se virar multi-user. |
+| **Activity full-text search nativo** (FTS5) | V1 client-side filter cobre. V2 considera se base passar 10k events. |
+| **Heartbeat actions logged** (`heartbeat.invoked/cancelled`) | Nossa arch não tem heartbeat. N/A. |
+| **Routine actions logged** | Routines = v2+. N/A. |
+| **Plugin actions logged** | Plugin = v2+. N/A. |
+| **Cost.recorded per-turn no activity** | Volume alto demais. Grava só `cost.day_summary` (1 row/dia/agente). |
 
 ---
 
@@ -656,6 +928,10 @@ Pra não inflar M7.6 e M8.5:
 4. **Status do goal fica inconsistente** com plan superseded — invariante: goal.status='planning' ⟺ existe goal_plan latest com status='proposed'. Adicionar trigger ou check no repository.
 5. **Sub-goals + plans aninhados** — sub-goal pode ter próprio plan? V1 **sim**, mas sem cascade — cada plan independente. Documentar.
 6. **M7.6 modal vs panel UX** — usuário pode achar modal "pesado" pra Instructions. Mitigação: começar com modal, observar uso, considerar inline drawer em iteração.
+7. **Activity table cresce sem limite** — todo evento, cada agent action, etc. Mitigação inicial: 4 índices cobrem queries comuns; estimativa 1-5k events/semana em uso normal (single-user). Auto-vacuum via débito M5 ("Backup automático diário"). Se passar 100k events, considerar archiving table ou TTL (v2).
+8. **Dual-write `issue_events` + `activity_events`** pode ficar inconsistente se um falhar. Mitigação: chamadas dentro da mesma transaction better-sqlite3. Test verifica que crash entre as duas writes não deixa órfão.
+9. **Action vocabulary cresce desordenado** — cada novo IPC adiciona action sem coordenação. Mitigação: enum centralizado em `packages/shared/src/types/activity.ts` com Zod discriminated union. PR review pega action nova.
+10. **Activity expõe info sensível em payload** — ex: persona edit grava conteúdo no payload, persona pode ter contexto privado. Mitigação: payload é truncated (preview 200 chars) na listagem; detail expande sob click; `gitleaks` no pre-push pega secrets vazados acidentalmente.
 
 ---
 
@@ -666,6 +942,9 @@ Pra não inflar M7.6 e M8.5:
 - `goal_plans.version` incrementa por goal ou globalmente? **Por goal** (mais lógico).
 - Inbox `goal_executing` consume quanto espaço? **Auto-archive após 24h ou status='in_progress'**.
 - CEO pode marcar goal=`achieved` autonomamente quando todas issues vinculadas estão done? **V1 sim, mas pede confirmação humana via inbox `goal_completion_proposed`. V2 modo `auto`.**
+- Activity payload size limit? **Recomendo: 4KB hard cap por payload_json. Logger trunca e adiciona `_truncated: true` flag.** Persona edits muito longas grava só primeiras N chars + length.
+- Activity row click navigation — quando entity foi deletada (ex: issue deletada). **Mostrar tooltip "(deleted)" e desabilitar click.**
+- Real-time animation no `/activity` page (não só Dashboard) — incluir ou só Dashboard? **Incluir; padrão consistente.**
 
 ---
 
@@ -677,6 +956,12 @@ Pra não inflar M7.6 e M8.5:
 - New agent: `ui/src/pages/NewAgent.tsx`
 - Goals schema: `packages/db/src/schema/goals.ts`
 - Goals routes: `server/src/routes/goals.ts`
+- Activity schema: `packages/db/src/schema/activity_log.ts`
+- Activity service: `server/src/services/activity-log.ts` (função `logActivity()`)
+- Activity routes: `GET /companies/{id}/activity`, `GET /issues/{id}/activity`
+- Activity UI: `ui/src/pages/Activity.tsx`
+- Activity types: `packages/shared/src/types/activity.ts`
+- Dashboard UI: `ui/src/pages/Dashboard.tsx` (widgets: Recent Activity, Recent Tasks, Metric Cards, Charts, Active Agents Panel)
 - Goals UI: `ui/src/pages/Goals.tsx`, `GoalDetail.tsx`, `NewGoalDialog.tsx`
 
 ### Nossa codebase
