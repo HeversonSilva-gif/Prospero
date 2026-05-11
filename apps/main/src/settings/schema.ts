@@ -1,10 +1,16 @@
 import { z } from "zod";
-import { DEFAULT_SETTINGS, type AppSettings } from "@dashboard-agent/shared";
+import {
+  DEFAULT_SETTINGS,
+  DEFAULT_CLAUDE_MODEL,
+  MODEL_ID_REGEX,
+  type AppSettings,
+} from "@dashboard-agent/shared";
 
 export const AppSettingsSchema = z.object({
   language: z.enum(["pt-BR", "en-US"]),
   theme: z.enum(["light", "dark"]),
   workspaceCwd: z.string().nullable().default(null),
+  defaultModelForNewAgents: z.string().regex(MODEL_ID_REGEX).default(DEFAULT_CLAUDE_MODEL),
 });
 
 const PartialAppSettingsSchema = AppSettingsSchema.partial();
@@ -16,5 +22,8 @@ export const parseSettings = (raw: unknown): AppSettings => {
   if (result.data.language !== undefined) merged.language = result.data.language;
   if (result.data.theme !== undefined) merged.theme = result.data.theme;
   if (result.data.workspaceCwd !== undefined) merged.workspaceCwd = result.data.workspaceCwd;
+  if (result.data.defaultModelForNewAgents !== undefined) {
+    merged.defaultModelForNewAgents = result.data.defaultModelForNewAgents;
+  }
   return merged;
 };

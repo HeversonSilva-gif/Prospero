@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AppSettingsSchema, parseSettings } from "../src/settings/schema.js";
+import { DEFAULT_CLAUDE_MODEL } from "@dashboard-agent/shared";
 
 describe("settings schema", () => {
   it("accepts valid settings", () => {
@@ -17,7 +18,12 @@ describe("settings schema", () => {
   });
 
   it("parseSettings fills defaults for missing fields", () => {
-    expect(parseSettings({})).toEqual({ language: "pt-BR", theme: "light", workspaceCwd: null });
+    expect(parseSettings({})).toEqual({
+      language: "pt-BR",
+      theme: "light",
+      workspaceCwd: null,
+      defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+    });
   });
 
   it("parseSettings preserves valid partial input", () => {
@@ -25,6 +31,7 @@ describe("settings schema", () => {
       language: "pt-BR",
       theme: "dark",
       workspaceCwd: null,
+      defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
     });
   });
 
@@ -33,6 +40,7 @@ describe("settings schema", () => {
       language: "en-US",
       theme: "light",
       workspaceCwd: null,
+      defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
     });
   });
 
@@ -58,5 +66,43 @@ describe("settings schema", () => {
     const merged = parseSettings({ language: "en-US", theme: "dark" });
     expect(merged.workspaceCwd).toBe(null);
     expect(merged.language).toBe("en-US");
+  });
+});
+
+describe("AppSettingsSchema — defaultModelForNewAgents", () => {
+  it("accepts a valid Claude model id", () => {
+    const out = parseSettings({
+      language: "en-US",
+      theme: "light",
+      workspaceCwd: null,
+      defaultModelForNewAgents: "claude-opus-4-7",
+    });
+    expect(out.defaultModelForNewAgents).toBe("claude-opus-4-7");
+  });
+
+  it("falls back to DEFAULT_CLAUDE_MODEL when missing", () => {
+    const out = parseSettings({ language: "en-US", theme: "light", workspaceCwd: null });
+    expect(out.defaultModelForNewAgents).toBe(DEFAULT_CLAUDE_MODEL);
+  });
+
+  it("rejects model id with shell metacharacters (command injection guard)", () => {
+    const out = parseSettings({
+      language: "en-US",
+      theme: "light",
+      workspaceCwd: null,
+      defaultModelForNewAgents: "claude-sonnet-4-6; rm -rf /",
+    });
+    // Invalid id → falls back to default, not the injected one
+    expect(out.defaultModelForNewAgents).toBe(DEFAULT_CLAUDE_MODEL);
+  });
+
+  it("rejects empty string", () => {
+    const out = parseSettings({
+      language: "en-US",
+      theme: "light",
+      workspaceCwd: null,
+      defaultModelForNewAgents: "",
+    });
+    expect(out.defaultModelForNewAgents).toBe(DEFAULT_CLAUDE_MODEL);
   });
 });
