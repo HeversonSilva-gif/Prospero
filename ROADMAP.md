@@ -5,7 +5,7 @@
 > **Spec base:** [docs/superpowers/specs/2026-05-09-dashboard-agent-design.md](docs/superpowers/specs/2026-05-09-dashboard-agent-design.md)
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
-> **Última atualização:** 2026-05-11 (M7-A PR-A mergeado — `0caa31b`; M7-B PR-B mergeado — `8e8efc7`; **M7-C PR-C pronto pra merge — branch `m7-pr-c-org-chart`**; M7.5 + M10 adicionados após comparação com Paperclip e decisão de hybrid VPS)
+> **Última atualização:** 2026-05-11 (M7-A PR-A mergeado — `0caa31b`; M7-B PR-B mergeado — `8e8efc7`; **M7-C PR-C mergeado — `8b03792`**; M7 fechado; M7.5 + M10 adicionados após comparação com Paperclip e decisão de hybrid VPS)
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 
@@ -14,7 +14,8 @@
 | Métrica | Valor |
 |---|---|
 | Milestones fechados | M1, M2, M3, M4, M5, M6 (6/10 do v1 atualizado: +M7.5 +M10) |
-| Em curso | M7 (PR-A model ✅ · PR-B roles+gate ✅ · PR-C org+panel ✅ pre-merge) |
+| Em curso | — (M7 fechado · próximo: M7.5 adapter foundation) |
+| Milestones fechados (atualizado) | M1, M2, M3, M4, M5, M6, **M7** |
 | Testes | 260 passing, 46 test files, 0 lint/typecheck errors |
 | Commits no master | ~125 |
 | LoC (apps + packages) | ~13k TS/TSX |
@@ -138,7 +139,7 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 
 Sequência sugerida — pode ser ajustada. **Antes de cada um, consultar Paperclip** (`reference_paperclip` memory) pra UX/código.
 
-### ✅ M7 — Org Chart + Skills + Model Selection — **PR-C READY, PR-A/B MERGED**
+### ✅ M7 — Org Chart + Skills + Model Selection — **MERGEADO** (`8b03792`)
 
 **Por que junto:** ambos são views/edits sobre dados que já existem (`reports_to` e `skills_json`). Sem novos backend handlers grandes — UI-heavy.
 
@@ -147,7 +148,7 @@ Sequência sugerida — pode ser ajustada. **Antes de cada um, consultar Papercl
 - **Skills:** manter modelo tag-based (`agents.skills_json` string array). **NÃO** imitar Paperclip code-module + source sync (GitHub/NPM) — fora do nosso threat model. Hard-gate via system prompt + MCP tool whitelist.
 - **Model selection:** preset enum em `packages/shared` + escape "custom". Dropdown mostra **cost hints relativos** (Opus 5× / Sonnet 1× / Haiku 0.2× — referência simbólica). Memory `feedback_token_efficiency` exige aviso ao selecionar Opus pra subagente leve.
 
-- [x] **Org Chart:** — **PR-C 🟢 pronto pra merge — branch `m7-pr-c-org-chart`** (2026-05-11)
+- [x] **Org Chart:** — **PR-C 🟢 mergeado em `8b03792`** (2026-05-11)
   - [x] Rota `/org` com tree visual (SVG handcrafted, zero deps — `layoutTree.ts` puro com 6 tests)
   - [x] CEO no topo, sub-agentes filhos via `reports_to` (orphans viram roots)
   - [x] Click num node abre drawer 320px com info do agente + link pra `/agents/:id`
