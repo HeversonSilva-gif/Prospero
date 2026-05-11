@@ -27,6 +27,7 @@ describe("migration 0003 — roles & model", () => {
     expect(def).toBeDefined();
     expect(def?.type.toUpperCase()).toBe("TEXT");
     expect(def?.notnull).toBe(1);
+    expect(def?.dflt_value).toContain("claude-sonnet-4-6");
   });
 
   it("creates idx_agents_template index", () => {
@@ -38,7 +39,7 @@ describe("migration 0003 — roles & model", () => {
     expect(idx).toBeDefined();
   });
 
-  it("existing agents inserted before migration get the default model on backfill", () => {
+  it("agents inserted without model use the default 'claude-sonnet-4-6'", () => {
     const db = new Database(":memory:");
     applyMigrations(db);
     db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1', 'X', 0)").run();
