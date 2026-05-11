@@ -59,3 +59,38 @@ describe("agents repository", () => {
     expect(agents.getById(a.id)?.claudeSessionId).toBe("sess_123");
   });
 });
+
+describe("AgentsRepository — model field", () => {
+  it("returns model field from rowToAgent (default sonnet)", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1', 'X', 0)").run();
+    const repo = createAgentsRepository(db);
+    const a = repo.create({
+      companyId: "c1",
+      name: "Eng",
+      role: "Engineer",
+      systemPrompt: "engineer system prompt long enough",
+      mode: "supervised",
+      alwaysOn: false,
+    });
+    expect(a.model).toBe("claude-sonnet-4-6");
+  });
+
+  it("accepts model in CreateAgentInput", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1', 'X', 0)").run();
+    const repo = createAgentsRepository(db);
+    const a = repo.create({
+      companyId: "c1",
+      name: "Boss",
+      role: "CEO",
+      systemPrompt: "ceo system prompt long enough",
+      mode: "supervised",
+      alwaysOn: false,
+      model: "claude-opus-4-7",
+    });
+    expect(a.model).toBe("claude-opus-4-7");
+  });
+});
