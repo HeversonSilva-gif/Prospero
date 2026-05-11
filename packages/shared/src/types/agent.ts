@@ -21,4 +21,6 @@ export type Agent = {
   currentAction: string | null;
   allowedProjects: string[];
   model: string;
+  skills: string[];
+  templateId: string | null;
 };
