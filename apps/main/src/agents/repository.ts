@@ -91,7 +91,7 @@ export const createAgentsRepository = (db: Database.Database): AgentsRepository 
         input.systemPrompt,
         input.mode,
         input.alwaysOn ? 1 : 0,
-        input.model ?? DEFAULT_CLAUDE_MODEL,
+        input.model || DEFAULT_CLAUDE_MODEL,
         now,
         now,
       );

@@ -93,4 +93,21 @@ describe("AgentsRepository — model field", () => {
     });
     expect(a.model).toBe("claude-opus-4-7");
   });
+
+  it("falls back to DEFAULT_CLAUDE_MODEL when model is empty string", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1', 'X', 0)").run();
+    const repo = createAgentsRepository(db);
+    const a = repo.create({
+      companyId: "c1",
+      name: "X",
+      role: "X",
+      systemPrompt: "long enough system prompt",
+      mode: "supervised",
+      alwaysOn: false,
+      model: "",
+    });
+    expect(a.model).toBe("claude-sonnet-4-6");
+  });
 });
