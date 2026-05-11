@@ -5,7 +5,8 @@
 > **Spec base:** [docs/superpowers/specs/2026-05-09-dashboard-agent-design.md](docs/superpowers/specs/2026-05-09-dashboard-agent-design.md)
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
-> **Última atualização:** 2026-05-11 (M7-A PR-A mergeado — `0caa31b`; M7-B PR-B mergeado — `8e8efc7`; **M7-C PR-C mergeado — `8b03792`**; M7 fechado; M7.5 + M10 adicionados após comparação com Paperclip e decisão de hybrid VPS)
+> **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
+> **Última atualização:** 2026-05-11 (M7-A PR-A mergeado — `0caa31b`; M7-B PR-B mergeado — `8e8efc7`; M7-C PR-C mergeado — `8b03792`; M7 fechado; **+M7.6 Agent Studio + M7.7 Activity Stream + M8.5 Goals/CEO Planning** adicionados após uso real do Paperclip)
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 
@@ -13,11 +14,10 @@
 
 | Métrica | Valor |
 |---|---|
-| Milestones fechados | M1, M2, M3, M4, M5, M6 (6/10 do v1 atualizado: +M7.5 +M10) |
-| Em curso | — (M7 fechado · próximo: M7.5 adapter foundation) |
-| Milestones fechados (atualizado) | M1, M2, M3, M4, M5, M6, **M7** |
-| Testes | 260 passing, 46 test files, 0 lint/typecheck errors |
-| Commits no master | ~125 |
+| Milestones fechados | M1, M2, M3, M4, M5, M6, **M7** (7/13 do v1: +M7.5 +M7.6 +M7.7 +M8.5 +M10) |
+| Em curso | — (próximo: **M7.7 Activity foundation** seguido de M7.5/M7.6) |
+| Testes | 276 passing, 0 lint/typecheck errors |
+| Commits no master | ~140 |
 | LoC (apps + packages) | ~13k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · vitest |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
@@ -30,16 +30,18 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 
 | Módulo | Status | Notas |
 |---|---|---|
-| **Multi-empresa** | 🟡 Parcial | Backend pronto (`companies` table, `company:create-demo` IPC). UI: dropdown topo da sidebar pra trocar entre empresas **AINDA NÃO**. Sidebar mostra a primeira company por default. |
-| **Dashboard** | 🟡 Stub | Rota `/dashboard` existe (placeholder M2). 4 widgets do spec §6.4 (Agentes Ativos, Issues, Inbox, Custos hoje) **NÃO** implementados. |
-| **Inbox** | ✅ Completo | Rota `/inbox` com filter pills (All/Approvals/Completed/Suggestions/Errors/Security). Approve/Reject inline pra approval items. Auto-mark-read no resolve. Badge unread no sidebar. |
-| **Issues** | ✅ Completo | MCP tools (create/update/assign/list/check_status) reais. Kanban /issues com 5 colunas + drag-drop. Modal de detail com comments + sub-tasks + tool history. Auto-allow consistente com M5. |
+| **Multi-empresa** | 🟡 Parcial | Backend pronto (`companies` table, `company:create-demo` IPC). UI: dropdown topo da sidebar pra trocar entre empresas **AINDA NÃO** (M9). Sidebar mostra a primeira company por default. |
+| **Dashboard** | 🟡 Stub | Rota `/dashboard` existe (placeholder M2). Widgets §6.4 + Recent Activity + Active Agents **NÃO** (M9 consome Activity stream do M7.7). |
+| **Activity stream** | ❌ Não iniciado | Sem tabela unificada. `issue_events` (M6) cobre só issues. Página `/activity` cross-cutting **NÃO** (M7.7 foundation). |
+| **Inbox** | ✅ Completo | Rota `/inbox` com filter pills (All/Approvals/Completed/Suggestions/Errors/Security). Approve/Reject inline. Auto-mark-read no resolve. Badge unread no sidebar. |
+| **Issues** | ✅ Completo | MCP tools (create/update/assign/list/check_status) reais. Kanban /issues com 5 colunas + drag-drop. Modal de detail com comments + sub-tasks + tool history. |
 | **Projects** | ✅ Completo | Rota /projects master/detail com folder picker + color picker. Auto-cria 'Default Workspace' migration do workspaceCwd legado. Allowlist per agent via chip toggle. |
-| **Agents** | 🟡 Parcial | Sidebar lista todos com status colors. Rota `/agents/:id` chat 1-1 com unified cross-thread stream. Rota lista `/agents` com galeria de templates **NÃO** implementada. Right panel (persona/skills/projetos/issues/stats) **NÃO**. |
+| **Agents** | 🟡 Parcial | Sidebar com status colors. `/agents/:id` chat unified + **right panel M7-C** (Config/Issues/Stats tabs) com edit inline de role/model/persona/projects. Faltam: header de ações (Pause/Fire/Assign Task), Runs timeline, mode/always_on/skills toggles, form `/agents/new` (M7.6). |
 | **Org Chart** | ✅ Completo | Rota `/org` SVG handcrafted vertical tree + click drawer + drag-to-reassign + confirm modal + anti-cycle (backend + UI toast). |
-| **Skills** | ❌ Não iniciado | Tabelas `skills_catalog` + `role_templates` existem com seed. Rota `/skills` zerada. Coluna `agents.skills_json` existe mas não tem UI pra editar. |
-| **Costs** | ❌ Não iniciado | Tabela `costs_log` existe. Tracking automático de tokens ainda **NÃO** liga (claude `result.usage` não persistido). Rota `/costs` zerada. |
-| **Settings** | ✅ Completo | OAuth token (manual + auto-detect M2), language, theme. Workspace folder picker removido (link pra /projects). Defaults de mode/always_on **NÃO** UI ainda — só DB defaults. |
+| **Skills** | ✅ Completo (read-only) | Rota `/skills` master-detail (5 roles seedados, tools chips por skill, agentsUsing). Hard-gate via `--allowedTools`. Edit per-agent: M7.6. |
+| **Costs** | ❌ Não iniciado | Tabela `costs_log` existe. Tracking automático **NÃO** liga (M8). Rota `/costs` zerada (M8). |
+| **Goals + CEO Planning** | ❌ Não iniciado | Tabela `goals`/`goal_plans` não existe. Feature além do Paperclip (CEO-planner automático). M8.5. |
+| **Settings** | ✅ Completo | OAuth token (manual + auto-detect M2), language, theme, default model. Defaults de mode/always_on **NÃO** UI ainda — M9. |
 
 ---
 
@@ -135,9 +137,31 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 
 ---
 
-## Pendências da v1 (próximos milestones)
+## Sequência de milestones (v1)
 
-Sequência sugerida — pode ser ajustada. **Antes de cada um, consultar Paperclip** (`reference_paperclip` memory) pra UX/código.
+**Ordem recomendada:**
+
+```
+M1–M6 ✅ · M7 ✅ MERGED
+  ↓
+M7.5 (foundations — adapter pattern, migrations 0004-0007)
+  ↓
+M7.7 (Activity Stream — FOUNDATION; helper pré-req de M7.6 e M8.5)
+  ↓
+M7.6 (Agent Studio — completion sobre M7-C)
+  ↓
+M8  (Costs UI + Token Tracking)
+  ↓
+M8.5 (Goals + CEO Planning — feature além do Paperclip)
+  ↓
+M9  (Dashboard + Multi-empresa + Reviews UX + API key)
+  ↓
+M10 (VPS Docker Remote Adapter)
+```
+
+**Antes de cada milestone, consultar Paperclip** (`reference_paperclip` memory) pra UX/código.
+
+---
 
 ### ✅ M7 — Org Chart + Skills + Model Selection — **MERGEADO** (`8b03792`)
 
@@ -264,6 +288,139 @@ Sequência sugerida — pode ser ajustada. **Antes de cada um, consultar Papercl
 
 ---
 
+### 🆕 M7.7 — Activity Stream — **foundation pra M7.6/M8/M8.5**
+
+**Origem:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md §4](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md). Print do user mostrou que o Paperclip oferece "visão e controle do todo" via `/activity` cross-cutting — único surface da sidebar COMPANY que não temos equivalente.
+
+**Por que antes do M7.6 apesar do número:** infra do `recordActivity()` vira pré-req de TODO IPC novo que M7.6 introduz (pause/terminate/set-mode/etc). Sem ela, cada novo IPC duplica lógica de logging.
+
+**Decisão arquitetural:**
+- **Tabela única `activity_events`** unificada — mas `issue_events` e `inbox_items` existentes **continuam** (dual-write consciente; não migrar dados). Volume cost: `cost.day_summary` (1 row/dia/agente) em vez de `cost.recorded` per-turn.
+- **Helper central `recordActivity()`** com Zod payload validation chamado de toda mutation.
+- **Distinção clara Activity ↔ Inbox:** Activity = imutável append-only history. Inbox = mutável work surface. Approval triggers ambos.
+
+#### Schema & helper
+
+- [ ] **Migration M7.7-01 — `activity_events`**:
+  - Colunas: `id, company_id, actor_kind ('user'|'agent'|'system'), actor_id, action, entity_kind, entity_id, agent_id (denorm), payload_json, created_at`
+  - 4 índices: `(company, time desc)`, `(entity_kind, entity_id)`, `(agent, time desc)`, `(action)`
+  - Sem FK em entity_id por design — preserva audit quando entidade deletada
+- [ ] **`apps/main/src/activity/recorder.ts`** — helper `recordActivity({companyId, actor, action, entityKind, entityId, payload})` que valida payload via Zod + escreve row + broadcasts `ACTIVITY_NEW`
+- [ ] **`packages/shared/src/types/activity.ts`** — enum `ActivityAction` (~30 actions v1: `agent.*` 10, `issue.*` 5, `approval.*` 3, `project.*` 3, `goal.*` 4 (defer M8.5), `session.*`/`cost.day_summary` 3, `company.*` 2). Discriminated union de payloads por action.
+- [ ] **Dual-write em ~15 call sites** existentes:
+  - `agents/repository.ts` setModel/setRole/setSystemPrompt/setReportsTo (M7-C handlers)
+  - `issues/repository.ts` create/updateStatus/assignIssue (dual com `issue_events`)
+  - `projects/repository.ts` create/update/delete
+  - `mcp/tools/*` (hire_agent, fire_agent)
+  - `permissions/service.ts` request/resolve
+
+#### IPC + real-time
+
+- [ ] **Novo channel `ACTIVITY_NEW`** em `packages/shared/src/ipc-channels.ts`
+- [ ] **Broadcast pattern** igual `AGENT_EVENT` (M5): `BrowserWindow.webContents.send` com payload do evento
+- [ ] **Granular delta**, não snapshot completo — alinha com refactor de M7.5
+
+#### UI — Página `/activity`
+
+- [ ] **Rota `apps/renderer/src/routes/Activity.tsx`** (nova)
+- [ ] **Sidebar item "Activity"** entre Inbox e Settings
+- [ ] **Layout:** flat list desc por `created_at`, infinite scroll (50/chunk)
+- [ ] **Filtros:** actor_kind, action, entity_kind, agent_id, date range
+- [ ] **Search textual** client-side (FTS5 fica v2)
+- [ ] **Click numa entry** → navega pra entity (issue → IssueDetailModal, agent → `/agents/:id`, etc). Entity deletada: tooltip "(deleted)" + click disabled.
+- [ ] **Real-time:** subscribe `ACTIVITY_NEW` → prepend com fade-in animation 700ms
+- [ ] **Payload truncate** 4KB hard cap + 200 chars preview na listagem
+- [ ] **i18n PT-BR + EN-US**
+
+#### Não-regressão
+
+- [ ] `issue_events` continua funcionando (IssueDetailModal não quebra)
+- [ ] Inbox flow inalterado
+- [ ] Smoke test M6.1 verde
+- [ ] Security suite verde
+- [ ] Token budget non-regression
+
+**Custos:** 3-4 dias. **Pré-req:** nenhum hard. **Recomendo antes de M7.6** porque M7.6 vai querer logar pause/terminate/etc desde o primeiro dia.
+
+---
+
+### 🆕 M7.6 — Agent Studio — completion sobre M7-C
+
+**Origem:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md §1](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md). Completa a liberdade de mexer no agente direto pela UI (M7-C entregou base; faltam ações stateful + alguns toggles + form de criação + Runs timeline).
+
+**Decisão arquitetural:**
+- **Layout chat-first híbrido** (NÃO Paperclip 1:1 com 6 tabs). Chat segue centro, right panel já existe (M7-C), header sticky novo com ações, modal full-screen pra Runs.
+- **Pause como status formal** (retomável) ≠ Terminate (soft-delete, status='terminated', histórico preserva).
+- **Form `/agents/new` paralelo a `hire_agent` MCP** — ambos caminhos coexistem (UI direta + CEO orquestra).
+- **`recordActivity()`** chamado em cada novo IPC desde o dia 1 (pré-req M7.7).
+
+#### Header sticky de ações em `/agents/:id`
+
+- [ ] **Status badge** (idle/thinking/working/waiting/error/**paused**/terminated) com `currentAction` text
+- [ ] **`▶ Pause` toggle** — chama `agents:pause` ou `agents:resume`. Quando paused: badge muda, ícone `⏸`.
+- [ ] **`+ Assign Task` button** — abre `IssueCreateModal` pré-preenchido com `assignee_agent_id = current`
+- [ ] **`⋯` overflow menu**: Copy Agent ID, Reset Session (limpa `--resume` checkpoint), **Terminate** (confirm modal)
+
+#### Completar ConfigTab (M7-C base)
+
+- [ ] **Reports to dropdown** (lista agents da company exceto si próprio + descendentes) — IPC `agents:set-reports-to` já existe (M7-C); só wire UI
+- [ ] **Mode** (radio supervised | auto) — **novo** IPC `agents:set-mode` + handler + repo method
+- [ ] **Always-on** (switch) — **novo** IPC `agents:set-always-on` + handler + repo method
+- [ ] **Skills** (checkboxes com required/optional segregadas) — **novo** IPC `agents:set-skills` + handler + repo method
+
+#### Schedule sub-section
+
+- [ ] **Always-on switch** (duplica Config; user-friendly aqui)
+- [ ] **Manual trigger button** = `agents:wake-up(id, reason)` — força um turn no chat com system message "User requested manual run". Adapta Paperclip `Run Heartbeat` à nossa arch streaming.
+
+#### Runs modal full-screen
+
+- [ ] **`apps/renderer/src/components/AgentRunsModal.tsx`** (novo)
+- [ ] Timeline derivada de `messages` (`role='assistant'` + tool calls)
+- [ ] Por run: timestamp · trigger · tools chamadas · tokens (deps M8) · duração · status
+- [ ] Filtros: date range, trigger source, status
+- [ ] Botão "Reset session" inline
+
+#### Form `/agents/new`
+
+- [ ] **Rota `apps/renderer/src/routes/AgentNew.tsx`** (nova)
+- [ ] Form: name (required) · role template (gallery) · title · reports_to · model · mode · persona (textarea) · skills (checkboxes) · allowed_projects (chips)
+- [ ] Submit → IPC `agents:hire-from-ui` → mesma trans do `hire_agent` MCP (reusa código)
+
+#### IPCs novos (todos gravam em `activity_events` via M7.7 helper)
+
+- [ ] `agents:set-mode`
+- [ ] `agents:set-always-on`
+- [ ] `agents:set-skills`
+- [ ] `agents:pause` / `agents:resume`
+- [ ] `agents:terminate`
+- [ ] `agents:wake-up`
+- [ ] `agents:reset-session`
+- [ ] `agents:hire-from-ui`
+
+#### Schema & lifecycle
+
+- [ ] **Migration 0008** — `agents.paused_at`, `agents.terminated_at`, `agents.pause_reason` (INTEGER, INTEGER, TEXT NULL)
+- [ ] **Status enum** (string col SQLite) aceita `paused` e `terminated`
+- [ ] **Router**: ignorar enqueue pra agente paused (mensagens ficam em backlog até resume)
+- [ ] **Lifecycle**: terminated → processo killed, row preservada (soft delete), UI esconde de listas default
+
+#### i18n
+
+- [ ] Cada string nova em PT-BR + EN-US — regra dura
+
+#### Não-regressão
+
+- [ ] Segurança (token leak, sandbox escape, fence file)
+- [ ] M6.1 smoke test continua passando
+- [ ] Token budget non-regression
+- [ ] Todos os fluxos M7-C continuam (não quebrar ConfigTab existente)
+- [ ] Activity stream recebe N events novos sem regressões em filtros
+
+**Custos:** 4-5 dias. **Pré-req:** M7-C ✅ + M7.7 (`recordActivity` helper).
+
+---
+
 ### 🔄 M8 — Costs UI + Token Tracking
 
 **Decisão arquitetural (após Paperclip comparison):**
@@ -283,16 +440,120 @@ Sequência sugerida — pode ser ajustada. **Antes de cada um, consultar Papercl
   - [ ] Widget "Custos hoje" no Dashboard (alimenta o §6.4 Dashboard widget)
   - [ ] Cost hints relativos no model dropdown (M7a) — usar dados reais quando houver, simbólico caso contrário
 - [ ] **Não-regressão:** spec §10.3 hard limit ≤1.3x do baseline
+- [ ] **Activity events:** `cost.day_summary` (1 row/dia/agente) gravado via `recordActivity` do M7.7 — NÃO per-turn (volume alto)
+
+---
+
+### 🆕 M8.5 — Goals + CEO Planning — **feature além do Paperclip**
+
+**Origem:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md §2](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md). User cria Goal → clica "Ask CEO to plan" → CEO lê e propõe **plano estruturado** (agents a contratar, issues a criar, estimates de tempo/tokens/custo, riscos) → user aprova em **PR-review UI** → executor atômico cria agents+issues.
+
+**Por que evolução além do Paperclip:** lá Goals são puramente declarativos (CRUD). O CEO-planner automático é nosso diferencial — combina Goals + agentic planning + approval gate.
+
+**Decisão arquitetural:**
+- **Entidade separada** `goals` + `goal_plans` (versionado) — NÃO `issues.kind='goal'`. Plano estruturado em JSON permite include/exclude checkboxes, re-propose (v2), edit-before-approve (v2).
+- **PR-review approval-style** (humano sempre aprova v1). Auto-execute = v2.
+- **Sub-goals + hierarquia** via `parent_goal_id` (igual Paperclip). Cascade explícito = v2.
+- **Plan inline-edit** (texto) = v2; v1 só include/exclude.
+- **Goal budget** grava `budget_max_tokens` mas enforcement aproveita hook do M8 (não duplica).
+
+#### Schema (Migration M8.5-01, numeração após M8)
+
+- [ ] **`goals`**: id, company_id, title, description, level ('company'|'team'|'agent'|'task'), status ('draft'|'planning'|'proposed'|'approved'|'in_progress'|'achieved'|'cancelled'), parent_goal_id (self-FK), owner_agent_id, budget_max_tokens, deadline, success_criteria, created_at, updated_at
+- [ ] **`goal_plans`**: id, goal_id, version, proposed_by_agent_id, summary, agents_to_hire_json, issues_to_create_json, estimated_total_tokens, estimated_duration_days, estimated_cost_cents, risks_json, status ('proposed'|'approved'|'rejected'|'superseded'), user_feedback, proposed_at, decided_at, decided_by
+- [ ] **`issues.goal_id`** (FK opcional)
+- [ ] Índices: `(company)`, `(parent_goal_id)`, `(status)`, `(goal_id, version)` unique
+
+#### MCP tools novas (5)
+
+- [ ] `list_goals(company_id?, status?)` → Goal[]
+- [ ] `get_goal(id)` → Goal + `{current_plan: GoalPlan | null}`
+- [ ] `submit_goal_plan(goal_id, plan_data)` → `{plan_id, version}`. Valida via Zod (rejeita index dangling, deps cyclic, model fora dos presets).
+- [ ] `update_goal_status(id, status, reason?)` → Goal
+- [ ] `record_subgoal(parent_id, ...)` → Goal (atalho — CEO cria sub-goals durante exec)
+
+#### System prompt CEO
+
+- [ ] **Bloco "Goals & Planning"** plug no `composeSystemPrompt` (foundation M7.5):
+  - Como ler GOAL_PLAN_REQUEST
+  - Como decompor em agents/issues
+  - Como estimar custos baseado em histórico (`list_recent_costs` ou similar de M8)
+  - Como identificar riscos
+  - **NÃO chamar `hire_agent`/`create_issue` diretamente** — só `submit_goal_plan`. Execução fica gated pelo user.
+
+#### Fluxo end-to-end (backend)
+
+- [ ] **Goal created** (`status='draft'`) → sem plano
+- [ ] **User clica "Ask CEO to plan"** → status `'planning'` + orchestrator delivery especial pro CEO: system message `"GOAL_PLAN_REQUEST: ..."`
+- [ ] **CEO chama `submit_goal_plan`** → INSERT em `goal_plans` v1 + status='proposed' + inbox kind `goal_proposed`
+- [ ] **User clica Approve** → executor atômico (better-sqlite3 trans): cria agents (resolvendo `reports_to_index`) + cria issues (resolvendo `assignee` e `depends_on`) + status='in_progress'. CEO recebe confirm message.
+- [ ] **User clica Request Changes** → modal text feedback → plan atual status='superseded', goal status='planning', CEO recebe feedback, espera v2
+- [ ] **User clica Reject** → goal status='cancelled', plan status='rejected'
+
+#### UI
+
+- [ ] **Rota `/goals`** — tree view recursiva (parent → children), status badges, button "New Goal"
+- [ ] **Rota `/goals/:id`** — header (title edit inline, status, level, deadline, owner), description (markdown render+edit), properties panel, tabs:
+  - **Plan** — `GoalPlanReview` ou button "Ask CEO to plan"
+  - **Sub-goals** — tree de children
+  - **Linked issues** — `WHERE goal_id = this`
+  - **History** — versões anteriores de plans (superseded/rejected) read-only
+- [ ] **`GoalPlanReview` component** — PR-review UI:
+  - Summary card (markdown rendered)
+  - Agents to hire — lista de cards (avatar/role/model/persona/skills/rationale) com checkbox "include"
+  - Issues to create — lista de cards (title/priority/description/assignee/depends-on visual/rationale/estimated_tokens) com checkbox "include"
+  - Estimates panel sticky (tokens, USD/BRL via M8 rate, dias, % budget Max)
+  - Risks accordion
+  - Buttons: `Approve & Execute` / `Request Changes` / `Reject`
+
+#### Inbox kinds novos
+
+- [ ] `goal_proposed` — CEO submeteu plano (actionable)
+- [ ] `goal_executing` — user aprovou, execução começou (auto-archive 24h ou status='in_progress')
+- [ ] `goal_blocked` — execução falhou parcialmente (rollback)
+
+#### Activity events novos (consume M7.7 helper)
+
+- [ ] `goal.created`, `goal.plan_proposed`, `goal.plan_approved`, `goal.plan_rejected`, `goal.status_changed`, `goal.cancelled`
+
+#### Erros & edge cases
+
+- [ ] **Executor parcial:** trans atômica resolve. Rollback completo + inbox `goal_blocked` com detail.
+- [ ] **`submit_goal_plan` sem GOAL_PLAN_REQUEST:** tool valida `goal.status='planning'` antes. Erro se diferente.
+- [ ] **Sub-goal com parent cancelled:** v1 não cascateia (warning UI). v2 cascade.
+- [ ] **Plan version > 1:** versão anterior `superseded`, history tab mostra. Não deleta.
+
+#### Testes
+
+- [ ] Unit: schema validation Zod do plan payload (exhaustive cases)
+- [ ] Unit: resolver de `reports_to_index` e `depends_on_indexes`
+- [ ] Integration: GOAL_PLAN_REQUEST → CEO turn → `submit_goal_plan` → DB row
+- [ ] Integration: approve flow → agents+issues criados atomic
+- [ ] Integration: request-changes flow → versão nova
+- [ ] Integration: rollback em partial failure
+- [ ] E2E (Playwright): user cria goal → ask CEO → approve → vê agents na sidebar + issues no kanban
+
+#### Não-regressão
+
+- [ ] M7.6 actions continuam funcionando
+- [ ] M8 cost tracking não regride
+- [ ] Tudo dos M1-M7 continua
+
+**Custos:** 10-12 dias. **Pré-req:** M8 (forte, estimates reais), M7.5 (médio, system prompt composable), M7.6 (médio, `agents:hire-from-ui` reusado pelo executor), M7.7 (logs do fluxo de plan).
+
+---
 
 ### 🔄 M9 — Dashboard + Multi-empresa + Polish + Reviews UX + API key (2º adapter)
 
 Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundation do M7.5** (adapter pattern, approvals decoupled, system prompt composable).
 
-- [ ] **Dashboard widgets:**
+- [ ] **Dashboard widgets:** (consume Activity stream do M7.7)
   - [ ] Agentes Ativos (count + lista mini)
   - [ ] Issues em Andamento (count Doing+Review por project)
   - [ ] Inbox unread (count + último item)
-  - [ ] Custos Hoje (tokens + % Max)
+  - [ ] Custos Hoje (tokens + % Max — alimenta de M8)
+  - [ ] **Recent Activity** (últimos 10 eventos de `activity_events` com fade-in animation)
+  - [ ] **Active Agents Panel** (per-agent status com `currentAction` granular do M7.5)
 - [ ] **Multi-empresa:**
   - [ ] Dropdown topo da sidebar pra trocar de company
   - [ ] Criar nova empresa (modal com nome)
@@ -338,7 +599,7 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
   - [ ] Diff side-by-side via `react-diff-viewer-continued` (battle-tested)
   - [ ] Inline comments no diff (linka a `approval_comments` ou similar)
   - [ ] Status="review" já existe no M6 — esse milestone polish UX + plug no `approvals` schema
-- [ ] **Right panel `/agents/:id`** — decisão design via frontend-design skill antes de codar (full page vs side panel)
+- [ ] **Right panel `/agents/:id`** — ✅ entregue M7-C + completion em M7.6 (header + ações + faltantes)
 - [ ] **AGENTS.md formato próprio (YAML front-matter)** — `gray-matter` parser:
   ```yaml
   ---
@@ -497,16 +758,23 @@ Mapeamento de cada item da wishlist do [Paperclip](https://github.com/paperclipa
 |---|---|---|
 | **Desktop App** | ✅ Pronto | M1 (Electron) |
 | **CEO Chat** | ✅ Pronto | M3 (chat 1-1) + M5 (multi-agente real) |
-| **Skills Manager** | 🔄 Em curso | M7 — UI cards + skills_json drag-drop. **Não imitar code-module/source-sync** (fora do threat model) |
+| **Org chart hierarchy** | ✅ Pronto | M7-C — SVG handcrafted client-side + drag-to-reassign + anti-cycle |
+| **Skills Manager** | ✅ Pronto (read-only) | M7-B — UI cards + hard-gate via `--allowedTools`. Edit per-agent: M7.6. **Não imitar code-module/source-sync** (fora do threat model) |
+| **Agent config UI (model/persona/projects)** | ✅ Pronto | M7-C right panel — edit inline com debounced save |
+| **Pause/Terminate/Assign Task** | 🆕 Planejado | M7.6 — header de ações em `/agents/:id` |
+| **Form de criar agente direto pela UI** | 🆕 Planejado | M7.6 — `/agents/new` paralelo ao `hire_agent` MCP |
+| **Activity stream (`/activity` cross-cutting)** | 🆕 Planejado | M7.7 — `activity_events` table + página + helper central. **Diferencial nosso:** dual-write com `issue_events`/`inbox` (não migrar dados) |
 | **Better Budgeting** | 🔄 Planejado | M8 (token tracking + % Max + por agente/projeto/adapter) |
-| **Scheduled Routines** | 🆕 v2+ | Routines — cron-like recurring tasks |
-| **Cloud / Sandbox agents** | 🟡 Parcial v1 + v2 | **M10 absorve parte**: VPS Docker remote adapter (isolamento de processo). v2 adiciona Cursor, Codex, e2b providers. |
+| **Goals + CEO planning automático** | 🆕 Planejado | **M8.5 — evolução além do Paperclip.** Lá goals são declarativos; nosso CEO **propõe plano completo** (agents+issues+estimates+riscos) → user aprova em PR-review |
+| **Cloud / Sandbox agents** | 🟡 Parcial v1 + v2 | **M10 absorve parte**: VPS Docker remote adapter. v2 adiciona Cursor, Codex, e2b providers |
 | **Easy AGENTS.md configurations** | 🔄 M9 | Format próprio (YAML front-matter) com `gray-matter` parser |
 | **companies.sh — import/export** | 🔄 M9 | JSON único (não ZIP) — DB menor que Paperclip |
 | **Agent Reviews and Approvals** | 🔄 M7.5 + M9 | M7.5: schema `approvals` decoupled. M9: PR-style diff side-by-side + inline comments |
-| **Work Products / Artifacts** | 🔄 M7.5 | Tabela `issue_artifacts` (kind: file_path, commit_sha, pr_url, snapshot) — adoção early via comparação Paperclip |
-| **Org chart hierarchy** | 🔄 M7 | SVG handcrafted client-side. **Não usar React Flow/D3** (overkill pra read-mostly tree) |
+| **Work Products / Artifacts** | 🔄 M7.5 | Tabela `issue_artifacts` (kind: file_path, commit_sha, pr_url, snapshot) |
 | **Issue identifier humano** (`PRJ-123`) | 🔄 M7.5 | Migration 0004 — UX win trivial |
+| **Dashboard rico** (Recent Activity + Active Agents + Metric Cards) | 🔄 M9 | Consome `activity_events` do M7.7 |
+| **Runs timeline por agente** | 🆕 Planejado | M7.6 — modal full-screen derivado de `messages` |
+| **Scheduled Routines** | 🆕 v2+ | Routines — cron-like recurring tasks |
 | **Plugin system** | 🆕 v2+ | Knowledge base / custom tracing / queues como sub-features. Big architectural change |
 | **Get OpenClaw / claw-style agent employees** | 🆕 v2+ | Marketplace/template-store de agent personas (extensão do `role_templates`) |
 | **Memory / Knowledge** | 🆕 v2+ | Knowledge base por agente (RAG-style). Vector DB ou sqlite-vss |
@@ -514,13 +782,21 @@ Mapeamento de cada item da wishlist do [Paperclip](https://github.com/paperclipa
 | **Deep Planning** | 🆕 v2+ | Plan-mode estendido (claude já tem `--permission-mode plan`) |
 | **MAXIMIZER MODE** | 🆕 v2+ | Aggressive auto mode — requer API key opcional (Max não cobre) |
 | **Work Queues** | 🆕 v2+ | Queue-based task processing (distinto de issues). Aproveita router FIFO |
+| **Plan inline-edit (texto)** antes de approve | 🆕 v2 | M8.5 v1 só include/exclude. Edit texto = v2 |
+| **CEO auto-approve goal plans** | 🆕 v2 | M8.5 v1 sempre humano aprova. Auto-mode = v2 |
 | **Self-Organization** | 🆕 v3+ | Agentes reorganizando hierarquia entre si dinamicamente |
 | **Automatic Organizational Learning** | 🆕 v3+ | Meta-feature: agentes aprendem de history |
-| **Multiple Human Users** | ❌ Out-of-scope | Single-user explícito por ToS Anthropic Max |
-| **Cloud deployments (UI na cloud)** | ❌ Out-of-scope | Mantemos Electron desktop como UI. **Hybrid VPS via M10** cobre o "agente na cloud" sem virar web app. |
-| **Plugin sandbox providers** (e2b, Cloudflare, Daytona) | ❌ v3+ | Adapter remoto Docker do M10 já entrega isolamento. Outros providers só se feedback pedir. |
+| **Activity full-text search (FTS5)** | 🆕 v2 | M7.7 v1 client-side filter. FTS5 só se base passar 10k events |
 | **Skill source sync** (GitHub/NPM download) | ❌ Out-of-scope | Threat model: download/execução de código remoto. Memory `feedback_security_priority` |
-| **Embedded Postgres** | ❌ Não fazer | sqlite serve perfeitamente desktop. Custaria semanas e zero valor. |
+| **Plugin sandbox providers** (e2b, Cloudflare, Daytona) | ❌ v3+ | Adapter remoto Docker do M10 já entrega isolamento. Outros providers só se feedback pedir |
+| **Multiple Human Users** | ❌ Out-of-scope | Single-user explícito por ToS Anthropic Max |
+| **Cloud deployments (UI na cloud)** | ❌ Out-of-scope | Mantemos Electron desktop como UI. **Hybrid VPS via M10** cobre o "agente na cloud" sem virar web app |
+| **Embedded Postgres** | ❌ Não fazer | sqlite serve perfeitamente desktop. Custaria semanas e zero valor |
+| **Plugin event mapping** (activity → plugin bus) | ❌ Out-of-scope | Sem plugin system v1 |
+| **Username redaction em logs** | ❌ Out-of-scope | Single-user; sem usernames terceiros pra esconder |
+| **Instructions com file tree** (múltiplos arquivos) | ❌ V2 | M7.6 MVP é single markdown |
+| **Goal templates / wizards** | ❌ V2 | M8.5 form vazio |
+| **Sub-goal cascading** (cancel parent → cascade children) | ❌ V2 | M8.5 v1 warning UI |
 
 **Como decidir incluir ou não no v1:**
 - Item marca o produto como "diferenciado" do CEO Chat puro? → considerar pra v1
@@ -537,7 +813,8 @@ Tudo daqui pra baixo é post-v1. Organizado por tema. Origens marcadas com [PC] 
 ### Multi-agente avançado
 
 - **Routines** [PC] — tasks recorrentes (cron-like) atribuídas a agentes
-- **Goals** [PC] — objetivos longos que se decompõem em issues
+- ~~**Goals** [PC]~~ — **movido pra v1 M8.5** (Goals + CEO planning automático)
+- **Goal v2 extensions** [PC + novo] — plan inline-edit (texto), CEO auto-approve mode, goal templates/wizards, sub-goal cascading
 - **Issue relations** [PC] — depends_on / related_to / blocks
 - **Issue monitors** [PC] — auto-recheck em schedule
 - **`issue.kind`** [PC] — task | review | spike (reduzir overload do status)
@@ -581,10 +858,14 @@ Tudo daqui pra baixo é post-v1. Organizado por tema. Origens marcadas com [PC] 
 - **CSP restritivo no renderer** [M5] — auditoria pendente
 - **`--strict-permissions`** [M5] — adotar se Claude Code adicionar
 
-### Inbox / Notifications
+### Inbox / Notifications / Activity
 
 - **Pagination da inbox** [PC] — quando crescer >1000 itens
 - **Archive de inbox/issues** [novo] — soft-delete + restore
+- **Activity FTS5** [PC + novo] — full-text search nativo SQLite. Só se base passar 10k events; client-side filter cobre v1.
+- **Activity archiving / TTL** [novo] — quando passar 100k events, archive ou TTL.
+- **Global Cmd+K bar** [novo] — search cross-entity (activities + issues + messages + agents). Lib `cmdk`.
+- **Plugin event mapping** [PC] — activity dispara plugin bus quando plugin system entrar (v2+)
 
 ### UX polish
 
