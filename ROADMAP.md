@@ -4,17 +4,22 @@
 >
 > **Spec base:** [docs/superpowers/specs/2026-05-09-dashboard-agent-design.md](docs/superpowers/specs/2026-05-09-dashboard-agent-design.md)
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
-> **Última atualização:** 2026-05-11 (M7-A PR-A in progress — model selection scaffolded on `worktree-m7a-model-selection`)
+> **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
+> **Última atualização:** 2026-05-11 (M7-A PR-A mergeado — `0caa31b`; M7-B/C em curso; M7.5 + M10 adicionados após comparação com Paperclip e decisão de hybrid VPS)
+>
+> **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 
 ## Status atual
 
 | Métrica | Valor |
 |---|---|
-| Milestones fechados | M1, M2, M3, M4, M5, M6 (6/8 do v1 plano original) |
-| Testes | 205 passing, 38 test files, 0 lint/typecheck errors (master) · M7-A PR-A scaffolded on worktree |
-| Commits no master | ~95 |
+| Milestones fechados | M1, M2, M3, M4, M5, M6 (6/10 do v1 atualizado: +M7.5 +M10) |
+| Em curso | M7 (PR-A model selection ✅ mergeado · PR-B roles+gate · PR-C org+panel) |
+| Testes | 208 passing, 39 test files, 0 lint/typecheck errors |
+| Commits no master | ~112 |
 | LoC (apps + packages) | ~13k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · vitest |
+| Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
 
 ---
 
@@ -133,9 +138,14 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 
 Sequência sugerida — pode ser ajustada. **Antes de cada um, consultar Paperclip** (`reference_paperclip` memory) pra UX/código.
 
-### 🔄 M7 — Org Chart + Skills
+### 🔄 M7 — Org Chart + Skills + Model Selection — **EM CURSO**
 
 **Por que junto:** ambos são views/edits sobre dados que já existem (`reports_to` e `skills_json`). Sem novos backend handlers grandes — UI-heavy.
+
+**Decisão arquitetural (após Paperclip comparison):**
+- **Org Chart:** SVG handcrafted no client, não React Flow nem D3. ~300 linhas, zero deps. Razão: Paperclip faz server-side com 5 temas; pra nós, SVG no DOM é suficiente, controle total, fácil estender com transitions CSS. ([docs/paperclip-comparison.md §13](docs/paperclip-comparison.md))
+- **Skills:** manter modelo tag-based (`agents.skills_json` string array). **NÃO** imitar Paperclip code-module + source sync (GitHub/NPM) — fora do nosso threat model. Hard-gate via system prompt + MCP tool whitelist.
+- **Model selection:** preset enum em `packages/shared` + escape "custom". Dropdown mostra **cost hints relativos** (Opus 5× / Sonnet 1× / Haiku 0.2× — referência simbólica). Memory `feedback_token_efficiency` exige aviso ao selecionar Opus pra subagente leve.
 
 - [ ] **Org Chart:**
   - [ ] Rota `/org` com tree visual (D3 ou React Flow ou simples SVG)
@@ -147,31 +157,133 @@ Sequência sugerida — pode ser ajustada. **Antes de cada um, consultar Papercl
   - [ ] Em `/agents/:id` right panel: campo "Skills" mostrando `skills_json` atual + drag-drop pra adicionar/remover
   - [ ] Aplicação real: agente só pode chamar tools listadas em skills (gate hook)
   - [ ] Templates de role (`role_templates` tabela) usados como starting skills no hire_agent
-- [ ] **Seleção de modelo por agente** ⚡ urgente — **PR-A 🟡 ready for merge** (branch `worktree-m7a-model-selection`):
-  - [x] Adicionar coluna `agents.model` (TEXT, default `claude-sonnet-4-6`) via migration 0003 + `role_templates.default_model`
-  - [ ] Right panel em `/agents/:id`: dropdown com presets (Opus 4.7, Sonnet 4.6, Haiku 4.5) + "custom model id" — **defer to PR-C**
+- [x] **Seleção de modelo por agente** ⚡ urgente — **PR-A 🟢 mergeado em `0caa31b`** (2026-05-11):
+  - [x] Adicionar coluna `agents.model` (TEXT, default `claude-sonnet-4-6`) via migration 0003 + `role_templates.default_model` + index
+  - [ ] Right panel em `/agents/:id`: dropdown com presets — **defer pra PR-C** (precisa do right panel; spec atual atribui isso ao M7-C)
   - [x] `lifecycle.ts buildClaudeArgs`: passar `--model <agent.model>` no spawn
-  - [ ] MCP tool `hire_agent`: aceitar `model` param opcional explícito — **defer to PR-B** (PR-A: reads `settings.defaultModelForNewAgents` as the default)
-  - [x] Settings: campo "Default model for new agents" (dropdown presets + custom + regex injection guard)
-  - [ ] Considerar custo: Opus pra CEO/Architect, Sonnet pra engenheiros, Haiku pra agentes simples (memory: tokens não podem inflar) — aplicado nos defaults de role em PR-B
+  - [ ] MCP tool `hire_agent`: aceitar `model` param opcional explícito — **defer pra PR-B** (PR-A lê `settings.defaultModelForNewAgents` como default global)
+  - [x] Settings: campo "Default model for new agents" (dropdown presets + custom + regex injection guard, i18n en+ptBR)
+  - [ ] Considerar custo por role: aplicado nos defaults de role em PR-B (Opus pra CEO, Sonnet engineers, Haiku simples)
 - [ ] **Não-regressão:** segurança, tokens, suite
+
+---
+
+### 🆕 M7.5 — Foundations & Paperclip Refactors
+
+**Origem:** itens 🔴 (alta prioridade) e parte dos 🟡 da [Paperclip comparison](docs/paperclip-comparison.md). Refatorações estruturais e melhorias UX/governança que preparam M8/M9/M10 — especialmente o **adapter pattern**, que é pré-requisito do API key (M9) e do VPS Docker remote (M10).
+
+**Por que existe:** sem essa pausa de foundation, M8/M9/M10 vão inflar `lifecycle.ts` (já 383 linhas) e `mcp/tools.ts` (502 linhas) até virarem o `heartbeat.ts` do Paperclip (9.8K linhas). Custo total estimado: ~2 semanas.
+
+#### Refactors estruturais (prep para próximos milestones)
+
+- [ ] **Modularizar `apps/main/src/orchestrator/lifecycle.ts`** — extrair `buildClaudeArgs`, `prepareSandbox`, `resolveBinary`, `mcpHandshake` em arquivos próprios. (~2h)
+- [ ] **Modularizar `apps/main/src/mcp/tools.ts`** — 1 arquivo por domínio: `tools/agents.ts`, `tools/issues.ts`, `tools/messages.ts`, `tools/permissions.ts`. Cada tool exporta schema Zod + handler. (~2h)
+- [ ] **PREAMBLE em arquivo `.md`** — mover `apps/main/src/orchestrator/system-prompt.ts` PREAMBLE pra `apps/main/src/orchestrator/preamble.md`, lido com `fs.readFileSync`. Iterar prompt sem recompilar Electron. Bonus: usuário pode override via `~/.dashboard-agent/preamble.md`. (~30 min)
+- [ ] **System prompt composable** — builder `composeSystemPrompt({preamble, role, skills[], model})` em vez de string concat. Necessário pra skills M7 + model-specific tuning. (~4h)
+
+#### 🔧 Adapter pattern foundation (**critical path para M9 + M10**)
+
+- [ ] **Interface `AgentAdapter`** em `packages/shared/src/types/adapter.ts`:
+  ```ts
+  interface AgentAdapter {
+    name: 'claude-oauth-local' | 'claude-api-key-local' | 'claude-oauth-remote-docker' | future;
+    buildArgs(agent, env): string[];
+    spawn(opts): AgentRunnerHandle;
+    parseStream(line): ParsedEvent | null;
+    estimateUsage(events): { input, output, cache_read, cache_creation };
+  }
+  ```
+- [ ] **Refatorar `lifecycle.ts`** pra usar `claude-oauth-local` como primeiro impl. Comportamento idêntico ao de hoje, só estrutura nova.
+- [ ] **Registry**: `apps/main/src/orchestrator/adapters/index.ts` exporta map `{name: AdapterImpl}`. M9 adiciona segundo impl; M10 adiciona terceiro.
+- [ ] **Testes**: garantir 100% de não-regressão (suíte existente roda igual).
+
+#### Schema & DB
+
+- [ ] **Migration 0004 — `issues.identifier` humano (`PRJ-123`)**:
+  - Coluna `issues.issue_number INTEGER NOT NULL`
+  - Coluna `issues.identifier TEXT NOT NULL` (gerada: `{project.slug}-{issue_number}`)
+  - Index único `(project_id, issue_number)`
+  - Counter no `issues.create()` (max + 1 atômico por project)
+  - Display em todo log/UI/MCP message ("agente assigned to BACKEND-7" vs UUID)
+- [ ] **Migration 0005 — `messages.kind`**:
+  - Coluna `messages.kind TEXT NOT NULL DEFAULT 'message'`
+  - Enum: `message | proposal | question | confirmation | observation`
+  - System prompt instrui agentes a usar `kind=question` quando esperam resposta, `kind=confirmation` ao fechar algo
+  - UI: badge visual diferenciando proposta vs message comum
+  - Heuristic anti-stuck: question pendente sem confirmation há > N turns → inbox suggestion
+- [ ] **Migration 0006 — `approvals` decoupled do `inbox`**:
+  - Nova tabela `approvals (id, agent_id, kind, payload_json, status, decided_by, decision_note, created_at, resolved_at)`
+  - Kinds: `tool_call | code_review | hire_confirm | budget_override | …`
+  - `inbox.payload_json` passa a referenciar `approval_id`
+  - Prep pra Reviews UX em M9 (PR-style approval com diff + comments inline)
+- [ ] **Migration 0007 — `issue_artifacts`** (work products):
+  - Tabela `issue_artifacts (id, issue_id, kind, ref, content_preview, created_at, created_by)`
+  - Kinds: `file_path | commit_sha | pr_url | snapshot | output_text`
+  - MCP tool `record_artifact(issue_id, kind, ref, preview?)` chamada antes de `update_issue status=done`
+  - UI: accordion no IssueDetailModal "Artifacts" exibe deliverables
+
+#### Auth foundation (prep M9 dual auth)
+
+- [ ] **`apps/main/src/auth/auth-mode.ts`** — função `getActiveAuthMode(): 'oauth' | 'api-key'` retornando só `'oauth'` por ora. Centraliza decisão pra M9 plugar API key sem espalhar if-else.
+
+#### UX & Polish
+
+- [ ] **Current action granular** — refletir tool calls em UI sidebar/agent page. Em vez de status binário "working", mostrar "Editing src/foo.ts" / "Running pytest" / "Waiting for permission". Dados já existem in-memory (router + stream-parser). (~1 dia)
+- [ ] **WebSocket-like granular IPC events** — refatorar broadcast roster (lição M5) de snapshot completo pra deltas tipados. Discriminated union por kind. Reduz churn no renderer. (~1 dia)
+
+#### Testes
+
+- [ ] **E2E mínimo com Playwright + Electron** — `@playwright/test` + `electron-playwright-helpers`. Cenários:
+  - Onboarding (setup wizard com token detectado)
+  - Hire agent → send message → receive response
+  - Create issue → assign → status transitions
+- [ ] **Cobertura de orchestrator + MCP tools** — mocking de claude CLI (stream stdin/stdout). Cabe entre M7 e M8.
+- [ ] **Snapshot tests da blocklist** — se um pattern muda, falhar.
+
+#### Security
+
+- [ ] **SECURITY.md atualizado** — incluir threat model do **adapter remoto** que vem em M10. Documentar:
+  - Por que mantemos blocklist mesmo após adapter remoto chegar (defense-in-depth)
+  - Diferença de threat model: local agent (filtra comando) vs remote agent (isolamento de processo + filtra comando)
+- [ ] **Decisão consciente registrada**: blocklist `§8.3` continua sendo regra dura no `gate.ts` mesmo quando o adapter remoto isolar processo.
+
+#### VPS prep (não implementa ainda, prepara terreno)
+
+- [ ] **`infra/docker/agent-runner/Dockerfile` stub** — placeholder com `FROM node:22-alpine` + comment do plano. M10 preenche.
+- [ ] **`infra/docker/compose.yml` stub** — definir interface (env vars, ports, volumes). Não roda ainda.
+- [ ] **Wire protocol document** — `docs/m10-adapter-wire-protocol.md`: JSON-RPC over stdin/stdout pra local, over WSS pra remote. Define mensagens: `spawn`, `stdin-write`, `event`, `kill`, `health`. M10 implementa.
+
+#### Não-regressão
+
+- [ ] Tudo do M6.1 smoke-test continua passando
+- [ ] Security suite (token leak, sandbox escape, fence file) verde
+- [ ] Token budget non-regression test (skip-while-zero até user capturar baseline real)
+
+---
 
 ### 🔄 M8 — Costs UI + Token Tracking
 
+**Decisão arquitetural (após Paperclip comparison):**
+- Schema `cost_events` (nome novo, drop legacy `costs_log` se vazio) compatível com adapter pattern do M7.5 — cada adapter reporta cost via interface comum `estimateUsage(events)`.
+- **Soft-stop at `turn-complete`** (não heartbeat — não temos heartbeat polling). Agente ultrapassou budget → `notify_user(kind=security_alert)` + `agents.status='paused'` + bloqueia próximo `enqueue` no router. ([docs/paperclip-comparison.md §15 M8 lookahead](docs/paperclip-comparison.md))
+
 - [ ] **Backend:**
-  - [ ] Persistir `result.usage` (cache_creation_input_tokens, cache_read_input_tokens, output_tokens) por turn em `costs_log`
+  - [ ] Schema `cost_events (id, company_id, agent_id, adapter_name, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, cost_cents_estimate, occurred_at)` — adapter-agnóstico
+  - [ ] Persistir `result.usage` via `adapter.estimateUsage(events)` por turn
   - [ ] Calcular % do limite Max baseado no rate_limit_event do stream
-  - [ ] Aggregations: por agent, por project, por dia
+  - [ ] Aggregations: por agent, por project, por dia, **por adapter** (preparando M10 dual local/remote)
+  - [ ] Enforcement at turn-complete: soft-stop quando budget estourar
 - [ ] **UI:**
   - [ ] Rota `/costs` com gráficos (recharts ou similar)
   - [ ] Limite Max + progress bar visível
-  - [ ] Filtros: agent, project, date range
+  - [ ] Filtros: agent, project, date range, **adapter**
   - [ ] Widget "Custos hoje" no Dashboard (alimenta o §6.4 Dashboard widget)
+  - [ ] Cost hints relativos no model dropdown (M7a) — usar dados reais quando houver, simbólico caso contrário
 - [ ] **Não-regressão:** spec §10.3 hard limit ≤1.3x do baseline
 
-### 🔄 M9 — Dashboard + Multi-empresa UI + Polish
+### 🔄 M9 — Dashboard + Multi-empresa + Polish + Reviews UX + API key (2º adapter)
 
-Closing items pra v1 ficar feature-complete contra spec §4.
+Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundation do M7.5** (adapter pattern, approvals decoupled, system prompt composable).
 
 - [ ] **Dashboard widgets:**
   - [ ] Agentes Ativos (count + lista mini)
@@ -196,12 +308,12 @@ Closing items pra v1 ficar feature-complete contra spec §4.
   - [ ] Defaults de mode (`supervised`/`auto`)
   - [ ] Defaults de `always_on`
   - [ ] Banner global pra OAuth token expiring (30d antes)
-- [ ] **Suporte a API key (alternativa ao OAuth Max)** — dual auth:
+- [ ] **Suporte a API key (2º adapter `claude-api-key-local`)** — dual auth via adapter pattern do M7.5:
   - [ ] Setup wizard: pergunta auth source (OAuth Max recomendado / API key)
   - [ ] Settings: switch entre OAuth Max e API key (com warning sobre custo: API key cobra por token, OAuth Max é flat-rate)
-  - [ ] `apps/main/src/auth/`: nova função `getActiveAuthMode()` retorna `'oauth' | 'api-key'`
+  - [ ] `auth-mode.ts` (criado em M7.5) passa a retornar `'oauth' | 'api-key'` baseado no settings
   - [ ] Storage: `safeStorage.encrypt(apiKey)` igual padrão do OAuth M2; `auth:api-key-set` IPC
-  - [ ] `lifecycle.ts spawnAgent`: se mode='api-key', passar `ANTHROPIC_API_KEY` env var em vez de copiar `.credentials.json`; remover `--strict-mcp-config` lockdown que assume OAuth?
+  - [ ] **Novo adapter impl** `claude-api-key-local` em `apps/main/src/orchestrator/adapters/`: estende `claude-oauth-local` mas passa `ANTHROPIC_API_KEY` env var em vez de copiar `.credentials.json`. `--strict-mcp-config` continua ativo (não depende de OAuth).
   - [ ] Limite dos 4 agentes simultâneos: aplicar SÓ pra OAuth Max (ToS Anthropic). Com API key, limite vira o rate limit normal da conta
   - [ ] Documentar em SECURITY.md as 2 modes + trade-offs
   - [ ] Memory `project_dashboardagent` precisa atualização (premissa OAuth-only deixa de ser exclusiva)
@@ -218,10 +330,127 @@ Closing items pra v1 ficar feature-complete contra spec §4.
   - [ ] Settings UI: botão "Export company..." — gera JSON com agents + threads + messages + inbox + projects + issues + costs_log da company selecionada
   - [ ] Settings UI: botão "Import company..." — file picker, valida shape, INSERT cascade
   - [ ] Caso de uso: backup, snapshot pré-experimento, share entre instalações
-- [ ] **Agent Reviews UX polish** (Paperclip wishlist + spec §6.4):
+- [ ] **Agent Reviews UX polish** (Paperclip wishlist + spec §6.4) — aproveita `approvals` decoupled do M7.5:
   - [ ] Em `/issues/:id`: aba "Review" com diff/output do agent assignee, botões Approve+merge / Request changes / Reject
-  - [ ] Inline comments no diff
-  - [ ] Status="review" já existe no M6 — esse milestone só polish UX
+  - [ ] Diff side-by-side via `react-diff-viewer-continued` (battle-tested)
+  - [ ] Inline comments no diff (linka a `approval_comments` ou similar)
+  - [ ] Status="review" já existe no M6 — esse milestone polish UX + plug no `approvals` schema
+- [ ] **Right panel `/agents/:id`** — decisão design via frontend-design skill antes de codar (full page vs side panel)
+- [ ] **AGENTS.md formato próprio (YAML front-matter)** — `gray-matter` parser:
+  ```yaml
+  ---
+  company: Acme
+  projects: [{name: backend, path: ./apps/backend}]
+  agents:
+    - {name: CEO, role: orchestrator, model: claude-opus-4-7, skills: [planning]}
+    - {name: BackendEng, role: engineer, reports_to: CEO, projects: [backend]}
+  ---
+  # texto humano-livre depois
+  ```
+- [ ] **Project icons + status (archived vs active)** — pequeno, polish
+- [ ] **Token expiry banner** (OAuth Max 30d antes) — já listado, mantém
+
+---
+
+### 🆕 M10 — VPS Docker Remote Adapter — **fecha v1 com hybrid distribution**
+
+**Origem:** decisão de 2026-05-11 — distribuição hybrid. Implementa o terceiro adapter `claude-oauth-remote-docker` (e variante `claude-api-key-remote-docker`) usando a foundation do M7.5. Usuário escolhe per-agent: "Run on: local | VPS-default | custom-vps-N".
+
+**Por que existe:** isolamento real de processo (rm -rf no container não afeta seu host), agente sempre-ligado mesmo com PC desligado, acesso 24/7 com lifecycle previsível. Mantém Electron como UI principal (não vira web app — Out-of-scope discutido).
+
+**Modelo de threat reforçado:** mantém blocklist do `gate.ts` mesmo após isolamento. Defense-in-depth (lição comparison §8).
+
+#### Backend (apps/main)
+
+- [ ] **Novo adapter impl** `claude-oauth-remote-docker` em `apps/main/src/orchestrator/adapters/remote-docker.ts`:
+  - Implementa `AgentAdapter` interface (M7.5)
+  - Substitui `spawn` local por chamada HTTPS+WSS ao agent-runner remoto
+  - Wire protocol: definido em M7.5 (`docs/m10-adapter-wire-protocol.md`)
+  - Streams stdout/stderr via WSS frames
+  - Reconnect automático em conexão caída (com backoff exponencial)
+- [ ] **Settings UI: gerenciador de VPS** — `/settings/vps`:
+  - Lista VPS configuradas com health check
+  - Add VPS: form com host, port, label, chave SSH/JWT, TLS cert fingerprint
+  - Test connection: ping + valida cert + verifica versão do agent-runner remoto
+  - Remove VPS (warning se houver agentes ativos)
+- [ ] **Per-agent dropdown "Run on"**: local | vps-1 | vps-2 | … (chip no `/agents/:id` right panel)
+- [ ] **Agent-side state**: nova coluna `agents.adapter_name TEXT NOT NULL DEFAULT 'claude-oauth-local'`. Migration 0008.
+- [ ] **Audit log centralizado**: tabela `vps_audit_events (id, vps_label, agent_id, kind, payload, occurred_at)`. Toda chamada a tool no remoto é loggada.
+
+#### VPS side (infra/)
+
+- [ ] **`infra/docker/agent-runner/Dockerfile`** — preencher o stub do M7.5:
+  - Base: `node:22-alpine`
+  - Install: `claude-code` CLI + nosso bridge MCP server
+  - Multi-stage build (build small, runtime smaller)
+  - Healthcheck endpoint `/health`
+  - User não-root (UID 1000)
+- [ ] **`infra/docker/agent-runner/entrypoint.sh`**:
+  - Valida JWT recebido via env
+  - Inicia bridge server (WSS) em port configurável
+  - Por turn: spawna claude CLI subprocess (mesmo pattern do local)
+- [ ] **`infra/docker/compose.yml`** — orquestração completa:
+  - N réplicas do agent-runner (default 4, alinhado com ToS OAuth Max)
+  - Reverse proxy (Caddy auto-TLS via Let's Encrypt)
+  - Volume mounts: `/workspace` (project paths) + `/agent-config` (CLAUDE_CONFIG_DIR isolado per-replica)
+  - Network: só HTTPS bind exterior + Anthropic API outbound (allowlist)
+  - Sem outras saídas de rede
+- [ ] **`infra/deploy/`** — scripts de provisioning:
+  - `provision-hetzner.sh` (provider neutro pode evoluir)
+  - `provision-digitalocean.sh`
+  - Variáveis: domain, email Let's Encrypt, JWT secret, port range
+- [ ] **`infra/docker/mcp-bridge/`** — server bridge que conecta agent-runner remoto ao nosso main:
+  - Recebe WSS do main
+  - Encaminha pra claude CLI local no container
+  - Reencaminha tool calls MCP back pra main via WSS (não diretamente — main mantém DB)
+
+#### Security
+
+- [ ] **TLS obrigatório** — cert validation, sem fallback HTTP. Cert fingerprint pinning.
+- [ ] **JWT signed pelo main pra cada turn** (short TTL, replay-protected via nonce)
+- [ ] **Auth da VPS**: SSH key pra deploy; JWT pra runtime
+- [ ] **Allowlist de IPs** no agent-runner: só IPs configurados podem conectar (paranoia layer)
+- [ ] **Container ephemeral entre runs sensitive**: workspace persiste por design (git worktree), mas CLAUDE_CONFIG_DIR é limpo a cada `spawn` (igual padrão local do M3 lesson)
+- [ ] **safeStorage guarda chave SSH e cert fingerprint** (lição M4 SEC-01 — nunca exposto ao renderer)
+- [ ] **Audit log per turn**: cada tool call no remoto → `vps_audit_events`. Surfaces em `/agents/:id` "Activity Log" panel.
+- [ ] **Rate limit per VPS**: max N requests/sec, prevent burst attacks
+- [ ] **`docs/security/vps-threat-model.md`**: documento formal — o que mudou com adapter remoto, ameaças mitigadas, ameaças residuais
+
+#### UX
+
+- [ ] **Dashboard widget**: "VPS health" (latência, agentes ativos, CPU/RAM da VPS via /health)
+- [ ] **Per-agent indicator**: ícone "remote on vps-1" vs "local" no sidebar + agent page
+- [ ] **Onboarding flow**: "Connect to VPS" wizard (5 passos):
+  1. Você já tem uma VPS provisionada? (sim/não — se não, link pra docs/vps-deployment.md)
+  2. Cole hostname e porta
+  3. Cole chave SSH (test connect)
+  4. Trust cert fingerprint (mostra hash, user confirma)
+  5. Done — primeira health check + spawn de agente teste
+- [ ] **Indicador de connection state** no header: 🟢 connected | 🟡 degraded | 🔴 disconnected
+
+#### Documentação
+
+- [ ] **`docs/vps-deployment.md`** — guia completo (provider neutro):
+  - Pré-requisitos (VPS Linux, Docker, domínio)
+  - Steps: clone infra/, edit .env, run provision script, point DNS, run compose up
+  - Operations: backup, update, monitor logs
+- [ ] **`docs/security/vps-threat-model.md`** — o que mudou com adapter remoto
+- [ ] **`SECURITY.md`** atualizado (foundation já em M7.5; M10 completa)
+
+#### Tests
+
+- [ ] **E2E cycle local + remote** mistos numa só company:
+  - 4 agentes: 2 local, 2 remote
+  - Mensagens cross-adapter funcionam
+  - Permission gate trigger correto no local + remote
+- [ ] **Connection drop test**: kill agent-runner mid-turn, valida reconnect + recovery
+- [ ] **Security test**: JWT replay tentativa falha; cert MITM falha; outbound network forbidden funciona
+
+#### Não-regressão
+
+- [ ] Tudo dos M1-M9 continua funcionando (local default)
+- [ ] Memory `project_dashboardagent` atualizar premissa local-only (agora é "default local, opcional remote")
+- [ ] Memory `feedback_security_priority` reforça: blocklist mantida mesmo com isolamento de container
 
 ---
 
@@ -259,61 +488,115 @@ Detalhes em [project_repo_will_be_public.md](memory).
 
 ## Paperclip wishlist tracker
 
-Mapeamento de cada item da wishlist do [Paperclip](https://github.com/paperclipai/paperclip) com nosso status. **Nem tudo do Paperclip é desejado pra nós** — alguns explicitamente fora de escopo (ex: multi-user, cloud deployments).
+Mapeamento de cada item da wishlist do [Paperclip](https://github.com/paperclipai/paperclip) com nosso status. **Nem tudo do Paperclip é desejado pra nós** — alguns explicitamente fora de escopo. Decisões detalhadas em [docs/paperclip-comparison.md](docs/paperclip-comparison.md).
 
 | Item Paperclip | Status nosso | Onde |
 |---|---|---|
 | **Desktop App** | ✅ Pronto | M1 (Electron) |
 | **CEO Chat** | ✅ Pronto | M3 (chat 1-1) + M5 (multi-agente real) |
-| **Skills Manager** | 🔄 Planejado | M7 (UI cards + drag-drop em /skills + right panel) |
-| **Better Budgeting** | 🔄 Planejado | M8 (token tracking + % Max + por agente/projeto) |
-| **Scheduled Routines** | 🔄 Planejado | v2 (Routines — cron-like recurring tasks) |
-| **Cloud / Sandbox agents** | 🔄 Planejado | v2 (suporte a Cursor, Codex, e2b — adapter pattern) |
-| **Easy AGENTS.md configurations** | 🆕 Candidato v1 | Adicionar a M9 — config file declarativo pra hire-from-file |
-| **companies.sh — import/export** | 🆕 Candidato v1 | Adicionar a M9 — JSON dump+restore via Settings (útil já pra teste e backup user-driven) |
-| **Agent Reviews and Approvals** | 🟡 Parcial | Issue status='review' já existe (M6). Falta UX rica de side-by-side diff + comments inline → débito M9 polish |
-| **Plugin system** | 🆕 v2+ | Knowledge base / custom tracing / queues como sub-features. Big architectural change, v2 mínimo |
-| **Get OpenClaw / claw-style agent employees** | 🆕 v2+ | Marketplace/template-store de agent personas pré-configurados (extensão do `role_templates`) |
-| **Memory / Knowledge** | 🆕 v2+ | Knowledge base por agente (RAG-style). Vector DB ou sqlite-vss. Big new dep + design |
-| **Artifacts & Work Products** | 🆕 v2+ | Tabela `artifacts` pra deliverables (arquivos criados, PRs, snapshots). Distinto de issues |
-| **Enforced Outcomes** | 🆕 v2+ | Garantia de "tests passam", "compile OK" antes de marcar issue=done. Integra com CI/build |
-| **Deep Planning** | 🆕 v2+ | Plan-mode estendido (claude já tem `--permission-mode plan`). Ritual de plan-then-execute com aprovação intermediária |
-| **MAXIMIZER MODE** | 🆕 v2+ | Aggressive auto mode com fewer constraints. Cuidado com regra dura de tokens — provavelmente exclude de Max OAuth, exige API key opcional |
-| **Work Queues** | 🆕 v2+ | Queue-based task processing (distinto de issues — issues = formal tickets, queues = continuous stream). Aproveita a router FIFO já existente |
-| **Self-Organization** | 🆕 v3+ | Agentes reorganizando hierarquia entre si (hire/fire dinâmico baseado em workload). Avançado |
-| **Automatic Organizational Learning** | 🆕 v3+ | Meta-feature: agentes aprendem de history (cross-agent patterns, recurring failures). Avançado |
-| **Multiple Human Users** | ❌ Out-of-scope | Single-user explícito por ToS Anthropic Max. Não fazer |
-| **Cloud deployments** | ❌ Out-of-scope | Spec é local-only. Memory `project_dashboardagent.md` reforça |
+| **Skills Manager** | 🔄 Em curso | M7 — UI cards + skills_json drag-drop. **Não imitar code-module/source-sync** (fora do threat model) |
+| **Better Budgeting** | 🔄 Planejado | M8 (token tracking + % Max + por agente/projeto/adapter) |
+| **Scheduled Routines** | 🆕 v2+ | Routines — cron-like recurring tasks |
+| **Cloud / Sandbox agents** | 🟡 Parcial v1 + v2 | **M10 absorve parte**: VPS Docker remote adapter (isolamento de processo). v2 adiciona Cursor, Codex, e2b providers. |
+| **Easy AGENTS.md configurations** | 🔄 M9 | Format próprio (YAML front-matter) com `gray-matter` parser |
+| **companies.sh — import/export** | 🔄 M9 | JSON único (não ZIP) — DB menor que Paperclip |
+| **Agent Reviews and Approvals** | 🔄 M7.5 + M9 | M7.5: schema `approvals` decoupled. M9: PR-style diff side-by-side + inline comments |
+| **Work Products / Artifacts** | 🔄 M7.5 | Tabela `issue_artifacts` (kind: file_path, commit_sha, pr_url, snapshot) — adoção early via comparação Paperclip |
+| **Org chart hierarchy** | 🔄 M7 | SVG handcrafted client-side. **Não usar React Flow/D3** (overkill pra read-mostly tree) |
+| **Issue identifier humano** (`PRJ-123`) | 🔄 M7.5 | Migration 0004 — UX win trivial |
+| **Plugin system** | 🆕 v2+ | Knowledge base / custom tracing / queues como sub-features. Big architectural change |
+| **Get OpenClaw / claw-style agent employees** | 🆕 v2+ | Marketplace/template-store de agent personas (extensão do `role_templates`) |
+| **Memory / Knowledge** | 🆕 v2+ | Knowledge base por agente (RAG-style). Vector DB ou sqlite-vss |
+| **Enforced Outcomes** | 🆕 v2+ | Garantia de "tests passam", "compile OK" antes de marcar issue=done |
+| **Deep Planning** | 🆕 v2+ | Plan-mode estendido (claude já tem `--permission-mode plan`) |
+| **MAXIMIZER MODE** | 🆕 v2+ | Aggressive auto mode — requer API key opcional (Max não cobre) |
+| **Work Queues** | 🆕 v2+ | Queue-based task processing (distinto de issues). Aproveita router FIFO |
+| **Self-Organization** | 🆕 v3+ | Agentes reorganizando hierarquia entre si dinamicamente |
+| **Automatic Organizational Learning** | 🆕 v3+ | Meta-feature: agentes aprendem de history |
+| **Multiple Human Users** | ❌ Out-of-scope | Single-user explícito por ToS Anthropic Max |
+| **Cloud deployments (UI na cloud)** | ❌ Out-of-scope | Mantemos Electron desktop como UI. **Hybrid VPS via M10** cobre o "agente na cloud" sem virar web app. |
+| **Plugin sandbox providers** (e2b, Cloudflare, Daytona) | ❌ v3+ | Adapter remoto Docker do M10 já entrega isolamento. Outros providers só se feedback pedir. |
+| **Skill source sync** (GitHub/NPM download) | ❌ Out-of-scope | Threat model: download/execução de código remoto. Memory `feedback_security_priority` |
+| **Embedded Postgres** | ❌ Não fazer | sqlite serve perfeitamente desktop. Custaria semanas e zero valor. |
 
 **Como decidir incluir ou não no v1:**
 - Item marca o produto como "diferenciado" do CEO Chat puro? → considerar pra v1
 - Item é pré-requisito pra outra feature já planejada? → mover pra milestone correspondente
 - Item é nice-to-have sem alterar core flow? → v2+
+- Item exige threat model novo (download remoto, multi-user)? → out-of-scope explícito
 
 ---
 
 ## v2+ (fora do v1)
 
-Tudo daqui pra baixo é post-v1. Listado pra não esquecer:
+Tudo daqui pra baixo é post-v1. Organizado por tema. Origens marcadas com [PC] = Paperclip comparison, [M5] = débito M5, [novo] = nasce aqui.
 
-- **Routines** — tasks recorrentes (cron-like) atribuídas a agentes (Paperclip: "Scheduled Routines")
-- **Goals** — objetivos longos que se decompõem em issues
-- **Activity Log audit-grade** — log estruturado de tudo que cada agente fez
-- **"New Issue" hotkey global** — atalho de teclado mesmo com app não focado
-- **Suporte a outros agents** — Cursor, Codex, custom CLI agents (Paperclip: "Cloud / Sandbox agents")
-- **Plugin system** — extensions architecture (knowledge base, tracing, queues)
-- **OpenClaw-style template marketplace** — agent personas compartilhados
-- **Memory / Knowledge base** — RAG por agente (vector DB)
-- **Artifacts & Work Products** — tracking de deliverables
-- **Enforced Outcomes** — garantias pré-merge (tests/build)
-- **Deep Planning mode** — plan-then-execute ritual
-- **MAXIMIZER MODE** — aggressive auto (talvez requer API key opcional)
-- **Work Queues** — continuous-stream task processing
-- **Self-Organization** — agentes reorganizam hierarquia
-- **Automatic Organizational Learning** — meta-learning cross-agent
-- **CSP restritivo no renderer** se ainda em débito
+### Multi-agente avançado
+
+- **Routines** [PC] — tasks recorrentes (cron-like) atribuídas a agentes
+- **Goals** [PC] — objetivos longos que se decompõem em issues
+- **Issue relations** [PC] — depends_on / related_to / blocks
+- **Issue monitors** [PC] — auto-recheck em schedule
+- **`issue.kind`** [PC] — task | review | spike (reduzir overload do status)
+- **Work Queues** [PC] — continuous-stream task processing (distinto de issues)
+- **Self-Organization** [PC] — agentes reorganizam hierarquia entre si
+- **Automatic Organizational Learning** [PC] — meta-learning cross-agent
+- **Deep Planning mode** [PC] — plan-then-execute ritual com aprovação intermediária
+- **MAXIMIZER MODE** [PC] — aggressive auto mode (requer API key)
+
+### Adapter ecosystem (extensão do M7.5+M10)
+
+- **Suporte a outros agents** [PC] — Cursor, Codex, OpenClaw, Gemini, custom CLI/HTTP. Cada um vira `AgentAdapter` impl.
+- **OpenClaw-style template marketplace** [PC] — agent personas compartilhados
+- **Plugin sandbox providers** [PC] — e2b, Cloudflare, Daytona como adapters além do nosso Docker. Só se feedback pedir.
+
+### Plugin system
+
+- **Plugin system** [PC] — knowledge base, tracing, queues como sub-features. Big architectural change. SDK + worker isolation (estilo Paperclip mas magrinho).
+- **Plugin webhooks** — outbound HTTP
+
+### Knowledge / Artifacts
+
+- **Memory / Knowledge base** [PC] — RAG por agente (sqlite-vss ou vector DB externo)
+- **Artifacts ricos** [novo] — extensão de `issue_artifacts` (M7.5) pra incluir snapshots de filesystem, diffs anotados, métricas
+- **Enforced Outcomes** [PC] — garantias pré-merge (tests/build) antes de marcar issue=done
+- **Activity Log audit-grade** [novo] — log estruturado de tudo que cada agente fez (cross-cuts M10 vps_audit_events)
+
+### Refactors estruturais (continuação do M7.5)
+
+- **Junction table `thread_participants`** [M5] — substitui `LIKE %agentId%`. Quando dor aparecer.
+- **Type-safe prepared statements** [PC] — adotar Kysely OU manter SQL raw + testes integração
+- **Path tokenization via `shell-quote`** [PC] — substituir tokenizer artesanal em `gate.ts`
+- **Execution workspace per issue** [PC] — git worktree por execução pra evitar conflito de escrita simultânea
+
+### Sandbox / Security avançado
+
+- **Anti-prompt-injection avançado** [M5] — heurística estática + diff suspeito + tool call rate
+- **Auto mode 24h timer** [M5] — agente em auto sem interação humana volta pra supervised
+- **Auto degradado para Bash toggle** [M5] — em auto ainda confirma Bash
+- **Scopes de auto** [M5] — "auto pra Read, supervised pra Bash"
+- **CSP restritivo no renderer** [M5] — auditoria pendente
+- **`--strict-permissions`** [M5] — adotar se Claude Code adicionar
+
+### Inbox / Notifications
+
+- **Pagination da inbox** [PC] — quando crescer >1000 itens
+- **Archive de inbox/issues** [novo] — soft-delete + restore
+
+### UX polish
+
+- **Tray icon completo** [M5] — submenu de quick-actions + badge
+- **"New Issue" hotkey global** [novo] — atalho de teclado mesmo com app não focado
+- **Project icons + nested projects** [PC] — se feedback pedir
+- **Skill source sync** [PC] — só se feedback pedir (cuidado threat model)
+
+### Infra / Distribuição
+
+- **Backup automático diário do DB** [M5] + restore via Settings
+- **File watcher de `~/.claude/projects/`** [M5] — observar sessões claude iniciadas fora do dashboard
 - **Auto-update via rede** com signatura/notarização
 - **Telemetria opcional** (default OFF, opt-in, sem conteúdo de mensagens)
+- **VPS multi-region / failover** [novo, decorre do M10] — se single VPS não basta
 
 ---
 
