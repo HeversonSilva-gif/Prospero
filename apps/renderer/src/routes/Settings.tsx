@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../stores/auth.js";
+import { ModelDropdown } from "../components/ModelDropdown.js";
+import { useSettingsStore } from "../stores/settings.js";
 
 export const Settings = () => {
   const { t } = useTranslation();
@@ -10,6 +12,15 @@ export const Settings = () => {
   const clearToken = useAuthStore((s) => s.clearToken);
   const [tokenInput, setTokenInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const settings = useSettingsStore((s) => s.settings);
+  const loadSettings = useSettingsStore((s) => s.load);
+  const setModel = useSettingsStore((s) => s.setModel);
+  const [modelSaved, setModelSaved] = useState(false);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   const onSave = async () => {
     setError(null);
@@ -23,6 +34,12 @@ export const Settings = () => {
 
   const onClear = async () => {
     await clearToken();
+  };
+
+  const saveModel = async (next: string) => {
+    await setModel(next);
+    setModelSaved(true);
+    window.setTimeout(() => setModelSaved(false), 2000);
   };
 
   return (
@@ -71,6 +88,20 @@ export const Settings = () => {
               {t("settings.auth.actionSet")}
             </button>
           </div>
+        )}
+      </section>
+
+      <section className="bg-surface-card border border-surface-border rounded-lg p-5 mb-4">
+        <h2 className="text-base font-semibold text-brand-dark mb-2">
+          {t("settings.model.title")}
+        </h2>
+        <p className="text-xs text-ink-muted mb-3">{t("settings.model.hint")}</p>
+        <ModelDropdown
+          value={settings.defaultModelForNewAgents}
+          onChange={(v) => void saveModel(v)}
+        />
+        {modelSaved && (
+          <p className="text-xs text-semantic-success mt-2">{t("settings.model.saved")}</p>
         )}
       </section>
 
