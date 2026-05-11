@@ -19,6 +19,8 @@ import {
   type IssueComment,
   type IssueStatus,
   type IssuePriority,
+  type RoleTemplate,
+  type RoleDetail,
 } from "@dashboard-agent/shared";
 
 contextBridge.exposeInMainWorld("dashboardAgent", {
@@ -132,5 +134,10 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
       ipcRenderer.on(IPC.ISSUES_CHANGED, handler);
       return () => ipcRenderer.removeListener(IPC.ISSUES_CHANGED, handler);
     },
+  },
+  roles: {
+    list: () =>
+      ipcRenderer.invoke(IPC.ROLES_LIST) as Promise<Array<RoleTemplate & { agentCount: number }>>,
+    get: (id: string) => ipcRenderer.invoke(IPC.ROLES_GET, { id }) as Promise<RoleDetail | null>,
   },
 });
