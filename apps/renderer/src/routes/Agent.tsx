@@ -7,6 +7,7 @@ import { ApprovalCard } from "../components/ApprovalCard.js";
 import { MessageList } from "../components/MessageList.js";
 import { DelegationsPanel } from "../components/DelegationsPanel.js";
 import { Composer } from "../components/Composer.js";
+import { AgentConfigPanel } from "../components/agent-panel/AgentConfigPanel.js";
 
 type Tab = "chat" | "delegations";
 
@@ -86,60 +87,67 @@ export const Agent = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      <header className="px-6 py-3.5 border-b border-surface-border flex items-center gap-3.5">
-        <div className="w-9 h-9 rounded-md bg-gradient-to-br from-brand to-brand-dark text-white flex items-center justify-center text-[13px] font-bold">
-          {agent.name.slice(0, 2).toUpperCase()}
-        </div>
-        <div className="flex-1">
-          <div className="font-bold text-[15px] text-brand-dark">{agent.name}</div>
-          <div className="text-[11px] text-ink-muted mt-0.5">
-            {agent.role} · {agent.status}
+    <div className="flex h-screen">
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="px-6 py-3.5 border-b border-surface-border flex items-center gap-3.5">
+          <div className="w-9 h-9 rounded-md bg-gradient-to-br from-brand to-brand-dark text-white flex items-center justify-center text-[13px] font-bold">
+            {agent.name.slice(0, 2).toUpperCase()}
           </div>
+          <div className="flex-1">
+            <div className="font-bold text-[15px] text-brand-dark">{agent.name}</div>
+            <div className="text-[11px] text-ink-muted mt-0.5">
+              {agent.role} · {agent.status}
+            </div>
+          </div>
+        </header>
+        <div className="flex border-b border-surface-border px-6">
+          <button
+            type="button"
+            onClick={() => setTab("chat")}
+            className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px ${
+              tab === "chat"
+                ? "border-brand text-brand"
+                : "border-transparent text-ink-muted hover:text-ink"
+            }`}
+          >
+            {t("agent.tabs.chat")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("delegations")}
+            className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px flex items-center gap-1.5 ${
+              tab === "delegations"
+                ? "border-brand text-brand"
+                : "border-transparent text-ink-muted hover:text-ink"
+            }`}
+          >
+            {t("agent.tabs.delegations")}
+            {delegationMessages.length > 0 && (
+              <span className="text-[10px] bg-surface-soft text-ink-muted px-1.5 py-0.5 rounded-full">
+                {delegationMessages.length}
+              </span>
+            )}
+          </button>
         </div>
-      </header>
-      <div className="flex border-b border-surface-border px-6">
-        <button
-          type="button"
-          onClick={() => setTab("chat")}
-          className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px ${
-            tab === "chat"
-              ? "border-brand text-brand"
-              : "border-transparent text-ink-muted hover:text-ink"
-          }`}
-        >
-          {t("agent.tabs.chat")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("delegations")}
-          className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px flex items-center gap-1.5 ${
-            tab === "delegations"
-              ? "border-brand text-brand"
-              : "border-transparent text-ink-muted hover:text-ink"
-          }`}
-        >
-          {t("agent.tabs.delegations")}
-          {delegationMessages.length > 0 && (
-            <span className="text-[10px] bg-surface-soft text-ink-muted px-1.5 py-0.5 rounded-full">
-              {delegationMessages.length}
-            </span>
-          )}
-        </button>
+        {tab === "chat" ? (
+          <MessageList messages={chatMessages} agents={agents} />
+        ) : (
+          <DelegationsPanel
+            messages={delegationMessages}
+            currentAgentId={agent.id}
+            agents={agents}
+          />
+        )}
+        {pendingApprovals.map((req) => (
+          <ApprovalCard
+            key={req.toolUseId}
+            request={req}
+            onResolve={(allow) => resolve(req, allow)}
+          />
+        ))}
+        <Composer onSubmit={(text) => void onSend(text)} />
       </div>
-      {tab === "chat" ? (
-        <MessageList messages={chatMessages} agents={agents} />
-      ) : (
-        <DelegationsPanel messages={delegationMessages} currentAgentId={agent.id} agents={agents} />
-      )}
-      {pendingApprovals.map((req) => (
-        <ApprovalCard
-          key={req.toolUseId}
-          request={req}
-          onResolve={(allow) => resolve(req, allow)}
-        />
-      ))}
-      <Composer onSubmit={(text) => void onSend(text)} />
+      <AgentConfigPanel agent={agent} />
     </div>
   );
 };
