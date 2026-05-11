@@ -16,4 +16,12 @@ describe("IPC channels", () => {
       expect(v).toMatch(/^[a-z][a-z0-9-]*(:[a-z][a-z0-9-]*)*$/);
     }
   });
+
+  it("exposes M7 PR-C agent mutation channels", () => {
+    expect(IPC.AGENTS_SET_MODEL).toBe("agents:set-model");
+    expect(IPC.AGENTS_SET_ROLE).toBe("agents:set-role");
+    expect(IPC.AGENTS_SET_SYSTEM_PROMPT).toBe("agents:set-system-prompt");
+    expect(IPC.AGENTS_SET_REPORTS_TO).toBe("agents:set-reports-to");
+    expect(IPC.AGENTS_STATS).toBe("agents:stats");
+  });
 });

@@ -37,6 +37,11 @@ export const IPC = {
   ISSUES_CHANGED: "issues:changed",
   ROLES_LIST: "roles:list",
   ROLES_GET: "roles:get",
+  AGENTS_SET_MODEL: "agents:set-model",
+  AGENTS_SET_ROLE: "agents:set-role",
+  AGENTS_SET_SYSTEM_PROMPT: "agents:set-system-prompt",
+  AGENTS_SET_REPORTS_TO: "agents:set-reports-to",
+  AGENTS_STATS: "agents:stats",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
