@@ -40,6 +40,8 @@ const rowToAgent = (r: Row): Agent => ({
   currentAction: r.current_action,
   allowedProjects: JSON.parse(r.allowed_projects_json) as string[],
   model: r.model,
+  skills: JSON.parse(r.skills_json) as string[],
+  templateId: r.template_id,
 });
 
 export type CreateAgentInput = {
@@ -50,6 +52,8 @@ export type CreateAgentInput = {
   mode: AgentMode;
   alwaysOn: boolean;
   model?: string;
+  skills?: string[];
+  templateId?: string | null;
 };
 
 export type AgentsRepository = {
@@ -64,8 +68,8 @@ export type AgentsRepository = {
 
 export const createAgentsRepository = (db: Database.Database): AgentsRepository => {
   const insert = db.prepare(`
-    INSERT INTO agents (id, company_id, name, role, system_prompt, skills_json, allowed_projects_json, mode, always_on, status, current_action, model, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, '[]', '[]', ?, ?, 'idle', NULL, ?, ?, ?)
+    INSERT INTO agents (id, company_id, name, role, system_prompt, skills_json, allowed_projects_json, mode, always_on, status, current_action, model, template_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, '[]', ?, ?, 'idle', NULL, ?, ?, ?, ?)
   `);
   const byId = db.prepare("SELECT * FROM agents WHERE id = ?");
   const byCompany = db.prepare("SELECT * FROM agents WHERE company_id = ? ORDER BY created_at ASC");
@@ -89,9 +93,11 @@ export const createAgentsRepository = (db: Database.Database): AgentsRepository 
         input.name,
         input.role,
         input.systemPrompt,
+        JSON.stringify(input.skills ?? []),
         input.mode,
         input.alwaysOn ? 1 : 0,
         input.model || DEFAULT_CLAUDE_MODEL,
+        input.templateId ?? null,
         now,
         now,
       );

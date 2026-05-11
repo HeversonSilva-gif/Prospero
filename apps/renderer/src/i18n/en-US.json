@@ -8,7 +8,8 @@
     "settings": "Settings",
     "agents": "Agents",
     "projects": "Projects",
-    "issues": "Issues"
+    "issues": "Issues",
+    "skills": "Skills"
   },
   "dashboard": {
     "placeholder": "M2 — Auth & Settings done. Dashboard widgets land in M6.",
@@ -173,5 +174,18 @@
       "delete": "Delete issue",
       "confirmDelete": "Delete this issue and all its sub-tasks?"
     }
+  },
+  "skills": {
+    "title": "Skills (Roles)",
+    "subtitle": "Roles available for hiring. Each role bundles a set of skills and a default Claude model.",
+    "empty": "No roles available.",
+    "agentsCount_zero": "{{count}} agents",
+    "agentsCount_one": "{{count}} agent",
+    "agentsCount_other": "{{count}} agents",
+    "detail.tools": "Tools",
+    "detail.defaultModel": "Default model",
+    "detail.agentsUsing": "Agents using this role",
+    "detail.noAgents": "No agents currently use this role.",
+    "detail.skillsGroup": "Skill: {{skill}}"
   }
 }

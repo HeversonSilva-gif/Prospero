@@ -15,6 +15,8 @@ const agent = (mode: "supervised" | "auto"): Agent => ({
   currentAction: null,
   allowedProjects: [],
   model: "claude-sonnet-4-6",
+  skills: [],
+  templateId: null,
 });
 
 const WS = "C:\\Workspace";

@@ -35,6 +35,8 @@ export const IPC = {
   ISSUES_DELETE: "issues:delete",
   ISSUES_ADD_COMMENT: "issues:add-comment",
   ISSUES_CHANGED: "issues:changed",
+  ROLES_LIST: "roles:list",
+  ROLES_GET: "roles:get",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

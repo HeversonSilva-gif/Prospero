@@ -5,7 +5,7 @@
 > **Spec base:** [docs/superpowers/specs/2026-05-09-dashboard-agent-design.md](docs/superpowers/specs/2026-05-09-dashboard-agent-design.md)
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
-> **Última atualização:** 2026-05-11 (M7-A PR-A mergeado — `0caa31b`; M7-B/C em curso; M7.5 + M10 adicionados após comparação com Paperclip e decisão de hybrid VPS)
+> **Última atualização:** 2026-05-11 (M7-A PR-A mergeado — `0caa31b`; **M7-B PR-B ready for merge** — `worktree-m7b-roles-hard-gate`; PR-C em curso; M7.5 + M10 adicionados após comparação com Paperclip e decisão de hybrid VPS)
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 
@@ -14,9 +14,9 @@
 | Métrica | Valor |
 |---|---|
 | Milestones fechados | M1, M2, M3, M4, M5, M6 (6/10 do v1 atualizado: +M7.5 +M10) |
-| Em curso | M7 (PR-A model selection ✅ mergeado · PR-B roles+gate · PR-C org+panel) |
-| Testes | 208 passing, 39 test files, 0 lint/typecheck errors |
-| Commits no master | ~112 |
+| Em curso | M7 (PR-A model ✅ · PR-B roles+gate ready · PR-C org+panel) |
+| Testes | 260 passing, 46 test files, 0 lint/typecheck errors |
+| Commits no master | ~112 + 11 em PR-B |
 | LoC (apps + packages) | ~13k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · vitest |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
@@ -152,11 +152,11 @@ Sequência sugerida — pode ser ajustada. **Antes de cada um, consultar Papercl
   - [ ] CEO no topo, sub-agentes filhos via `reports_to`
   - [ ] Click num node abre painel com info do agente / link pra `/agents/:id`
   - [ ] Drag pra mudar `reports_to` (com confirm modal)
-- [ ] **Skills:**
-  - [ ] Rota `/skills` cards do `skills_catalog` (read-only display por enquanto)
-  - [ ] Em `/agents/:id` right panel: campo "Skills" mostrando `skills_json` atual + drag-drop pra adicionar/remover
-  - [ ] Aplicação real: agente só pode chamar tools listadas em skills (gate hook)
-  - [ ] Templates de role (`role_templates` tabela) usados como starting skills no hire_agent
+- [x] **Skills:** — **PR-B 🟡 ready for merge** (branch `worktree-m7b-roles-hard-gate`, 2026-05-11)
+  - [x] Rota `/skills` master-detail read-only (5 roles seedados + tools chips agrupados por skill + agentsUsing)
+  - [ ] Em `/agents/:id` right panel: campo "Skills" mostrando `skills_json` atual — **defer pra PR-C**
+  - [x] Aplicação real: agente só pode chamar tools listadas em skills — via `--allowedTools` no spawn (hard-gate)
+  - [x] Templates de role seedados pelo post-migration 0004 + usados via `role_template_id` no `hire_agent`
 - [x] **Seleção de modelo por agente** ⚡ urgente — **PR-A 🟢 mergeado em `0caa31b`** (2026-05-11):
   - [x] Adicionar coluna `agents.model` (TEXT, default `claude-sonnet-4-6`) via migration 0003 + `role_templates.default_model` + index
   - [ ] Right panel em `/agents/:id`: dropdown com presets — **defer pra PR-C** (precisa do right panel; spec atual atribui isso ao M7-C)

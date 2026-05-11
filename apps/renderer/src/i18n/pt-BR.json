@@ -8,7 +8,8 @@
     "settings": "Configurações",
     "agents": "Agentes",
     "projects": "Projetos",
-    "issues": "Issues"
+    "issues": "Issues",
+    "skills": "Habilidades"
   },
   "dashboard": {
     "placeholder": "M2 — Autenticação e Configurações concluídas. Os widgets do dashboard chegam em M6.",
@@ -173,5 +174,18 @@
       "delete": "Excluir issue",
       "confirmDelete": "Excluir essa issue e todas as sub-tarefas?"
     }
+  },
+  "skills": {
+    "title": "Habilidades (Cargos)",
+    "subtitle": "Cargos disponíveis para contratação. Cada cargo agrupa um conjunto de habilidades e um modelo Claude padrão.",
+    "empty": "Nenhum cargo disponível.",
+    "agentsCount_zero": "{{count}} agentes",
+    "agentsCount_one": "{{count}} agente",
+    "agentsCount_other": "{{count}} agentes",
+    "detail.tools": "Ferramentas",
+    "detail.defaultModel": "Modelo padrão",
+    "detail.agentsUsing": "Agentes usando este cargo",
+    "detail.noAgents": "Nenhum agente usa este cargo no momento.",
+    "detail.skillsGroup": "Habilidade: {{skill}}"
   }
 }
