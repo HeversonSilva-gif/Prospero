@@ -12,9 +12,11 @@ import { registerProjectsHandlers } from "./projects-handlers.js";
 import { registerIssuesHandlers } from "./issues-handlers.js";
 import { registerRolesHandlers } from "./roles-handlers.js";
 import { registerActivityHandlers } from "./activity-handlers.js";
+import { initRecorder } from "../activity/index.js";
 
 export const registerIpcHandlers = (db: Database.Database): void => {
   ipcMain.handle(IPC.PING, () => "pong");
+  initRecorder(db);
   registerSettingsHandlers(db);
   registerAuthHandlers(db);
   registerCompaniesHandlers(db);
