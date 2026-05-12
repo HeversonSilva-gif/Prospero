@@ -10,7 +10,8 @@
     "projects": "Projects",
     "issues": "Issues",
     "skills": "Skills",
-    "orgChart": "Org Chart"
+    "orgChart": "Org Chart",
+    "activity": "Activity"
   },
   "dashboard": {
     "placeholder": "M2 — Auth & Settings done. Dashboard widgets land in M6.",
@@ -268,5 +269,44 @@
     "detail.agentsUsing": "Agents using this role",
     "detail.noAgents": "No agents currently use this role.",
     "detail.skillsGroup": "Skill: {{skill}}"
+  },
+  "activity": {
+    "title": "Activity",
+    "subtitle": "Everything that happened across the company.",
+    "search": "Search…",
+    "empty": "No activity yet.",
+    "loadMore": "Load more",
+    "deleted": "(deleted)",
+    "you": "You",
+    "system": "System",
+    "filter": {
+      "actor": "Actor",
+      "action": "Action",
+      "entity": "Entity",
+      "agent": "Agent",
+      "when": "When",
+      "all": "All",
+      "clear": "Clear filters",
+      "actorKind": {
+        "user": "User",
+        "agent": "Agent",
+        "system": "System"
+      },
+      "entityKind": {
+        "agent": "Agent",
+        "issue": "Issue",
+        "project": "Project",
+        "approval": "Approval",
+        "session": "Session",
+        "company": "Company",
+        "goal": "Goal"
+      },
+      "whenKey": {
+        "today": "Today",
+        "7d": "Last 7 days",
+        "30d": "Last 30 days",
+        "all": "All time"
+      }
+    }
   }
 }

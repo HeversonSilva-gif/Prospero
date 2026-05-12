@@ -10,7 +10,8 @@
     "projects": "Projetos",
     "issues": "Issues",
     "skills": "Habilidades",
-    "orgChart": "Organograma"
+    "orgChart": "Organograma",
+    "activity": "Atividade"
   },
   "dashboard": {
     "placeholder": "M2 — Autenticação e Configurações concluídas. Os widgets do dashboard chegam em M6.",
@@ -268,5 +269,44 @@
     "detail.agentsUsing": "Agentes usando este cargo",
     "detail.noAgents": "Nenhum agente usa este cargo no momento.",
     "detail.skillsGroup": "Habilidade: {{skill}}"
+  },
+  "activity": {
+    "title": "Atividade",
+    "subtitle": "Tudo o que aconteceu na empresa.",
+    "search": "Buscar…",
+    "empty": "Nenhuma atividade ainda.",
+    "loadMore": "Carregar mais",
+    "deleted": "(excluído)",
+    "you": "Você",
+    "system": "Sistema",
+    "filter": {
+      "actor": "Ator",
+      "action": "Ação",
+      "entity": "Entidade",
+      "agent": "Agente",
+      "when": "Quando",
+      "all": "Todos",
+      "clear": "Limpar filtros",
+      "actorKind": {
+        "user": "Usuário",
+        "agent": "Agente",
+        "system": "Sistema"
+      },
+      "entityKind": {
+        "agent": "Agente",
+        "issue": "Issue",
+        "project": "Projeto",
+        "approval": "Aprovação",
+        "session": "Sessão",
+        "company": "Empresa",
+        "goal": "Meta"
+      },
+      "whenKey": {
+        "today": "Hoje",
+        "7d": "Últimos 7 dias",
+        "30d": "Últimos 30 dias",
+        "all": "Todo o tempo"
+      }
+    }
   }
 }
