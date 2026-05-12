@@ -27,6 +27,8 @@ const STATUS_COLOR: Record<AgentStatus, string> = {
   working: "bg-semantic-success",
   waiting: "bg-semantic-warning",
   error: "bg-semantic-danger",
+  paused: "bg-semantic-warning",
+  terminated: "bg-ink-soft",
 };
 
 const Sidebar = () => {

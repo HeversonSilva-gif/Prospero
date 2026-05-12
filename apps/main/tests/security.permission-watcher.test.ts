@@ -22,6 +22,9 @@ const agent: Agent = {
   templateId: null,
   reportsTo: null,
   adapterName: "claude-oauth-local",
+  pausedAt: null,
+  terminatedAt: null,
+  pauseReason: null,
 };
 
 describe(

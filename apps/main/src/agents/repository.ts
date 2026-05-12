@@ -26,6 +26,9 @@ type Row = {
   current_action: string | null;
   model: string;
   adapter_name: string;
+  paused_at: number | null;
+  terminated_at: number | null;
+  pause_reason: string | null;
   created_at: number;
   updated_at: number;
 };
@@ -47,6 +50,9 @@ const rowToAgent = (r: Row): Agent => ({
   templateId: r.template_id,
   reportsTo: r.reports_to,
   adapterName: r.adapter_name,
+  pausedAt: r.paused_at,
+  terminatedAt: r.terminated_at,
+  pauseReason: r.pause_reason,
 });
 
 export type CreateAgentInput = {
