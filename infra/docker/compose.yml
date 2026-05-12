@@ -1,0 +1,25 @@
+# M10 (future): docker-compose interface for the VPS agent runner. Defines the
+# env vars, ports, and volumes that the wire protocol expects. Non-functional
+# until M10 wires the runner.
+
+version: "3.9"
+
+services:
+  agent-runner:
+    image: dashboard-agent/agent-runner:dev
+    build:
+      context: ./agent-runner
+    environment:
+      ADAPTER_WIRE_PROTOCOL_VERSION: "1"
+      CLAUDE_API_KEY: "${CLAUDE_API_KEY}"
+      DASHBOARD_MCP_URL: "${DASHBOARD_MCP_URL}"
+      HEALTH_PORT: "9701"
+    ports:
+      - "9700:9700" # wire-protocol WSS
+      - "9701:9701" # healthcheck
+    volumes:
+      - agent-state:/var/lib/agent-state
+    restart: unless-stopped
+
+volumes:
+  agent-state:
