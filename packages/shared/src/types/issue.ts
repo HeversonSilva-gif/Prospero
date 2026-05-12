@@ -11,6 +11,8 @@ export type Issue = {
   assigneeId: string | null;
   status: IssueStatus;
   priority: IssuePriority;
+  identifier: string | null;
+  issueNumber: number | null;
   createdBy: string | null;
   createdAt: number;
   updatedAt: number;
