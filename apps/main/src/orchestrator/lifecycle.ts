@@ -13,42 +13,16 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { resolveSkillTools, type Agent, type ParsedEvent } from "@dashboard-agent/shared";
+import { type Agent, type ParsedEvent } from "@dashboard-agent/shared";
 import { parseStreamLine } from "./adapters/claude-oauth-local/stream-parser.js";
 import { buildSpawnEnv, type SpawnEnv } from "./env.js";
 import { writeMcpConfigFile } from "./mcp-config.js";
-import { buildAgentSystemPrompt } from "./system-prompt.js";
+import { findClaudeExe } from "./adapters/claude-oauth-local/resolve-binary.js";
+import { buildClaudeArgs } from "./adapters/claude-oauth-local/build-args.js";
+import { getAgentSandboxCwd as getAgentSandboxCwdFromUtil } from "./util/paths.js";
 
-// On Windows, cross-spawn must wrap `claude.cmd` invocations through `cmd.exe /d /s /c "..."`.
-// When the parent is the Electron main process, that cmd.exe wrapper breaks stdio handle
-// inheritance — claude stays alive but emits zero bytes back. Verified by repro: spawning
-// the .exe directly via PowerShell yields stream-json output in <1s with the same args.
-// We resolve the real .exe (npm-installed adjacent to claude.cmd) and spawn it without
-// cmd.exe. Falls back to cross-spawn on non-Windows or when the exe can't be located.
-const findClaudeExe = (): string | null => {
-  if (process.platform !== "win32") return null;
-  const pathDirs = (process.env["PATH"] ?? "").split(";").filter((d) => d !== "");
-  for (const dir of pathDirs) {
-    const directExe = join(dir, "claude.exe");
-    if (existsSync(directExe)) return directExe;
-  }
-  // npm-installed CLIs put a thin .cmd wrapper alongside node_modules/<pkg>/bin/<bin>.exe
-  for (const dir of pathDirs) {
-    const cmd = join(dir, "claude.cmd");
-    if (existsSync(cmd)) {
-      const candidate = join(
-        dir,
-        "node_modules",
-        "@anthropic-ai",
-        "claude-code",
-        "bin",
-        "claude.exe",
-      );
-      if (existsSync(candidate)) return candidate;
-    }
-  }
-  return null;
-};
+export { buildClaudeArgs } from "./adapters/claude-oauth-local/build-args.js";
+export { getAgentSandboxCwd } from "./util/paths.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -104,58 +78,6 @@ export type SpawnOptions = {
   permissionsDir: string;
   /** Absolute path to the events directory — forwarded to the MCP child process. */
   eventsDir: string;
-};
-
-// Per-agent sandbox CWD. The agent spawns inside this empty directory, so tools that
-// operate on CWD (ls, pwd, cat README.md) cannot leak project files even if the agent
-// has misconfigured allowedProjects. Real project work requires absolute paths, which
-// the security gate validates against allowedProjectPaths.
-export const getAgentSandboxCwd = (userDataDir: string, agentId: string): string =>
-  join(userDataDir, "agent-sandbox", agentId, "cwd");
-
-// Internal helper that builds the args (factored out so tests can verify args without spawn)
-//
-// We deliberately omit `-p` (--print): that flag makes claude wait for stdin EOF before
-// emitting any assistant output, which is incompatible with the persistent runner that
-// streams JSONL user messages over time without ever closing stdin. Verified live against
-// claude 2.1.138 — without -p, claude streams `system/init` → `assistant` → `result` per
-// turn and stays alive for follow-ups, which is exactly what the orchestrator needs.
-//
-// `--strict-mcp-config` ensures the spawned claude only sees our dashboard MCP server
-// (the one in `--mcp-config`) and ignores any global MCP servers the host user has
-// configured (Slack, Drive, Meta Ads, etc). Combined with CLAUDE_CONFIG_DIR pointing at
-// an empty per-spawn dir (set in spawnAgent), this enforces the agent sandbox.
-export const buildClaudeArgs = (agent: Agent, mcpConfigPath: string): string[] => {
-  const allowedTools = resolveSkillTools(agent.skills);
-  const args = [
-    "--system-prompt",
-    buildAgentSystemPrompt(agent.systemPrompt, agent.skills),
-    "--model",
-    agent.model,
-    "--allowedTools",
-    allowedTools.join(","),
-    "--input-format",
-    "stream-json",
-    "--output-format",
-    "stream-json",
-    "--verbose",
-    "--include-partial-messages",
-    "--mcp-config",
-    mcpConfigPath,
-    "--strict-mcp-config",
-    // Permission gating is configured via per-agent CLAUDE_CONFIG_DIR/settings.json
-    // (written in spawnAgent before this CLI invokes). Settings allow our MCP
-    // orchestration tools and ask for filesystem tools. The --permission-prompt-tool
-    // is the route claude uses to ask in non-interactive stream-json mode.
-    "--permission-mode",
-    "default",
-    "--permission-prompt-tool",
-    "mcp__dashboard__request_permission",
-  ];
-  if (agent.claudeSessionId !== null) {
-    args.push("--resume", agent.claudeSessionId);
-  }
-  return args;
 };
 
 const runners = new Map<string, AgentRunner>();
@@ -224,7 +146,7 @@ export const spawnAgent = (opts: SpawnOptions, cb: RunnerCallbacks): AgentRunner
   if (opts.userDataDir !== undefined) {
     agentConfigDir = join(opts.userDataDir, "agent-sandbox", opts.agent.id);
     mkdirSync(agentConfigDir, { recursive: true });
-    agentSandboxCwd = getAgentSandboxCwd(opts.userDataDir, opts.agent.id);
+    agentSandboxCwd = getAgentSandboxCwdFromUtil(opts.userDataDir, opts.agent.id);
     mkdirSync(agentSandboxCwd, { recursive: true });
     isEphemeralConfigDir = false;
   } else {
