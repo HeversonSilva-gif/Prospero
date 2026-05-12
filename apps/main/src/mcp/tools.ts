@@ -9,6 +9,7 @@ import { createIssuesRepository } from "../issues/repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
 import { createSettingsRepository } from "../settings/repository.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
+import { createArtifactsRepository } from "../artifacts/repository.js";
 
 export type ToolContext = {
   agentId: string;
@@ -405,7 +406,20 @@ export const toolDefinitions = [
         });
       }
       ctx.emit({ kind: "issue.updated", payload: { issueId: next.id } });
-      return JSON.stringify({ id: next.id, status: next.status });
+      let warning: string | undefined;
+      if (input.status === "done") {
+        const artifacts = createArtifactsRepository(ctx.db);
+        if (artifacts.countForIssue(resolved) === 0) {
+          warning =
+            "Issue marked done without recording an artifact. Use `record_artifact` to attach a commit SHA, PR URL, file path, or output text for the audit trail.";
+        }
+      }
+      const response: { id: string; status: string; warning?: string } = {
+        id: next.id,
+        status: next.status,
+      };
+      if (warning !== undefined) response.warning = warning;
+      return JSON.stringify(response);
     },
   },
   {
@@ -581,6 +595,56 @@ export const toolDefinitions = [
         return JSON.stringify({ behavior: "allow", updatedInput: toolInput });
       }
       return JSON.stringify(result);
+    },
+  },
+  {
+    name: "record_artifact",
+    description:
+      "Record a deliverable for an issue (commit SHA, PR URL, file path, snapshot, or output text). Call this before marking an issue as done so it has an audit trail.",
+    inputSchema: z.object({
+      issue_id: z.string(),
+      kind: z.enum(["file_path", "commit_sha", "pr_url", "snapshot", "output_text"]),
+      ref: z.string().min(1).max(1024),
+      preview: z.string().max(4096).optional(),
+    }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (
+      input: {
+        issue_id: string;
+        kind: "file_path" | "commit_sha" | "pr_url" | "snapshot" | "output_text";
+        ref: string;
+        preview?: string;
+      },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      // Defensive length checks — Zod's inputSchema enforces them at the MCP
+      // boundary, but unit tests call run() directly and need a runtime guard.
+      if (input.ref.length === 0 || input.ref.length > 1024) {
+        return JSON.stringify({ ok: false, error: "ref length out of bounds" });
+      }
+      if (input.preview !== undefined && input.preview.length > 4096) {
+        return JSON.stringify({ ok: false, error: "preview length exceeds 4096" });
+      }
+      const resolvedId = resolveIssueIdOrIdentifier(ctx.db, input.issue_id, ctx.companyId);
+      if (resolvedId === null) {
+        return JSON.stringify({ ok: false, error: "issue not found" });
+      }
+      if (input.kind === "commit_sha" && !/^[a-f0-9]{40}$/i.test(input.ref)) {
+        return JSON.stringify({ ok: false, error: "commit_sha must be 40-char hex" });
+      }
+      if (input.kind === "pr_url" && !/^https?:\/\//i.test(input.ref)) {
+        return JSON.stringify({ ok: false, error: "pr_url must be http(s)" });
+      }
+      const repo = createArtifactsRepository(ctx.db);
+      const artifact = repo.create({
+        issueId: resolvedId,
+        kind: input.kind,
+        ref: input.ref,
+        contentPreview: input.preview ?? null,
+        createdBy: ctx.agentId,
+      });
+      ctx.emit({ kind: "issue.updated", payload: { issueId: resolvedId } });
+      return JSON.stringify({ id: artifact.id, issue_id: resolvedId, kind: artifact.kind });
     },
   },
 ] as const;
