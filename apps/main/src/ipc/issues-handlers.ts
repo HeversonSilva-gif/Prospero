@@ -29,7 +29,7 @@ const broadcast = (event: AgentEvent): void => {
 };
 
 export const registerIssuesHandlers = (db: Database.Database): void => {
-  const issues = createIssuesRepository(db);
+  const issues = createIssuesRepository(db, tryGetRecorder());
   const comments = createIssueCommentsRepository(db);
   const messages = createMessagesRepository(db);
   const agents = createAgentsRepository(db, tryGetRecorder());
@@ -193,12 +193,22 @@ export const registerIssuesHandlers = (db: Database.Database): void => {
         content: payload.content,
       });
       const issue = issues.getById(payload.issueId);
-      if (issue !== null)
+      if (issue !== null) {
         broadcastIssueChanged({
           kind: "comment-added",
           issueId: c.issueId,
           companyId: issue.companyId,
         });
+        tryGetRecorder()?.recordActivity({
+          companyId: issue.companyId,
+          actor: { kind: "user" },
+          action: "issue.comment_added",
+          entityKind: "issue",
+          entityId: issue.id,
+          agentId: issue.assigneeId,
+          payload: { commentId: c.id, preview: payload.content.slice(0, 200) },
+        });
+      }
       return c;
     },
   );

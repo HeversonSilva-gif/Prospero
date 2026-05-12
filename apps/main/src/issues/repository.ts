@@ -8,8 +8,10 @@ import type {
   IssueComment,
   IssueEvent,
   IssueEventKind,
+  Actor,
 } from "@dashboard-agent/shared";
 import { getToolHistory } from "./tool-history.js";
+import type { Recorder } from "../activity/recorder.js";
 
 type IssueRow = {
   id: string;
@@ -108,7 +110,19 @@ const writeEvent = (
   );
 };
 
-export const createIssuesRepository = (db: Database.Database): IssuesRepository => {
+const toActor = (ctx: ActorContext): Actor => {
+  if (ctx.actorKind === "agent" && ctx.actorId !== null) return { kind: "agent", id: ctx.actorId };
+  if (ctx.actorKind === "system") return { kind: "system" };
+  return { kind: "user" };
+};
+
+// `recorder` is optional so existing test setups keep working. When supplied,
+// every issue mutation also emits an activity_events row alongside the
+// pre-existing issue_events row (dual-write).
+export const createIssuesRepository = (
+  db: Database.Database,
+  recorder?: Recorder,
+): IssuesRepository => {
   const insert = db.prepare(`
     INSERT INTO issues (id, company_id, project_id, parent_id, title, description, assignee_id, status, priority, identifier, issue_number, created_by, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, 'todo', ?, ?, ?, ?, ?, ?)
@@ -162,6 +176,19 @@ export const createIssuesRepository = (db: Database.Database): IssuesRepository 
       assignee_id: input.assigneeId,
       priority: input.priority,
       identifier,
+    });
+    recorder?.recordActivity({
+      companyId: input.companyId,
+      actor: toActor(actor),
+      action: "issue.created",
+      entityKind: "issue",
+      entityId: id,
+      agentId: input.assigneeId,
+      payload: {
+        identifier: identifier ?? "",
+        title: input.title,
+        assigneeAgentId: input.assigneeId,
+      },
     });
     return rowToIssue(byId.get(id) as IssueRow);
   });
@@ -305,6 +332,43 @@ export const createIssuesRepository = (db: Database.Database): IssuesRepository 
       params.push(id);
       db.prepare(`UPDATE issues SET ${sets.join(", ")} WHERE id = ?`).run(...params);
       for (const e of events) writeEvent(db, id, e.kind, actor, e.payload);
+      // Dual-write to activity_events (one row per changed field that maps to
+      // an activity action). `reparented` has no activity counterpart in v1.
+      const activityActor = toActor(actor);
+      for (const e of events) {
+        if (e.kind === "status_changed") {
+          recorder?.recordActivity({
+            companyId: current.company_id,
+            actor: activityActor,
+            action: "issue.status_changed",
+            entityKind: "issue",
+            entityId: id,
+            agentId: current.assignee_id,
+            payload: e.payload as { from: string; to: string },
+          });
+        } else if (e.kind === "assignee_changed") {
+          const p = e.payload as { from: string | null; to: string | null };
+          recorder?.recordActivity({
+            companyId: current.company_id,
+            actor: activityActor,
+            action: "issue.assignee_changed",
+            entityKind: "issue",
+            entityId: id,
+            agentId: p.to ?? p.from,
+            payload: p,
+          });
+        } else if (e.kind === "priority_changed") {
+          recorder?.recordActivity({
+            companyId: current.company_id,
+            actor: activityActor,
+            action: "issue.priority_changed",
+            entityKind: "issue",
+            entityId: id,
+            agentId: current.assignee_id,
+            payload: e.payload as { from: string; to: string },
+          });
+        }
+      }
       return rowToIssue(byId.get(id) as IssueRow);
     },
     delete(id) {

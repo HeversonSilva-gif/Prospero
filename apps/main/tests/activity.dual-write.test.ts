@@ -6,6 +6,8 @@ import Database from "better-sqlite3";
 import { applyMigrations } from "../src/db/migrations.js";
 import { createCompaniesRepository } from "../src/companies/repository.js";
 import { createAgentsRepository, type CreateAgentInput } from "../src/agents/repository.js";
+import { createIssuesRepository } from "../src/issues/repository.js";
+import { createProjectsRepository } from "../src/projects/repository.js";
 import { createRecorder } from "../src/activity/recorder.js";
 import { createActivityRepository } from "../src/activity/repository.js";
 
@@ -30,6 +32,25 @@ const baseAgent = (companyId: string, over: Partial<CreateAgentInput> = {}): Cre
   model: "claude-sonnet-4-6",
   ...over,
 });
+
+const setupIssues = () => {
+  const db = new Database(":memory:");
+  applyMigrations(db);
+  const companies = createCompaniesRepository(db);
+  const company = companies.create({ name: "Acme" });
+  const recorder = createRecorder(db, vi.fn(), { devMode: true });
+  const projects = createProjectsRepository(db);
+  const project = projects.create({
+    companyId: company.id,
+    name: "Default",
+    path: ".",
+    color: "#888",
+    slug: "DEF",
+  });
+  const issues = createIssuesRepository(db, recorder);
+  const activity = createActivityRepository(db);
+  return { issues, activity, companyId: company.id, projectId: project.id };
+};
 
 describe("dual-write — agents repository", () => {
   it("create emits agent.hired with default user actor", () => {
@@ -85,5 +106,101 @@ describe("dual-write — agents repository", () => {
     });
     expect(rows).toHaveLength(1);
     expect((rows[0]!.payload as { projects: string[] }).projects).toEqual(["proj_1", "proj_2"]);
+  });
+});
+
+describe("dual-write — issues repository", () => {
+  it("create emits issue.created", () => {
+    const { issues, activity, companyId, projectId } = setupIssues();
+    const issue = issues.create(
+      {
+        companyId,
+        projectId,
+        title: "Build foo",
+        description: null,
+        assigneeId: null,
+        priority: "medium",
+        parentId: null,
+        createdBy: null,
+      },
+      { actorKind: "user", actorId: null },
+    );
+    const rows = activity.query({
+      companyId,
+      filters: { entityKind: "issue", entityId: issue.id },
+    });
+    const created = rows.find((r) => r.action === "issue.created");
+    expect(created).toBeDefined();
+    expect((created!.payload as { title: string }).title).toBe("Build foo");
+  });
+
+  it("update(status) emits issue.status_changed", () => {
+    const { issues, activity, companyId, projectId } = setupIssues();
+    const issue = issues.create(
+      {
+        companyId,
+        projectId,
+        title: "T",
+        description: null,
+        assigneeId: null,
+        priority: "medium",
+        parentId: null,
+        createdBy: null,
+      },
+      { actorKind: "user", actorId: null },
+    );
+    issues.update(issue.id, { status: "doing" }, { actorKind: "user", actorId: null });
+    const rows = activity.query({ companyId, filters: { action: "issue.status_changed" } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.payload).toEqual({ from: "todo", to: "doing" });
+  });
+
+  it("update(assignee) emits issue.assignee_changed", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    const companies = createCompaniesRepository(db);
+    const company = companies.create({ name: "Acme" });
+    const recorder = createRecorder(db, vi.fn(), { devMode: true });
+    const projects = createProjectsRepository(db);
+    const project = projects.create({
+      companyId: company.id,
+      name: "Default",
+      path: ".",
+      color: "#888",
+      slug: "DEF",
+    });
+    // Create a real agent so the FK on issues.assignee_id resolves.
+    const agents = createAgentsRepository(db);
+    const assignee = agents.create({
+      companyId: company.id,
+      name: "Eng",
+      role: "engineer",
+      systemPrompt: "p",
+      mode: "supervised",
+      alwaysOn: false,
+      model: "claude-sonnet-4-6",
+    });
+    const issues = createIssuesRepository(db, recorder);
+    const activity = createActivityRepository(db);
+    const issue = issues.create(
+      {
+        companyId: company.id,
+        projectId: project.id,
+        title: "T",
+        description: null,
+        assigneeId: null,
+        priority: "medium",
+        parentId: null,
+        createdBy: null,
+      },
+      { actorKind: "user", actorId: null },
+    );
+    issues.update(issue.id, { assigneeId: assignee.id }, { actorKind: "user", actorId: null });
+    const rows = activity.query({
+      companyId: company.id,
+      filters: { action: "issue.assignee_changed" },
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.payload).toEqual({ from: null, to: assignee.id });
   });
 });
