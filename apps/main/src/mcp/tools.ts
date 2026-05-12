@@ -585,6 +585,15 @@ export const toolDefinitions = [
         requiresAction: true,
         approvalId: approval.id,
       });
+      tryGetRecorder()?.recordActivity({
+        companyId: ctx.companyId,
+        actor: { kind: "agent", id: ctx.agentId },
+        action: "approval.requested",
+        entityKind: "approval",
+        entityId: approval.id,
+        agentId: ctx.agentId,
+        payload: { kind: "tool_call", toolName: rawInput.tool_name },
+      });
 
       const reqPath = join(ctx.permissionsDir, `${toolUseId}.req.json`);
       writeFileSync(

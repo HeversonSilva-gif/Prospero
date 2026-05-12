@@ -7,6 +7,7 @@ import { getPermissionsDir } from "../security/permissions-dir.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
 import { broadcastInboxUpdate } from "./inbox-handlers.js";
+import { tryGetRecorder } from "../activity/index.js";
 
 export const broadcastPermissionRequest = (req: PermissionRequest): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -37,6 +38,19 @@ export const registerPermissionHandlers = (db: Database.Database): void => {
             `[m5/permission] resolve markRead HIT (new format) itemId=${updated.id} approvalId=${approval.id}`,
           );
           broadcastInboxUpdate(updated.companyId);
+          tryGetRecorder()?.recordActivity({
+            companyId: updated.companyId,
+            actor: { kind: "user" },
+            action:
+              payload.resolution.behavior === "allow" ? "approval.approved" : "approval.rejected",
+            entityKind: "approval",
+            entityId: approval.id,
+            agentId: approval.agentId,
+            payload: {
+              approvalId: approval.id,
+              note: payload.resolution.behavior === "deny" ? payload.resolution.message : undefined,
+            },
+          });
           return;
         }
       }
