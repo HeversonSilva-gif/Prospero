@@ -11,11 +11,73 @@
     "issues": "Issues",
     "skills": "Skills",
     "orgChart": "Org Chart",
-    "activity": "Activity"
+    "activity": "Activity",
+    "costs": "Costs"
   },
   "dashboard": {
-    "placeholder": "Dashboard is a stub. Widgets (Recent Activity, Active Agents, Costs today, metrics) land in M9 — they consume the Activity stream (M7.7 ✅) and Costs (M8).",
-    "createDemoCompany": "Create demo company"
+    "placeholder": "Dashboard is a stub. Widgets (Recent Activity, Active Agents, metrics) land in M9 — Costs today already works via M8.",
+    "createDemoCompany": "Create demo company",
+    "costsToday": {
+      "title": "Today's costs",
+      "viewDetails": "View details →",
+      "tokens": "tokens",
+      "noActivity": "No costs today yet."
+    }
+  },
+  "costs": {
+    "title": "Costs",
+    "subtitle": "Tokens consumed per agent, project, adapter. Soft-stop when budget is exceeded.",
+    "header": {
+      "totalToday": "Today",
+      "totalRange": "This period",
+      "percentMax": "% of Max limit",
+      "percentMaxOver": "Over the limit!"
+    },
+    "filters": {
+      "scope": "Scope",
+      "scopeCompany": "Whole company",
+      "scopeAgent": "Per agent",
+      "scopeProject": "Per project",
+      "agent": "Agent",
+      "project": "Project",
+      "adapter": "Adapter",
+      "adapterAll": "All",
+      "range": "Range",
+      "range1d": "Last 24h",
+      "range7d": "Last 7 days",
+      "range30d": "Last 30 days",
+      "clear": "Clear"
+    },
+    "chart": {
+      "timeSeries": "Tokens per day",
+      "byAgent": "Top 10 agents",
+      "byProject": "Per project",
+      "noData": "No data in this range",
+      "legend": {
+        "input": "Input",
+        "output": "Output",
+        "cacheCreate": "Cache (create)",
+        "cacheRead": "Cache (read)"
+      }
+    },
+    "table": {
+      "title": "Recent turns",
+      "agent": "Agent",
+      "model": "Model",
+      "tokens": "Tokens",
+      "cost": "Cost",
+      "time": "When",
+      "empty": "No turns yet."
+    },
+    "empty": "No cost data recorded yet. Send a message to an agent to start.",
+    "loading": "Loading…"
+  },
+  "model": {
+    "costHint": {
+      "cheap": "$ cheap",
+      "medium": "$$ medium",
+      "expensive": "$$$ expensive"
+    }
   },
   "agent": {
     "composerPlaceholder": "Message to the agent...",
@@ -98,8 +160,11 @@
       "turns": "Turns",
       "tokensIn": "Tokens in",
       "tokensOut": "Tokens out",
-      "lastActivity": "Last activity",
-      "m8Note": "Token tracking coming soon."
+      "tokensCache": "Cache tokens",
+      "costTotal": "Total cost",
+      "spark7d": "Last 7 days",
+      "viewInCosts": "View in /costs →",
+      "lastActivity": "Last activity"
     },
     "header": {
       "pause": "Pause",
@@ -208,7 +273,17 @@
     "model.presetOpus": "Opus 4.7 (best reasoning)",
     "model.presetSonnet": "Sonnet 4.6 (balanced — recommended)",
     "model.presetHaiku": "Haiku 4.5 (fastest, cheapest)",
-    "model.saved": "Saved"
+    "model.saved": "Saved",
+    "budgets.title": "Usage limits (Budgets)",
+    "budgets.subtitle": "When an agent goes over its limit, it pauses itself and alerts the Inbox.",
+    "budgets.maxTokensPerDayPerAgent": "Tokens per day per agent",
+    "budgets.maxTokensPerIssue": "Tokens per issue",
+    "budgets.rateLimitWindowTokens": "Rate limit window (tokens)",
+    "budgets.rateLimitWindowHours": "Rate limit window (hours)",
+    "budgets.save": "Save",
+    "budgets.saved": "Saved!",
+    "budgets.reset": "Reset to defaults",
+    "budgets.errorPositive": "Must be a positive integer."
   },
   "wizard": {
     "title": "Welcome to Dashboard Agent",
