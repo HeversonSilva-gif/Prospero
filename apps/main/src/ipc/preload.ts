@@ -25,6 +25,10 @@ import {
   type RoleDetail,
   type ActivityEventRow,
   type ActivityQueryParams,
+  type CostsQueryInput,
+  type CostsQueryResult,
+  type CostsAggregateTodayResult,
+  type CostBudgets,
 } from "@dashboard-agent/shared";
 
 contextBridge.exposeInMainWorld("dashboardAgent", {
@@ -201,6 +205,32 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
       const handler = (_e: unknown, row: ActivityEventRow) => cb(row);
       ipcRenderer.on(IPC.ACTIVITY_NEW, handler);
       return () => ipcRenderer.removeListener(IPC.ACTIVITY_NEW, handler);
+    },
+  },
+  costs: {
+    query: (input: CostsQueryInput) =>
+      ipcRenderer.invoke(IPC.COSTS_QUERY, input) as Promise<CostsQueryResult>,
+    aggregateToday: (payload: { companyId: string }) =>
+      ipcRenderer.invoke(IPC.COSTS_AGGREGATE_TODAY, payload) as Promise<CostsAggregateTodayResult>,
+    getBudgets: () => ipcRenderer.invoke(IPC.COSTS_GET_BUDGETS) as Promise<CostBudgets>,
+    setBudgets: (patch: Partial<CostBudgets>) =>
+      ipcRenderer.invoke(IPC.COSTS_SET_BUDGETS, patch) as Promise<CostBudgets>,
+    onNew: (
+      cb: (payload: { agentId: string; deltaTokens: number; deltaCents: number }) => void,
+    ): (() => void) => {
+      const handler = (
+        _event: unknown,
+        payload: { kind: string; agentId: string; deltaTokens: number; deltaCents: number },
+      ): void => {
+        if (payload.kind !== "costs-new") return;
+        cb({
+          agentId: payload.agentId,
+          deltaTokens: payload.deltaTokens,
+          deltaCents: payload.deltaCents,
+        });
+      };
+      ipcRenderer.on(IPC.AGENT_EVENT, handler);
+      return () => ipcRenderer.off(IPC.AGENT_EVENT, handler);
     },
   },
   windowControls: {

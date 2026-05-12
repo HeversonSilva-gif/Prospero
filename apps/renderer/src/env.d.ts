@@ -24,6 +24,10 @@ import type {
   RoleDetail,
   ActivityEventRow,
   ActivityQueryParams,
+  CostsQueryInput,
+  CostsQueryResult,
+  CostsAggregateTodayResult,
+  CostBudgets,
 } from "@dashboard-agent/shared";
 
 declare global {
@@ -150,6 +154,15 @@ declare global {
       activity: {
         query: (params: ActivityQueryParams) => Promise<ActivityEventRow[]>;
         onNew: (cb: (row: ActivityEventRow) => void) => () => void;
+      };
+      costs: {
+        query: (input: CostsQueryInput) => Promise<CostsQueryResult>;
+        aggregateToday: (payload: { companyId: string }) => Promise<CostsAggregateTodayResult>;
+        getBudgets: () => Promise<CostBudgets>;
+        setBudgets: (patch: Partial<CostBudgets>) => Promise<CostBudgets>;
+        onNew: (
+          cb: (payload: { agentId: string; deltaTokens: number; deltaCents: number }) => void,
+        ) => () => void;
       };
       windowControls: {
         minimize: () => Promise<void>;
