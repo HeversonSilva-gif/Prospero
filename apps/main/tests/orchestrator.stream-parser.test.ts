@@ -98,3 +98,83 @@ describe("parseStreamLine", () => {
     expect(parseStreamLine("{ not json }")).toBeNull();
   });
 });
+
+describe("parseStreamLine — result event with usage (M8)", () => {
+  it("parses usage object on result event", () => {
+    const line = JSON.stringify({
+      type: "result",
+      subtype: "success",
+      usage: {
+        input_tokens: 100,
+        output_tokens: 50,
+        cache_creation_input_tokens: 1000,
+        cache_read_input_tokens: 200,
+      },
+      message: { model: "claude-sonnet-4-6" },
+    });
+    const parsed = parseStreamLine(line);
+    expect(parsed?.kind).toBe("turn-complete");
+    if (parsed?.kind === "turn-complete") {
+      expect(parsed.usage).toEqual({
+        input: 100,
+        output: 50,
+        cache_creation: 1000,
+        cache_read: 200,
+      });
+      expect(parsed.model).toBe("claude-sonnet-4-6");
+    }
+  });
+
+  it("returns usage undefined when result event has no usage", () => {
+    const line = JSON.stringify({ type: "result", subtype: "success" });
+    const parsed = parseStreamLine(line);
+    expect(parsed?.kind).toBe("turn-complete");
+    if (parsed?.kind === "turn-complete") {
+      expect(parsed.usage).toBeUndefined();
+      expect(parsed.model).toBeUndefined();
+    }
+  });
+
+  it("tolerates partial usage (missing cache fields)", () => {
+    const line = JSON.stringify({
+      type: "result",
+      usage: { input_tokens: 42, output_tokens: 17 },
+    });
+    const parsed = parseStreamLine(line);
+    if (parsed?.kind === "turn-complete") {
+      expect(parsed.usage).toEqual({
+        input: 42,
+        output: 17,
+        cache_creation: 0,
+        cache_read: 0,
+      });
+    }
+  });
+
+  it("returns usage undefined when all token counts are zero or missing", () => {
+    const line = JSON.stringify({
+      type: "result",
+      usage: { input_tokens: 0, output_tokens: 0 },
+    });
+    const parsed = parseStreamLine(line);
+    if (parsed?.kind === "turn-complete") {
+      expect(parsed.usage).toBeUndefined();
+    }
+  });
+
+  it("ignores negative token values (defaults to 0)", () => {
+    const line = JSON.stringify({
+      type: "result",
+      usage: { input_tokens: -5, output_tokens: 10 },
+    });
+    const parsed = parseStreamLine(line);
+    if (parsed?.kind === "turn-complete") {
+      expect(parsed.usage).toEqual({
+        input: 0,
+        output: 10,
+        cache_creation: 0,
+        cache_read: 0,
+      });
+    }
+  });
+});

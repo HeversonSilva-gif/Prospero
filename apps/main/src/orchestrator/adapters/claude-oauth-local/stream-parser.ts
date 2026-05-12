@@ -12,7 +12,7 @@
 //   - {"type":"stream_event", event:{type:"content_block_*"|"message_stop", ...}}
 // Still parsed for forward compatibility.
 
-import type { AssistantContentBlock, ParsedEvent } from "@dashboard-agent/shared";
+import type { AssistantContentBlock, ParsedEvent, UsageEstimate } from "@dashboard-agent/shared";
 
 export type { AssistantContentBlock, ParsedEvent };
 
@@ -48,6 +48,28 @@ const toAssistantBlocks = (content: unknown): AssistantContentBlock[] => {
     }
   }
   return blocks;
+};
+
+const safeReadUsage = (raw: unknown): UsageEstimate | undefined => {
+  if (!isObject(raw)) return undefined;
+  const n = (v: unknown): number =>
+    typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
+  const result: UsageEstimate = {
+    input: n(raw["input_tokens"]),
+    output: n(raw["output_tokens"]),
+    cache_creation: n(raw["cache_creation_input_tokens"]),
+    cache_read: n(raw["cache_read_input_tokens"]),
+  };
+  const total = result.input + result.output + result.cache_creation + result.cache_read;
+  return total > 0 ? result : undefined;
+};
+
+const readModel = (data: Record<string, unknown>): string | undefined => {
+  if (typeof data["model"] === "string") return data["model"];
+  if (isObject(data["message"]) && typeof data["message"]["model"] === "string") {
+    return data["message"]["model"];
+  }
+  return undefined;
 };
 
 const extractToolResultText = (content: unknown): string => {
@@ -118,7 +140,9 @@ export const parseStreamLine = (line: string): ParsedEvent | null => {
 
   // result — turn completed
   if (data["type"] === "result") {
-    return { kind: "turn-complete" };
+    const usage = safeReadUsage(data["usage"]);
+    const model = readModel(data);
+    return { kind: "turn-complete", usage, model };
   }
 
   // legacy partial-message stream events (still emitted with --include-partial-messages)
