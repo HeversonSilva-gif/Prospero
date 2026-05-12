@@ -370,6 +370,98 @@
         letter-spacing: 0.12em;
       }
 
+      /* ─── now → next → horizon hero ─── */
+      .next-up {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1px;
+        background: var(--rule);
+        border: 1px solid var(--rule);
+      }
+      .next-up .card {
+        background: var(--bg-elev);
+        padding: 22px 24px 24px;
+        position: relative;
+      }
+      .next-up .card[data-kind="now"]::before,
+      .next-up .card[data-kind="next"]::before,
+      .next-up .card[data-kind="horizon"]::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+      }
+      .next-up .card[data-kind="now"]::before {
+        background: var(--done);
+      }
+      .next-up .card[data-kind="next"]::before {
+        background: var(--accent);
+      }
+      .next-up .card[data-kind="horizon"]::before {
+        background: var(--ink-3);
+      }
+      .next-up .card .kicker {
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        margin-bottom: 4px;
+      }
+      .next-up .card .title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 12px;
+      }
+      .next-up .card[data-kind="now"] .title {
+        color: var(--done);
+      }
+      .next-up .card[data-kind="next"] .title {
+        color: var(--accent);
+      }
+      .next-up .card .bullets {
+        list-style: none;
+        font-size: 12px;
+        color: var(--ink-2);
+        line-height: 1.7;
+      }
+      .next-up .card .bullets li {
+        display: flex;
+        gap: 8px;
+      }
+      .next-up .card .bullets li::before {
+        content: "▸";
+        color: var(--ink-3);
+        flex-shrink: 0;
+      }
+      .next-up .card .bullets strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .next-up .card .flow {
+        font-size: 11px;
+        color: var(--ink-2);
+        background: var(--bg-card);
+        border: 1px dashed var(--rule);
+        padding: 10px 12px;
+        margin-top: 12px;
+        line-height: 1.7;
+        white-space: pre;
+        overflow-x: auto;
+      }
+      .next-up .card .eta {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--rule);
+        font-size: 11px;
+        color: var(--ink-3);
+      }
+      .next-up .card .eta strong {
+        color: var(--accent);
+      }
+
       /* ─── scope modules grid ─── */
       .modules {
         display: grid;
@@ -867,8 +959,8 @@
         <button class="theme-toggle" onclick="toggleTheme()">theme</button>
         <div class="meta-row">
           <div class="left">
-            <span>v1 · m7 / 14</span>
-            <span>last-update 2026-05-11</span>
+            <span>v1 · 10 / 14</span>
+            <span>last-update 2026-05-12</span>
             <span>branch · master</span>
           </div>
           <div>roadmap.html</div>
@@ -885,19 +977,19 @@
         <div class="stats">
           <div class="stat">
             <div class="label">Milestones</div>
-            <div class="value">8 <span class="unit">/ 14 fechados</span></div>
+            <div class="value">10 <span class="unit">/ 14 fechados</span></div>
           </div>
           <div class="stat">
             <div class="label">Testes</div>
-            <div class="value">392 <span class="unit">passing</span></div>
+            <div class="value">472 <span class="unit">passing</span></div>
           </div>
           <div class="stat">
             <div class="label">Commits</div>
-            <div class="value">~165 <span class="unit">no master</span></div>
+            <div class="value">~205 <span class="unit">no master</span></div>
           </div>
           <div class="stat">
             <div class="label">LoC apps + packages</div>
-            <div class="value">~14k <span class="unit">TS/TSX</span></div>
+            <div class="value">~16k <span class="unit">TS/TSX</span></div>
           </div>
         </div>
       </header>
@@ -908,7 +1000,8 @@
           <span class="index">/01</span>
           <h2>v1 progress</h2>
           <span class="note"
-            >M1—M10 · M7.5 fechado · próximo M7.7 Activity Stream ou M7.6 Agent Studio</span
+            >M1—M10 · M7.6 fechado em <code>bc38f4a</code> · próximo M8 Costs (desbloqueia
+            M8.5/M9/M10)</span
           >
         </div>
 
@@ -946,15 +1039,15 @@
               <div class="dot"></div>
               <div class="label">M7.5</div>
             </div>
-            <div class="progress-step" data-status="planned">
+            <div class="progress-step" data-status="done">
               <div class="dot"></div>
               <div class="label">M7.7</div>
             </div>
-            <div class="progress-step" data-status="planned">
+            <div class="progress-step" data-status="done">
               <div class="dot"></div>
               <div class="label">M7.6</div>
             </div>
-            <div class="progress-step" data-status="planned">
+            <div class="progress-step" data-status="progress">
               <div class="dot"></div>
               <div class="label">M8</div>
             </div>
@@ -973,8 +1066,9 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M7.5 fechado (PR-A adapter foundation `a633e41` + PR-B 4
-              migrations `baca895` + PR-C UX polish + E2E + docs `bb9cb39`) — próximo M7.7 ou M7.6
+              <strong>Estágio:</strong> M7.6 fechado (<code>bc38f4a</code> = PR-A backend + PR-B UI
+              mergeados). Activity stream (M7.7) + Agent Studio (M7.6) ambos ✅. Próximo:
+              <strong>M8 Costs</strong> — desbloqueia M8.5 / M9 / M10.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -982,8 +1076,84 @@
             </div>
             <div>
               <strong>Stack:</strong> Electron 33 · React 18 · Vite · zustand · better-sqlite3 · MCP
-              SDK
+              SDK · zod
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ NOW → NEXT → HORIZON HERO ═══════════ -->
+      <section class="section" style="animation-delay: 90ms">
+        <div class="section-head">
+          <span class="index">/02</span>
+          <h2>agora → próximo → horizonte</h2>
+          <span class="note">quick view · onde estamos · o que vem · onde chegamos com v1</span>
+        </div>
+
+        <div class="next-up">
+          <div class="card" data-kind="now">
+            <div class="kicker">agora</div>
+            <div class="title">M7.6 fechado</div>
+            <ul class="bullets">
+              <li>
+                <span><strong>10 / 14</strong> milestones do v1</span>
+              </li>
+              <li>
+                <span><strong>472</strong> testes passing · 0 lint/typecheck errors</span>
+              </li>
+              <li>
+                <span
+                  ><strong>8 / 12</strong> módulos ✅ (Activity stream + Agents acabaram de
+                  fechar)</span
+                >
+              </li>
+              <li>
+                <span>Master <code>bc38f4a</code> (M7.6 PR-B merge)</span>
+              </li>
+              <li>
+                <span>Bundle renderer <strong>448 kB</strong></span>
+              </li>
+            </ul>
+            <div class="eta">Q3 2026 — 10 milestones em ~6 semanas de trabalho focado</div>
+          </div>
+
+          <div class="card" data-kind="next">
+            <div class="kicker">próximo</div>
+            <div class="title">M8 Costs</div>
+            <ul class="bullets">
+              <li>
+                <span>Schema <code>cost_events</code> adapter-aware</span>
+              </li>
+              <li>
+                <span><strong>Soft-stop</strong> at turn-complete quando budget estoura</span>
+              </li>
+              <li>
+                <span>Rota <code>/costs</code> com gráficos + filtros por agent/project/dia</span>
+              </li>
+              <li><span>Dashboard widget "Custos hoje"</span></li>
+              <li>
+                <span
+                  ><strong>Desbloqueia</strong>: M8.5 (estimates) · M9 (widget) · M10
+                  (per-adapter)</span
+                >
+              </li>
+            </ul>
+            <div class="eta">
+              ETA: <strong>~3-5 dias</strong> · split sugerido PR-A (backend) + PR-B (UI)
+            </div>
+          </div>
+
+          <div class="card" data-kind="horizon">
+            <div class="kicker">horizonte</div>
+            <div class="title">v1 fechado</div>
+            <div class="flow">M8 ──▶ M8.5 ──▶ M9 ──▶ M10 ──▶ v1 ✅ ~5d ~10-12d ~6-8d ~4-6d</div>
+            <ul class="bullets" style="margin-top: 12px">
+              <li><span>CEO-planner automático (M8.5) — Goals + PR-review UI</span></li>
+              <li><span>Dashboard rico (M9) + multi-empresa</span></li>
+              <li><span>Hybrid distribution (M10) — local OU VPS Docker per-agent</span></li>
+              <li><span>Adapter ecosystem extensível</span></li>
+            </ul>
+            <div class="eta">Restante: <strong>~25-30 dias</strong> de trabalho contínuo</div>
           </div>
         </div>
       </section>
@@ -991,7 +1161,7 @@
       <!-- ═══════════ SCOPE TRACKER ═══════════ -->
       <section class="section" style="animation-delay: 120ms">
         <div class="section-head">
-          <span class="index">/02</span>
+          <span class="index">/03</span>
           <h2>v1 scope · módulos</h2>
           <span class="note">spec §4 · status por módulo funcional</span>
         </div>
@@ -1013,12 +1183,13 @@
               M9 (consome M7.7).
             </div>
           </div>
-          <div class="module" data-status="none">
+          <div class="module" data-status="complete">
             <div class="name">Activity stream</div>
-            <div class="status-line"><span class="sq"></span>não iniciado</div>
+            <div class="status-line"><span class="sq"></span>completo</div>
             <div class="note">
-              Sem tabela unificada. <code>issue_events</code> só cobre issues. Página
-              <code>/activity</code> cross-cutting pra M7.7 (foundation).
+              Migration 0009 <code>activity_events</code> + recorder helper + dual-write em 17 call
+              sites. Rota <code>/activity</code> com 5 filtros + search + infinite scroll +
+              real-time prepend via <code>ACTIVITY_NEW</code> + fade-down 700ms. M7.7 ✅.
             </div>
           </div>
           <div class="module" data-status="complete">
@@ -1045,14 +1216,13 @@
               per agent.
             </div>
           </div>
-          <div class="module" data-status="partial">
+          <div class="module" data-status="complete">
             <div class="name">Agents</div>
-            <div class="status-line"><span class="sq"></span>parcial</div>
+            <div class="status-line"><span class="sq"></span>completo</div>
             <div class="note">
-              Sidebar + chat + <strong>right panel M7-C</strong> (Config/Issues/Stats) com edit
-              inline de role/model/persona/projects. Faltam header de ações (Pause/Fire/Assign
-              Task), Runs timeline, mode/always_on/skills toggles, form
-              <code>/agents/new</code> (M7.6).
+              Sidebar com "+ Novo" + chat + AgentHeader sticky (Pause/Resume/Assign Task/Runs/⋯) +
+              ConfigTab completo (role/model/reports-to/mode/alwaysOn/schedule/skills editáveis
+              /persona). 3 modais (Terminate / Instructions / Runs) + AgentNew form. M7.6 ✅.
             </div>
           </div>
           <div class="module" data-status="complete">
@@ -1065,10 +1235,11 @@
           </div>
           <div class="module" data-status="complete">
             <div class="name">Skills</div>
-            <div class="status-line"><span class="sq"></span>completo (read-only)</div>
+            <div class="status-line"><span class="sq"></span>completo</div>
             <div class="note">
               Rota <code>/skills</code> master-detail (5 roles seedados, tools chips por skill,
-              agentsUsing). Hard-gate via <code>--allowedTools</code>. Edit per-agent: M7.6.
+              agentsUsing). Hard-gate via <code>--allowedTools</code>. Edit per-agent disponível no
+              ConfigTab (M7.6 PR-B).
             </div>
           </div>
           <div class="module" data-status="none">
@@ -1101,7 +1272,7 @@
       <!-- ═══════════ MILESTONES TIMELINE ═══════════ -->
       <section class="section" style="animation-delay: 180ms">
         <div class="section-head">
-          <span class="index">/03</span>
+          <span class="index">/04</span>
           <h2>milestones</h2>
           <span class="note">timeline · M1 → M10 + V2</span>
         </div>
@@ -1110,12 +1281,12 @@
           <button class="filter-chip active" data-filter="all">
             all <span class="count">14</span>
           </button>
-          <button class="filter-chip" data-filter="done">done <span class="count">7</span></button>
+          <button class="filter-chip" data-filter="done">done <span class="count">10</span></button>
           <button class="filter-chip" data-filter="progress">
             in progress <span class="count">0</span>
           </button>
           <button class="filter-chip" data-filter="planned">
-            planned <span class="count">7</span>
+            planned <span class="count">4</span>
           </button>
         </div>
 
@@ -1614,18 +1785,22 @@
           </article>
 
           <!-- ──── M7.7 ──── -->
-          <article class="milestone" data-status="planned">
+          <article class="milestone" data-status="done">
             <div class="ms-rail">
               <div class="num">M7.7</div>
-              <div class="status-row"><span class="status-dot"></span>planned</div>
-              <div class="meta">novo · 3-4 dias · foundation</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">
+                2026-05-12 · PR-A <code>3220f00</code> + PR-B <code>ea05e2a</code> · +34 testes
+                (foundation) + +18 testes (UI)
+              </div>
             </div>
             <div class="ms-body">
-              <h3>Activity Stream — foundation pra M7.6/M8/M8.5</h3>
+              <h3>Activity Stream — foundation pra M7.6/M8/M8.5 ✅</h3>
               <p class="tagline">
-                Stream cross-cutting de tudo que acontece. <strong>Origem:</strong> print do user
-                mostrou que o Paperclip oferece <code>/activity</code> na sidebar COMPANY — único
-                surface sem equivalente nosso.
+                Stream cross-cutting de tudo que acontece. <strong>Entregue:</strong> migration 0009
+                <code>activity_events</code> + recorder helper + dual-write em 17 call sites + rota
+                <code>/activity</code> com 5 filtros + search + infinite scroll + real-time prepend
+                via <code>ACTIVITY_NEW</code> + animação fade-down 700ms + i18n PT/EN.
               </p>
               <div class="design-note">
                 <span class="label">Por que antes do M7.6 apesar do número</span>
@@ -1691,18 +1866,23 @@
           </article>
 
           <!-- ──── M7.6 ──── -->
-          <article class="milestone" data-status="planned">
+          <article class="milestone" data-status="done">
             <div class="ms-rail">
               <div class="num">M7.6</div>
-              <div class="status-row"><span class="status-dot"></span>planned</div>
-              <div class="meta">novo · 4-5 dias · completion sobre M7-C</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">
+                2026-05-12 · PR-A <code>291d9ee</code> + PR-B <code>bc38f4a</code> · +46 testes
+                (backend) + +15 testes (UI)
+              </div>
             </div>
             <div class="ms-body">
-              <h3>Agent Studio — completion sobre M7-C</h3>
+              <h3>Agent Studio — completion sobre M7-C ✅</h3>
               <p class="tagline">
-                Completa a liberdade de mexer no agente direto pela UI. M7-C entregou panel base +
-                edit inline; M7.6 adiciona ações stateful + form de criação + Runs timeline +
-                toggles faltantes.
+                Liberdade completa de mexer no agente pela UI. <strong>Entregue:</strong> migration
+                0010 (paused/terminated lifecycle) + 9 IPCs novos + 6 repo methods + 2 activity
+                actions novas + <code>HIRE_*_INPUT_SCHEMA</code> em shared + AgentHeader sticky +
+                ConfigTab completo + 3 modals (Terminate / Instructions / Runs) + AgentNew form +
+                sidebar "+ Novo" entry.
               </p>
               <div class="design-note">
                 <span class="label">Layout chat-first híbrido</span>
@@ -2142,7 +2322,7 @@
       <!-- ═══════════ PAPERCLIP WISHLIST ═══════════ -->
       <section class="section" style="animation-delay: 240ms">
         <div class="section-head">
-          <span class="index">/04</span>
+          <span class="index">/05</span>
           <h2>paperclip wishlist tracker</h2>
           <span class="note"
             >decisões em paperclip-comparison.md +
@@ -2406,7 +2586,7 @@
       <!-- ═══════════ V2 BACKLOG ═══════════ -->
       <section class="section" style="animation-delay: 300ms">
         <div class="section-head">
-          <span class="index">/05</span>
+          <span class="index">/06</span>
           <h2>v2+ backlog</h2>
           <span class="note">post-v1 · organizado por tema</span>
         </div>
@@ -2530,7 +2710,7 @@
           <a href="paperclip-comparison.md">comparison.md</a>
         </div>
         <div class="ascii">─── built locally · offline-first · no cdn ───</div>
-        <div>generated 2026-05-11</div>
+        <div>generated 2026-05-12</div>
       </footer>
     </main>
 

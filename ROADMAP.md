@@ -6,21 +6,63 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-12 (M7.6 PR-A mergeado em master via `291d9ee`. **M7.6 PR-B entregue na branch `feat/m7.6-pr-b`** — UI: AgentHeader sticky (status dot + currentAction + Pause/Resume + Assign Task + Runs + ⋯ menu com Copy ID/Reset Session/Terminate) + 5 sections novas no ConfigTab (Reports-to dropdown + Mode radio + Always-on switch + Schedule sub-section com wake-up + Skills editáveis required/optional/available via categorizeSkills) + InstructionsFullScreenModal + RunsModal (timeline read-only com groupBySession) + AgentNew form route + sidebar "+ Novo" entry. 472 tests passing (delta +15 renderer). Bundle 375 → 448.05 kB (+73 kB uncompressed). M7.6 fecha após merge; próximo M8 Costs ou M8.5 Goals.)
+> **Última atualização:** 2026-05-12 — **M7.6 PR-B mergeado em master via `bc38f4a`**. M7.6 fechado (Agent Studio UI + backend). Agents module ✅. Próximo: **M8 Costs** (desbloqueia 3 milestones downstream).
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
+
+---
+
+## 🎯 Agora → Próximo → Horizonte
+
+> Quick view: onde estamos · o que vem a seguir · onde chegamos com v1 fechado.
+
+### ▸ Agora (estado em 2026-05-12)
+
+- **10 / 14 milestones fechados** (M1–M7 + M7.5 + M7.7 + M7.6)
+- **472 testes passing** · 0 lint/typecheck errors · bundle renderer 448 kB
+- **8 / 12 módulos ✅** completos (Inbox, Issues, Projects, Agents, Org Chart, Skills, Activity stream, Settings)
+- Master commit: `bc38f4a` (M7.6 PR-B merged)
+
+### ▸ Próximo (Q3 2026 — escolha 1)
+
+| Candidato | Escopo | Por quê |
+|---|---|---|
+| 🥇 **M8 Costs** | Schema `cost_events` + `/costs` route + soft-stop enforcement + dashboard widget | **Desbloqueia M8.5 + M9 + M10** (todos consomem custos). Spec §6.4 + §10.3. ~3-5 dias. |
+| 🥈 **M8.5 Goals** | `goals` + `goal_plans` schema + CEO planning + PR-review UI | Diferencial além do Paperclip. Mas **prereq forte de M8** (estimates). |
+
+**Recomendação:** M8 Costs.
+
+### ▸ Horizonte (v1 = M10 fechado)
+
+```
+M8 Costs ──▶ M8.5 Goals ──▶ M9 Dashboard ──▶ M10 VPS adapter ──▶ v1 ✅
+   ~5d         ~10-12d         ~6-8d            ~4-6d
+```
+
+**O que v1 entrega quando estiver pronto:**
+
+- Orquestrador local Electron com **N agentes Claude paralelos** via OAuth Max
+- **CEO-planner automático** (M8.5) — você cria Goal, CEO propõe plano, você aprova, executor cria agents + issues atômico
+- **Cost tracking** (M8) com soft-stop por budget + dashboard de gastos
+- **Dashboard** (M9) com Recent Activity + Active Agents + métricas + multi-empresa dropdown
+- **Hybrid distribution** (M10) — escolhe per-agent: local (CEO, latência) ou VPS Docker (engenheiros, isolamento)
+- 12 módulos funcionais ✅ + adapter ecosystem extensível
+- Estimativa total restante: **~25-30 dias** de trabalho contínuo
+
+---
 
 ## Status atual
 
 | Métrica | Valor |
 |---|---|
-| Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5** (8/14 do v1: M1–M10 + M7.5 + M7.6 + M7.7 + M8.5) |
-| Em curso | **M7.6 PR-B** ready-to-merge (branch `feat/m7.6-pr-b`, ~14 commits, UI done). M7.6 fecha após merge. |
-| Testes | **472 passing** (396 main + 43 renderer + 33 shared), 0 lint/typecheck errors. Delta PR-B: +15 renderer (lifecycle-actions ×9 + skillCategorize ×3 + RunsModal ×3). |
-| Commits no master | ~165 |
-| LoC (apps + packages) | ~14k TS/TSX |
-| Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · vitest · Playwright (E2E, skipped) |
+| Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5**, **M7.7**, **M7.6** (10/14 do v1: M1–M10 + M7.5 + M7.6 + M7.7 + M8.5) |
+| Em curso | _Nenhum_. M7.6 fechado em `bc38f4a`. Próximo planejável: M8 Costs ou M8.5 Goals. |
+| Testes | **472 passing** (396 main + 43 renderer + 33 shared), 0 lint/typecheck errors |
+| Commits no master | ~205 |
+| LoC (apps + packages) | ~16k TS/TSX |
+| Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
+| Restante pra v1 | M8 · M8.5 · M9 · M10 (~25-30 dias) |
 
 ---
 
@@ -38,7 +80,7 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 | **Projects** | ✅ Completo | Rota /projects master/detail com folder picker + color picker. Auto-cria 'Default Workspace' migration do workspaceCwd legado. Allowlist per agent via chip toggle. |
 | **Agents** | ✅ Completo | Sidebar com status colors + "+ Novo" button. `/agents/:id` chat unified + AgentHeader sticky (Pause/Resume/Assign Task/Runs/⋯ menu) + ConfigTab completo (role/model/reports-to/mode/always-on/schedule/skills editáveis/persona com expand). RunsModal + InstructionsFullScreenModal + TerminateConfirmModal + AgentNew form. Backend: M7.6 PR-A (9 IPCs + migration 0010 + activity dual-write). UI: M7.6 PR-B. |
 | **Org Chart** | ✅ Completo | Rota `/org` SVG handcrafted vertical tree + click drawer + drag-to-reassign + confirm modal + anti-cycle (backend + UI toast). |
-| **Skills** | ✅ Completo (read-only) | Rota `/skills` master-detail (5 roles seedados, tools chips por skill, agentsUsing). Hard-gate via `--allowedTools`. Edit per-agent: M7.6. |
+| **Skills** | ✅ Completo | Rota `/skills` master-detail (5 roles seedados, tools chips por skill, agentsUsing). Hard-gate via `--allowedTools`. Edit per-agent disponível no ConfigTab do agente (M7.6 PR-B). |
 | **Costs** | ❌ Não iniciado | Tabela `costs_log` existe. Tracking automático **NÃO** liga (M8). Rota `/costs` zerada (M8). |
 | **Goals + CEO Planning** | ❌ Não iniciado | Tabela `goals`/`goal_plans` não existe. Feature além do Paperclip (CEO-planner automático). M8.5. |
 | **Settings** | ✅ Completo | OAuth token (manual + auto-detect M2), language, theme, default model. Defaults de mode/always_on **NÃO** UI ainda — M9. |
