@@ -2,9 +2,20 @@
 -- The AgentStatus union gains 'paused' + 'terminated'. The 0001 CHECK
 -- constraint hardcodes the old 5 values, and SQLite can't relax CHECKs
 -- in place. Standard fix: recreate the table with the widened CHECK,
--- copy rows, swap names. FK cascades stay off during the swap.
+-- copy rows, swap names.
+--
+-- IMPORTANT: PRAGMA foreign_keys = OFF is a NO-OP inside a transaction
+-- (SQLite semantics). applyMigrations() wraps every migration in a
+-- transaction. Without disabling FKs, DROP TABLE agents fires the
+-- ON DELETE SET NULL action on every child FK (issues.assignee_id,
+-- inbox_items.actor_id, costs_log.agent_id, agents.reports_to self-ref)
+-- BEFORE the rename happens — wiping all those columns to NULL.
+-- defer_foreign_keys works inside transactions: it postpones the FK
+-- check until commit. At commit the schema is back to a valid state
+-- (agents_new renamed to agents with all original ids preserved), so
+-- no violations fire.
 
-PRAGMA foreign_keys = OFF;
+PRAGMA defer_foreign_keys = 1;
 
 CREATE TABLE agents_new (
   id TEXT PRIMARY KEY,
@@ -49,8 +60,9 @@ FROM agents;
 DROP TABLE agents;
 ALTER TABLE agents_new RENAME TO agents;
 
--- Re-create indexes referenced by M7.5 PR-A (template_id) and M7.6 (terminated).
+-- Re-create indexes lost when we dropped the original agents table.
+-- idx_agents_company from 0001, idx_agents_template from 0003, plus the
+-- new idx_agents_terminated for M7.6 soft-delete queries.
+CREATE INDEX IF NOT EXISTS idx_agents_company ON agents(company_id);
 CREATE INDEX IF NOT EXISTS idx_agents_template ON agents(template_id);
 CREATE INDEX idx_agents_terminated ON agents(company_id, terminated_at);
-
-PRAGMA foreign_keys = ON;
