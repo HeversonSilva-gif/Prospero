@@ -1,5 +1,12 @@
 export type AgentMode = "supervised" | "auto";
-export type AgentStatus = "idle" | "thinking" | "working" | "waiting" | "error";
+export type AgentStatus =
+  | "idle"
+  | "thinking"
+  | "working"
+  | "waiting"
+  | "error"
+  | "paused"
+  | "terminated";
 
 // Sentinel for allowedProjects representing "explicit no access".
 // allowedProjects = [] means "all projects allowed" (no restriction). To express
@@ -25,6 +32,9 @@ export type Agent = {
   templateId: string | null;
   reportsTo: string | null;
   adapterName: string;
+  pausedAt: number | null;
+  terminatedAt: number | null;
+  pauseReason: string | null;
 };
 
 export type AgentStats = {
