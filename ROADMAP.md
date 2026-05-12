@@ -93,10 +93,11 @@
 ### 🚧 O que ainda NÃO funciona (próximas releases)
 
 - 🎯 **Goals com CEO planejando automaticamente** — você cria objetivo, CEO monta plano completo (agentes a contratar + issues + estimates), você aprova num modo PR-review → M8.5 (próximo)
+- 🎬 **Kanban "vivo" com execução narrada** — depois de aprovar o plano, CEO cria as issues uma a uma com comentários de contexto, acorda agentes na ordem das dependências (não tudo de uma vez), e conversa nas issues do kanban junto com você e os agentes → M8.6 (depois do M8.5)
 - 📈 **Dashboard inicial com widgets dinâmicos** — Agentes ativos / Issues em andamento / Inbox / Custos hoje → M9
 - 🏢 **Trocar entre empresas via dropdown da sidebar** → M9
 - ☁️ **Rodar agentes numa VPS remota (Docker)** — escolha per-agent: local (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
-- 🧠 **Cada agente com memória própria que aprende com o tempo** — depois de tarefas complexas o agente anota lições no `MEMORY.md` dele, cria "skills" automáticos (manual de como fazer uma coisa), e usa nas próximas sessões. Cada funcionário vai ficando melhor com a experiência. Inclui busca em conversas antigas. → M11 (pós-v1, v1.1)
+- 🧠 **Empresa que aprende com a experiência (não só o funcionário)** — após cada issue concluído, o sistema **extrai automaticamente** um "skill" (manual de como fazer aquilo) a partir do trabalho real, você revisa e aceita. Conhecimento institucional **transfere entre funcionários**: se demite o BackendEng e contrata outro, o novato já chega sabendo o que a empresa aprendeu. CEO escreve retrospectiva ao completar um Goal. Inclui busca em conversas antigas. → M11 (pós-v1, v1.1)
 
 ---
 
@@ -123,23 +124,24 @@
 ### ▸ Horizonte (v1 = M10 fechado · v1.1 = M11)
 
 ```
-M8 Costs ──▶ M8.5 Goals ──▶ M9 Dashboard ──▶ M10 VPS adapter ──▶ v1 ✅
-   ~5d         ~10-12d         ~6-8d            ~4-6d
-                                                     │
-                                                     ▼
-                                              M11 Agent Memory ──▶ v1.1
-                                                   ~8-12d
+M8 ✅ ──▶ M8.5 Goals ──▶ M8.6 Live Exec ──▶ M9 Dashboard ──▶ M10 VPS adapter ──▶ v1 ✅
+            ~9-11d         ~6-8d              ~6-8d            ~4-6d
+                                                                    │
+                                                                    ▼
+                                                            M11 Agent Memory ──▶ v1.1
+                                                                ~10-14d
 ```
 
 **O que v1 entrega quando estiver pronto:**
 
 - Orquestrador local Electron com **N agentes Claude paralelos** via OAuth Max
 - **CEO-planner automático** (M8.5) — você cria Goal, CEO propõe plano, você aprova, executor cria agents + issues atômico
-- **Cost tracking** (M8) com soft-stop por budget + dashboard de gastos
+- **Execução narrada + kanban vivo** (M8.6) — CEO cria issues uma a uma com comentários, acorda agentes na ordem de dependência, todos conversam nas issues
+- **Cost tracking** (M8 ✅) com soft-stop por budget + dashboard de gastos
 - **Dashboard** (M9) com Recent Activity + Active Agents + métricas + multi-empresa dropdown
 - **Hybrid distribution** (M10) — escolhe per-agent: local (CEO, latência) ou VPS Docker (engenheiros, isolamento)
 - 12 módulos funcionais ✅ + adapter ecosystem extensível
-- Estimativa total restante: **~25-30 dias** de trabalho contínuo
+- Estimativa total restante: **~25-33 dias** de trabalho contínuo
 
 ---
 
@@ -154,8 +156,8 @@ M8 Costs ──▶ M8.5 Goals ──▶ M9 Dashboard ──▶ M10 VPS adapter �
 | LoC (apps + packages) | ~16k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
-| Restante pra v1 | M8.5 · M9 · M10 (~20-26 dias). **M8 fechado em 2026-05-12.** |
-| Próximo v1.1 | M11 Agent Memory & Learning Loop (~8-12 dias, inspirado [Hermes Agent](docs/hermes-memory-learning-system.md)) |
+| Restante pra v1 | M8.5 · M8.6 · M9 · M10 (~25-33 dias). **M8 fechado em 2026-05-12.** |
+| Próximo v1.1 | M11 Agent Memory & Learning Loop (~10-14 dias, 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md)) |
 
 ---
 
@@ -175,7 +177,7 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 | **Org Chart** | ✅ Completo | Rota `/org` SVG handcrafted vertical tree + click drawer + drag-to-reassign + confirm modal + anti-cycle (backend + UI toast). |
 | **Skills** | ✅ Completo | Rota `/skills` master-detail (5 roles seedados, tools chips por skill, agentsUsing). Hard-gate via `--allowedTools`. Edit per-agent disponível no ConfigTab do agente (M7.6 PR-B). |
 | **Costs** | ✅ Completo | M8 PR-A backend (`56da29c`): migration 0011 `cost_events` + tracking por turn + pricing opus/sonnet/haiku + soft-stop daily/per-issue + 4 IPCs. M8 PR-B UI (`4c943fe`): rota `/costs` com 3 gráficos recharts (lazy) + filtros + tabela. Dashboard widget "Custos hoje". Settings Budgets. ModelDropdown $/$$/$$$. StatsTab real. |
-| **Goals + CEO Planning** | ❌ Não iniciado | Tabela `goals`/`goal_plans` não existe. Feature além do Paperclip (CEO-planner automático). M8.5. |
+| **Goals + CEO Planning** | ❌ Não iniciado | Tabela `goals`/`goal_plans` não existe. Feature além do Paperclip (CEO-planner automático). M8.5 entrega atomic foundation; M8.6 adiciona execução narrada + kanban vivo. |
 | **Settings** | ✅ Completo | OAuth token (manual + auto-detect M2), language, theme, default model. Defaults de mode/always_on **NÃO** UI ainda — M9. |
 
 ---
@@ -287,7 +289,9 @@ M7.6 (Agent Studio — completion sobre M7-C)
   ↓
 M8  (Costs UI + Token Tracking)
   ↓
-M8.5 (Goals + CEO Planning — feature além do Paperclip)
+M8.5 (Goals + CEO Planning — atomic foundation)
+  ↓
+M8.6 (Live Execution & Kanban Collab — narrated + sequenced + comments)
   ↓
 M9  (Dashboard + Multi-empresa + Reviews UX + API key)
   ↓
@@ -650,7 +654,50 @@ M11 (Agent Memory & Learning Loop — inspirado Hermes) ─── v1.1
 - [ ] M8 cost tracking não regride
 - [ ] Tudo dos M1-M7 continua
 
-**Custos:** 10-12 dias. **Pré-req:** M8 (forte, estimates reais), M7.5 (médio, system prompt composable), M7.6 (médio, `agents:hire-from-ui` reusado pelo executor), M7.7 (logs do fluxo de plan).
+**Custos:** 9-11 dias (refinado pós-brainstorming 2026-05-12; spec base 10-12 dias). **Pré-req:** ✅ M8 (cost_events), ✅ M7.5 (composeSystemPrompt), ✅ M7.6 (hire-from-ui), ✅ M7.7 (activity slot).
+
+**Spec de implementação:** [docs/superpowers/specs/2026-05-12-m8-5-goals-implementation-design.md](docs/superpowers/specs/2026-05-12-m8-5-goals-implementation-design.md) — 2 PRs decididos no brainstorming (PR-A backend + PR-B UI, M8-style).
+
+---
+
+### 🆕 M8.6 — Live Execution & Kanban Collab — **camada viva sobre M8.5**
+
+**Origem:** decisão de brainstorming 2026-05-12. M8.5 entrega Goals + planning + executor **atômico** (1 trans, hire+create silencioso). M8.6 troca a camada de execução por **modo narrated + sequenced** e transforma o kanban em surface colaborativa real.
+
+**Por que separado de M8.5:** atomic-first ship M8.5 testável end-to-end (~10 dias), valida UX de planning antes de investir em loop LLM. Narrated tem custo LLM N× maior por approve (cada hire/create vira turn) — feature flag opcional pra modo atômico vs narrated. Cada peça M8.6 é independente (comment_on_issue isolado, executor refactor isolado, topo sort isolado). Não-bloqueante pra M9.
+
+**O que entrega:**
+- [ ] **Executor narrated mode** — refactor do `executePlan` (M8.5) pra opcional modo "loop": ao invés de trans atômica, CEO entra num turn dedicado e chama MCP `hire_agent` → `create_issue` → `comment_on_issue(rationale)` em loop, streamando cada step. Atomic mode permanece como fallback rápido.
+- [ ] **`comment_on_issue` MCP tool** — CEO (e qualquer agente assinado na issue) pode comentar. Usa `issue_comments` table existente + activity event `issue.commented` novo. Sanitizer §8.3 aplicado.
+- [ ] **Topological sequenced activation** — ao criar issues com `depends_on`, em vez de `notifyAssignee` acordar **todos** imediatamente (comportamento M5+M8.5), acorda só os assignees de issues **sem deps pendentes**. Conforme issue vira `done`, dependentes ficam unlocked → próximo wave de wake-ups.
+- [ ] **Kanban card detail expandido** — issue detail modal mostra thread completo com sender diferenciado (badges CEO/agent/user, cor por papel). Real-time updates via IPC broadcasts existentes (M3+M5).
+- [ ] **Activity events novos:** `issue.commented`, `issue.unlocked_by_deps`, `goal.narrated_step` (sub-events do `goal.plan_approved`)
+- [ ] **i18n PT/EN** + 1 inbox kind novo `issue_comment_mention` (se @-mention v1 — defer pra v2 caso seja escopo grande)
+
+**Decisão arquitetural:**
+- **Feature flag `executor.mode = 'atomic' | 'narrated'`** em settings (default `'narrated'` quando M8.6 ship). User pode escolher atomic pra goals pequenos onde narrativa não agrega.
+- **Sem reescrever o `issue_comments` schema** — table já existe (M6). Adiciona MCP tool + activity events.
+- **`notifyAssignee` (issues-handlers.ts:43) ganha modo `deferred`** que registra mas não enfileira até deps clear.
+
+#### Pré-reqs
+- ✅ M8.5 (executor atomic + planning UI fundação)
+- ✅ M6 (issue_comments table)
+- ✅ M5 (notifyAssignee wake-up mechanism — refactorar pra modo deferred)
+- ✅ M7.7 (activity stream — adicionar 3 actions)
+
+#### Não-regressão
+- [ ] M8.5 atomic mode continua funcionando (sem mudança de comportamento default em quem não ativou narrated flag)
+- [ ] Issue wake-up de assignment manual (não-goal) continua imediato — só plan-driven issues respeitam deps sequencing
+- [ ] CommentComposer UI existente segue funcionando pro user
+
+**Custos:** 6-8 dias estimados.
+- Executor refactor pra modo narrated: 2 dias
+- `comment_on_issue` MCP tool + activity event: 1 dia
+- Topological deps_unlocked watcher: 1.5 dias
+- Kanban card detail UI (sender badges, real-time): 1.5 dias
+- Tests + i18n + polish: 1-2 dias
+
+**Spec de implementação:** _a escrever após M8.5 fechar_ (brainstorm dedicado seguindo padrão M8.5 → spec → 2 PRs).
 
 ---
 
@@ -831,146 +878,212 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
 
 ### 🆕 M11 — Agent Memory & Learning Loop — **pós-v1 (v1.1)**
 
-**Origem:** pesquisa Hermes Agent ([NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent), 2026-05-12). Doc completo em [docs/hermes-memory-learning-system.md](docs/hermes-memory-learning-system.md). Substitui o item v2+ "Memory / Knowledge base" por implementação concreta inspirada no closed learning loop do Hermes.
+**Origem:** pesquisa Hermes Agent ([NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent), 2026-05-12). Doc completo em [docs/hermes-memory-learning-system.md](docs/hermes-memory-learning-system.md). Substitui o item v2+ "Memory / Knowledge base" por implementação concreta — **inspirada** no closed learning loop do Hermes mas com **3 inflexões deliberadas** que aproveitam vantagens estruturais do nosso codebase (Activity stream, Issues, Goals, CEO-planner).
 
-**Por que pós-v1:** v1 = M10 está locked. Mexer aqui antes adicionaria 1-2 semanas no critical path sem desbloquear nenhum milestone v1. **Pós-M10 vira a primeira feature da v1.1** — transformador o suficiente pra merecer milestone próprio, não cramming em M9/M10.
+**Por que pós-v1:** v1 = M10 está locked. Mexer aqui antes adicionaria 1-2 semanas no critical path sem desbloquear nenhum milestone v1. **Pós-M10 vira a primeira feature da v1.1** — transformador o suficiente pra merecer milestone próprio.
 
-**Decisão arquitetural:**
-- **Per-agent + company-wide + user-global** (3 níveis injetados no system prompt). Cada agente tem `MEMORY.md` próprio; regras compartilhadas vão pra company memory; preferências do user em `USER.md` global.
-- **Híbrido markdown + SQLite:** body em markdown (human-editable), metadata (importance/trust/edges/FTS5) em SQLite. Indexed memory architecture desde dia 1 (não monolito).
-- **Sem vector embeddings v1.1.** Custo extra (não coberto OAuth Max) + modelo local pesado. **FTS5 + graph subset** atende. Vector vira v1.2 se feedback pedir.
-- **Skills procedurais auto-criados** seguindo padrão [agentskills.io](https://agentskills.io) — markdown com YAML frontmatter, progressive disclosure L0/L1/L2.
-- **Nudges no `turn-complete` event** quando `tool_use_count > 5` ou recovery pós-erro. Reusa stream parser existente do M3.
-- **Sanitizer em todo write** — mesma blocklist `gate.ts §8.3` (memory é vetor crítico de prompt injection).
+#### 🔀 As 3 inflexões vs Hermes
+
+> Discussão completa em [docs/hermes-memory-learning-system.md §11](docs/hermes-memory-learning-system.md).
+
+**Inflexão 1 — Skills > MEMORY.md (inverter ênfase).** Hermes equilibra declarativa e procedural; nós focamos procedural. Skills L0 budget sobe de ~3 KB pra ~4 KB. MEMORY.md cai de ~2 KB pra ~1 KB (só identity + rules duras). **Razão:** "user prefere tabs" é CLAUDE.md territory (já cobre); "como migrar schema X em 12 passos" é skill — valor 4× maior e carrega só quando precisa (progressive disclosure).
+
+**Inflexão 2 — Memória derivada do Activity stream, não da auto-narração do agente.** Hermes pede o agente narrar lições; nós já temos `activity_events` (M7.7) + `issue_artifacts` (M7.5) — trilha objetiva, alto sinal/ruído. Triggers automáticos:
+- `issue.done` → extrai skill candidate (LLM analisa o trail e propõe SKILL.md)
+- `agent.recovery_after_error` → extrai skill candidate
+- `goal.achieved` (M8.5) → gera post-mortem em company memory
+- User correction (heurística sobre messages) → extrai USER.md fragment
+
+Auto-narração via MCP tool (`memory_add`, `skill_create`) **vira fallback** — não fonte primária.
+
+**Inflexão 3 — Company-wide memory + role-based inheritance desde dia 1.** Hermes é single-agent. Nós temos org-chart, role templates, multi-agent. **Quando demite BackendEng e contrata outro pro mesmo role, conhecimento institucional transfere via company memory + memórias com `applies_to_role`.** É o que a wishlist marca como "Automatic Organizational Learning" v3+ — entregamos versão mínima já no M11.
+
+**Resultado:** o produto deixa de ser "Claude com persistência" e vira "uma empresa que aprende com a experiência dos funcionários — e cresce mesmo quando um indivíduo sai".
+
+#### Decisão arquitetural
+
+- **4 níveis no system prompt** (ordem de injeção):
+  1. `USER.md` global (~1 KB cap) — preferências cross-companies
+  2. Company memory (~1.5 KB cap) — regras org-wide + retrospectivas de Goals
+  3. Agent MEMORY.md (~1 KB cap) — identity + rules específicos
+  4. Skills L0 do agente + inherited (~4 KB cap) — ~40 skills × 100 chars
+- **Híbrido markdown + SQLite.** Body markdown (human-editable), metadata SQLite (importance/trust/role-scope/FTS5).
+- **Sem vector embeddings v1.1.** FTS5 atende. Vector v1.2.
+- **Skills** seguem padrão [agentskills.io](https://agentskills.io) — YAML frontmatter + markdown, progressive disclosure L0/L1/L2.
+- **Sanitizer em todo write** (manual E derivation) — blocklist `gate.ts §8.3` + regex anti-injection.
+- **Sem indexed memory routing v1.1** (sub-docs por tópico). MEMORY.md cap 1 KB não precisa.
+- **Sem graph edges genéricos v1.1.** YAGNI sem vector.
 
 #### Schema (Migration M11-01, numeração após M10)
 
-- [ ] **`memories`** — id, agent_id (NULL = company-wide), company_id, kind (`identity|goal|decision|todo|preference|fact|event|observation`), body TEXT, importance REAL (0.0–1.0), trust REAL (default 0.5), source_file TEXT, created_at, last_accessed, access_count, soft_deleted (0/1), embedding BLOB NULL (futuro v1.2)
-- [ ] **`memory_edges`** — src_id, dst_id, relation (`Updates|Contradicts|RelatedTo`), weight REAL. **Subset dos 6 do Hermes #346** — YAGNI no resto.
-- [ ] **`memories_fts`** — virtual table FTS5(body), `content=memories`
-- [ ] **`memory_skills`** — id, agent_id, name (unique per agent), body_path TEXT (aponta pra SKILL.md em disco), version, trust REAL, created_at, last_used, use_count, soft_deleted
+- [ ] **`skills`** — id, agent_id (NULL = company-shared), company_id, name (unique per scope), body_path TEXT (aponta pra SKILL.md), description TEXT (L0 — entra no system prompt), version, applies_to_role TEXT NULL (engineer/designer/ceo/etc), source ENUM (`agent_created|derived_from_issue|derived_from_recovery|user_authored`), trust REAL (default 0.5), use_count, last_used, soft_deleted
+- [ ] **`memories`** — id, agent_id (NULL = company-wide), company_id, applies_to_role TEXT NULL, kind ENUM (`identity|rule|preference|retrospective`), body TEXT, importance REAL, trust REAL, source_event_id INTEGER NULL (FK a `activity_events` quando derivada), created_at, last_accessed, access_count, soft_deleted, pinned (0/1)
+- [ ] **`memories_fts`** — virtual FTS5(body), `content=memories`
+- [ ] **`messages_fts`** — virtual FTS5 sobre `messages.content` (foundation pra `session_search` — separa da memória)
+- [ ] **`skill_candidates`** — pending suggestions de triggers automáticos: id, agent_id, source_event_id, proposed_name, proposed_body, proposed_description, status (`pending|accepted|rejected`), reviewed_by, created_at. **Sempre passa por review** — extração automática nunca skipa human-in-the-loop.
 - [ ] **Filesystem layout:**
   ```
   ~/.dashboard-agent/
-  ├── user.md                          # USER.md global (1.5 KB cap)
+  ├── user.md                          # USER.md global (1 KB cap)
   ├── companies/<id>/
-  │   ├── memory.md                    # company-wide (1 KB cap)
+  │   ├── memory.md                    # company-wide rules (1.5 KB cap)
+  │   ├── skills/<name>/SKILL.md       # company-shared skills (role-scoped)
   │   └── agents/<agent_id>/
-  │       ├── memory/
-  │       │   ├── MEMORY.md            # índice (2 KB cap)
-  │       │   └── sub/<topic>.md       # sub-documentos
-  │       └── skills/<name>/SKILL.md
+  │       ├── memory.md                # agent-specific (1 KB cap)
+  │       └── skills/<name>/SKILL.md   # agent-private skills
   ```
-- [ ] Índices: `(agent_id, importance desc)`, `(agent_id, soft_deleted)`, `(kind, importance)`, `(src_id)` em edges
+- [ ] **Índices:** `(agent_id, soft_deleted, importance desc)`, `(company_id, applies_to_role)`, `(source_event_id)`, `(status)` em candidates
 
-#### MCP tools novas (6)
+#### Auto-derivation pipeline (inflexão 2 — coração do M11)
 
-- [ ] `memory_read(agent_id?, kind?, limit?)` → Memory[] (sim, expomos read pra debugging — Hermes não tem)
-- [ ] `memory_add({body, kind, importance?, edges?})` → memory_id. Valida Zod + sanitizer + rate limit max 5/turn
-- [ ] `memory_replace(id, new_body)` → updated_at
-- [ ] `memory_remove(id)` → soft-delete + activity event com preview do removido (undo 30 dias)
-- [ ] `memory_search({query, limit?, agent_id?})` → ranked results via FTS5 + graph traversal (BFS de seeds high-importance)
-- [ ] `skill_manage({action: 'create'|'update'|'delete'|'list', name, body?})` → skill operations. Body validado por size cap (16 KB), frontmatter parse via gray-matter
+- [ ] **Hook em `activity_events` writer** (M7.7): toda escrita verifica se action ∈ `{issue.done, agent.recovery, goal.achieved, user.correction}` → enqueue job de derivation.
+- [ ] **Derivation worker** (in-process, async, throttled):
+  - `issue.done` → lê histórico (comments + tool history + artifacts) → dedicated prompt → produz `skill_candidate` ou descarta. Modelo: Sonnet.
+  - `agent.recovery_after_error` → lê últimos 5 turns antes + o turn que resolveu → propõe skill "como evitar X".
+  - `goal.achieved` → CEO recebe trigger especial pra escrever retrospectiva → vira memory `kind='retrospective'` em company memory.
+  - `user.correction` → heurística "user: not X, do Y" → propõe USER.md fragment.
+- [ ] **Cost budgeting:** derivations contam contra cost budget normal (M8). Hard cap: max 3 derivations/dia/agente (configurável).
+- [ ] **Review queue UI:** inbox kind `skill.candidate_pending` mostra proposta + Accept / Edit / Reject. **Nada vai direto pra `skills` sem review.** (Defense-in-depth: derivation é geração LLM, pode injetar.)
+
+#### Role-based inheritance (inflexão 3)
+
+- [ ] **`hire_agent` / `hire-from-ui` carrega skills + memories matching `applies_to_role`** no spawn:
+  - Skill `applies_to_role='engineer' AND agent_id=NULL` → herda em todo engineer da company
+  - Memory `kind='rule' AND applies_to_role='engineer'` → injeta em system prompt
+- [ ] **UI surface "Org Learnings"** em `/dashboard` (M9 dep): card mostrando últimas 5 retrospectivas + skills compartilhadas top 10.
+- [ ] **Quando agente é demitido (M7.6 terminate):**
+  - Skills privados: modal "promover algum pra company-shared?" (lista com checkboxes)
+  - Memórias privadas: cascade soft-delete com TTL 30 dias (user pode exportar antes)
+  - Retrospectivas em company memory: ficam (são da org, não do indivíduo)
+
+#### MCP tools (skills first — refletindo inflexão 1)
+
+- [ ] **Skills (5 tools — surface principal):**
+  - `skill_search(query, scope?)` → lista skills com L0 + body inline pra match. Hot path.
+  - `skill_read(name)` → lê body completo (L1)
+  - `skill_create({name, body, description, applies_to_role?})` → cria private skill. Body validado por size cap (16 KB) + sanitizer.
+  - `skill_update(name, body)` → versiona (incrementa `version`)
+  - `skill_promote(name)` → torna company-shared (requer aprovação do user via inbox)
+- [ ] **Memory (4 tools — fallback only):**
+  - `memory_read(scope?, kind?)` → lista entries
+  - `memory_add({body, kind, importance?, applies_to_role?})` → adiciona. Rate limit max 3/turn (mais agressivo que skills — desestimular declarativa)
+  - `memory_remove(id)` → soft-delete
+  - `memory_search({query, scope?})` → FTS5 ranked
+- [ ] **Session search (1 tool):**
+  - `session_search(query, agent_id?, limit?)` → FTS5 sobre `messages.content`. Não confunde com memória.
 
 #### System prompt injection
 
-- [ ] **`composeSystemPrompt`** ampliado (foundation M7.5) com 4 novos slots:
-  - USER.md global (~1.5 KB cap)
-  - Company memory (~1 KB cap)
-  - Agent MEMORY.md (índice ~2 KB cap)
-  - Skills L0 (nome+desc dos skills do agente, ~3 KB cap)
-- [ ] **Hard cap total novo:** 4 KB additional → target ≤ 5% token overhead (regra `feedback_token_efficiency`)
-- [ ] **Indexed memory routing** — system prompt contém tabela "topic → file"; agente lê sub-docs via `read_file` quando precisa (padrão Hermes #22612)
+- [ ] **`composeSystemPrompt`** ampliado (foundation M7.5) com 4 novos slots em ordem:
+  - USER.md global (~1 KB cap)
+  - Company memory (~1.5 KB cap, inclui retrospectivas de Goals)
+  - Agent MEMORY.md (~1 KB cap)
+  - Skills L0 (do agente + inherited por role, ~4 KB cap → ~40 skills × 100 chars)
+- [ ] **Hard cap total novo:** ~7.5 KB additional → target ≤ 5% token overhead (regra `feedback_token_efficiency`)
+- [ ] **Skills L0 priorização:** sort por `use_count desc, trust desc` quando excede cap. Skills nunca-usados ficam por último.
 
-#### Loop de aprendizagem (nudges)
+#### Loop de aprendizagem
 
-- [ ] **Hook em `turn-complete`** (orchestrator/stream-parser.ts):
-  - Se `tool_use_count > 5` ou último turn tinha erro → emit `memory_nudge` system message próximo turn
-  - Se compaction event (≥ M9 quando houver) → emit `memory_nudge` com contexto resumido
-- [ ] **Nudge prompt template:** "Você acabou de concluir uma tarefa complexa. Vale persistir algum aprendizado? Use `memory_add` ou `skill_manage` se sim."
-- [ ] **Periodicidade time-based fallback:** se sessão > 30 turns sem nudge, emit
-- [ ] **Trust feedback loop:** user dá thumb-up/down em entrada → `+0.05 / −0.10` na trust score (assimétrico igual Hermes Holographic)
+- [ ] **Auto-derivation (primário — inflexão 2):** já descrito acima. Dispara em `activity_events` sem o agente decidir.
+- [ ] **Nudges manuais (fallback):** hook em `turn-complete` — se `tool_use_count > 5` E nenhuma derivation foi enfileirada nesse issue → emit `memory_nudge` no próximo turn. Mensagem: "Vale registrar um skill? Use `skill_create` se sim."
+- [ ] **Compaction event** (M9 dep) → emit nudge com contexto resumido
+- [ ] **Time-based fallback:** sessão > 30 turns sem nudge → emit
+- [ ] **Trust feedback loop:** user thumb-up/down em skill ou memory → `±0.05 / −0.10` na trust score (asymétrico igual Hermes Holographic). Skills com trust < 0.2 não entram em L0 (load on-demand only).
 
 #### Decay + maintenance
 
-- [ ] **Decay job** (rodando em open-session): `importance *= age_decay(90d) * access_boost(access_count)`. `kind='identity'` é exempt.
-- [ ] **Pruning** soft-delete quando `importance < 0.1` AND `last_accessed > 30d`. Auto-aviso na UI antes ("12 memórias vão expirar; revisar?").
-- [ ] **Consolidation prompt** automático quando `MEMORY.md` > 90% cap.
-- [ ] **Auto edge-building** opcional v1.2 (similarity check periódico cria `RelatedTo` em 0.85, `Updates` em 0.95 — pulado v1.1 sem vectors)
+- [ ] **Decay** (open-session): `importance *= age_decay(90d) * access_boost(use_count)`. `kind='identity'` e `pinned=1` exemptos.
+- [ ] **Pruning** soft-delete quando `importance < 0.1 AND last_accessed > 30d`. Auto-aviso UI antes.
+- [ ] **Consolidation prompt** automático quando MEMORY.md > 90% cap (vai disparar mais cedo — cap de 1 KB é pequeno).
 
 #### UI
 
-- [ ] **Rota `/agents/:id` ganha tab "Memory" (4ª, além de Config/Issues/Stats):**
-  - Sub-tab `MEMORY.md` — markdown editor (read-only com toggle edit; agente normalmente escreve)
-  - Sub-tab `Skills` — lista L0 com expand→L1 inline. Botão "Create skill" manual.
-  - Sub-tab `History` — search box FTS5 sobre `messages` do agente; lista paginada
-  - Mostra usage bar (chars usados / cap)
-- [ ] **Rota `/settings` ganha seção "USER.md global":**
-  - Markdown editor + character counter
-  - Botão "Import from Claude Code memory" (parse de `~/.claude/projects/*/memory/MEMORY.md`)
-- [ ] **Rota `/agents/:id` header:** badge "📚 N memories · M skills" link pra tab Memory
+- [ ] **Rota `/agents/:id` ganha tab "Learning" (4ª, além de Config/Issues/Stats):**
+  - Sub-tab `Skills` — lista (agent-private + inherited company-shared marcados 🏢). Usage count + trust. Botão "Promote to company" pra privados. Click expand→L1 inline.
+  - Sub-tab `Memory` — markdown view do MEMORY.md (read-only com toggle edit; usualmente derivado). Show source_event link quando aplicável.
+  - Sub-tab `History` — search box FTS5 sobre `messages` do agente.
+  - Sub-tab `Candidates` — fila de skill_candidates pendentes (Accept/Edit/Reject).
+- [ ] **`/dashboard` ganha card "Org Learnings"** (M9 dep): últimas 5 retrospectivas + top 10 skills compartilhadas.
+- [ ] **`/settings` ganha 2 seções:**
+  - "USER.md global" — markdown editor + char counter + botão "Import from Claude Code memory"
+  - "Derivation budget" — slider max derivations/dia/agente (default 3)
+- [ ] **Header agent:** badge "🎓 N skills · K memories" link pra tab Learning.
 - [ ] **Inbox kinds novos:**
+  - `skill.candidate_pending` (actionable, Accept/Edit/Reject)
+  - `skill.promotion_requested` (private → company-shared, user aprova)
   - `memory.review_needed` (decay vai expirar entries)
-  - `memory.conflict_detected` (edge `Contradicts` flagged)
+  - `goal.retrospective_ready` (M8.5 dep — Goal completou, CEO escreveu retrospectiva)
 
 #### Activity events novos (consume M7.7 helper)
 
-- [ ] `memory.added`, `memory.replaced`, `memory.removed`, `memory.expired`
-- [ ] `skill.created`, `skill.updated`, `skill.deleted`, `skill.invoked`
+- [ ] `skill.created` (manual ou via candidate accept)
+- [ ] `skill.derived` (system → candidate criado)
+- [ ] `skill.promoted_to_company` (private → company-shared)
+- [ ] `skill.invoked` (agent chamou `skill_read` — sinal de uso real)
+- [ ] `memory.added`, `memory.removed`, `memory.expired`
+- [ ] `memory.retrospective_generated` (Goal post-mortem)
 
 #### Security
 
-- [ ] **Sanitizer no write** — regex contra padrões de injection (`ignore previous`, `disregard instructions`, etc) + blocklist `gate.ts §8.3` aplicada a body
-- [ ] **Pinned entries** — user pode marcar memória "read-only" (agente não pode replace/remove)
-- [ ] **Memory writes em auto mode** continuam permitidas mas geram activity event visível
-- [ ] **SECURITY.md atualizado** com seção "Memory as injection vector" — threat model + mitigações
-- [ ] **Tests:** payload com injection patterns deve ser rejeitado; pinned entries não podem ser overwritten
+- [ ] **Sanitizer em todo write** (memory + skill, manual E derivation) — regex contra padrões de injection (`ignore previous`, `disregard instructions`, etc) + blocklist `gate.ts §8.3` aplicada a body
+- [ ] **Derivation pipeline scan:** candidate_body passa por sanitizer **antes** de virar inbox item. Defense-in-depth — derivation é geração LLM, pode injetar.
+- [ ] **Pinned entries (memory) e company-shared skills promovidos** ficam read-only pro agente — só user remove via UI
+- [ ] **SECURITY.md atualizado** com seção "Memory + Skills as injection vectors" — threat model + mitigações + nota sobre derivation pipeline
+- [ ] **Tests:** payload com injection patterns rejeitado em ambos paths (manual e derivation); pinned/promoted não podem ser overwritten
 
 #### Erros & edge cases
 
-- [ ] **Rate limit excedido (>5/turn):** tool retorna erro, agente vê na sua próxima leitura
+- [ ] **Rate limit excedido:** tool retorna erro estruturado, agente vê na próxima leitura
+- [ ] **Skill name collision (mesmo scope):** rejeitado com sugestão de suffix
 - [ ] **MEMORY.md acima do cap:** write rejeitado, sistema gera nudge "consolidar"
-- [ ] **Skill name collision:** rejeitado com sugestão de suffix
-- [ ] **Agente deletado:** memórias viram orphan (soft-delete cascade) com TTL 30 dias; user pode exportar antes
-- [ ] **Importar Claude Code memory:** parser tolerante (formato pode evoluir); preview antes de commitar
+- [ ] **Derivation falha (LLM timeout/erro):** drop silencioso + log. Não bloquear activity write.
+- [ ] **Agente deletado:** dispara modal "promover skills privados?" + cascade soft-delete memórias com TTL 30 dias
+- [ ] **Goal cancelled (M8.5):** sem retrospectiva (só `goal.achieved` dispara)
+- [ ] **Importar Claude Code memory:** parser tolerante; preview antes de commitar
 
 #### Testes
 
-- [ ] Unit: sanitizer (injection patterns rejeitados), Zod validation de payloads
-- [ ] Unit: decay function isolada (`importance *= age_decay * access_boost`)
-- [ ] Unit: FTS5 search ranking + LIMIT
-- [ ] Integration: `memory_add` → system prompt da próxima sessão contém entry
-- [ ] Integration: nudge flow (turn complexo → next system msg tem nudge)
-- [ ] Integration: skill_manage cria SKILL.md em disco + DB row + L0 vira parte do system prompt
-- [ ] Integration: pinned entry resiste a replace/remove
-- [ ] Performance: FTS5 com 10k messages, query < 50ms
-- [ ] E2E (Playwright): user cria memória manual → reload app → agente "lembra"
+- [ ] Unit: sanitizer cobre todos casos de injection (manual + derivation paths)
+- [ ] Unit: decay function isolada
+- [ ] Unit: role-inheritance resolver (`applies_to_role` match)
+- [ ] Unit: FTS5 ranking + LIMIT (memories + messages)
+- [ ] Integration: `issue.done` → derivation worker → `skill_candidate` row → inbox event
+- [ ] Integration: user accept skill_candidate → row em `skills` + activity event + system prompt do agente inclui L0
+- [ ] Integration: `goal.achieved` → CEO turn especial → retrospective memory em company scope
+- [ ] Integration: novo engineer hired → inherita skills company-shared role=engineer
+- [ ] Integration: agente demitido → modal promote → restantes cascade soft-delete
+- [ ] Performance: FTS5 com 10k messages + 1k memories, query < 50ms
+- [ ] E2E: user accept candidate → reload app → próxima sessão do agente vê skill em L0
 
 #### Não-regressão
 
-- [ ] Token budget: overhead novo ≤ 5% do baseline pós-M10 (`feedback_token_efficiency`)
-- [ ] Security suite verde (sanitizer cobre todos casos `gate.ts §8.3`)
+- [ ] Token budget: overhead novo ≤ 5% baseline pós-M10 (regra dura `feedback_token_efficiency`)
+- [ ] Cost budget: derivations não estouram budget diário (M8 enforcement aplica)
+- [ ] Security suite verde
 - [ ] M1-M10 features intactas
-- [ ] Performance: app startup +200ms max (carga inicial das memórias)
+- [ ] Performance: app startup +200ms max
 
 #### Documentação
 
-- [ ] **`docs/memory-architecture.md`** — design final (sucessor deste research doc)
-- [ ] **`docs/skills-format.md`** — spec SKILL.md adaptado pra nosso contexto
-- [ ] **SECURITY.md** — seção "Memory threat model" 
-- [ ] **README** — featurette no "What's new in v1.1"
+- [ ] **`docs/memory-architecture.md`** — design final (sucessor do research doc)
+- [ ] **`docs/skills-format.md`** — spec SKILL.md adaptado pro nosso contexto
+- [ ] **`docs/derivation-pipeline.md`** — como `issue.done`/`agent.recovery`/`goal.achieved` viram learning
+- [ ] **SECURITY.md** — seção "Memory + Skills threat model" incluindo derivation
+- [ ] **README** — featurette "What's new in v1.1"
 
-#### Out-of-scope v1.1 (postergado v1.2 ou v2+)
+#### Out-of-scope v1.1 (postergado v1.2+ ou v2+)
 
 - ❌ **Vector embeddings + semantic search** — custo + complexidade; FTS5 atende v1.1
+- ❌ **Indexed memory routing** (sub-docs por tópico estilo Hermes #22612) — MEMORY.md cap 1 KB não precisa
+- ❌ **Graph edges genéricos** (Updates/Contradicts/RelatedTo) — sem vector, valor marginal
 - ❌ **Memory bulletin horário** (#346 §4) — wasteful em desktop offline-first
 - ❌ **Identity evolution / self-model metacognition** (#10355 phase 3) — escopo muito grande
 - ❌ **Dream consolidator offline** — sem background worker, complica
-- ❌ **Skill hub remoto** (download de GitHub/NPM) — threat model (mesma razão que `feedback_security_priority` bloqueia Paperclip skill source sync)
-- ❌ **Honcho/Mem0/RetainDB providers** — cloud-only, viola `project_dashboardagent` (single-user offline-first)
-- ❌ **Multi-user memory partitioning** — single-user explícito por ToS Anthropic Max
+- ❌ **Skill hub remoto** (download de GitHub/NPM) — threat model (`feedback_security_priority`)
+- ❌ **Honcho/Mem0/RetainDB providers** — cloud-only, viola `project_dashboardagent`
+- ❌ **Multi-user memory partitioning** — single-user explícito (ToS Anthropic Max)
 
-**Custos:** 8-12 dias estimados. **Pré-req:** M10 (close v1 antes). **Posição:** primeira feature de v1.1.
+**Custos:** 10-14 dias estimados (subiu de 8-12 por causa da derivation pipeline + role-inheritance — vale o gasto, é o diferencial). **Pré-req:** M10 (close v1), M8 (cost budget aplica em derivation), M8.5 (Goals → retrospectivas), M7.6 (terminate → modal promote skills). **Posição:** primeira feature de v1.1.
 
 ---
 

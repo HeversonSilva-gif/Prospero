@@ -506,7 +506,123 @@ Conceitualmente o mais sofisticado para nosso caso (single-user, multi-agent):
 
 ---
 
-## 10. Referências canônicas
+## 11. As 3 inflexões deliberadas vs Hermes
+
+> **Status:** decisão adicionada 2026-05-12 (turn 2 da pesquisa). Refinamento sobre §7 — aproveita vantagens estruturais do nosso codebase que o Hermes não tem.
+
+O design da §7 deste doc era "Hermes-like adaptado pra Electron". Repesando: temos 3 vantagens estruturais que justificam **desviar deliberadamente** do padrão Hermes, não só adaptá-lo. A versão atual do M11 no ROADMAP.md reflete essas inflexões.
+
+### Inflexão 1 — Skills > MEMORY.md (inverter a ênfase)
+
+**Hermes:** equilibra declarativa (MEMORY.md/USER.md 2200+1375 chars) e procedural (skills). Skills L0 entra no system prompt junto com tudo, ~3 KB. Trata os dois como peers.
+
+**Nosso desvio:** **skills entrega 80% do valor, declarativa entrega 20%.** Justificativa:
+
+- "User prefere tabs sobre spaces" é declarativa. **Já cobrimos isso via CLAUDE.md / persona** — não precisa estar em MEMORY.md também. Duplicação que ocupa system prompt.
+- "Como migrar schema X em 12 passos validados sem quebrar Y" é skill. **Valor 4× maior** porque captura procedimento testado, não preferência. E carrega apenas quando precisa (progressive disclosure L0/L1) — não polui contexto.
+
+**Implementação do desvio:**
+- Skills L0 budget sobe pra ~4 KB (~40 skills × 100 chars de descrição)
+- MEMORY.md cai pra ~1 KB (só identity + rules duras; tudo o resto vira skill)
+- 5 MCP tools de skill (search/read/create/update/promote) vs 4 tools de memory
+- Rate limit declarative writes mais agressivo (3/turn) que skill writes (5/turn) — desestimular ativamente
+- UI tab "Learning" coloca Skills antes de Memory na ordem das sub-tabs
+
+**Trade-off:** se feedback do usuário disser "queria persistir mais notas curtas", relaxar cap MEMORY.md em PR follow-up. Mas começamos restritivos — easier afrouxar que apertar.
+
+### Inflexão 2 — Activity-stream-derived memory, não auto-narrada
+
+**Hermes:** o agente decide quando lembrar. Nudge dispara, agente avalia e chama `memory.add` se quiser. **Problema:** dois vieses sistemáticos:
+
+1. **Self-narration bias** — agente narra o que ele acha que aprendeu, não o que objetivamente fez. Pode glorificar acertos, esconder erros.
+2. **Bloat bias** — agente em dúvida tende a salvar (custa nada pra ele, custa tokens pro user). Memória vira lixão de notas pouco discriminativas.
+
+**Nossa vantagem estrutural:** já temos **3 sinais objetivos** que o Hermes não tem:
+- `activity_events` (M7.7) — todo evento estruturado: quem fez o quê, quando, em que entity
+- `issue_artifacts` (M7.5) — outputs concretos por issue (commits, files, PRs)
+- `cost_events` (M8) — quanto custou cada turn (proxy de "valeu a pena")
+
+**Implementação do desvio:** derivation pipeline em vez de auto-narração:
+
+```
+activity_events writer
+  ↓
+  detect: action ∈ {issue.done, agent.recovery, goal.achieved, user.correction}
+  ↓
+  enqueue derivation job (async, throttled, cost-budgeted)
+  ↓
+  dedicated derivation prompt (Sonnet) lê:
+    - trail do issue (comments + tool history + artifacts)
+    - ou últimos 5 turns antes do recovery
+    - ou snapshot do Goal completo
+  ↓
+  produz skill_candidate (ou descarta com motivo)
+  ↓
+  inbox kind `skill.candidate_pending` — user revisa
+  ↓
+  Accept → row em skills + activity event + system prompt
+  Edit → user refina antes de aceitar
+  Reject → registra motivo (treina derivation futura)
+```
+
+**Defense-in-depth crítico:** derivation pipeline gera body via LLM → **passa pelo MESMO sanitizer** que writes manuais. Não confiar.
+
+**Cost budget:** derivations contam contra orçamento diário (M8 enforcement). Hard cap default 3/dia/agente. User pode aumentar via Settings se quiser ser mais agressivo.
+
+**Nudge manual vira fallback:** se `tool_use_count > 5` E nenhuma derivation foi enfileirada nesse issue → emit nudge. Cobre buracos (ex: agente fez 10 tool calls mas issue ainda não foi marcado done).
+
+**Por que isso é melhor que Hermes:**
+- Sinal/ruído maior — trilha objetiva vs narrativa
+- Less bloat — só dispara em eventos discretos, não em "qualquer turn longo"
+- Auditável — cada candidate aponta pro `source_event_id`, dá pra ver o que originou
+- Aprende com o reject — UI captura motivo, pipeline melhora
+
+### Inflexão 3 — Company-wide memory + role-based inheritance desde dia 1
+
+**Hermes:** single-agent fundamentalmente. Cada profile (= agente) tem seus arquivos. Cross-profile sharing é feature externa (Honcho workspace, OpenViking shared knowledge base).
+
+**Nossa vantagem estrutural:** já temos **multi-agent + org chart + role templates**. CEO supervisiona engenheiros; engenheiros têm role estável; quando demite um e contrata outro pro mesmo role, **a empresa devia herdar o que aprendeu**.
+
+A wishlist marca isso como "Automatic Organizational Learning" v3+. Aqui entregamos **versão mínima já no M11** porque a infra existe.
+
+**Implementação:**
+
+- **Memories e skills com 3 escopos:**
+  - `agent_id IS NOT NULL` → privado do agente
+  - `agent_id IS NULL AND applies_to_role IS NOT NULL` → company-shared, herdado por role
+  - `agent_id IS NULL AND applies_to_role IS NULL` → company-shared global
+- **Inheritance no `hire_agent`:** quando spawn novo engineer, query carrega skills + memories com `(agent_id=NULL AND applies_to_role IN (NULL, 'engineer'))` no system prompt.
+- **Promotion flow:** skill privado vira company-shared via tool `skill_promote` → inbox `skill.promotion_requested` → user aprova com modal mostrando body + escolha de `applies_to_role`.
+- **Terminate flow (M7.6 hook):** quando user clica Terminate, modal "Promover skills privados antes?" mostra lista com checkboxes. Itens não-promovidos vão pra cascade soft-delete com TTL 30 dias.
+- **Goal retrospectives (M8.5 hook):** quando `goal.achieved`, CEO recebe trigger especial pra escrever post-mortem → vira memory `kind='retrospective'`, scope company-wide. Captura: "plano estimou X, gastou Y, lição Z". Próximo Goal o CEO já lê retrospectivas anteriores no system prompt.
+
+**UI surface "Org Learnings"** (M9 dependency): card no `/dashboard` mostra:
+- Últimas 5 retrospectivas (link pra Goal original)
+- Top 10 skills compartilhadas por usage count
+- Sinal claro de que a empresa "aprende além do indivíduo"
+
+**Por que isso é o diferencial principal:**
+
+Sem inflexão 3, M11 é "Hermes em Electron". **Com** inflexão 3, é "uma empresa AI que aprende organizacionalmente". Hermes não pode entregar isso (single-agent). Paperclip não pode (não tem nudges/derivation). É território próprio.
+
+### Impacto agregado das 3 inflexões
+
+| Métrica | Design original (§7) | Design refinado (§11) |
+|---|---|---|
+| Foco principal | Per-agent MEMORY.md indexed | Skills auto-derivados + org memory |
+| Fonte primária de write | Agente auto-narra | Activity stream deriva, user revisa |
+| Escopo de aprendizado | Individual | Individual + organizacional |
+| MCP tools | 6 (memory-heavy) | 10 (skills-first + memory fallback + session) |
+| Hard cap system prompt extra | 4 KB | 7.5 KB (skills 4 + memory 3.5) |
+| Schema adicional | `memories`, `memory_edges`, `memories_fts`, `memory_skills` | `skills`, `memories`, `memories_fts`, `messages_fts`, **`skill_candidates`** |
+| Custos estimados | 8-12 dias | 10-14 dias (vale o gasto) |
+| Diferencial vs Hermes | Marginal (adaptação) | Estrutural (org learning) |
+
+A complexidade adicional é localizada na derivation pipeline e no role-inheritance resolver — dois componentes auto-contidos, testáveis isoladamente. Não polui o resto do sistema.
+
+---
+
+## 12. Referências canônicas
 
 - [Hermes Agent repo](https://github.com/NousResearch/hermes-agent)
 - [Memory Providers docs](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/memory-providers.md)

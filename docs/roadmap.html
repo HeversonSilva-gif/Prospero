@@ -1314,6 +1314,12 @@
               PR-review → M8.5 (próximo)
             </li>
             <li>
+              🎬 <strong>Kanban "vivo" com execução narrada</strong> — depois de aprovar o plano,
+              CEO cria as issues uma a uma com comentários de contexto, acorda agentes na ordem das
+              dependências (não tudo de uma vez), e conversa nas issues do kanban junto com você e
+              os agentes → M8.6 (depois do M8.5)
+            </li>
+            <li>
               📈 <strong>Dashboard inicial com widgets dinâmicos</strong> — Agentes ativos / Issues
               em andamento / Inbox / Custos hoje → M9
             </li>
@@ -1323,11 +1329,13 @@
               (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
             </li>
             <li>
-              🧠 <strong>Cada agente com memória própria que aprende com o tempo</strong> — depois
-              de tarefas complexas o agente anota lições no <code>MEMORY.md</code> dele, cria
-              "skills" automáticos (manual de como fazer uma coisa), e usa nas próximas sessões.
-              Cada funcionário vai ficando melhor com a experiência. Inclui busca em conversas
-              antigas. Inspirado no
+              🧠 <strong>Empresa que aprende com a experiência (não só o funcionário)</strong> —
+              após cada issue concluído, o sistema <strong>extrai automaticamente</strong> um
+              "skill" (manual de como fazer aquilo) a partir do trabalho real, você revisa e aceita.
+              Conhecimento institucional <strong>transfere entre funcionários</strong>: se demite o
+              BackendEng e contrata outro, o novato já chega sabendo o que a empresa aprendeu. CEO
+              escreve retrospectiva ao completar um Goal. Inclui busca em conversas antigas.
+              Inspirado mas com 3 inflexões deliberadas sobre o
               <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>
               (NousResearch). → M11 (pós-v1, v1.1)
             </li>
@@ -1488,14 +1496,24 @@
           <div class="card" data-kind="horizon">
             <div class="kicker">horizonte</div>
             <div class="title">v1 fechado</div>
-            <div class="flow">M8 ──▶ M8.5 ──▶ M9 ──▶ M10 ──▶ v1 ✅ ~5d ~10-12d ~6-8d ~4-6d</div>
+            <div class="flow">
+              M8 ✅ ──▶ M8.5 ──▶ M8.6 ──▶ M9 ──▶ M10 ──▶ v1 ✅ ~9-11d ~6-8d ~6-8d ~4-6d
+            </div>
             <ul class="bullets" style="margin-top: 12px">
-              <li><span>CEO-planner automático (M8.5) — Goals + PR-review UI</span></li>
+              <li>
+                <span>CEO-planner automático (M8.5) — Goals + PR-review UI + executor atomic</span>
+              </li>
+              <li>
+                <span
+                  >Execução narrada + kanban vivo (M8.6) — CEO cria issues 1-by-1 com comentários,
+                  acorda agentes por dependência</span
+                >
+              </li>
               <li><span>Dashboard rico (M9) + multi-empresa</span></li>
               <li><span>Hybrid distribution (M10) — local OU VPS Docker per-agent</span></li>
               <li><span>Adapter ecosystem extensível</span></li>
             </ul>
-            <div class="eta">Restante: <strong>~25-30 dias</strong> de trabalho contínuo</div>
+            <div class="eta">Restante: <strong>~25-33 dias</strong> de trabalho contínuo</div>
           </div>
         </div>
       </section>
@@ -1600,7 +1618,11 @@
             <div class="status-line"><span class="sq"></span>não iniciado</div>
             <div class="note">
               Sem tabela <code>goals</code>/<code>goal_plans</code>. Feature
-              <strong>além do Paperclip</strong> (CEO-planner automático). M8.5.
+              <strong>além do Paperclip</strong> (CEO-planner automático). <strong>M8.5</strong>
+              entrega atomic foundation (planning + approve UI + executor 1-trans);
+              <strong>M8.6</strong> adiciona execução narrada (CEO cria issues 1-by-1 + comentários)
+              + sequenciamento por dependência + kanban como surface colaborativa (CEO/agent/user
+              comentam juntos).
             </div>
           </div>
           <div class="module" data-status="complete">
@@ -2661,6 +2683,221 @@
               </div>
             </div>
           </article>
+
+          <!-- ──── M11 ──── -->
+          <article class="milestone" data-status="planned">
+            <div class="ms-rail">
+              <div class="num">M11</div>
+              <div class="status-row"><span class="status-dot"></span>planned</div>
+              <div class="meta">novo · pós-v1 (v1.1)</div>
+            </div>
+            <div class="ms-body">
+              <h3>Agent Memory &amp; Learning Loop</h3>
+              <p class="tagline">
+                <strong>Empresa que aprende com a experiência, não só o funcionário.</strong>
+                Skills auto-derivados do <code>activity_events</code> (issue.done / agent.recovery /
+                goal.achieved) + role-based inheritance + company memory + FTS5 session search.
+                Inspirado mas com <strong>3 inflexões deliberadas</strong> sobre o closed learning
+                loop do <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>.
+                <strong>Primeira feature da v1.1.</strong>
+              </p>
+              <div class="design-note">
+                <span class="label">Por que pós-v1</span>
+                v1 = M10 está locked. Implementar antes adiciona 1-2 semanas no critical path sem
+                desbloquear M10. Design completo em
+                <a href="hermes-memory-learning-system.md"
+                  ><code>docs/hermes-memory-learning-system.md</code></a
+                >
+                (§11 detalha as 3 inflexões).
+              </div>
+              <div class="design-note">
+                <span class="label">Inflexão 1 · Skills &gt; MEMORY.md</span>
+                Inverter ênfase do Hermes. Skills L0 sobe pra ~4 KB (~40 skills × 100 chars);
+                MEMORY.md cai pra ~1 KB (só identity + rules duras). "User prefere tabs" é CLAUDE.md
+                territory; "como migrar schema X em 12 passos" é skill — valor 4× maior.
+              </div>
+              <div class="design-note">
+                <span class="label">Inflexão 2 · Activity-derived, não auto-narrado</span>
+                Hermes pede o agente narrar lições (bias + bloat). Nós já temos
+                <code>activity_events</code> (M7.7) + <code>issue_artifacts</code> (M7.5) — trilha
+                objetiva. Derivation pipeline async dispara em <code>issue.done</code> /
+                <code>agent.recovery</code> / <code>goal.achieved</code> /
+                <code>user.correction</code> → <code>skill_candidate</code> com review
+                human-in-the-loop. Auto-narração via MCP vira fallback.
+              </div>
+              <div class="design-note">
+                <span class="label">Inflexão 3 · Company-wide + role-based inheritance</span>
+                Hermes é single-agent. Nós temos org-chart + role templates. Skills/memories com
+                <code>applies_to_role</code> herdam automaticamente em hire. Demite BackendEng e
+                contrata outro → novato chega com conhecimento institucional. CEO escreve
+                retrospectiva em <code>goal.achieved</code>. Mínima versão de "Automatic
+                Organizational Learning" (que estava em v3+).
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Schema (Migration M11-01)</div>
+                <ul class="feature-list">
+                  <li>
+                    <code>skills</code> — agent_id (NULL = shared), applies_to_role, name,
+                    body_path, description (L0), version, source
+                    (agent_created/derived_from_issue/derived_from_recovery/user_authored), trust,
+                    use_count
+                  </li>
+                  <li>
+                    <code>memories</code> — agent_id (NULL = company), applies_to_role, kind
+                    (identity/rule/preference/retrospective), body, importance, trust,
+                    source_event_id (FK <code>activity_events</code>), pinned
+                  </li>
+                  <li>
+                    <code>memories_fts</code> + <code>messages_fts</code> — virtual FTS5 (memória e
+                    session search separados)
+                  </li>
+                  <li>
+                    <code>skill_candidates</code> — pending de derivation: proposed_name +
+                    proposed_body + source_event_id + status
+                    (pending/accepted/rejected/reviewed_by).
+                    <strong>Sempre passa por review.</strong>
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">MCP tools (10 — skills first)</div>
+                <ul class="feature-list">
+                  <li>
+                    <strong>Skills (5):</strong> <code>skill_search</code> ·
+                    <code>skill_read</code> · <code>skill_create</code> ·
+                    <code>skill_update</code> · <code>skill_promote</code> (private →
+                    company-shared, requer aprovação)
+                  </li>
+                  <li>
+                    <strong>Memory (4, fallback):</strong> <code>memory_read</code> ·
+                    <code>memory_add</code> (rate limit 3/turn, mais agressivo) ·
+                    <code>memory_remove</code> · <code>memory_search</code> (FTS5)
+                  </li>
+                  <li>
+                    <strong>Session (1):</strong> <code>session_search</code> — FTS5 sobre
+                    <code>messages.content</code>, separado de memória
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Auto-derivation pipeline (coração do M11)</div>
+                <ul class="feature-list">
+                  <li>
+                    Hook em <code>activity_events</code> writer: detecta action ∈ {issue.done,
+                    agent.recovery, goal.achieved, user.correction} → enqueue async job
+                  </li>
+                  <li>
+                    Derivation worker lê trail (comments + tool history + artifacts) → dedicated
+                    Sonnet prompt → produz <code>skill_candidate</code> ou descarta
+                  </li>
+                  <li>
+                    <code>goal.achieved</code> → CEO escreve retrospective memory em company scope
+                  </li>
+                  <li>
+                    Cost budget: derivations contam contra orçamento diário (M8 enforcement). Hard
+                    cap: 3/dia/agente (configurável via Settings)
+                  </li>
+                  <li>
+                    Inbox <code>skill.candidate_pending</code> com Accept/Edit/Reject. Nada vai
+                    direto pra <code>skills</code>.
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Role-based inheritance</div>
+                <ul class="feature-list">
+                  <li>
+                    <code>hire_agent</code> carrega skills + memories matching
+                    <code>applies_to_role</code> no spawn
+                  </li>
+                  <li>
+                    Card "Org Learnings" no <code>/dashboard</code> (M9 dep): últimas 5
+                    retrospectivas + top 10 skills compartilhadas
+                  </li>
+                  <li>
+                    Terminate flow (M7.6): modal "promover skills privados antes?" + cascade
+                    soft-delete memórias TTL 30d
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Loop de aprendizagem</div>
+                <ul class="feature-list">
+                  <li><strong>Auto-derivation (primário):</strong> trigger em activity_events</li>
+                  <li>
+                    <strong>Nudges manuais (fallback):</strong> hook <code>turn-complete</code> se
+                    <code>tool_use_count &gt; 5</code> E nenhuma derivation enfileirada
+                  </li>
+                  <li>Time-based: sessão &gt; 30 turns sem nudge → emit</li>
+                  <li>
+                    Trust feedback: user thumb-up/down → ±0.05/-0.10 (asymétrico Holographic).
+                    Skills trust &lt; 0.2 não entram em L0 (load on-demand only)
+                  </li>
+                  <li>
+                    Decay: <code>importance *= age_decay(90d) * access_boost</code> (identity +
+                    pinned exemptos)
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">UI</div>
+                <ul class="feature-list">
+                  <li>
+                    <code>/agents/:id</code> ganha tab "Learning" (4ª): sub-tabs Skills (com 🏢 pra
+                    inherited) / Memory / History / Candidates
+                  </li>
+                  <li>
+                    <code>/dashboard</code> ganha card "Org Learnings" (retrospectivas + top skills)
+                  </li>
+                  <li>
+                    <code>/settings</code> ganha "USER.md global" + slider "Derivation budget"
+                  </li>
+                  <li>Header agent: badge "🎓 N skills · K memories"</li>
+                  <li>
+                    Inbox kinds: <code>skill.candidate_pending</code> ·
+                    <code>skill.promotion_requested</code> · <code>memory.review_needed</code> ·
+                    <code>goal.retrospective_ready</code>
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Security</div>
+                <ul class="feature-list">
+                  <li>
+                    Sanitizer em <strong>ambos</strong> paths (manual + derivation): regex
+                    anti-injection + blocklist <code>gate.ts §8.3</code>
+                  </li>
+                  <li>
+                    Pinned memories + promoted skills ficam read-only pro agente — só user remove
+                  </li>
+                  <li>SECURITY.md: seção "Memory + Skills as injection vectors"</li>
+                  <li>Token budget: overhead novo ≤ 5% baseline (regra dura)</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Out-of-scope v1.1 (pra v1.2 / v2+)</div>
+                <ul class="feature-list">
+                  <li>❌ Vector embeddings — v1.2</li>
+                  <li>
+                    ❌ Indexed memory routing (sub-docs por tópico) — não precisa com cap 1 KB
+                  </li>
+                  <li>❌ Graph edges genéricos — YAGNI sem vector</li>
+                  <li>❌ Memory bulletin horário, dream consolidator — wasteful em desktop</li>
+                  <li>❌ Identity evolution / metacognition (#10355 Phase 3) — escopo grande</li>
+                  <li>❌ Skill hub remoto — threat model</li>
+                  <li>❌ Cloud providers (Honcho/Mem0/etc) — viola single-user offline-first</li>
+                </ul>
+              </div>
+              <div class="design-note">
+                <span class="label">Custos &amp; pré-reqs</span>
+                <strong>10-14 dias</strong> (subiu de 8-12 por causa da derivation pipeline +
+                role-inheritance — vale o gasto, é o diferencial estrutural sobre Hermes). Pré-req:
+                <strong>M10</strong> (close v1), <strong>M8</strong> (cost budget aplica em
+                derivation), <strong>M8.5</strong> (Goals → retrospectivas),
+                <strong>M7.6</strong> (terminate flow → modal promote).
+              </div>
+            </div>
+          </article>
         </div>
       </section>
 
@@ -2773,6 +3010,17 @@
             </div>
           </div>
           <div class="wish-row" data-wish="planned">
+            <div class="item-name">Execução narrada + kanban vivo</div>
+            <div>
+              <span class="wish-status"><span class="sq"></span>planned</span>
+            </div>
+            <div class="where">
+              <strong>M8.6 — camada viva sobre M8.5.</strong> CEO cria issues uma a uma com
+              comentários de contexto, acorda agentes por ordem de dependência, e conversa nas
+              issues do kanban com user + agentes. Atomic mode (M8.5) permanece como fallback.
+            </div>
+          </div>
+          <div class="wish-row" data-wish="planned">
             <div class="item-name">Issue identifier (<code>PRJ-123</code>)</div>
             <div>
               <span class="wish-status"><span class="sq"></span>planned</span>
@@ -2843,9 +3091,10 @@
               <span class="wish-status"><span class="sq"></span>M11</span>
             </div>
             <div class="where">
-              Per-agent MEMORY.md + skills procedurais auto-criados + FTS5 session search + nudges
-              em turn-complete. Inspirado em Hermes Agent (NousResearch). Vector embeddings ficam
-              v1.2.
+              Skills auto-derivados do <code>activity_events</code> (issue.done / agent.recovery /
+              goal.achieved) + role-based inheritance + company memory + MEMORY.md per-agent
+              minimalista + FTS5 session search. Inspirado mas com 3 inflexões deliberadas sobre
+              Hermes Agent. Vector embeddings ficam v1.2.
             </div>
           </div>
           <div class="wish-row" data-wish="v2">
