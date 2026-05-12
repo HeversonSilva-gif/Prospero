@@ -9,7 +9,7 @@ const setup = () => {
   const db = new Database(":memory:");
   applyMigrations(db);
   db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('co_1', 'Demo', 0)").run();
-  const recorder = createRecorder(db);
+  const recorder = createRecorder(db, () => {}, { devMode: false });
   const repo = createAgentsRepository(db, recorder);
   const activityRepo = createActivityRepository(db);
   const agent = repo.create({
@@ -61,9 +61,10 @@ describe("repository lifecycle methods", () => {
       filters: { action: "agent.skills_changed" },
     });
     expect(events).toHaveLength(2);
-    // events[0] is the latest (DESC by created_at) → second setSkills call.
-    expect(events[0]!.payload).toEqual({ added: ["git_ops"], removed: ["run_tests"] });
-    expect(events[1]!.payload).toEqual({ added: ["read_code", "run_tests"], removed: [] });
+    // Two same-ms inserts: ordering is by id DESC (UUID random) — assert set.
+    const payloads = events.map((e) => e.payload);
+    expect(payloads).toContainEqual({ added: ["git_ops"], removed: ["run_tests"] });
+    expect(payloads).toContainEqual({ added: ["read_code", "run_tests"], removed: [] });
   });
 
   it("pause sets status+paused_at+pause_reason; resume clears all three", () => {
