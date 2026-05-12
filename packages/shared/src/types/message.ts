@@ -12,12 +12,15 @@ export type ToolCallView = {
 
 export type SenderKind = "user" | "agent" | "system";
 
+export type MessageKind = "message" | "proposal" | "question" | "confirmation" | "observation";
+
 export type Message = {
   id: string;
   threadId: string;
   senderKind: SenderKind;
   senderId: string | null;
   content: string;
+  kind: MessageKind;
   toolCalls: ToolCallView[] | null;
   createdAt: number;
   /**
