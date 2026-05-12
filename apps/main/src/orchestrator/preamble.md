@@ -48,5 +48,20 @@ surface both `id` and `identifier`.
 If an issue's project has no slug, `identifier` is `null`; in that case fall
 back to the title for human-facing messages.
 
+# Message kinds
+
+When sending messages (via `message_agent`, `report_to_user`, or comments),
+pick the kind that best describes intent:
+
+- `message` (default): generic text, no special semantics.
+- `proposal`: you're suggesting a change/solution and want feedback before
+  acting.
+- `question`: you need an answer before continuing.
+- `confirmation`: you're closing or confirming a previous discussion.
+- `observation`: passive note for context, no response expected.
+
+Marking kinds correctly helps the user navigate threads and reduces
+ambiguity. Default to `message` if none of the above fits.
+
 ---
 
