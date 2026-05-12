@@ -5,6 +5,7 @@ import {
   MODEL_ID_REGEX,
   type Agent,
   type AgentEvent,
+  type AgentMode,
   type AgentStats,
   type Message,
   type MessageKind,
@@ -432,6 +433,47 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       agents.setReportsTo(payload.agentId, payload.reportsTo);
       // reports_to é metadata visual; não afeta spawn args → não precisa restart.
       broadcast({ kind: "roster-changed", companyId: agent.companyId });
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.AGENTS_SET_MODE,
+    (_e, payload: { agentId: string; mode: AgentMode }): { ok: true } => {
+      if (payload.mode !== "supervised" && payload.mode !== "auto") {
+        throw new Error("Invalid mode");
+      }
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      agents.setMode(payload.agentId, payload.mode);
+      restartIfRunning(payload.agentId, agent.companyId);
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.AGENTS_SET_ALWAYS_ON,
+    (_e, payload: { agentId: string; alwaysOn: boolean }): { ok: true } => {
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      agents.setAlwaysOn(payload.agentId, payload.alwaysOn);
+      // alwaysOn é flag de startup do orchestrator; não exige restart do agente vivo.
+      broadcast({ kind: "roster-changed", companyId: agent.companyId });
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.AGENTS_SET_SKILLS,
+    (_e, payload: { agentId: string; skills: string[] }): { ok: true } => {
+      if (!Array.isArray(payload.skills) || payload.skills.some((s) => typeof s !== "string")) {
+        throw new Error("skills must be string[]");
+      }
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      agents.setSkills(payload.agentId, payload.skills);
+      // skills afeta --allowedTools no spawn → exige re-spawn.
+      restartIfRunning(payload.agentId, agent.companyId);
       return { ok: true };
     },
   );
