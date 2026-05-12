@@ -59,3 +59,15 @@ export type IssueDetail = {
   assignee: { id: string; name: string; role: string } | null;
   project: { id: string; name: string; color: string } | null;
 };
+
+export type IssueArtifactKind = "file_path" | "commit_sha" | "pr_url" | "snapshot" | "output_text";
+
+export type IssueArtifact = {
+  id: string;
+  issueId: string;
+  kind: IssueArtifactKind;
+  ref: string;
+  contentPreview: string | null;
+  createdBy: string | null;
+  createdAt: number;
+};
