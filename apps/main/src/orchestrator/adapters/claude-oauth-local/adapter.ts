@@ -117,7 +117,7 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
         const preview = line.length > 300 ? line.slice(0, 300) + "..." : line;
         dlog(`stdout: ${preview}`);
         const parsed = parseStreamLine(line);
-        if (parsed !== null) this.emitEvent(parsed);
+        if (parsed !== null) this.handleParsedEvent(parsed);
       });
     }
 
@@ -223,6 +223,16 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
 
   getCurrentAction(): string | null {
     return this.currentAction;
+  }
+
+  private handleParsedEvent(event: ParsedEvent): void {
+    if (event.kind === "turn-complete" && event.usage !== undefined) {
+      this.usage.input += event.usage.input;
+      this.usage.output += event.usage.output;
+      this.usage.cache_creation += event.usage.cache_creation;
+      this.usage.cache_read += event.usage.cache_read;
+    }
+    this.emitEvent(event);
   }
 
   private emitEvent(event: ParsedEvent): void {

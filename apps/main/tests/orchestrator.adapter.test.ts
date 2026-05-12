@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ClaudeOAuthLocalAdapter } from "../src/orchestrator/adapters/claude-oauth-local/adapter.js";
-import type { Agent, SpawnContext } from "@dashboard-agent/shared";
+import type { Agent, ParsedEvent, SpawnContext } from "@dashboard-agent/shared";
 
 const baseAgent: Agent = {
   id: "agent_1",
@@ -85,5 +85,58 @@ describe("ClaudeOAuthLocalAdapter (skeleton)", () => {
   it("sendInput() before start() is a no-op (does not throw)", () => {
     const adapter = new ClaudeOAuthLocalAdapter(baseCtx());
     expect(() => adapter.sendInput("hello")).not.toThrow();
+  });
+});
+
+describe("ClaudeOAuthLocalAdapter — usage accumulation (M8)", () => {
+  it("accumulates usage across multiple turn-complete events", () => {
+    const adapter = new ClaudeOAuthLocalAdapter(baseCtx());
+    const internal = adapter as unknown as {
+      handleParsedEvent: (e: ParsedEvent) => void;
+    };
+    internal.handleParsedEvent({
+      kind: "turn-complete",
+      usage: { input: 10, output: 5, cache_creation: 100, cache_read: 20 },
+      model: "claude-sonnet-4-6",
+    });
+    internal.handleParsedEvent({
+      kind: "turn-complete",
+      usage: { input: 7, output: 3, cache_creation: 0, cache_read: 5 },
+    });
+    expect(adapter.getUsage()).toEqual({
+      input: 17,
+      output: 8,
+      cache_creation: 100,
+      cache_read: 25,
+    });
+  });
+
+  it("ignores turn-complete events with no usage", () => {
+    const adapter = new ClaudeOAuthLocalAdapter(baseCtx());
+    const internal = adapter as unknown as {
+      handleParsedEvent: (e: ParsedEvent) => void;
+    };
+    internal.handleParsedEvent({ kind: "turn-complete" });
+    expect(adapter.getUsage()).toEqual({
+      input: 0,
+      output: 0,
+      cache_creation: 0,
+      cache_read: 0,
+    });
+  });
+
+  it("emits the event to onEvent listeners after handling", () => {
+    const adapter = new ClaudeOAuthLocalAdapter(baseCtx());
+    const internal = adapter as unknown as {
+      handleParsedEvent: (e: ParsedEvent) => void;
+    };
+    const events: ParsedEvent[] = [];
+    adapter.onEvent((e) => events.push(e));
+    internal.handleParsedEvent({
+      kind: "turn-complete",
+      usage: { input: 1, output: 1, cache_creation: 0, cache_read: 0 },
+    });
+    expect(events).toHaveLength(1);
+    expect(events[0]?.kind).toBe("turn-complete");
   });
 });
