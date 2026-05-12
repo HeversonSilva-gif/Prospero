@@ -68,6 +68,9 @@ export const IssueDetailModal: FC<Props> = ({ issueId, onClose }) => {
             ×
           </button>
         </div>
+        {issue.identifier !== null && (
+          <div className="text-xs font-mono text-ink-soft mb-1">{issue.identifier}</div>
+        )}
         <h2 className="text-lg font-bold text-brand-dark mb-3">{issue.title}</h2>
         {issue.description !== null && (
           <p className="text-sm text-ink-muted mb-4 whitespace-pre-wrap">{issue.description}</p>

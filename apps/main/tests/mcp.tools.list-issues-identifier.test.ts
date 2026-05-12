@@ -9,7 +9,7 @@ import { createIssuesRepository } from "../src/issues/repository.js";
 const tool = (name: string) => {
   const t = toolDefinitions.find((x) => x.name === name);
   if (t === undefined) throw new Error(`tool not found: ${name}`);
-  return t;
+  return { run: t.run as (i: unknown, c: unknown) => Promise<string> };
 };
 
 const setup = () => {
