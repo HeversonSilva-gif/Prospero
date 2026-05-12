@@ -74,6 +74,34 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
       }>,
     stats: (agentId: string) =>
       ipcRenderer.invoke(IPC.AGENTS_STATS, { agentId }) as Promise<AgentStats>,
+    setMode: (agentId: string, mode: "supervised" | "auto") =>
+      ipcRenderer.invoke(IPC.AGENTS_SET_MODE, { agentId, mode }) as Promise<{ ok: true }>,
+    setAlwaysOn: (agentId: string, alwaysOn: boolean) =>
+      ipcRenderer.invoke(IPC.AGENTS_SET_ALWAYS_ON, { agentId, alwaysOn }) as Promise<{ ok: true }>,
+    setSkills: (agentId: string, skills: string[]) =>
+      ipcRenderer.invoke(IPC.AGENTS_SET_SKILLS, { agentId, skills }) as Promise<{ ok: true }>,
+    pause: (agentId: string, reason?: string) =>
+      ipcRenderer.invoke(IPC.AGENTS_PAUSE, { agentId, reason }) as Promise<{ ok: true }>,
+    resume: (agentId: string) =>
+      ipcRenderer.invoke(IPC.AGENTS_RESUME, { agentId }) as Promise<{
+        ok: true;
+        drained: number;
+      }>,
+    terminate: (agentId: string, reason?: string) =>
+      ipcRenderer.invoke(IPC.AGENTS_TERMINATE, { agentId, reason }) as Promise<{ ok: true }>,
+    wakeUp: (agentId: string) =>
+      ipcRenderer.invoke(IPC.AGENTS_WAKE_UP, { agentId }) as Promise<{ ok: true }>,
+    resetSession: (agentId: string) =>
+      ipcRenderer.invoke(IPC.AGENTS_RESET_SESSION, { agentId }) as Promise<{ ok: true }>,
+    hireFromUi: (payload: {
+      company_id: string;
+      name: string;
+      role: string;
+      system_prompt: string;
+      mode?: "supervised" | "auto";
+      reports_to?: string;
+      role_template_id?: string;
+    }) => ipcRenderer.invoke(IPC.AGENTS_HIRE_FROM_UI, payload) as Promise<Agent>,
     onEvent: (cb: (event: AgentEvent) => void) => {
       const handler = (_e: unknown, event: AgentEvent) => cb(event);
       ipcRenderer.on(IPC.AGENT_EVENT, handler);

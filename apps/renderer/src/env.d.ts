@@ -60,6 +60,23 @@ declare global {
         setSystemPrompt: (agentId: string, systemPrompt: string) => Promise<{ ok: true }>;
         setReportsTo: (agentId: string, reportsTo: string | null) => Promise<{ ok: true }>;
         stats: (agentId: string) => Promise<AgentStats>;
+        setMode: (agentId: string, mode: "supervised" | "auto") => Promise<{ ok: true }>;
+        setAlwaysOn: (agentId: string, alwaysOn: boolean) => Promise<{ ok: true }>;
+        setSkills: (agentId: string, skills: string[]) => Promise<{ ok: true }>;
+        pause: (agentId: string, reason?: string) => Promise<{ ok: true }>;
+        resume: (agentId: string) => Promise<{ ok: true; drained: number }>;
+        terminate: (agentId: string, reason?: string) => Promise<{ ok: true }>;
+        wakeUp: (agentId: string) => Promise<{ ok: true }>;
+        resetSession: (agentId: string) => Promise<{ ok: true }>;
+        hireFromUi: (payload: {
+          company_id: string;
+          name: string;
+          role: string;
+          system_prompt: string;
+          mode?: "supervised" | "auto";
+          reports_to?: string;
+          role_template_id?: string;
+        }) => Promise<Agent>;
         onEvent: (cb: (event: AgentEvent) => void) => () => void;
       };
       messages: {
