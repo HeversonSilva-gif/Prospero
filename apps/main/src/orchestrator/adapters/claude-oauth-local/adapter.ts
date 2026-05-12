@@ -18,6 +18,7 @@ import { prepareSandbox, seedSandboxCredentials, writeSandboxSettings } from "./
 import { parseStreamLine } from "./stream-parser.js";
 import { buildSpawnEnv } from "../../env.js";
 import { setupMcpHandshake } from "../../mcp-handshake.js";
+import { mergeSpawnEnv } from "../../util/env-merge.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -77,11 +78,7 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
     writeSandboxSettings(agentConfigDir);
 
     const spawnCwd = this.ctx.cwd ?? agentSandboxCwd;
-    const spawnEnv: NodeJS.ProcessEnv = {
-      ...process.env,
-      ...env,
-      CLAUDE_CONFIG_DIR: agentConfigDir,
-    };
+    const spawnEnv = mergeSpawnEnv(env, agentConfigDir);
 
     dlog(`spawn claude for agent=${this.ctx.agent.id} cwd=${spawnCwd}`);
     dlog(`configDir=${agentConfigDir} ephemeral=${String(isEphemeralConfigDir)}`);
