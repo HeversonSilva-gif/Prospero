@@ -141,7 +141,10 @@ describe("runner registry", () => {
     for (let i = 0; i < 10; i++) removeRunner(`agent_${String(i)}`);
   });
 
-  it("register + get + remove", () => {
+  // M7.5 PR-A: registerRunner is a no-op shim — adapter Map is populated by ensureAdapter.
+  // Manual-registration tests no longer apply. Equivalent behavior covered by
+  // orchestrator.adapter.test.ts + orchestrator.adapters-registry.test.ts.
+  it.skip("register + get + remove (legacy shim — adapter-driven now)", () => {
     const r = fakeRunner("agent_a", true);
     registerRunner(r);
     expect(getRunner("agent_a")).toBe(r);
@@ -149,7 +152,7 @@ describe("runner registry", () => {
     expect(getRunner("agent_a")).toBeUndefined();
   });
 
-  it("activeRunnerCount counts alive runners only", () => {
+  it.skip("activeRunnerCount counts alive runners only (legacy shim)", () => {
     registerRunner(fakeRunner("agent_x", true));
     registerRunner(fakeRunner("agent_y", false));
     registerRunner(fakeRunner("agent_z", true));
