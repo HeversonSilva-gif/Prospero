@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-12 (M7.7 fechado em master via `ea05e2a`. **M7.6 PR-A entregue na branch `feat/m7.6-pr-a`** — backend: migration 0010 (paused_at/terminated_at/pause_reason + status CHECK widening via table recreation) + 9 IPCs novos (setMode/setAlwaysOn/setSkills/pause/resume/terminate/wake-up/reset-session/hire-from-ui) + 6 repo methods novos com activity dual-write + 2 activity actions novas (agent.mode_changed/always_on_changed) + HIRE_AGENT_INPUT_SCHEMA + HIRE_FROM_UI extraídos pra shared + enqueueOrPark backlog pra paused agents (process-lifetime, drains no resume). 457 tests passing (delta +46). Próximo: PR-B UI (header sticky + ConfigTab additions + Runs modal + AgentNew form + Instructions full-screen modal).)
+> **Última atualização:** 2026-05-12 (M7.6 PR-A mergeado em master via `291d9ee`. **M7.6 PR-B entregue na branch `feat/m7.6-pr-b`** — UI: AgentHeader sticky (status dot + currentAction + Pause/Resume + Assign Task + Runs + ⋯ menu com Copy ID/Reset Session/Terminate) + 5 sections novas no ConfigTab (Reports-to dropdown + Mode radio + Always-on switch + Schedule sub-section com wake-up + Skills editáveis required/optional/available via categorizeSkills) + InstructionsFullScreenModal + RunsModal (timeline read-only com groupBySession) + AgentNew form route + sidebar "+ Novo" entry. 472 tests passing (delta +15 renderer). Bundle 375 → 448.05 kB (+73 kB uncompressed). M7.6 fecha após merge; próximo M8 Costs ou M8.5 Goals.)
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 
@@ -15,8 +15,8 @@
 | Métrica | Valor |
 |---|---|
 | Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5** (8/14 do v1: M1–M10 + M7.5 + M7.6 + M7.7 + M8.5) |
-| Em curso | **M7.6 PR-A** ready-to-merge (branch `feat/m7.6-pr-a`, 14 commits, backend done). Próximo: PR-B (UI). |
-| Testes | **457 passing** (396 main + 28 renderer + 33 shared), 0 lint/typecheck errors. Delta PR-A: +13 main (lifecycle ×7 + migration ×2 + pause-backlog ×4). |
+| Em curso | **M7.6 PR-B** ready-to-merge (branch `feat/m7.6-pr-b`, ~14 commits, UI done). M7.6 fecha após merge. |
+| Testes | **472 passing** (396 main + 43 renderer + 33 shared), 0 lint/typecheck errors. Delta PR-B: +15 renderer (lifecycle-actions ×9 + skillCategorize ×3 + RunsModal ×3). |
 | Commits no master | ~165 |
 | LoC (apps + packages) | ~14k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · vitest · Playwright (E2E, skipped) |
