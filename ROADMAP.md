@@ -96,6 +96,7 @@
 - 📈 **Dashboard inicial com widgets dinâmicos** — Agentes ativos / Issues em andamento / Inbox / Custos hoje → M9
 - 🏢 **Trocar entre empresas via dropdown da sidebar** → M9
 - ☁️ **Rodar agentes numa VPS remota (Docker)** — escolha per-agent: local (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
+- 🧠 **Cada agente com memória própria que aprende com o tempo** — depois de tarefas complexas o agente anota lições no `MEMORY.md` dele, cria "skills" automáticos (manual de como fazer uma coisa), e usa nas próximas sessões. Cada funcionário vai ficando melhor com a experiência. Inclui busca em conversas antigas. → M11 (pós-v1, v1.1)
 
 ---
 
@@ -119,11 +120,15 @@
 
 **Recomendação:** M8 Costs.
 
-### ▸ Horizonte (v1 = M10 fechado)
+### ▸ Horizonte (v1 = M10 fechado · v1.1 = M11)
 
 ```
 M8 Costs ──▶ M8.5 Goals ──▶ M9 Dashboard ──▶ M10 VPS adapter ──▶ v1 ✅
    ~5d         ~10-12d         ~6-8d            ~4-6d
+                                                     │
+                                                     ▼
+                                              M11 Agent Memory ──▶ v1.1
+                                                   ~8-12d
 ```
 
 **O que v1 entrega quando estiver pronto:**
@@ -149,7 +154,8 @@ M8 Costs ──▶ M8.5 Goals ──▶ M9 Dashboard ──▶ M10 VPS adapter �
 | LoC (apps + packages) | ~16k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
-| Restante pra v1 | M8 · M8.5 · M9 · M10 (~25-30 dias) |
+| Restante pra v1 | M8.5 · M9 · M10 (~20-26 dias). **M8 fechado em 2026-05-12.** |
+| Próximo v1.1 | M11 Agent Memory & Learning Loop (~8-12 dias, inspirado [Hermes Agent](docs/hermes-memory-learning-system.md)) |
 
 ---
 
@@ -285,7 +291,9 @@ M8.5 (Goals + CEO Planning — feature além do Paperclip)
   ↓
 M9  (Dashboard + Multi-empresa + Reviews UX + API key)
   ↓
-M10 (VPS Docker Remote Adapter)
+M10 (VPS Docker Remote Adapter) ─── v1 ✅
+  ↓
+M11 (Agent Memory & Learning Loop — inspirado Hermes) ─── v1.1
 ```
 
 **Antes de cada milestone, consultar Paperclip** (`reference_paperclip` memory) pra UX/código.
@@ -821,6 +829,151 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
 
 ---
 
+### 🆕 M11 — Agent Memory & Learning Loop — **pós-v1 (v1.1)**
+
+**Origem:** pesquisa Hermes Agent ([NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent), 2026-05-12). Doc completo em [docs/hermes-memory-learning-system.md](docs/hermes-memory-learning-system.md). Substitui o item v2+ "Memory / Knowledge base" por implementação concreta inspirada no closed learning loop do Hermes.
+
+**Por que pós-v1:** v1 = M10 está locked. Mexer aqui antes adicionaria 1-2 semanas no critical path sem desbloquear nenhum milestone v1. **Pós-M10 vira a primeira feature da v1.1** — transformador o suficiente pra merecer milestone próprio, não cramming em M9/M10.
+
+**Decisão arquitetural:**
+- **Per-agent + company-wide + user-global** (3 níveis injetados no system prompt). Cada agente tem `MEMORY.md` próprio; regras compartilhadas vão pra company memory; preferências do user em `USER.md` global.
+- **Híbrido markdown + SQLite:** body em markdown (human-editable), metadata (importance/trust/edges/FTS5) em SQLite. Indexed memory architecture desde dia 1 (não monolito).
+- **Sem vector embeddings v1.1.** Custo extra (não coberto OAuth Max) + modelo local pesado. **FTS5 + graph subset** atende. Vector vira v1.2 se feedback pedir.
+- **Skills procedurais auto-criados** seguindo padrão [agentskills.io](https://agentskills.io) — markdown com YAML frontmatter, progressive disclosure L0/L1/L2.
+- **Nudges no `turn-complete` event** quando `tool_use_count > 5` ou recovery pós-erro. Reusa stream parser existente do M3.
+- **Sanitizer em todo write** — mesma blocklist `gate.ts §8.3` (memory é vetor crítico de prompt injection).
+
+#### Schema (Migration M11-01, numeração após M10)
+
+- [ ] **`memories`** — id, agent_id (NULL = company-wide), company_id, kind (`identity|goal|decision|todo|preference|fact|event|observation`), body TEXT, importance REAL (0.0–1.0), trust REAL (default 0.5), source_file TEXT, created_at, last_accessed, access_count, soft_deleted (0/1), embedding BLOB NULL (futuro v1.2)
+- [ ] **`memory_edges`** — src_id, dst_id, relation (`Updates|Contradicts|RelatedTo`), weight REAL. **Subset dos 6 do Hermes #346** — YAGNI no resto.
+- [ ] **`memories_fts`** — virtual table FTS5(body), `content=memories`
+- [ ] **`memory_skills`** — id, agent_id, name (unique per agent), body_path TEXT (aponta pra SKILL.md em disco), version, trust REAL, created_at, last_used, use_count, soft_deleted
+- [ ] **Filesystem layout:**
+  ```
+  ~/.dashboard-agent/
+  ├── user.md                          # USER.md global (1.5 KB cap)
+  ├── companies/<id>/
+  │   ├── memory.md                    # company-wide (1 KB cap)
+  │   └── agents/<agent_id>/
+  │       ├── memory/
+  │       │   ├── MEMORY.md            # índice (2 KB cap)
+  │       │   └── sub/<topic>.md       # sub-documentos
+  │       └── skills/<name>/SKILL.md
+  ```
+- [ ] Índices: `(agent_id, importance desc)`, `(agent_id, soft_deleted)`, `(kind, importance)`, `(src_id)` em edges
+
+#### MCP tools novas (6)
+
+- [ ] `memory_read(agent_id?, kind?, limit?)` → Memory[] (sim, expomos read pra debugging — Hermes não tem)
+- [ ] `memory_add({body, kind, importance?, edges?})` → memory_id. Valida Zod + sanitizer + rate limit max 5/turn
+- [ ] `memory_replace(id, new_body)` → updated_at
+- [ ] `memory_remove(id)` → soft-delete + activity event com preview do removido (undo 30 dias)
+- [ ] `memory_search({query, limit?, agent_id?})` → ranked results via FTS5 + graph traversal (BFS de seeds high-importance)
+- [ ] `skill_manage({action: 'create'|'update'|'delete'|'list', name, body?})` → skill operations. Body validado por size cap (16 KB), frontmatter parse via gray-matter
+
+#### System prompt injection
+
+- [ ] **`composeSystemPrompt`** ampliado (foundation M7.5) com 4 novos slots:
+  - USER.md global (~1.5 KB cap)
+  - Company memory (~1 KB cap)
+  - Agent MEMORY.md (índice ~2 KB cap)
+  - Skills L0 (nome+desc dos skills do agente, ~3 KB cap)
+- [ ] **Hard cap total novo:** 4 KB additional → target ≤ 5% token overhead (regra `feedback_token_efficiency`)
+- [ ] **Indexed memory routing** — system prompt contém tabela "topic → file"; agente lê sub-docs via `read_file` quando precisa (padrão Hermes #22612)
+
+#### Loop de aprendizagem (nudges)
+
+- [ ] **Hook em `turn-complete`** (orchestrator/stream-parser.ts):
+  - Se `tool_use_count > 5` ou último turn tinha erro → emit `memory_nudge` system message próximo turn
+  - Se compaction event (≥ M9 quando houver) → emit `memory_nudge` com contexto resumido
+- [ ] **Nudge prompt template:** "Você acabou de concluir uma tarefa complexa. Vale persistir algum aprendizado? Use `memory_add` ou `skill_manage` se sim."
+- [ ] **Periodicidade time-based fallback:** se sessão > 30 turns sem nudge, emit
+- [ ] **Trust feedback loop:** user dá thumb-up/down em entrada → `+0.05 / −0.10` na trust score (assimétrico igual Hermes Holographic)
+
+#### Decay + maintenance
+
+- [ ] **Decay job** (rodando em open-session): `importance *= age_decay(90d) * access_boost(access_count)`. `kind='identity'` é exempt.
+- [ ] **Pruning** soft-delete quando `importance < 0.1` AND `last_accessed > 30d`. Auto-aviso na UI antes ("12 memórias vão expirar; revisar?").
+- [ ] **Consolidation prompt** automático quando `MEMORY.md` > 90% cap.
+- [ ] **Auto edge-building** opcional v1.2 (similarity check periódico cria `RelatedTo` em 0.85, `Updates` em 0.95 — pulado v1.1 sem vectors)
+
+#### UI
+
+- [ ] **Rota `/agents/:id` ganha tab "Memory" (4ª, além de Config/Issues/Stats):**
+  - Sub-tab `MEMORY.md` — markdown editor (read-only com toggle edit; agente normalmente escreve)
+  - Sub-tab `Skills` — lista L0 com expand→L1 inline. Botão "Create skill" manual.
+  - Sub-tab `History` — search box FTS5 sobre `messages` do agente; lista paginada
+  - Mostra usage bar (chars usados / cap)
+- [ ] **Rota `/settings` ganha seção "USER.md global":**
+  - Markdown editor + character counter
+  - Botão "Import from Claude Code memory" (parse de `~/.claude/projects/*/memory/MEMORY.md`)
+- [ ] **Rota `/agents/:id` header:** badge "📚 N memories · M skills" link pra tab Memory
+- [ ] **Inbox kinds novos:**
+  - `memory.review_needed` (decay vai expirar entries)
+  - `memory.conflict_detected` (edge `Contradicts` flagged)
+
+#### Activity events novos (consume M7.7 helper)
+
+- [ ] `memory.added`, `memory.replaced`, `memory.removed`, `memory.expired`
+- [ ] `skill.created`, `skill.updated`, `skill.deleted`, `skill.invoked`
+
+#### Security
+
+- [ ] **Sanitizer no write** — regex contra padrões de injection (`ignore previous`, `disregard instructions`, etc) + blocklist `gate.ts §8.3` aplicada a body
+- [ ] **Pinned entries** — user pode marcar memória "read-only" (agente não pode replace/remove)
+- [ ] **Memory writes em auto mode** continuam permitidas mas geram activity event visível
+- [ ] **SECURITY.md atualizado** com seção "Memory as injection vector" — threat model + mitigações
+- [ ] **Tests:** payload com injection patterns deve ser rejeitado; pinned entries não podem ser overwritten
+
+#### Erros & edge cases
+
+- [ ] **Rate limit excedido (>5/turn):** tool retorna erro, agente vê na sua próxima leitura
+- [ ] **MEMORY.md acima do cap:** write rejeitado, sistema gera nudge "consolidar"
+- [ ] **Skill name collision:** rejeitado com sugestão de suffix
+- [ ] **Agente deletado:** memórias viram orphan (soft-delete cascade) com TTL 30 dias; user pode exportar antes
+- [ ] **Importar Claude Code memory:** parser tolerante (formato pode evoluir); preview antes de commitar
+
+#### Testes
+
+- [ ] Unit: sanitizer (injection patterns rejeitados), Zod validation de payloads
+- [ ] Unit: decay function isolada (`importance *= age_decay * access_boost`)
+- [ ] Unit: FTS5 search ranking + LIMIT
+- [ ] Integration: `memory_add` → system prompt da próxima sessão contém entry
+- [ ] Integration: nudge flow (turn complexo → next system msg tem nudge)
+- [ ] Integration: skill_manage cria SKILL.md em disco + DB row + L0 vira parte do system prompt
+- [ ] Integration: pinned entry resiste a replace/remove
+- [ ] Performance: FTS5 com 10k messages, query < 50ms
+- [ ] E2E (Playwright): user cria memória manual → reload app → agente "lembra"
+
+#### Não-regressão
+
+- [ ] Token budget: overhead novo ≤ 5% do baseline pós-M10 (`feedback_token_efficiency`)
+- [ ] Security suite verde (sanitizer cobre todos casos `gate.ts §8.3`)
+- [ ] M1-M10 features intactas
+- [ ] Performance: app startup +200ms max (carga inicial das memórias)
+
+#### Documentação
+
+- [ ] **`docs/memory-architecture.md`** — design final (sucessor deste research doc)
+- [ ] **`docs/skills-format.md`** — spec SKILL.md adaptado pra nosso contexto
+- [ ] **SECURITY.md** — seção "Memory threat model" 
+- [ ] **README** — featurette no "What's new in v1.1"
+
+#### Out-of-scope v1.1 (postergado v1.2 ou v2+)
+
+- ❌ **Vector embeddings + semantic search** — custo + complexidade; FTS5 atende v1.1
+- ❌ **Memory bulletin horário** (#346 §4) — wasteful em desktop offline-first
+- ❌ **Identity evolution / self-model metacognition** (#10355 phase 3) — escopo muito grande
+- ❌ **Dream consolidator offline** — sem background worker, complica
+- ❌ **Skill hub remoto** (download de GitHub/NPM) — threat model (mesma razão que `feedback_security_priority` bloqueia Paperclip skill source sync)
+- ❌ **Honcho/Mem0/RetainDB providers** — cloud-only, viola `project_dashboardagent` (single-user offline-first)
+- ❌ **Multi-user memory partitioning** — single-user explícito por ToS Anthropic Max
+
+**Custos:** 8-12 dias estimados. **Pré-req:** M10 (close v1 antes). **Posição:** primeira feature de v1.1.
+
+---
+
 ## Débito técnico de M5 (movidos pra v2 ou M-future)
 
 Listados aqui pra não esquecer. Memorias têm contexto.
@@ -880,7 +1033,7 @@ Mapeamento de cada item da wishlist do [Paperclip](https://github.com/paperclipa
 | **Scheduled Routines** | 🆕 v2+ | Routines — cron-like recurring tasks |
 | **Plugin system** | 🆕 v2+ | Knowledge base / custom tracing / queues como sub-features. Big architectural change |
 | **Get OpenClaw / claw-style agent employees** | 🆕 v2+ | Marketplace/template-store de agent personas (extensão do `role_templates`) |
-| **Memory / Knowledge** | 🆕 v2+ | Knowledge base por agente (RAG-style). Vector DB ou sqlite-vss |
+| **Memory / Knowledge** | 🆕 M11 | Per-agent `MEMORY.md` + skills procedurais auto-criados + FTS5 session search + nudges em turn-complete. Inspirado em [Hermes Agent](docs/hermes-memory-learning-system.md). Vector embeddings ficam v1.2. |
 | **Enforced Outcomes** | 🆕 v2+ | Garantia de "tests passam", "compile OK" antes de marcar issue=done |
 | **Deep Planning** | 🆕 v2+ | Plan-mode estendido (claude já tem `--permission-mode plan`) |
 | **MAXIMIZER MODE** | 🆕 v2+ | Aggressive auto mode — requer API key opcional (Max não cobre) |
@@ -940,7 +1093,7 @@ Tudo daqui pra baixo é post-v1. Organizado por tema. Origens marcadas com [PC] 
 
 ### Knowledge / Artifacts
 
-- **Memory / Knowledge base** [PC] — RAG por agente (sqlite-vss ou vector DB externo)
+- ~~**Memory / Knowledge base**~~ [PC] — **movido pra M11** (Agent Memory & Learning Loop, inspirado em Hermes Agent). Vector embeddings ficam pendentes pra v1.2.
 - **Artifacts ricos** [novo] — extensão de `issue_artifacts` (M7.5) pra incluir snapshots de filesystem, diffs anotados, métricas
 - **Enforced Outcomes** [PC] — garantias pré-merge (tests/build) antes de marcar issue=done
 - **Activity Log audit-grade** [novo] — log estruturado de tudo que cada agente fez (cross-cuts M10 vps_audit_events)
