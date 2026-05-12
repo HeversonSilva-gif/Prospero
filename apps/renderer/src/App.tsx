@@ -19,6 +19,7 @@ import { useIssuesStore } from "./stores/issues.js";
 import { Skills } from "./routes/Skills.js";
 import { Org } from "./routes/Org.js";
 import { Activity } from "./routes/Activity.js";
+import { AgentNew } from "./routes/AgentNew.js";
 import { SidebarFooter } from "./components/SidebarFooter.js";
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
@@ -109,42 +110,48 @@ const Sidebar = () => {
           {t("nav.settings")}
         </NavLink>
       </nav>
+      <div className="flex justify-between items-center mt-4 mb-2 px-2">
+        <div className="text-[10px] uppercase tracking-wide text-ink-soft font-semibold">
+          {t("nav.agents")}
+        </div>
+        <NavLink
+          to="/agents/new"
+          className="text-[10px] text-brand hover:underline font-normal normal-case"
+        >
+          + {t("agent.new.shortLabel")}
+        </NavLink>
+      </div>
       {agents.length > 0 && (
-        <>
-          <div className="text-[10px] uppercase tracking-wide text-ink-soft mt-4 mb-2 px-2 font-semibold">
-            {t("nav.agents")}
-          </div>
-          <nav className="flex flex-col gap-1 text-sm text-ink-muted">
-            {agents.map((a) => {
-              const showAction =
-                (a.status === "working" || a.status === "thinking") &&
-                a.currentAction !== null &&
-                a.currentAction !== "";
-              return (
-                <NavLink
-                  key={a.id}
-                  to={`/agents/${a.id}`}
-                  className={({ isActive }) =>
-                    `px-2 py-1 rounded flex flex-col gap-0.5 ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-                  }
-                >
-                  <span className="flex items-center gap-2">
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${STATUS_COLOR[a.status]}`}
-                      title={a.status}
-                    />
-                    <span className="truncate">{a.name}</span>
+        <nav className="flex flex-col gap-1 text-sm text-ink-muted">
+          {agents.map((a) => {
+            const showAction =
+              (a.status === "working" || a.status === "thinking") &&
+              a.currentAction !== null &&
+              a.currentAction !== "";
+            return (
+              <NavLink
+                key={a.id}
+                to={`/agents/${a.id}`}
+                className={({ isActive }) =>
+                  `px-2 py-1 rounded flex flex-col gap-0.5 ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
+                }
+              >
+                <span className="flex items-center gap-2">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${STATUS_COLOR[a.status]}`}
+                    title={a.status}
+                  />
+                  <span className="truncate">{a.name}</span>
+                </span>
+                {showAction && (
+                  <span className="pl-3.5 text-[10px] italic text-ink-soft truncate">
+                    {a.currentAction}
                   </span>
-                  {showAction && (
-                    <span className="pl-3.5 text-[10px] italic text-ink-soft truncate">
-                      {a.currentAction}
-                    </span>
-                  )}
-                </NavLink>
-              );
-            })}
-          </nav>
-        </>
+                )}
+              </NavLink>
+            );
+          })}
+        </nav>
       )}
       <SidebarFooter />
     </aside>
@@ -360,6 +367,18 @@ export const App = () => {
             <Layout>
               <AgentRoute />
             </Layout>
+          }
+        />
+        <Route
+          path="/agents/new"
+          element={
+            hasToken ? (
+              <Layout>
+                <AgentNew />
+              </Layout>
+            ) : (
+              <Navigate to="/setup" replace />
+            )
           }
         />
         <Route path="*" element={<Navigate to={hasToken ? "/dashboard" : "/setup"} replace />} />
