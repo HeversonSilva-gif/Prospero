@@ -17,6 +17,8 @@
     "dev": "pnpm --parallel --filter @dashboard-agent/main --filter @dashboard-agent/renderer run dev",
     "start": "pnpm --filter @dashboard-agent/main run start",
     "rebuild:native": "pnpm --filter @dashboard-agent/main run rebuild:native",
+    "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts",
+    "test:e2e:ui": "playwright test --ui --config=tests/e2e/playwright.config.ts",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -35,6 +37,8 @@
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
     "@eslint/js": "^9.10.0",
+    "@playwright/test": "^1.60.0",
+    "electron-playwright-helpers": "^2.1.0",
     "eslint": "^9.10.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react": "^7.36.1",
