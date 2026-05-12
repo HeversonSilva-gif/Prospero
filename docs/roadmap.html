@@ -1,4 +1,15 @@
 <!doctype html>
+<!--
+  Roadmap visual do DashboardAgent.
+
+  MANUTENÇÃO: ao mergear feature em master, atualizar 3 lugares:
+    1. ROADMAP.md  — seção "Em linguagem simples" + "v1 scope tracker"
+    2. roadmap.html — seção /00 (em linguagem simples) + /03 (módulos técnicos)
+    3. Progress overview (/01) — atualizar nota e progress-meta
+
+  A seção /00 existe pra leigos entenderem o que dá pra fazer hoje sem ler jargão técnico.
+  Mantém em sincronia com ROADMAP.md "Em linguagem simples".
+-->
 <html lang="pt-BR" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
@@ -532,6 +543,117 @@
         line-height: 1.55;
       }
 
+      /* ─── em linguagem simples (layperson section) ─── */
+      .layperson-intro {
+        background: var(--bg-elev);
+        border-left: 3px solid var(--accent);
+        padding: 18px 24px;
+        margin-bottom: 28px;
+        font-size: 14px;
+        color: var(--ink-2);
+        line-height: 1.6;
+      }
+      .layperson-intro strong {
+        color: var(--ink);
+      }
+      .layperson-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 0;
+        border-top: 1px solid var(--rule);
+        border-left: 1px solid var(--rule);
+      }
+      .layperson-card {
+        border-right: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        padding: 22px 24px;
+        background: var(--bg-elev);
+        transition: background 180ms ease;
+      }
+      .layperson-card:hover {
+        background: var(--bg-card);
+      }
+      .layperson-card .cat {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 14px;
+        letter-spacing: -0.01em;
+      }
+      .layperson-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .layperson-card li {
+        font-size: 12.5px;
+        color: var(--ink-2);
+        line-height: 1.55;
+        padding: 6px 0 6px 16px;
+        position: relative;
+      }
+      .layperson-card li::before {
+        content: "▸";
+        position: absolute;
+        left: 0;
+        color: var(--accent);
+        font-size: 10px;
+      }
+      .layperson-card li strong {
+        color: var(--ink);
+      }
+      .layperson-card.new-tag {
+        border-left: 3px solid var(--accent);
+      }
+      .layperson-card .new-badge {
+        display: inline-block;
+        background: var(--accent);
+        color: var(--bg);
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        padding: 2px 6px;
+        margin-left: 8px;
+        vertical-align: middle;
+      }
+      .layperson-future {
+        background: var(--bg-elev);
+        border: 1px dashed var(--rule);
+        padding: 22px 26px;
+        margin-top: 28px;
+      }
+      .layperson-future .heading {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .layperson-future ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .layperson-future li {
+        font-size: 12.5px;
+        color: var(--ink-2);
+        line-height: 1.6;
+        padding: 6px 0 6px 22px;
+        position: relative;
+      }
+      .layperson-future li::before {
+        content: "○";
+        position: absolute;
+        left: 4px;
+        color: var(--ink-3);
+        font-size: 10px;
+      }
+      .layperson-future li strong {
+        color: var(--ink);
+      }
+
       /* ─── filter bar ─── */
       .filters {
         display: flex;
@@ -994,14 +1116,213 @@
         </div>
       </header>
 
+      <!-- ═══════════ EM LINGUAGEM SIMPLES (layperson) ═══════════ -->
+      <section class="section" style="margin-top: 32px; animation-delay: 40ms">
+        <div class="section-head">
+          <span class="index">/00</span>
+          <h2>em linguagem simples</h2>
+          <span class="note">pra leigos · o que o app faz hoje, sem jargão</span>
+        </div>
+
+        <div class="layperson-intro">
+          <strong>Não é técnico?</strong> Aqui está, sem jargão, tudo que dá pra fazer no
+          DashboardAgent neste momento. Tudo nesta lista <strong>já funciona</strong> — você
+          instala, loga com sua conta Claude Max, e usa.
+        </div>
+
+        <div class="layperson-grid">
+          <div class="layperson-card">
+            <div class="cat">🏢 Organização</div>
+            <ul>
+              <li>
+                Criar uma "empresa" virtual e adicionar <strong>projetos</strong> (pastas de código
+                no seu computador)
+              </li>
+              <li>Cada projeto tem cor e caminho próprios pra ficar fácil de identificar</li>
+            </ul>
+          </div>
+
+          <div class="layperson-card">
+            <div class="cat">👥 Time de agentes Claude</div>
+            <ul>
+              <li>
+                "Contratar" agentes Claude — cada um vira tipo um <strong>funcionário</strong> com
+                persona, função e habilidades próprias
+              </li>
+              <li>
+                Até <strong>4 agentes em paralelo</strong> (limite seguro do plano Claude Max)
+              </li>
+              <li>
+                Modelos seedados: CEO, Engenheiro Backend, Engenheiro Frontend, DevOps, QA, Product
+                Manager, Designer, Security Engineer
+              </li>
+              <li>
+                Ver quem reporta a quem num <strong>organograma visual</strong> — arrastar pra mudar
+                hierarquia
+              </li>
+              <li>
+                <strong>Pausar, retomar ou demitir</strong> agente a qualquer momento — não gasta
+                tokens parado
+              </li>
+            </ul>
+          </div>
+
+          <div class="layperson-card">
+            <div class="cat">💬 Comunicação</div>
+            <ul>
+              <li>
+                Conversar com cada agente em <strong>chat 1-1</strong> (como mensagear no
+                Slack/Teams)
+              </li>
+              <li>
+                <strong>CEO delega trabalho automaticamente</strong> — você fala "consertar bug X" e
+                ele decide qual engenheiro faz, abre issue, manda mensagem
+              </li>
+              <li>Atribuir uma tarefa específica direto pra um agente ("Assign Task" no header)</li>
+              <li>
+                <strong>Activity feed em tempo real</strong> — tudo que está acontecendo aparece
+                numa timeline com filtros e busca
+              </li>
+            </ul>
+          </div>
+
+          <div class="layperson-card">
+            <div class="cat">📋 Tarefas (Issues)</div>
+            <ul>
+              <li>Criar tickets com título, descrição, prioridade, responsável</li>
+              <li>
+                <strong>Kanban com 5 colunas</strong> (Backlog → Todo → Doing → Review → Done) com
+                drag-and-drop
+              </li>
+              <li>Comments inline, sub-tasks, arquivos gerados anexados</li>
+              <li>Identificador humano (ex: <code>BACKEND-7</code>) em vez de hash</li>
+            </ul>
+          </div>
+
+          <div class="layperson-card">
+            <div class="cat">📥 Inbox de aprovações</div>
+            <ul>
+              <li>
+                Quando agente quer fazer algo arriscado (rodar comando shell, editar arquivo
+                importante), <strong>pede aprovação</strong>
+              </li>
+              <li>Você aprova ou rejeita <strong>inline</strong> sem sair do chat</li>
+              <li>Notificação no <strong>tray icon</strong> mesmo com janela fechada</li>
+              <li>Filtros: All / Approvals / Completed / Suggestions / Errors / Security</li>
+            </ul>
+          </div>
+
+          <div class="layperson-card">
+            <div class="cat">🎯 Configuração de agente (Agent Studio)</div>
+            <ul>
+              <li>Editar <strong>persona</strong> (instruções) — modal com expand fullscreen</li>
+              <li>
+                Configurar quais <strong>skills</strong> (ferramentas) cada um pode usar —
+                Engenheiro edita código, Designer não
+              </li>
+              <li>
+                Modo <strong>supervised</strong> (pede aprovação antes de toda ação) ou
+                <strong>auto</strong> (executa direto, com freios duros)
+              </li>
+              <li>
+                Toggle <strong>always-on</strong> (24/7) ou sob demanda, com schedule pra wake-up
+              </li>
+              <li>Mudar modelo (Sonnet/Opus/Haiku), reports-to e ver histórico de runs</li>
+            </ul>
+          </div>
+
+          <div class="layperson-card new-tag">
+            <div class="cat">💰 Custos<span class="new-badge">novo</span></div>
+            <ul>
+              <li>
+                <strong>Tracking automático de tokens</strong> consumidos por turn (entrada, saída,
+                cache)
+              </li>
+              <li>Pricing aproximado em USD pros 3 modelos Claude 4.x</li>
+              <li>
+                <strong>Soft-stop por budget diário</strong> — agente passou do limite, pausa
+                sozinho + alerta na inbox
+              </li>
+              <li>
+                <strong>Soft-stop por budget de issue</strong> — mesmo se a daily não estourou
+              </li>
+              <li>
+                4 budgets editáveis (daily/agent, per-issue, rate-window, window-hours) — _UI vem no
+                M8 PR-B_
+              </li>
+            </ul>
+          </div>
+
+          <div class="layperson-card">
+            <div class="cat">🔒 Segurança</div>
+            <ul>
+              <li>Token Claude Max <strong>criptografado at-rest</strong> com DPAPI (Windows)</li>
+              <li>Cada agente só mexe nos <strong>projetos que você liberou</strong></li>
+              <li>
+                Lista de comandos <strong>sempre bloqueados</strong> (rm -rf /, leitura de SSH keys,
+                exfiltração via curl) — mesmo em modo auto
+              </li>
+              <li>
+                <strong>Anti-prompt-injection</strong> — heurística detecta agente mudando de
+                comportamento, rebaixa pra supervised
+              </li>
+              <li>
+                Modo auto <strong>expira em 24h</strong> sem interação humana, volta pra supervised
+              </li>
+            </ul>
+          </div>
+
+          <div class="layperson-card">
+            <div class="cat">🌍 Personalização</div>
+            <ul>
+              <li><strong>Tema</strong> claro ou escuro (paleta monocromática)</li>
+              <li><strong>Idioma</strong> português (BR) ou inglês (US) — sem mistura na tela</li>
+              <li>Múltiplas empresas isoladas no banco (dropdown UI vem em M9)</li>
+              <li>Título customizado da janela (frameless titlebar)</li>
+            </ul>
+          </div>
+
+          <div class="layperson-card">
+            <div class="cat">⚙️ Por baixo do capô</div>
+            <ul>
+              <li>Tudo roda <strong>no seu computador</strong> — single-user, offline-first</li>
+              <li>Usa sua <strong>assinatura Claude Max</strong> — sem cobrança extra de API</li>
+              <li>Dados em SQLite local — você é dono de tudo, zero cloud</li>
+              <li>App Electron com tray icon — sobrevive ao fechar janela</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="layperson-future">
+          <div class="heading">🚧 O que ainda NÃO funciona (próximas releases)</div>
+          <ul>
+            <li>📊 <strong>Tela de custos com gráficos</strong> — vem no PR-B do M8 (próximo)</li>
+            <li>
+              🎯 <strong>Goals com CEO planejando automaticamente</strong> — você cria objetivo, CEO
+              monta plano completo (agentes a contratar + issues + estimates), você aprova num modo
+              PR-review → M8.5
+            </li>
+            <li>
+              📈 <strong>Dashboard inicial com widgets dinâmicos</strong> — Agentes ativos / Issues
+              em andamento / Inbox / Custos hoje → M9
+            </li>
+            <li>🏢 <strong>Trocar entre empresas via dropdown da sidebar</strong> → M9</li>
+            <li>
+              ☁️ <strong>Rodar agentes numa VPS remota (Docker)</strong> — escolha per-agent: local
+              (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
+            </li>
+          </ul>
+        </div>
+      </section>
+
       <!-- ═══════════ PROGRESS OVERVIEW ═══════════ -->
       <section class="section" style="margin-top: 32px; animation-delay: 60ms">
         <div class="section-head">
           <span class="index">/01</span>
           <h2>v1 progress</h2>
           <span class="note"
-            >M1—M10 · M7.6 fechado em <code>bc38f4a</code> · próximo M8 Costs (desbloqueia
-            M8.5/M9/M10)</span
+            >M1—M10 · M8 PR-A backend mergeado em <code>56da29c</code> · próximo M8 PR-B UI
+            (desbloqueia M8.5/M9/M10)</span
           >
         </div>
 
@@ -1066,9 +1387,11 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M7.6 fechado (<code>bc38f4a</code> = PR-A backend + PR-B UI
-              mergeados). Activity stream (M7.7) + Agent Studio (M7.6) ambos ✅. Próximo:
-              <strong>M8 Costs</strong> — desbloqueia M8.5 / M9 / M10.
+              <strong>Estágio:</strong> M8 PR-A backend mergeado (<code>56da29c</code>) — cost
+              tracking + soft-stop + 4 IPCs. Próximo: <strong>M8 PR-B UI</strong> (<code
+                >/costs</code
+              >
+              route + Dashboard widget + Settings Budgets). Desbloqueia M8.5 / M9 / M10.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -1242,12 +1565,14 @@
               ConfigTab (M7.6 PR-B).
             </div>
           </div>
-          <div class="module" data-status="none">
+          <div class="module" data-status="partial">
             <div class="name">Costs</div>
-            <div class="status-line"><span class="sq"></span>não iniciado</div>
+            <div class="status-line"><span class="sq"></span>parcial</div>
             <div class="note">
-              Tabela <code>costs_log</code> existe. Tracking de tokens não liga ainda. Rota
-              <code>/costs</code> zerada. M8.
+              <strong>M8 PR-A backend ✅</strong> (<code>56da29c</code>). Migration 0011
+              <code>cost_events</code> + tracking automático de tokens por turn + pricing
+              opus/sonnet/haiku + soft-stop por budget diário/per-issue + 4 IPCs. UI
+              <code>/costs</code> com gráficos vem no <strong>M8 PR-B</strong>.
             </div>
           </div>
           <div class="module" data-status="none">

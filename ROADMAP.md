@@ -6,9 +6,94 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-12 — **M7.6 PR-B mergeado em master via `bc38f4a`**. M7.6 fechado (Agent Studio UI + backend). Agents module ✅. Próximo: **M8 Costs** (desbloqueia 3 milestones downstream).
+> **Última atualização:** 2026-05-12 — **M8 PR-A backend mergeado em master via `56da29c`**. Cost tracking + soft-stop + 4 IPCs. Próximo: **M8 PR-B UI** (`/costs` route + Dashboard widget + Settings Budgets).
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
+>
+> **🛠 Regra de manutenção:** toda feature mergeada em master atualiza **3 lugares**: (1) seção "Em linguagem simples" abaixo, (2) seção técnica "v1 scope tracker", (3) `docs/roadmap.html` (seções `/00` e `/03`). A seção em linguagem simples existe pra leigos entenderem o que dá pra fazer hoje sem ler jargão técnico.
+
+---
+
+## 🟢 Em linguagem simples — o que o app faz hoje
+
+> **Não é técnico?** Aqui está, sem jargão, tudo que dá pra fazer no DashboardAgent neste momento. Tudo nesta lista **já funciona** — você instala, loga com sua conta Claude Max, e usa.
+
+### 🏢 Organização
+- Criar uma "empresa" virtual e adicionar projetos (pastas de código no seu computador)
+- Cada projeto tem cor e caminho próprios pra ficar fácil de identificar
+
+### 👥 Time de agentes Claude
+- "Contratar" agentes Claude — cada um vira tipo um funcionário com persona, função e habilidades próprias
+- Até **4 agentes trabalhando em paralelo** (limite seguro do plano Claude Max)
+- Modelos seedados: CEO, Engenheiro Backend, Engenheiro Frontend, DevOps, QA, Product Manager, Designer, Security Engineer
+- Ver quem reporta a quem num **organograma visual** (arrastar pra mudar hierarquia)
+- **Pausar, retomar ou demitir** agente a qualquer momento — não gasta tokens parado
+
+### 💬 Comunicação
+- Conversar com cada agente em **chat 1-1** (como mensagear no Slack/Teams)
+- **CEO delega trabalho automaticamente** — você fala "consertar bug X" e ele decide qual engenheiro faz, abre issue, manda mensagem
+- Atribuir uma tarefa específica direto pra um agente ("Assign Task" no header)
+- **Activity feed em tempo real** — tudo que está acontecendo aparece numa timeline com filtros (agente, tipo de ação, busca)
+
+### 📋 Tarefas (Issues)
+- Criar tickets com título, descrição, prioridade, responsável
+- **Kanban com 5 colunas** (Backlog → Todo → Doing → Review → Done) com drag-and-drop
+- Comments inline, sub-tasks, arquivos gerados (artifacts) anexados
+- Identificador humano (ex: `BACKEND-7`) em vez de hash
+
+### 📥 Inbox de aprovações
+- Quando agente quer fazer algo arriscado (rodar comando shell, editar arquivo importante), **pede aprovação**
+- Você aprova ou rejeita **inline** sem sair do chat
+- Notificação no **tray icon** mesmo com janela fechada
+- Filtros: All / Approvals / Completed / Suggestions / Errors / Security
+
+### 🎯 Configuração de agente (Agent Studio)
+- Editar **persona** (instruções) de cada agente — modal grandão com expand fullscreen
+- Configurar quais **skills** (ferramentas) cada um pode usar — Engineer pode editar código, Designer não
+- Modo **supervised** (pede aprovação antes de toda ação) ou **auto** (executa direto, com freios duros)
+- Toggle **always-on** (24/7) ou sob demanda
+- **Schedule** (wake-up agendado) pra agentes always-on
+- Mudar **modelo** (Sonnet/Opus/Haiku) por agente
+- Trocar a quem o agente **reporta** (organograma)
+- Histórico de **runs** (sessões) com timestamps + duração
+
+### 💰 Custos (NOVO — backend pronto em 2026-05-12)
+- Tracking **automático de tokens** consumidos por turn (entrada, saída, cache)
+- **Pricing aproximado em USD** pros 3 modelos Claude 4.x
+- **Soft-stop por budget diário** — agente passou do limite, pausa sozinho + alerta na inbox
+- **Soft-stop por budget de issue** — mesmo se a daily não estourou
+- Configurável: 4 budgets editáveis (daily/agent, per-issue, rate-window, window-hours)
+- 🚧 _Tela de gráficos `/costs` chega no M8 PR-B (próximo)_
+
+### 🔒 Segurança
+- Token Claude Max **criptografado at-rest** com DPAPI (Windows)
+- Cada agente só consegue mexer nos **projetos que você liberou** explicitamente
+- **Lista de comandos sempre bloqueados** (`rm -rf /`, leitura de `.ssh/`, exfiltração via `curl`) — mesmo em modo auto
+- **Anti-prompt-injection**: heurística detecta agente mudando de comportamento de repente, rebaixa pra supervised
+- **Sandbox de filesystem por agente** — não confia só no `--cwd`, valida cada path
+- Auto-degradação: modo auto **expira em 24h** sem interação humana, volta pra supervised
+
+### 🌍 Personalização
+- Tema **claro ou escuro** (paleta monocromática)
+- Idioma **português (BR) ou inglês (US)** — sem misturar em uma tela
+- Múltiplas empresas isoladas no banco (UI dropdown vem em M9)
+- Título customizado da janela (frameless titlebar)
+
+### ⚙️ Por baixo do capô (sem detalhe técnico)
+- Tudo roda **no seu computador** — single-user, offline-first
+- Usa sua **assinatura Claude Max** — sem cobrança extra de API
+- Dados em **SQLite local** — você é dono de tudo, zero cloud
+- App **Electron** com tray icon — sobrevive ao fechar janela
+
+---
+
+### 🚧 O que ainda NÃO funciona (próximas releases)
+
+- 📊 **Tela de custos com gráficos** — vem no PR-B do M8 (próximo)
+- 🎯 **Goals com CEO planejando automaticamente** — você cria objetivo, CEO monta plano completo (agentes a contratar + issues + estimates), você aprova num modo PR-review → M8.5
+- 📈 **Dashboard inicial com widgets dinâmicos** — Agentes ativos / Issues em andamento / Inbox / Custos hoje → M9
+- 🏢 **Trocar entre empresas via dropdown da sidebar** → M9
+- ☁️ **Rodar agentes numa VPS remota (Docker)** — escolha per-agent: local (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
 
 ---
 
