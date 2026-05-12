@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-11 (M7-A PR-A mergeado — `0caa31b`; M7-B PR-B mergeado — `8e8efc7`; M7-C PR-C mergeado — `8b03792`; M7 fechado; **+M7.6 Agent Studio + M7.7 Activity Stream + M8.5 Goals/CEO Planning** adicionados após uso real do Paperclip)
+> **Última atualização:** 2026-05-12 (M7.5 fechado: PR-A `a633e41`, PR-B `baca895`, PR-C `bb9cb39`; M7.5 completo end-to-end; **próximo:** M7.7 Activity Stream ou M7.6 Agent Studio)
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 
@@ -14,12 +14,12 @@
 
 | Métrica | Valor |
 |---|---|
-| Milestones fechados | M1, M2, M3, M4, M5, M6, **M7** (7/14 do v1: M1–M10 + M7.5 + M7.6 + M7.7 + M8.5) |
-| Em curso | — (próximo: **M7.7 Activity foundation** seguido de M7.5/M7.6) |
-| Testes | 276 passing, 0 lint/typecheck errors |
-| Commits no master | ~140 |
-| LoC (apps + packages) | ~13k TS/TSX |
-| Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · vitest |
+| Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5** (8/14 do v1: M1–M10 + M7.5 + M7.6 + M7.7 + M8.5) |
+| Em curso | — (próximo: **M7.7 Activity Stream** ou **M7.6 Agent Studio**) |
+| Testes | **392 passing** (349 main + 10 renderer + 33 shared), 0 lint/typecheck errors |
+| Commits no master | ~165 |
+| LoC (apps + packages) | ~14k TS/TSX |
+| Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
 
 ---
@@ -33,8 +33,8 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 | **Multi-empresa** | 🟡 Parcial | Backend pronto (`companies` table, `company:create-demo` IPC). UI: dropdown topo da sidebar pra trocar entre empresas **AINDA NÃO** (M9). Sidebar mostra a primeira company por default. |
 | **Dashboard** | 🟡 Stub | Rota `/dashboard` existe (placeholder M2). Widgets §6.4 + Recent Activity + Active Agents **NÃO** (M9 consome Activity stream do M7.7). |
 | **Activity stream** | ❌ Não iniciado | Sem tabela unificada. `issue_events` (M6) cobre só issues. Página `/activity` cross-cutting **NÃO** (M7.7 foundation). |
-| **Inbox** | ✅ Completo | Rota `/inbox` com filter pills (All/Approvals/Completed/Suggestions/Errors/Security). Approve/Reject inline. Auto-mark-read no resolve. Badge unread no sidebar. |
-| **Issues** | ✅ Completo | MCP tools (create/update/assign/list/check_status) reais. Kanban /issues com 5 colunas + drag-drop. Modal de detail com comments + sub-tasks + tool history. |
+| **Inbox** | ✅ Completo | Rota `/inbox` com filter pills (All/Approvals/Completed/Suggestions/Errors/Security). Approve/Reject inline. Auto-mark-read no resolve. Badge unread no sidebar. **M7.5 PR-B:** dual-format handler suporta legacy embedded payload + new `approval_id` pointer. |
+| **Issues** | ✅ Completo | MCP tools (create/update/assign/list/check_status/record_artifact) reais. Kanban /issues com 5 colunas + drag-drop. Modal de detail com comments + sub-tasks + tool history. **M7.5 PR-B:** identifier humano `<SLUG>-N` (ex: `BACKEND-7`) em todos call sites + artifacts accordion + soft warning ao marcar `done` sem artifacts. |
 | **Projects** | ✅ Completo | Rota /projects master/detail com folder picker + color picker. Auto-cria 'Default Workspace' migration do workspaceCwd legado. Allowlist per agent via chip toggle. |
 | **Agents** | 🟡 Parcial | Sidebar com status colors. `/agents/:id` chat unified + **right panel M7-C** (Config/Issues/Stats tabs) com edit inline de role/model/persona/projects. Faltam: header de ações (Pause/Fire/Assign Task), Runs timeline, mode/always_on/skills toggles, form `/agents/new` (M7.6). |
 | **Org Chart** | ✅ Completo | Rota `/org` SVG handcrafted vertical tree + click drawer + drag-to-reassign + confirm modal + anti-cycle (backend + UI toast). |
@@ -195,96 +195,70 @@ M10 (VPS Docker Remote Adapter)
 
 ---
 
-### 🆕 M7.5 — Foundations & Paperclip Refactors
+### ✅ M7.5 — Foundations & Paperclip Refactors (**FECHADO 2026-05-12**)
 
 **Origem:** itens 🔴 (alta prioridade) e parte dos 🟡 da [Paperclip comparison](docs/paperclip-comparison.md). Refatorações estruturais e melhorias UX/governança que preparam M8/M9/M10 — especialmente o **adapter pattern**, que é pré-requisito do API key (M9) e do VPS Docker remote (M10).
 
-**Por que existe:** sem essa pausa de foundation, M8/M9/M10 vão inflar `lifecycle.ts` (já 383 linhas) e `mcp/tools.ts` (502 linhas) até virarem o `heartbeat.ts` do Paperclip (9.8K linhas). Custo total estimado: ~2 semanas.
+**Entregue em 3 PRs sequenciais** (todos mergeados em master):
+- **PR-A** (`a633e41`, 2026-05-11) — Adapter pattern foundation + lifecycle.ts shrink 388→72 LOC + composeSystemPrompt + preamble.md external + migration 0004
+- **PR-B** (`baca895`, 2026-05-12) — 4 migrations 0005-0008 (issue identifier humano, messages.kind, approvals decoupled, issue_artifacts) + repos + MCP tools
+- **PR-C** (`bb9cb39`, 2026-05-12) — UX polish (currentAction granular + IPC delta + 200ms debounce) + auth-mode.ts + SECURITY.md + VPS stubs + E2E setup
+
+**Métricas finais:** 392 testes passing (de 245 antes de M7.5 = +147), bundle renderer 362 kB / 110 kB gzip.
 
 #### Refactors estruturais (prep para próximos milestones)
 
-- [ ] **Modularizar `apps/main/src/orchestrator/lifecycle.ts`** — extrair `buildClaudeArgs`, `prepareSandbox`, `resolveBinary`, `mcpHandshake` em arquivos próprios. (~2h)
-- [ ] **Modularizar `apps/main/src/mcp/tools.ts`** — 1 arquivo por domínio: `tools/agents.ts`, `tools/issues.ts`, `tools/messages.ts`, `tools/permissions.ts`. Cada tool exporta schema Zod + handler. (~2h)
-- [ ] **PREAMBLE em arquivo `.md`** — mover `apps/main/src/orchestrator/system-prompt.ts` PREAMBLE pra `apps/main/src/orchestrator/preamble.md`, lido com `fs.readFileSync`. Iterar prompt sem recompilar Electron. Bonus: usuário pode override via `~/.dashboard-agent/preamble.md`. (~30 min)
-- [ ] **System prompt composable** — builder `composeSystemPrompt({preamble, role, skills[], model})` em vez de string concat. Necessário pra skills M7 + model-specific tuning. (~4h)
+- [x] **Modularizar `apps/main/src/orchestrator/lifecycle.ts`** — extrair `buildClaudeArgs`, `prepareSandbox`, `resolveBinary`, `mcpHandshake` em arquivos próprios. **PR-A 🟢** (lifecycle.ts 388→72 LOC)
+- [ ] **Modularizar `apps/main/src/mcp/tools.ts`** — **adiado pra M8** (529 LOC ainda gerenciável; split sem feature nova é refactor isolado; M8.5 vai adicionar `tools/goals.ts` e aproveita pra splittar)
+- [x] **PREAMBLE em arquivo `.md`** — `apps/main/src/orchestrator/preamble.md` lido com `fs.readFileSync` + cache + override opcional `~/.dashboard-agent/preamble.md`. **PR-A 🟢**
+- [x] **System prompt composable** — `composeSystemPrompt({preamble?, agentPersona, skills, role?})` builder. **PR-A 🟢**
 
 #### 🔧 Adapter pattern foundation (**critical path para M9 + M10**)
 
-- [ ] **Interface `AgentAdapter`** em `packages/shared/src/types/adapter.ts`:
-  ```ts
-  interface AgentAdapter {
-    name: 'claude-oauth-local' | 'claude-api-key-local' | 'claude-oauth-remote-docker' | future;
-    buildArgs(agent, env): string[];
-    spawn(opts): AgentRunnerHandle;
-    parseStream(line): ParsedEvent | null;
-    estimateUsage(events): { input, output, cache_read, cache_creation };
-  }
-  ```
-- [ ] **Refatorar `lifecycle.ts`** pra usar `claude-oauth-local` como primeiro impl. Comportamento idêntico ao de hoje, só estrutura nova.
-- [ ] **Registry**: `apps/main/src/orchestrator/adapters/index.ts` exporta map `{name: AdapterImpl}`. M9 adiciona segundo impl; M10 adiciona terceiro.
-- [ ] **Testes**: garantir 100% de não-regressão (suíte existente roda igual).
+- [x] **Interface `AgentAdapter`** em `packages/shared/src/types/adapter.ts` (stateful, métodos `start/sendInput/onEvent/onStderr/onExit/kill/isAlive/getUsage/getCurrentAction`). **PR-A 🟢**
+- [x] **`ClaudeOAuthLocalAdapter`** em `apps/main/src/orchestrator/adapters/claude-oauth-local/adapter.ts` (~225 LOC). **PR-A 🟢**
+- [x] **Registry** em `apps/main/src/orchestrator/adapters/index.ts` com `createAdapter(name, ctx)` factory. **PR-A 🟢**
+- [x] **Testes** — 65 testes novos pós-PR-A (245→310). **PR-A 🟢**
 
 #### Schema & DB
 
-- [ ] **Migration 0004 — `issues.identifier` humano (`PRJ-123`)**:
-  - Coluna `issues.issue_number INTEGER NOT NULL`
-  - Coluna `issues.identifier TEXT NOT NULL` (gerada: `{project.slug}-{issue_number}`)
-  - Index único `(project_id, issue_number)`
-  - Counter no `issues.create()` (max + 1 atômico por project)
-  - Display em todo log/UI/MCP message ("agente assigned to BACKEND-7" vs UUID)
-- [ ] **Migration 0005 — `messages.kind`**:
-  - Coluna `messages.kind TEXT NOT NULL DEFAULT 'message'`
-  - Enum: `message | proposal | question | confirmation | observation`
-  - System prompt instrui agentes a usar `kind=question` quando esperam resposta, `kind=confirmation` ao fechar algo
-  - UI: badge visual diferenciando proposta vs message comum
-  - Heuristic anti-stuck: question pendente sem confirmation há > N turns → inbox suggestion
-- [ ] **Migration 0006 — `approvals` decoupled do `inbox`**:
-  - Nova tabela `approvals (id, agent_id, kind, payload_json, status, decided_by, decision_note, created_at, resolved_at)`
-  - Kinds: `tool_call | code_review | hire_confirm | budget_override | …`
-  - `inbox.payload_json` passa a referenciar `approval_id`
-  - Prep pra Reviews UX em M9 (PR-style approval com diff + comments inline)
-- [ ] **Migration 0007 — `issue_artifacts`** (work products):
-  - Tabela `issue_artifacts (id, issue_id, kind, ref, content_preview, created_at, created_by)`
-  - Kinds: `file_path | commit_sha | pr_url | snapshot | output_text`
-  - MCP tool `record_artifact(issue_id, kind, ref, preview?)` chamada antes de `update_issue status=done`
-  - UI: accordion no IssueDetailModal "Artifacts" exibe deliverables
+- [x] **Migration 0004 — `agents.adapter_name`** — `TEXT NOT NULL DEFAULT 'claude-oauth-local'`. **PR-A 🟢**
+- [x] **Migration 0005 — `issues.identifier` humano (`BACKEND-7`)** — `projects.slug` + `issues.issue_number` + `issues.identifier` + index único `(project_id, issue_number)` + post-migration TS backfill com colisão handling. **PR-B 🟢**
+- [x] **Migration 0006 — `messages.kind`** — enum `message | proposal | question | confirmation | observation` + badge no MessageList. **PR-B 🟢**
+- [x] **Migration 0007 — `approvals` decoupled do `inbox`** — nova tabela + `inbox_items.approval_id` pointer + `ApprovalsRepository` + dual-format handler. **PR-B 🟢**
+- [x] **Migration 0008 — `issue_artifacts`** — tabela + `ArtifactsRepository` + MCP tool `record_artifact` (Zod schema + length checks) + accordion no IssueDetailModal + soft warning quando `status='done'` sem artifacts. **PR-B 🟢**
 
 #### Auth foundation (prep M9 dual auth)
 
-- [ ] **`apps/main/src/auth/auth-mode.ts`** — função `getActiveAuthMode(): 'oauth' | 'api-key'` retornando só `'oauth'` por ora. Centraliza decisão pra M9 plugar API key sem espalhar if-else.
+- [x] **`apps/main/src/auth/auth-mode.ts`** — `getActiveAuthMode(): "oauth" | "api-key"` retornando `"oauth"` hoje. Wired em `lifecycle.ts` como defense-in-depth pra adapter selection. **PR-C 🟢**
 
 #### UX & Polish
 
-- [ ] **Current action granular** — refletir tool calls em UI sidebar/agent page. Em vez de status binário "working", mostrar "Editing src/foo.ts" / "Running pytest" / "Waiting for permission". Dados já existem in-memory (router + stream-parser). (~1 dia)
-- [ ] **WebSocket-like granular IPC events** — refatorar broadcast roster (lição M5) de snapshot completo pra deltas tipados. Discriminated union por kind. Reduz churn no renderer. (~1 dia)
+- [x] **Current action granular** — `apps/main/src/orchestrator/current-action-mapper.ts` pure fn mapeia tool_use → "Reading X" / "Editing Y" / "Running shell" / "Searching" / "Talking to dashboard" (basename only, nunca leaka path/comando). Sidebar mostra linha italica debaixo do nome do agent quando status ∈ {working, thinking}. **PR-C 🟢**
+- [x] **Granular IPC events delta** — `AgentEvent` split em `status-changed` + `current-action-changed` + `session-id-changed`. Renderer subscriber usa `switch(ev.kind)` com 3 actions granulares no store (`applyAgentStatus/applyCurrentAction/applySessionId`). 200ms debounce per-agent em `event-throttle.ts` coalesce múltiplos tool_use no mesmo turn. **PR-C 🟢**
 
 #### Testes
 
-- [ ] **E2E mínimo com Playwright + Electron** — `@playwright/test` + `electron-playwright-helpers`. Cenários:
-  - Onboarding (setup wizard com token detectado)
-  - Hire agent → send message → receive response
-  - Create issue → assign → status transitions
-- [ ] **Cobertura de orchestrator + MCP tools** — mocking de claude CLI (stream stdin/stdout). Cabe entre M7 e M8.
-- [ ] **Snapshot tests da blocklist** — se um pattern muda, falhar.
+- [x] **E2E foundation com Playwright + Electron** — `tests/e2e/{playwright.config, fixtures, helpers, specs}` + `fake-claude.ts` stub gated por `DASHBOARD_AGENT_E2E_FAKE_CLAUDE=1` + env-var bypass (`DASHBOARD_AGENT_USER_DATA`, `DASHBOARD_AGENT_E2E_TOKEN_PATH`). 3 specs (`01-onboarding`, `02-hire-and-message`, `03-issue-lifecycle`) **escritos mas `test.describe.skip(...)` por incompat Electron 33 + Playwright 1.60** (`--remote-debugging-port=0` rejeitado pela Electron). Unskip é one-line change quando upstream resolver. **PR-C 🟢 (infrastructure)** / **bloqueado por incompat (runs)**
+- [ ] **Cobertura de orchestrator + MCP tools** — adiado: feedback de campo dirá quais fluxos faltam cobertura
+- [ ] **Snapshot tests da blocklist** — adiado pra follow-up trivial pós-M7.5
 
 #### Security
 
-- [ ] **SECURITY.md atualizado** — incluir threat model do **adapter remoto** que vem em M10. Documentar:
-  - Por que mantemos blocklist mesmo após adapter remoto chegar (defense-in-depth)
-  - Diferença de threat model: local agent (filtra comando) vs remote agent (isolamento de processo + filtra comando)
-- [ ] **Decisão consciente registrada**: blocklist `§8.3` continua sendo regra dura no `gate.ts` mesmo quando o adapter remoto isolar processo.
+- [x] **SECURITY.md atualizado** — 3 seções novas: Architectural decisions (blocklist persiste + per-agent config dir), Adapter threat models (`claude-oauth-local` atual + `claude-api-key-local` M9 + `claude-oauth-remote-docker` M10), Approvals & artifacts storage. **PR-C 🟢**
+- [x] **Decisão consciente registrada**: blocklist `gate.ts §8.3` permanece em todos os adapters como defense-in-depth (documentado em SECURITY.md). **PR-C 🟢**
 
 #### VPS prep (não implementa ainda, prepara terreno)
 
-- [ ] **`infra/docker/agent-runner/Dockerfile` stub** — placeholder com `FROM node:22-alpine` + comment do plano. M10 preenche.
-- [ ] **`infra/docker/compose.yml` stub** — definir interface (env vars, ports, volumes). Não roda ainda.
-- [ ] **Wire protocol document** — `docs/m10-adapter-wire-protocol.md`: JSON-RPC over stdin/stdout pra local, over WSS pra remote. Define mensagens: `spawn`, `stdin-write`, `event`, `kill`, `health`. M10 implementa.
+- [x] **`infra/docker/agent-runner/Dockerfile` stub** — placeholder com `FROM node:22-alpine` + TODOs M10 (non-root user, tini, healthz endpoint, claude CLI install). **PR-C 🟢**
+- [x] **`infra/docker/compose.yml` stub** — env vars (`ADAPTER_WIRE_PROTOCOL_VERSION`, `CLAUDE_API_KEY`, `DASHBOARD_MCP_URL`, `HEALTH_PORT`), ports 9700 (wss) + 9701 (health), volume `agent-state`. **PR-C 🟢**
+- [x] **Wire protocol document** — [docs/m10-adapter-wire-protocol.md](docs/m10-adapter-wire-protocol.md) com 217 LOC: handshake/spawn/stdin-write/kill/event/stderr/exit/health methods + 7 error codes + transports stdio (local) + WSS (remote) + security section. **PR-C 🟢**
 
 #### Não-regressão
 
-- [ ] Tudo do M6.1 smoke-test continua passando
-- [ ] Security suite (token leak, sandbox escape, fence file) verde
-- [ ] Token budget non-regression test (skip-while-zero até user capturar baseline real)
+- [x] Tudo do M6.1 smoke-test continua passando — manual check 2026-05-12
+- [x] Security suite (token leak, sandbox escape, fence file, blocklist) verde — 46 tests passing
+- [x] Token budget non-regression test ainda skip-while-zero (baseline ainda não capturado)
 
 ---
 

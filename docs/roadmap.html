@@ -885,19 +885,19 @@
         <div class="stats">
           <div class="stat">
             <div class="label">Milestones</div>
-            <div class="value">7 <span class="unit">/ 14 fechados</span></div>
+            <div class="value">8 <span class="unit">/ 14 fechados</span></div>
           </div>
           <div class="stat">
             <div class="label">Testes</div>
-            <div class="value">276 <span class="unit">passing</span></div>
+            <div class="value">392 <span class="unit">passing</span></div>
           </div>
           <div class="stat">
             <div class="label">Commits</div>
-            <div class="value">~140 <span class="unit">no master</span></div>
+            <div class="value">~165 <span class="unit">no master</span></div>
           </div>
           <div class="stat">
             <div class="label">LoC apps + packages</div>
-            <div class="value">~13k <span class="unit">TS/TSX</span></div>
+            <div class="value">~14k <span class="unit">TS/TSX</span></div>
           </div>
         </div>
       </header>
@@ -907,7 +907,9 @@
         <div class="section-head">
           <span class="index">/01</span>
           <h2>v1 progress</h2>
-          <span class="note">M1—M10 · M7 fechado · próximo M7.7 Activity foundation</span>
+          <span class="note"
+            >M1—M10 · M7.5 fechado · próximo M7.7 Activity Stream ou M7.6 Agent Studio</span
+          >
         </div>
 
         <div class="progress-track">
@@ -940,7 +942,7 @@
               <div class="dot"></div>
               <div class="label">M7</div>
             </div>
-            <div class="progress-step" data-status="planned">
+            <div class="progress-step" data-status="done">
               <div class="dot"></div>
               <div class="label">M7.5</div>
             </div>
@@ -971,8 +973,8 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M7 fechado (PR-A model + PR-B skills + PR-C org chart/right
-              panel) — próximo M7.5 → M7.7 → M7.6
+              <strong>Estágio:</strong> M7.5 fechado (PR-A adapter foundation `a633e41` + PR-B 4
+              migrations `baca895` + PR-C UX polish + E2E + docs `bb9cb39`) — próximo M7.7 ou M7.6
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -1460,111 +1462,152 @@
           </article>
 
           <!-- ──── M7.5 ──── -->
-          <article class="milestone" data-status="planned">
+          <article class="milestone" data-status="done">
             <div class="ms-rail">
               <div class="num">M7.5</div>
-              <div class="status-row"><span class="status-dot"></span>planned</div>
-              <div class="meta">novo · ~2 semanas</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">fechado · 2026-05-12</div>
             </div>
             <div class="ms-body">
               <h3>Foundations &amp; Paperclip Refactors</h3>
               <p class="tagline">
                 Origem: itens 🔴 da <strong>Paperclip comparison</strong>. Refatorações estruturais
                 que preparam M8/M9/M10 — especialmente o <em>adapter pattern</em> (pré-requisito do
-                API key e VPS remoto).
+                API key e VPS remoto). <strong>Entregue em 3 PRs sequenciais</strong> (PR-A
+                <code>a633e41</code>, PR-B <code>baca895</code>, PR-C <code>bb9cb39</code>).
               </p>
               <div class="design-note">
-                <span class="label">Por que existe</span>
-                Sem essa pausa de foundation, M8/M9/M10 vão inflar <code>lifecycle.ts</code> e
-                <code>mcp/tools.ts</code> até virarem o <code>heartbeat.ts</code> do Paperclip (9.8K
-                linhas).
+                <span class="label">Métricas finais</span>
+                <strong>392 testes</strong> passing (de 245 antes de M7.5 = +147). Bundle renderer
+                <strong>362 kB / 110 kB gzip</strong>. 0 lint / typecheck errors. Security suite 46
+                verde.
               </div>
               <div class="feature-group">
-                <div class="group-name">Refactors estruturais</div>
+                <div class="group-name">✅ Refactors estruturais (PR-A)</div>
                 <ul class="feature-list">
                   <li>
-                    Modularizar <code>orchestrator/lifecycle.ts</code> (extrair
-                    build/sandbox/binary/handshake)
+                    <code>orchestrator/lifecycle.ts</code> shrink 388→72 LOC (Map+dispatch+restart);
+                    build/sandbox/binary/handshake extraídos
                   </li>
-                  <li>Modularizar <code>mcp/tools.ts</code> (1 arquivo por domínio)</li>
-                  <li>PREAMBLE em arquivo <code>.md</code> (não recompilar pra editar prompt)</li>
                   <li>
-                    System prompt composable:
-                    <code>composeSystemPrompt({preamble, role, skills, model})</code>
+                    <code>composeSystemPrompt({preamble?, agentPersona, skills, role?})</code>
+                    builder
+                  </li>
+                  <li>
+                    <code>preamble.md</code> external + cache + override
+                    <code>~/.dashboard-agent/preamble.md</code>
+                  </li>
+                  <li>
+                    <em>Adiado pra M8:</em> modularizar <code>mcp/tools.ts</code> (529 LOC ainda
+                    gerenciável)
                   </li>
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">⚡ Adapter pattern foundation (critical path)</div>
+                <div class="group-name">✅ Adapter pattern foundation (PR-A, critical path)</div>
                 <ul class="feature-list">
                   <li>
-                    Interface <code>AgentAdapter</code> em
-                    <code>packages/shared/src/types/adapter.ts</code>
+                    Interface <code>AgentAdapter</code> stateful (start/sendInput/onEvent/kill/etc)
                   </li>
                   <li>
-                    Refatorar <code>lifecycle.ts</code> pra usar
-                    <code>claude-oauth-local</code> como primeiro impl
+                    <code>ClaudeOAuthLocalAdapter</code> class (~225 LOC) + registry
+                    <code>adapters/index.ts</code>
                   </li>
-                  <li>Registry em <code>orchestrator/adapters/index.ts</code></li>
-                  <li>100% não-regressão da suíte existente</li>
+                  <li>Migration 0004 <code>agents.adapter_name</code> com default cobrindo all</li>
+                  <li>65 testes novos pós-PR-A (245→310), zero regressão</li>
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">Schema &amp; DB</div>
+                <div class="group-name">✅ Schema &amp; DB (PR-B)</div>
                 <ul class="feature-list">
                   <li>
-                    Migration <strong>0004</strong> — <code>issues.identifier</code> humano
-                    (PRJ-123)
+                    Migration <strong>0005</strong> — <code>issues.identifier</code> humano
+                    (<code>BACKEND-7</code>) + <code>projects.slug</code> +
+                    <code>issues.issue_number</code> + backfill TS com colisão handling
                   </li>
                   <li>
-                    Migration <strong>0005</strong> — <code>messages.kind</code> (message | proposal
-                    | question | confirmation | observation)
+                    Migration <strong>0006</strong> — <code>messages.kind</code> (message | proposal
+                    | question | confirmation | observation) + badge no MessageList
                   </li>
                   <li>
-                    Migration <strong>0006</strong> — <code>approvals</code> decoupled do inbox
+                    Migration <strong>0007</strong> — <code>approvals</code> decoupled +
+                    <code>inbox_items.approval_id</code> pointer + dual-format handler (legacy
+                    inline + new pointer)
                   </li>
                   <li>
-                    Migration <strong>0007</strong> — <code>issue_artifacts</code> (work products:
-                    file_path, commit_sha, pr_url, snapshot)
-                  </li>
-                </ul>
-              </div>
-              <div class="feature-group">
-                <div class="group-name">Auth foundation (prep M9)</div>
-                <ul class="feature-list">
-                  <li>
-                    <code>auth-mode.ts</code> com <code>getActiveAuthMode()</code> retornando
-                    'oauth' por ora
+                    Migration <strong>0008</strong> — <code>issue_artifacts</code> + MCP tool
+                    <code>record_artifact</code> (Zod schema) + accordion no IssueDetailModal + soft
+                    warning ao marcar <code>done</code> sem artifacts
                   </li>
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">UX</div>
+                <div class="group-name">✅ Auth foundation (PR-C)</div>
                 <ul class="feature-list">
-                  <li>Current action granular (refletir tool calls em UI)</li>
-                  <li>WebSocket-like granular IPC events (deltas, não snapshots)</li>
+                  <li>
+                    <code>apps/main/src/auth/auth-mode.ts</code> com
+                    <code>getActiveAuthMode(): "oauth" | "api-key"</code> retornando
+                    <code>"oauth"</code> hoje. Wired em <code>lifecycle.ts</code> como
+                    defense-in-depth.
+                  </li>
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">Testes</div>
+                <div class="group-name">✅ UX granular (PR-C)</div>
                 <ul class="feature-list">
                   <li>
-                    E2E mínimo com Playwright + Electron (onboarding, hire+message, issue lifecycle)
+                    <code>current-action-mapper.ts</code>: tool_use → "Reading X" / "Editing Y" /
+                    "Running shell" (nunca leaka comando) / "Searching" / "Talking to dashboard"
                   </li>
-                  <li>Cobertura de orchestrator + MCP tools (mock claude CLI)</li>
-                  <li>Snapshot tests da blocklist §8.3</li>
+                  <li>
+                    <code>AgentEvent</code> split em deltas: <code>status-changed</code> +
+                    <code>current-action-changed</code> + <code>session-id-changed</code>; renderer
+                    aplica via
+                    <code>switch(ev.kind)</code>
+                  </li>
+                  <li><code>event-throttle.ts</code> debouncer 200ms per-agent (trailing edge)</li>
+                  <li>Sidebar: linha italica com <code>currentAction</code> sob nome do agent</li>
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">VPS prep · stubs (M10 preenche)</div>
+                <div class="group-name">⚠️ E2E foundation (PR-C, runs bloqueados)</div>
                 <ul class="feature-list">
-                  <li><code>infra/docker/agent-runner/Dockerfile</code> stub</li>
-                  <li><code>infra/docker/compose.yml</code> stub</li>
                   <li>
-                    <code>docs/m10-adapter-wire-protocol.md</code> — JSON-RPC stdin local vs WSS
-                    remote
+                    Playwright + Electron fixture + 4 helpers (db-reset, seed, keychain-mock,
+                    wait-for-event)
                   </li>
-                  <li>SECURITY.md atualizado com threat model do remote adapter</li>
+                  <li>
+                    <code>fake-claude.ts</code> stub gated por
+                    <code>DASHBOARD_AGENT_E2E_FAKE_CLAUDE=1</code> + env-var bypass de userData +
+                    token
+                  </li>
+                  <li>
+                    3 specs (<code>01-onboarding</code>, <code>02-hire-and-message</code>,
+                    <code>03-issue-lifecycle</code>) escritos completos
+                  </li>
+                  <li>
+                    <strong>Status:</strong> <code>describe.skip(...)</code> por incompat Electron
+                    33 + Playwright 1.60 (<code>--remote-debugging-port=0</code> rejeitado). Unskip
+                    é one-line change quando upstream resolver.
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">✅ Security + VPS prep (PR-C)</div>
+                <ul class="feature-list">
+                  <li>
+                    SECURITY.md +79 LOC: architectural decisions + 3 adapter threat models +
+                    approvals/artifacts storage
+                  </li>
+                  <li>
+                    <code>infra/docker/agent-runner/Dockerfile</code> stub +
+                    <code>compose.yml</code> stub
+                  </li>
+                  <li>
+                    <code>docs/m10-adapter-wire-protocol.md</code> 217 LOC JSON-RPC schema
+                    (handshake/spawn/event/exit/health + 7 error codes + stdio/WSS transports +
+                    mutual TLS)
+                  </li>
                 </ul>
               </div>
             </div>
