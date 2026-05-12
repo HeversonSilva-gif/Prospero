@@ -5,6 +5,7 @@ import {
   MODEL_ID_REGEX,
   type Agent,
   type AgentEvent,
+  type AgentMode,
   type AgentStats,
   type Message,
   type MessageKind,
@@ -32,6 +33,8 @@ import {
   type AgentEvent as AgentSideEvent,
 } from "../orchestrator/events-watcher.js";
 import { broadcastIssueChanged } from "./issue-events-broadcast.js";
+import { enqueueOrPark, drainPausedBacklog, pauseBacklog } from "./agents-pause-backlog.js";
+import { HIRE_FROM_UI_INPUT_SCHEMA } from "@dashboard-agent/shared";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -374,7 +377,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       broadcast({ kind: "message-append", agentId: agent.id, message: userMessage });
 
       ensureAgentRunner(agent);
-      router.enqueue(agent.id, userMessage.threadId, payload.content, {
+      enqueueOrPark(agent, router, userMessage.threadId, payload.content, {
         kind: "user",
         id: null,
         name: "User",
@@ -436,6 +439,47 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     },
   );
 
+  ipcMain.handle(
+    IPC.AGENTS_SET_MODE,
+    (_e, payload: { agentId: string; mode: AgentMode }): { ok: true } => {
+      if (payload.mode !== "supervised" && payload.mode !== "auto") {
+        throw new Error("Invalid mode");
+      }
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      agents.setMode(payload.agentId, payload.mode);
+      restartIfRunning(payload.agentId, agent.companyId);
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.AGENTS_SET_ALWAYS_ON,
+    (_e, payload: { agentId: string; alwaysOn: boolean }): { ok: true } => {
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      agents.setAlwaysOn(payload.agentId, payload.alwaysOn);
+      // alwaysOn é flag de startup do orchestrator; não exige restart do agente vivo.
+      broadcast({ kind: "roster-changed", companyId: agent.companyId });
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.AGENTS_SET_SKILLS,
+    (_e, payload: { agentId: string; skills: string[] }): { ok: true } => {
+      if (!Array.isArray(payload.skills) || payload.skills.some((s) => typeof s !== "string")) {
+        throw new Error("skills must be string[]");
+      }
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      agents.setSkills(payload.agentId, payload.skills);
+      // skills afeta --allowedTools no spawn → exige re-spawn.
+      restartIfRunning(payload.agentId, agent.companyId);
+      return { ok: true };
+    },
+  );
+
   ipcMain.handle(IPC.AGENTS_STATS, (_e, payload: { agentId: string }): AgentStats => {
     const row = db
       .prepare(
@@ -449,5 +493,108 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       tokensOut: null,
       lastActivityAt: row.last,
     };
+  });
+
+  ipcMain.handle(
+    IPC.AGENTS_PAUSE,
+    (_e, payload: { agentId: string; reason?: string }): { ok: true } => {
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      if (agent.status === "terminated") throw new Error("Cannot pause a terminated agent");
+      agents.pause(payload.agentId, payload.reason);
+      broadcast({
+        kind: "status-changed",
+        agentId: payload.agentId,
+        status: "paused",
+        updatedAt: Date.now(),
+      });
+      broadcast({ kind: "roster-changed", companyId: agent.companyId });
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.AGENTS_RESUME,
+    (_e, payload: { agentId: string }): { ok: true; drained: number } => {
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      if (agent.status !== "paused") throw new Error("Agent is not paused");
+      agents.resume(payload.agentId);
+      const drained = drainPausedBacklog(payload.agentId, router);
+      broadcast({
+        kind: "status-changed",
+        agentId: payload.agentId,
+        status: "idle",
+        updatedAt: Date.now(),
+      });
+      broadcast({ kind: "roster-changed", companyId: agent.companyId });
+      return { ok: true, drained };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.AGENTS_TERMINATE,
+    (_e, payload: { agentId: string; reason?: string }): { ok: true } => {
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      const a = getAdapter(payload.agentId);
+      if (a !== undefined && a.isAlive()) {
+        a.kill();
+        removeAdapter(payload.agentId);
+      }
+      agents.terminate(payload.agentId, payload.reason);
+      pauseBacklog.delete(payload.agentId);
+      currentActionDebouncer.cancel(payload.agentId);
+      broadcast({
+        kind: "status-changed",
+        agentId: payload.agentId,
+        status: "terminated",
+        updatedAt: Date.now(),
+      });
+      broadcast({ kind: "roster-changed", companyId: agent.companyId });
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(IPC.AGENTS_WAKE_UP, (_e, payload: { agentId: string }): { ok: true } => {
+    const agent = agents.getById(payload.agentId);
+    if (agent === null) throw new Error("Agent not found");
+    if (agent.status === "paused" || agent.status === "terminated") {
+      throw new Error(`Agent is ${agent.status}; resume it first`);
+    }
+    ensureAgentRunner(agent);
+    const thread = messages.ensureThread(agent.companyId, ["user", agent.id]);
+    router.enqueue(agent.id, thread.id, "User requested manual run.", {
+      kind: "user",
+      id: null,
+      name: "User",
+    });
+    return { ok: true };
+  });
+
+  ipcMain.handle(IPC.AGENTS_RESET_SESSION, (_e, payload: { agentId: string }): { ok: true } => {
+    const agent = agents.getById(payload.agentId);
+    if (agent === null) throw new Error("Agent not found");
+    restartIfRunning(payload.agentId, agent.companyId);
+    return { ok: true };
+  });
+
+  ipcMain.handle(IPC.AGENTS_HIRE_FROM_UI, (_e, payload: unknown): Agent => {
+    const parsed = HIRE_FROM_UI_INPUT_SCHEMA.parse(payload);
+    const created = agents.create({
+      companyId: parsed.company_id,
+      name: parsed.name,
+      role: parsed.role,
+      systemPrompt: parsed.system_prompt,
+      mode: parsed.mode ?? "supervised",
+      alwaysOn: false,
+      templateId: parsed.role_template_id ?? null,
+      actor: { kind: "user" },
+    });
+    if (parsed.reports_to !== undefined && parsed.reports_to !== "") {
+      agents.setReportsTo(created.id, parsed.reports_to);
+    }
+    broadcast({ kind: "roster-changed", companyId: created.companyId });
+    return created;
   });
 };

@@ -19,6 +19,9 @@ const sampleAgent = (overrides: Partial<Agent> = {}): Agent => ({
   templateId: null,
   reportsTo: null,
   adapterName: "claude-oauth-local",
+  pausedAt: null,
+  terminatedAt: null,
+  pauseReason: null,
   ...overrides,
 });
 

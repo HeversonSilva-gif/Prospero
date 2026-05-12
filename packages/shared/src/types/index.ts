@@ -11,3 +11,4 @@ export * from "./project.js";
 export * from "./role.js";
 export * from "./issue.js";
 export * from "./activity.js";
+export * from "./hire-agent-input.js";

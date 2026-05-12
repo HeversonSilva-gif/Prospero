@@ -26,6 +26,9 @@ type Row = {
   current_action: string | null;
   model: string;
   adapter_name: string;
+  paused_at: number | null;
+  terminated_at: number | null;
+  pause_reason: string | null;
   created_at: number;
   updated_at: number;
 };
@@ -47,6 +50,9 @@ const rowToAgent = (r: Row): Agent => ({
   templateId: r.template_id,
   reportsTo: r.reports_to,
   adapterName: r.adapter_name,
+  pausedAt: r.paused_at,
+  terminatedAt: r.terminated_at,
+  pauseReason: r.pause_reason,
 });
 
 export type CreateAgentInput = {
@@ -76,6 +82,12 @@ export type AgentsRepository = {
   setSystemPrompt(id: string, systemPrompt: string): void;
   setRole(id: string, roleTemplateId: string, opts?: { preserveModel?: boolean }): void;
   setReportsTo(id: string, newParentId: string | null): void;
+  setMode(id: string, mode: AgentMode): void;
+  setAlwaysOn(id: string, alwaysOn: boolean): void;
+  setSkills(id: string, skills: string[]): void;
+  pause(id: string, reason?: string): void;
+  resume(id: string): void;
+  terminate(id: string, reason?: string): void;
 };
 
 // `recorder` is optional so existing test setups (`createAgentsRepository(db)`)
@@ -254,6 +266,115 @@ export const createAgentsRepository = (
           payload: { from: previous, to: newParentId },
         });
       }
+    },
+    setMode(id, mode) {
+      const row = byId.get(id) as Row | undefined;
+      if (row === undefined) return;
+      db.prepare("UPDATE agents SET mode = ?, updated_at = ? WHERE id = ?").run(
+        mode,
+        Date.now(),
+        id,
+      );
+      recorder?.recordActivity({
+        companyId: row.company_id,
+        actor: { kind: "user" },
+        action: "agent.mode_changed",
+        entityKind: "agent",
+        entityId: id,
+        agentId: id,
+        payload: { from: row.mode, to: mode },
+      });
+    },
+    setAlwaysOn(id, alwaysOn) {
+      const row = byId.get(id) as Row | undefined;
+      if (row === undefined) return;
+      db.prepare("UPDATE agents SET always_on = ?, updated_at = ? WHERE id = ?").run(
+        alwaysOn ? 1 : 0,
+        Date.now(),
+        id,
+      );
+      recorder?.recordActivity({
+        companyId: row.company_id,
+        actor: { kind: "user" },
+        action: "agent.always_on_changed",
+        entityKind: "agent",
+        entityId: id,
+        agentId: id,
+        payload: { from: row.always_on === 1, to: alwaysOn },
+      });
+    },
+    setSkills(id, skills) {
+      const row = byId.get(id) as Row | undefined;
+      if (row === undefined) return;
+      const previous = JSON.parse(row.skills_json) as string[];
+      const prevSet = new Set(previous);
+      const nextSet = new Set(skills);
+      const added = skills.filter((s) => !prevSet.has(s));
+      const removed = previous.filter((s) => !nextSet.has(s));
+      db.prepare("UPDATE agents SET skills_json = ?, updated_at = ? WHERE id = ?").run(
+        JSON.stringify(skills),
+        Date.now(),
+        id,
+      );
+      recorder?.recordActivity({
+        companyId: row.company_id,
+        actor: { kind: "user" },
+        action: "agent.skills_changed",
+        entityKind: "agent",
+        entityId: id,
+        agentId: id,
+        payload: { added, removed },
+      });
+    },
+    pause(id, reason) {
+      const row = byId.get(id) as Row | undefined;
+      if (row === undefined) return;
+      const now = Date.now();
+      db.prepare(
+        "UPDATE agents SET status = 'paused', paused_at = ?, pause_reason = ?, updated_at = ? WHERE id = ?",
+      ).run(now, reason ?? null, now, id);
+      recorder?.recordActivity({
+        companyId: row.company_id,
+        actor: { kind: "user" },
+        action: "agent.paused",
+        entityKind: "agent",
+        entityId: id,
+        agentId: id,
+        payload: reason !== undefined ? { reason } : {},
+      });
+    },
+    resume(id) {
+      const row = byId.get(id) as Row | undefined;
+      if (row === undefined) return;
+      db.prepare(
+        "UPDATE agents SET status = 'idle', paused_at = NULL, pause_reason = NULL, updated_at = ? WHERE id = ?",
+      ).run(Date.now(), id);
+      recorder?.recordActivity({
+        companyId: row.company_id,
+        actor: { kind: "user" },
+        action: "agent.resumed",
+        entityKind: "agent",
+        entityId: id,
+        agentId: id,
+        payload: {},
+      });
+    },
+    terminate(id, reason) {
+      const row = byId.get(id) as Row | undefined;
+      if (row === undefined) return;
+      const now = Date.now();
+      db.prepare(
+        "UPDATE agents SET status = 'terminated', terminated_at = ?, updated_at = ? WHERE id = ?",
+      ).run(now, now, id);
+      recorder?.recordActivity({
+        companyId: row.company_id,
+        actor: { kind: "user" },
+        action: "agent.terminated",
+        entityKind: "agent",
+        entityId: id,
+        agentId: id,
+        payload: reason !== undefined ? { reason } : {},
+      });
     },
     setRole(id, roleTemplateId, opts) {
       const role = db

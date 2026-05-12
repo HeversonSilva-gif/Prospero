@@ -17,6 +17,14 @@ export const ActivityPayloads = {
   }),
   "agent.role_changed": z.object({ from: z.string(), to: z.string() }),
   "agent.model_changed": z.object({ from: z.string(), to: z.string() }),
+  "agent.mode_changed": z.object({
+    from: z.enum(["supervised", "auto"]),
+    to: z.enum(["supervised", "auto"]),
+  }),
+  "agent.always_on_changed": z.object({
+    from: z.boolean(),
+    to: z.boolean(),
+  }),
   "agent.persona_edited": z.object({ summary: z.string().optional() }),
   "agent.skills_changed": z.object({
     added: z.array(z.string()),

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type Database from "better-sqlite3";
+import { HIRE_AGENT_INPUT_SCHEMA, type HireAgentInput } from "@dashboard-agent/shared";
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { createAgentsRepository } from "../agents/repository.js";
@@ -139,26 +140,9 @@ export const toolDefinitions = [
     name: "hire_agent",
     description:
       "Hire a new agent. Optionally pass role_template_id (e.g. 'role-engineer') to seed skills + model from a role.",
-    inputSchema: z.object({
-      name: z.string().min(1),
-      role: z.string().min(1),
-      system_prompt: z.string().min(20),
-      mode: z.enum(["supervised", "auto"]).optional(),
-      reports_to: z.string().optional(),
-      role_template_id: z.string().optional(),
-    }),
+    inputSchema: HIRE_AGENT_INPUT_SCHEMA,
     // eslint-disable-next-line @typescript-eslint/require-await
-    run: async (
-      input: {
-        name: string;
-        role: string;
-        system_prompt: string;
-        mode?: "supervised" | "auto";
-        reports_to?: string;
-        role_template_id?: string;
-      },
-      ctx: ToolContext,
-    ): Promise<string> => {
+    run: async (input: HireAgentInput, ctx: ToolContext): Promise<string> => {
       const agents = createAgentsRepository(ctx.db, tryGetRecorder());
       const messages = createMessagesRepository(ctx.db);
       const settings = createSettingsRepository(ctx.db).read();

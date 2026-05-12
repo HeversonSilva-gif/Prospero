@@ -33,6 +33,9 @@ describe("m3 types and channels", () => {
       templateId: null,
       reportsTo: null,
       adapterName: "claude-oauth-local",
+      pausedAt: null,
+      terminatedAt: null,
+      pauseReason: null,
     };
     expect(a.status).toBe("idle");
   });

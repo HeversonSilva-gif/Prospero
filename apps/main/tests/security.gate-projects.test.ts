@@ -19,6 +19,9 @@ const fakeAgent = (mode: "supervised" | "auto" = "auto"): Agent => ({
   templateId: null,
   reportsTo: null,
   adapterName: "claude-oauth-local",
+  pausedAt: null,
+  terminatedAt: null,
+  pauseReason: null,
 });
 
 describe("evaluatePermission with project allowlist", () => {
