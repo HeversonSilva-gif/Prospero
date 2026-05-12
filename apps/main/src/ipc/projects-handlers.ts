@@ -2,9 +2,10 @@ import { ipcMain, shell } from "electron";
 import type Database from "better-sqlite3";
 import { IPC, type Project, type ProjectPathStatus } from "@dashboard-agent/shared";
 import { createProjectsRepository } from "../projects/repository.js";
+import { tryGetRecorder } from "../activity/index.js";
 
 export const registerProjectsHandlers = (db: Database.Database): void => {
-  const repo = createProjectsRepository(db);
+  const repo = createProjectsRepository(db, tryGetRecorder());
 
   ipcMain.handle(IPC.PROJECTS_LIST, (_e, payload: { companyId: string }): Project[] =>
     repo.listByCompany(payload.companyId),

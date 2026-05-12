@@ -154,7 +154,57 @@ describe("dual-write — issues repository", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]!.payload).toEqual({ from: "todo", to: "doing" });
   });
+});
 
+describe("dual-write — projects repository", () => {
+  const setup = () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    const companies = createCompaniesRepository(db);
+    const company = companies.create({ name: "Acme" });
+    const recorder = createRecorder(db, vi.fn(), { devMode: true });
+    const projects = createProjectsRepository(db, recorder);
+    const activity = createActivityRepository(db);
+    return { projects, activity, companyId: company.id };
+  };
+
+  it("create emits project.created", () => {
+    const { projects, activity, companyId } = setup();
+    const project = projects.create({
+      companyId,
+      name: "Backend",
+      path: ".",
+      color: "#abc",
+    });
+    const rows = activity.query({
+      companyId,
+      filters: { entityKind: "project", entityId: project.id },
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.action).toBe("project.created");
+    expect((rows[0]!.payload as { name: string }).name).toBe("Backend");
+  });
+
+  it("update emits project.updated with the patch", () => {
+    const { projects, activity, companyId } = setup();
+    const project = projects.create({ companyId, name: "Old", path: ".", color: "#abc" });
+    projects.update(project.id, { name: "New" });
+    const rows = activity.query({ companyId, filters: { action: "project.updated" } });
+    expect(rows).toHaveLength(1);
+    expect((rows[0]!.payload as { patch: { name?: string } }).patch.name).toBe("New");
+  });
+
+  it("delete emits project.deleted with the name snapshot", () => {
+    const { projects, activity, companyId } = setup();
+    const project = projects.create({ companyId, name: "Doomed", path: ".", color: "#abc" });
+    projects.delete(project.id);
+    const rows = activity.query({ companyId, filters: { action: "project.deleted" } });
+    expect(rows).toHaveLength(1);
+    expect((rows[0]!.payload as { name: string }).name).toBe("Doomed");
+  });
+});
+
+describe("dual-write — issues repository (assignee)", () => {
   it("update(assignee) emits issue.assignee_changed", () => {
     const db = new Database(":memory:");
     applyMigrations(db);

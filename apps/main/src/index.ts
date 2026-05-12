@@ -37,7 +37,7 @@ void app.whenReady().then(() => {
 
   // Permission watcher (M5 spec §6.4)
   const agentsRepo = createAgentsRepository(db, getRecorder());
-  const projectsRepo = createProjectsRepository(db);
+  const projectsRepo = createProjectsRepository(db, getRecorder());
   const inboxRepo = createInboxRepository(db);
   const permissionsDir = getPermissionsDir(app.getPath("userData"));
   const userDataDir = app.getPath("userData");

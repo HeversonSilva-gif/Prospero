@@ -2,6 +2,7 @@ import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { Project, ProjectPathStatus } from "@dashboard-agent/shared";
+import type { Recorder } from "../activity/recorder.js";
 
 type Row = {
   id: string;
@@ -47,7 +48,12 @@ export type ProjectsRepository = {
   checkPaths(companyId: string): Record<string, ProjectPathStatus>;
 };
 
-export const createProjectsRepository = (db: Database.Database): ProjectsRepository => {
+// Optional recorder enables dual-write to activity_events alongside the
+// project mutations. Tests omit it; production wires via tryGetRecorder().
+export const createProjectsRepository = (
+  db: Database.Database,
+  recorder?: Recorder,
+): ProjectsRepository => {
   const insert = db.prepare(
     "INSERT INTO projects (id, company_id, name, path, color, slug, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
   );
@@ -70,6 +76,14 @@ export const createProjectsRepository = (db: Database.Database): ProjectsReposit
         input.slug ?? null,
         Date.now(),
       );
+      recorder?.recordActivity({
+        companyId: input.companyId,
+        actor: { kind: "user" },
+        action: "project.created",
+        entityKind: "project",
+        entityId: id,
+        payload: { name: input.name },
+      });
       return rowToProject(byId.get(id) as Row);
     },
     getById(id) {
@@ -93,6 +107,14 @@ export const createProjectsRepository = (db: Database.Database): ProjectsReposit
         next.color,
         id,
       );
+      recorder?.recordActivity({
+        companyId: current.company_id,
+        actor: { kind: "user" },
+        action: "project.updated",
+        entityKind: "project",
+        entityId: id,
+        payload: { patch: patch },
+      });
       return rowToProject(byId.get(id) as Row);
     },
     setSlug(id, slug) {
@@ -100,7 +122,18 @@ export const createProjectsRepository = (db: Database.Database): ProjectsReposit
       updateSlug.run(slug, id);
     },
     delete(id) {
+      const current = byId.get(id) as Row | undefined;
       del.run(id);
+      if (current !== undefined) {
+        recorder?.recordActivity({
+          companyId: current.company_id,
+          actor: { kind: "user" },
+          action: "project.deleted",
+          entityKind: "project",
+          entityId: id,
+          payload: { name: current.name },
+        });
+      }
     },
     checkPaths(companyId) {
       const rows = byCompany.all(companyId) as Row[];
