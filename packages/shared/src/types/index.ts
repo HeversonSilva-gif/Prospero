@@ -1,6 +1,7 @@
 export * from "./ids.js";
 export * from "./settings.js";
 export * from "./auth.js";
+export * from "./adapter.js";
 export * from "./agent.js";
 export * from "./company.js";
 export * from "./message.js";
