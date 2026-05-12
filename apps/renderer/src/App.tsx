@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { HashRouter, Routes, Route, Navigate, NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { AgentStatus } from "@dashboard-agent/shared";
@@ -18,10 +18,12 @@ import { Issues } from "./routes/Issues.js";
 import { useIssuesStore } from "./stores/issues.js";
 import { Skills } from "./routes/Skills.js";
 import { Org } from "./routes/Org.js";
-import { Activity } from "./routes/Activity.js";
 import { AgentNew } from "./routes/AgentNew.js";
 import { SidebarFooter } from "./components/SidebarFooter.js";
 import { TitleBar } from "./components/TitleBar.js";
+
+const Activity = lazy(() => import("./routes/Activity.js").then((m) => ({ default: m.Activity })));
+const Costs = lazy(() => import("./routes/Costs.js"));
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
   idle: "bg-ink-soft",
@@ -93,6 +95,14 @@ const Sidebar = () => {
           }
         >
           {t("nav.skills")}
+        </NavLink>
+        <NavLink
+          to="/costs"
+          className={({ isActive }) =>
+            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
+          }
+        >
+          {t("nav.costs")}
         </NavLink>
         <NavLink
           to="/activity"
@@ -365,7 +375,23 @@ export const App = () => {
             element={
               hasToken ? (
                 <Layout>
-                  <Activity />
+                  <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                    <Activity />
+                  </Suspense>
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/costs"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                    <Costs />
+                  </Suspense>
                 </Layout>
               ) : (
                 <Navigate to="/setup" replace />
