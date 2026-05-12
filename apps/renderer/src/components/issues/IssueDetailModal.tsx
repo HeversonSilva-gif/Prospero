@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
+import type { IssueArtifact } from "@dashboard-agent/shared";
 import { useIssuesStore } from "../../stores/issues.js";
 import { useAgentsStore } from "../../stores/agents.js";
 import { IssueCommentsList } from "./IssueCommentsList.js";
@@ -22,9 +23,11 @@ export const IssueDetailModal: FC<Props> = ({ issueId, onClose }) => {
   const agents = useAgentsStore((s) => s.agents);
   const [showSubtaskForm, setShowSubtaskForm] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [artifacts, setArtifacts] = useState<IssueArtifact[]>([]);
 
   useEffect(() => {
     void loadDetail(issueId);
+    void window.dashboardAgent.issues.listArtifacts(issueId).then(setArtifacts);
     return () => clearDetail();
   }, [issueId, loadDetail, clearDetail]);
 
@@ -122,6 +125,32 @@ export const IssueDetailModal: FC<Props> = ({ issueId, onClose }) => {
         </div>
 
         <ToolCallHistoryAccordion history={toolHistory} />
+
+        <details className="border-t border-surface-border mt-4 pt-3">
+          <summary className="cursor-pointer text-[10px] uppercase tracking-wide text-ink-soft font-semibold">
+            {t("issues.detail.artifacts.title")} ({artifacts.length})
+          </summary>
+          {artifacts.length === 0 ? (
+            <p className="text-xs text-ink-soft mt-2">{t("issues.detail.artifacts.empty")}</p>
+          ) : (
+            <ul className="space-y-2 mt-2">
+              {artifacts.map((a) => (
+                <li
+                  key={a.id}
+                  className="text-xs flex flex-col gap-0.5 px-2 py-1.5 rounded bg-surface-soft"
+                >
+                  <span className="font-semibold text-ink">
+                    {t(`issues.detail.artifacts.kind.${a.kind}`)}
+                  </span>
+                  <span className="font-mono text-ink-soft break-all">{a.ref}</span>
+                  {a.contentPreview !== null && (
+                    <span className="text-ink-soft truncate">{a.contentPreview}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </details>
 
         <div className="flex gap-2 mt-4">
           <ReassignDropdown

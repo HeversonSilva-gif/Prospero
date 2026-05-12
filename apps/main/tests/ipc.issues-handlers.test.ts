@@ -12,7 +12,7 @@ vi.mock("electron", () => ({
 beforeEach(() => vi.clearAllMocks());
 
 describe("issues handlers — channel registration", () => {
-  it("registers all 6 issue channels", async () => {
+  it("registers all 7 issue channels", async () => {
     const { ipcMain } = await import("electron");
     const { registerIssuesHandlers } = await import("../src/ipc/issues-handlers.js");
     const db = new Database(":memory:");
@@ -29,6 +29,7 @@ describe("issues handlers — channel registration", () => {
       "issues:update",
       "issues:delete",
       "issues:add-comment",
+      "artifacts:list-by-issue",
     ]);
   });
 });

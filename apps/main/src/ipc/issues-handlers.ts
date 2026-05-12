@@ -7,6 +7,7 @@ import {
   IPC,
   type AgentEvent,
   type Issue,
+  type IssueArtifact,
   type IssueDetail,
   type IssueComment,
   type IssueStatus,
@@ -14,6 +15,7 @@ import {
 } from "@dashboard-agent/shared";
 import { createIssuesRepository } from "../issues/repository.js";
 import { createIssueCommentsRepository } from "../issues/comments-repository.js";
+import { createArtifactsRepository } from "../artifacts/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { getEventsDir } from "../orchestrator/events-dir.js";
@@ -198,5 +200,10 @@ export const registerIssuesHandlers = (db: Database.Database): void => {
         });
       return c;
     },
+  );
+
+  const artifacts = createArtifactsRepository(db);
+  ipcMain.handle(IPC.ARTIFACTS_LIST_BY_ISSUE, (_e, payload: { issueId: string }): IssueArtifact[] =>
+    artifacts.listByIssue(payload.issueId),
   );
 };

@@ -242,7 +242,18 @@
       "expand": "expandir",
       "reassign": "Reatribuir",
       "delete": "Excluir issue",
-      "confirmDelete": "Excluir essa issue e todas as sub-tarefas?"
+      "confirmDelete": "Excluir essa issue e todas as sub-tarefas?",
+      "artifacts": {
+        "title": "Artefatos",
+        "empty": "Nenhum artefato registrado ainda.",
+        "kind": {
+          "file_path": "Arquivo",
+          "commit_sha": "Commit",
+          "pr_url": "PR",
+          "snapshot": "Snapshot",
+          "output_text": "Saída"
+        }
+      }
     }
   },
   "skills": {
