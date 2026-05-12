@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../stores/auth.js";
 import { ModelDropdown } from "../components/ModelDropdown.js";
 import { useSettingsStore } from "../stores/settings.js";
+import { BudgetsForm } from "../components/costs/BudgetsForm.js";
 
 export const Settings = () => {
   const { t } = useTranslation();
@@ -104,6 +105,8 @@ export const Settings = () => {
           <p className="text-xs text-semantic-success mt-2">{t("settings.model.saved")}</p>
         )}
       </section>
+
+      <BudgetsForm />
 
       <section className="mb-6">
         <h2 className="text-sm font-semibold text-brand-dark mb-2">
