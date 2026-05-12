@@ -44,7 +44,7 @@ export const Composer = ({ onSubmit, disabled = false }: Props) => {
         <button
           type="submit"
           disabled={disabled || value.trim() === ""}
-          className="bg-brand text-white border-0 px-3.5 py-2 rounded-md font-semibold text-xs disabled:opacity-50"
+          className="bg-brand text-brand-fg border-0 px-3.5 py-2 rounded-md font-semibold text-xs disabled:opacity-50"
         >
           {t("agent.send")}
         </button>

@@ -50,7 +50,7 @@ export const ConfirmModal: FC<Props> = ({
             type="button"
             onClick={() => void handleConfirm()}
             disabled={busy}
-            className={`text-xs px-3 py-1 text-white rounded font-semibold disabled:opacity-50 ${destructive ? "bg-semantic-danger" : "bg-brand"}`}
+            className={`text-xs px-3 py-1 rounded font-semibold disabled:opacity-50 ${destructive ? "bg-semantic-danger text-white" : "bg-brand text-brand-fg"}`}
           >
             {confirmLabel ?? t("common.confirm")}
           </button>

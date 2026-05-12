@@ -14,6 +14,7 @@ export default {
           dark: "var(--c-primary-dark)",
           soft: "var(--c-primary-soft)",
           bg: "var(--c-primary-bg)",
+          fg: "var(--c-primary-fg)",
           accent: "var(--c-accent)",
         },
         ink: {

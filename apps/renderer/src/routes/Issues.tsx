@@ -112,7 +112,7 @@ export const Issues: FC = () => {
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="text-xs px-3 py-1 bg-brand text-white rounded font-semibold"
+          className="text-xs px-3 py-1 bg-brand text-brand-fg rounded font-semibold"
         >
           {t("issues.newButton")}
         </button>

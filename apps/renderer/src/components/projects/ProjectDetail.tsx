@@ -80,7 +80,7 @@ export const ProjectDetail: FC<Props> = ({
         <button
           type="button"
           onClick={onEdit}
-          className="text-xs px-3 py-1 bg-brand text-white rounded"
+          className="text-xs px-3 py-1 bg-brand text-brand-fg rounded"
         >
           {t("projects.detail.edit")}
         </button>

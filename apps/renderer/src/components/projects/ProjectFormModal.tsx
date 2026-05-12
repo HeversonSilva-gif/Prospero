@@ -101,7 +101,7 @@ export const ProjectFormModal: FC<Props> = ({ initial, onSubmit, onClose }) => {
           <button
             type="submit"
             disabled={busy}
-            className="text-xs px-3 py-1 bg-brand text-white rounded font-semibold disabled:opacity-50"
+            className="text-xs px-3 py-1 bg-brand text-brand-fg rounded font-semibold disabled:opacity-50"
           >
             {t("projects.form.save")}
           </button>

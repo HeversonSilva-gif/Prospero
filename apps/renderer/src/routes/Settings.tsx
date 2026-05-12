@@ -82,7 +82,7 @@ export const Settings = () => {
             <button
               onClick={() => void onSave()}
               disabled={tokenInput.length === 0}
-              className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded disabled:opacity-50"
+              className="px-4 py-2 bg-brand text-brand-fg text-sm font-semibold rounded disabled:opacity-50"
               type="button"
             >
               {t("settings.auth.actionSet")}

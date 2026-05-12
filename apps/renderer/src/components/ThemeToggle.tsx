@@ -12,7 +12,7 @@ export const ThemeToggle = () => {
         <button
           onClick={() => void setTheme("light")}
           className={`px-2 py-1 text-xs font-semibold rounded ${
-            settings.theme === "light" ? "bg-brand text-white" : "text-ink-soft hover:text-ink"
+            settings.theme === "light" ? "bg-brand text-brand-fg" : "text-ink-soft hover:text-ink"
           }`}
           aria-label={t("settings.theme.light")}
           type="button"
@@ -22,7 +22,7 @@ export const ThemeToggle = () => {
         <button
           onClick={() => void setTheme("dark")}
           className={`px-2 py-1 text-xs font-semibold rounded ${
-            settings.theme === "dark" ? "bg-brand text-white" : "text-ink-soft hover:text-ink"
+            settings.theme === "dark" ? "bg-brand text-brand-fg" : "text-ink-soft hover:text-ink"
           }`}
           aria-label={t("settings.theme.dark")}
           type="button"

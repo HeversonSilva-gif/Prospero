@@ -30,7 +30,7 @@ export const CommentComposer: FC<Props> = ({ onSubmit }) => {
         type="button"
         onClick={() => void submit()}
         disabled={busy}
-        className="text-xs px-3 py-1 bg-brand text-white rounded font-semibold disabled:opacity-50 self-start"
+        className="text-xs px-3 py-1 bg-brand text-brand-fg rounded font-semibold disabled:opacity-50 self-start"
       >
         {t("issues.detail.send")}
       </button>

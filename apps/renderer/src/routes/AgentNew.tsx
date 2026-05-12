@@ -150,7 +150,7 @@ export const AgentNew: FC = () => {
         <button
           type="submit"
           disabled={busy}
-          className="text-sm px-4 py-1.5 bg-brand text-white rounded font-semibold disabled:opacity-50"
+          className="text-sm px-4 py-1.5 bg-brand text-brand-fg rounded font-semibold disabled:opacity-50"
         >
           {t("agent.new.submit")}
         </button>

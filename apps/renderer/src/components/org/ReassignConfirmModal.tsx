@@ -39,7 +39,7 @@ export const ReassignConfirmModal: FC<Props> = ({
               void onConfirm().finally(() => setBusy(false));
             }}
             disabled={busy}
-            className="text-xs px-3 py-1 bg-brand text-white rounded disabled:opacity-50"
+            className="text-xs px-3 py-1 bg-brand text-brand-fg rounded disabled:opacity-50"
           >
             {busy ? "…" : t("common.confirm")}
           </button>

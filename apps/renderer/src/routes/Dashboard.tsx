@@ -22,7 +22,7 @@ export const Dashboard = () => {
       {agents.length === 0 && (
         <button
           onClick={() => void onCreateDemo()}
-          className="mt-6 px-4 py-2 bg-brand text-white text-sm font-semibold rounded"
+          className="mt-6 px-4 py-2 bg-brand text-brand-fg text-sm font-semibold rounded"
           type="button"
         >
           {t("dashboard.createDemoCompany")}

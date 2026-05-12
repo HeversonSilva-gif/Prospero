@@ -111,7 +111,7 @@ export const SetupWizard = () => {
               <button
                 onClick={() => void saveManual()}
                 disabled={tokenInput.length === 0}
-                className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded disabled:opacity-50"
+                className="px-4 py-2 bg-brand text-brand-fg text-sm font-semibold rounded disabled:opacity-50"
                 type="button"
               >
                 {t("wizard.manualSteps.continue")}
@@ -146,7 +146,7 @@ export const SetupWizard = () => {
               {autoSearched && autoPrefix !== null && (
                 <button
                   onClick={() => void importAuto()}
-                  className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded"
+                  className="px-4 py-2 bg-brand text-brand-fg text-sm font-semibold rounded"
                   type="button"
                 >
                   {t("wizard.autoConfirm")}

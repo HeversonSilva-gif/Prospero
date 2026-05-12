@@ -85,7 +85,7 @@ export const Projects: FC = () => {
             setEditing(null);
             setShowForm(true);
           }}
-          className="text-xs px-3 py-2 bg-brand text-white rounded font-semibold mt-2"
+          className="text-xs px-3 py-2 bg-brand text-brand-fg rounded font-semibold mt-2"
         >
           {t("projects.newButton")}
         </button>

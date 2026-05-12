@@ -220,7 +220,7 @@ export const Org: FC = () => {
           </dl>
           <Link
             to={`/agents/${selected.id}`}
-            className="mt-5 block text-center text-xs px-3 py-2 bg-brand text-white rounded font-semibold"
+            className="mt-5 block text-center text-xs px-3 py-2 bg-brand text-brand-fg rounded font-semibold"
           >
             {t("org.drawer.openAgent")}
           </Link>

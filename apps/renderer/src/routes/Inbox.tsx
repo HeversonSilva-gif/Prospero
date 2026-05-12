@@ -49,7 +49,7 @@ export const Inbox: FC = () => {
             key={f}
             onClick={() => setFilter(f)}
             type="button"
-            className={`text-xs px-2 py-1 rounded ${filter === f ? "bg-brand text-white" : "bg-surface-soft text-ink-muted"}`}
+            className={`text-xs px-2 py-1 rounded ${filter === f ? "bg-brand text-brand-fg" : "bg-surface-soft text-ink-muted"}`}
           >
             {t(`inbox.filter.${f}`)}
           </button>

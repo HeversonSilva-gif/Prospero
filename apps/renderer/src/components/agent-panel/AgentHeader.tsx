@@ -65,7 +65,7 @@ export const AgentHeader: FC<Props> = ({ agent, onAssignTask, onOpenRuns }) => {
           <button
             type="button"
             onClick={onAssignTask}
-            className="text-xs px-2 py-1 bg-brand text-white rounded"
+            className="text-xs px-2 py-1 bg-brand text-brand-fg rounded"
           >
             + {t("agent.header.assignTask")}
           </button>

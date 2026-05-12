@@ -140,7 +140,7 @@ export const IssueFormModal: FC<Props> = ({ companyId, parentId, initialAssignee
           <button
             type="submit"
             disabled={busy}
-            className="text-xs px-3 py-1 bg-brand text-white rounded font-semibold disabled:opacity-50"
+            className="text-xs px-3 py-1 bg-brand text-brand-fg rounded font-semibold disabled:opacity-50"
           >
             {t("issues.form.create")}
           </button>

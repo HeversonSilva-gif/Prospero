@@ -12,7 +12,9 @@ export const LanguageToggle = () => {
         <button
           onClick={() => void setLanguage("pt-BR")}
           className={`px-2 py-1 text-xs font-semibold rounded ${
-            settings.language === "pt-BR" ? "bg-brand text-white" : "text-ink-soft hover:text-ink"
+            settings.language === "pt-BR"
+              ? "bg-brand text-brand-fg"
+              : "text-ink-soft hover:text-ink"
           }`}
           type="button"
         >
@@ -21,7 +23,9 @@ export const LanguageToggle = () => {
         <button
           onClick={() => void setLanguage("en-US")}
           className={`px-2 py-1 text-xs font-semibold rounded ${
-            settings.language === "en-US" ? "bg-brand text-white" : "text-ink-soft hover:text-ink"
+            settings.language === "en-US"
+              ? "bg-brand text-brand-fg"
+              : "text-ink-soft hover:text-ink"
           }`}
           type="button"
         >

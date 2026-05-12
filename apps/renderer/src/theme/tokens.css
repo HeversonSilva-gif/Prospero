@@ -11,23 +11,29 @@
   --c-primary-dark: #001d5a;
   --c-primary-soft: #bee0fe;
   --c-primary-bg: #eaf2fe;
+  --c-primary-fg: #ffffff;
   --c-accent: #5bc4e7;
 }
 
-/* Dark theme — based on the original mockup: deep black background, white text,
-   no blue letters. Blue is reserved for CTAs/buttons (--c-primary), not titles. */
+/* Dark theme — pure monochrome. No blues, no cyans. Pure black/white/gray.
+   Status colors (semantic.*) live in tailwind.config and stay colored for
+   accessibility — pause yellow, danger red, success green still convey
+   meaning at a glance.
+
+   CTA buttons (bg-brand text-brand-fg) invert in dark: white bg + dark text. */
 html.dark {
   --c-bg: #0a0a0a;
-  --c-bg-soft: #111111;
-  --c-bg-card: #161616;
-  --c-border: #1f1f1f;
-  --c-border-strong: #2a2a2a;
-  --c-text: #ffffff;
-  --c-text-muted: #aaaaaa;
-  --c-text-soft: #6b6b6b;
-  --c-primary: #4a85e7;
+  --c-bg-soft: #131313;
+  --c-bg-card: #1a1a1a;
+  --c-border: #262626;
+  --c-border-strong: #3a3a3a;
+  --c-text: #fafafa;
+  --c-text-muted: #a8a8a8;
+  --c-text-soft: #6e6e6e;
+  --c-primary: #fafafa;
   --c-primary-dark: #ffffff;
-  --c-primary-soft: #1f3a73;
-  --c-primary-bg: #142347;
-  --c-accent: #5bc4e7;
+  --c-primary-soft: #2a2a2a;
+  --c-primary-bg: #1f1f1f;
+  --c-primary-fg: #0a0a0a;
+  --c-accent: #d4d4d4;
 }

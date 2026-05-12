@@ -4,6 +4,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Form controls inherit the theme by default. Otherwise native rendering
+   (especially on Windows) shows white selects/inputs in dark mode — text
+   becomes invisible. Components can still override per-call. */
+@layer base {
+  select,
+  input,
+  textarea {
+    background-color: var(--c-bg);
+    color: var(--c-text);
+  }
+  /* Native dropdown popup (<option>) also follows the theme. */
+  option {
+    background-color: var(--c-bg-card);
+    color: var(--c-text);
+  }
+}
+
 @layer utilities {
   @keyframes activity-row-enter {
     0% {
