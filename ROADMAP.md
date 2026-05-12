@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-12 (M7.5 fechado; **M7.7 PR-A mergeado em master (`3220f00`)** — foundation: migration 0009 `activity_events` + recorder helper + 4 repos com dual-write + mcp tools + approvals. **M7.7 PR-B entregue na branch `feat/m7.7-pr-b`** — UI: rota `/activity` + filtros (actor/action/entity/agent/when) + search + infinite scroll + ACTIVITY_NEW real-time + animation 700ms + i18n PT/EN. 411 tests (383 main + 28 renderer; delta +18 renderer). Bundle 362 → 375.31 kB (+13.31 kB, abaixo do gate +20 kB). Pronto pra merge.)
+> **Última atualização:** 2026-05-12 (M7.7 fechado em master via `ea05e2a`. **M7.6 PR-A entregue na branch `feat/m7.6-pr-a`** — backend: migration 0010 (paused_at/terminated_at/pause_reason + status CHECK widening via table recreation) + 9 IPCs novos (setMode/setAlwaysOn/setSkills/pause/resume/terminate/wake-up/reset-session/hire-from-ui) + 6 repo methods novos com activity dual-write + 2 activity actions novas (agent.mode_changed/always_on_changed) + HIRE_AGENT_INPUT_SCHEMA + HIRE_FROM_UI extraídos pra shared + enqueueOrPark backlog pra paused agents (process-lifetime, drains no resume). 457 tests passing (delta +46). Próximo: PR-B UI (header sticky + ConfigTab additions + Runs modal + AgentNew form + Instructions full-screen modal).)
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 
@@ -15,8 +15,8 @@
 | Métrica | Valor |
 |---|---|
 | Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5** (8/14 do v1: M1–M10 + M7.5 + M7.6 + M7.7 + M8.5) |
-| Em curso | **M7.7 PR-B** ready-to-merge (branch `feat/m7.7-pr-b`, 11 commits, UI done). Após merge: M7.7 fecha; próximo M7.6 (Agent Studio) ou M8 (Costs). |
-| Testes | **411 passing** (383 main + 28 renderer + 33 shared), 0 lint/typecheck errors. Delta PR-B: +18 renderer (activityRender ×6, useActivityStream ×8, matchesSearch ×4). |
+| Em curso | **M7.6 PR-A** ready-to-merge (branch `feat/m7.6-pr-a`, 14 commits, backend done). Próximo: PR-B (UI). |
+| Testes | **457 passing** (396 main + 28 renderer + 33 shared), 0 lint/typecheck errors. Delta PR-A: +13 main (lifecycle ×7 + migration ×2 + pause-backlog ×4). |
 | Commits no master | ~165 |
 | LoC (apps + packages) | ~14k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · vitest · Playwright (E2E, skipped) |
@@ -36,7 +36,7 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 | **Inbox** | ✅ Completo | Rota `/inbox` com filter pills (All/Approvals/Completed/Suggestions/Errors/Security). Approve/Reject inline. Auto-mark-read no resolve. Badge unread no sidebar. **M7.5 PR-B:** dual-format handler suporta legacy embedded payload + new `approval_id` pointer. |
 | **Issues** | ✅ Completo | MCP tools (create/update/assign/list/check_status/record_artifact) reais. Kanban /issues com 5 colunas + drag-drop. Modal de detail com comments + sub-tasks + tool history. **M7.5 PR-B:** identifier humano `<SLUG>-N` (ex: `BACKEND-7`) em todos call sites + artifacts accordion + soft warning ao marcar `done` sem artifacts. |
 | **Projects** | ✅ Completo | Rota /projects master/detail com folder picker + color picker. Auto-cria 'Default Workspace' migration do workspaceCwd legado. Allowlist per agent via chip toggle. |
-| **Agents** | 🟡 Parcial | Sidebar com status colors. `/agents/:id` chat unified + **right panel M7-C** (Config/Issues/Stats tabs) com edit inline de role/model/persona/projects. Faltam: header de ações (Pause/Fire/Assign Task), Runs timeline, mode/always_on/skills toggles, form `/agents/new` (M7.6). |
+| **Agents** | 🟡 Parcial | Sidebar com status colors. `/agents/:id` chat unified + right panel M7-C (Config/Issues/Stats). **M7.6 PR-A backend completo**: 9 IPCs novos (pause/resume/terminate/setMode/setAlwaysOn/setSkills/wake-up/reset-session/hire-from-ui), migration 0010 (paused_at/terminated_at/pause_reason + status CHECK widening), enqueueOrPark backlog. UI: header de ações + Runs timeline + form `/agents/new` em PR-B. |
 | **Org Chart** | ✅ Completo | Rota `/org` SVG handcrafted vertical tree + click drawer + drag-to-reassign + confirm modal + anti-cycle (backend + UI toast). |
 | **Skills** | ✅ Completo (read-only) | Rota `/skills` master-detail (5 roles seedados, tools chips por skill, agentsUsing). Hard-gate via `--allowedTools`. Edit per-agent: M7.6. |
 | **Costs** | ❌ Não iniciado | Tabela `costs_log` existe. Tracking automático **NÃO** liga (M8). Rota `/costs` zerada (M8). |
