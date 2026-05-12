@@ -70,3 +70,20 @@ export interface ActivityEventRow {
   payload: Record<string, unknown>;
   createdAt: number;
 }
+
+export interface ActivityQueryFilters {
+  actorKind?: ActorKind;
+  action?: ActivityAction;
+  entityKind?: EntityKind;
+  entityId?: string;
+  agentId?: string;
+  sinceMs?: number;
+  untilMs?: number;
+}
+
+export interface ActivityQueryParams {
+  companyId: string;
+  filters?: ActivityQueryFilters;
+  cursor?: { beforeCreatedAt: number; beforeId: string };
+  limit?: number;
+}

@@ -22,6 +22,8 @@ import type {
   IssuePriority,
   RoleTemplate,
   RoleDetail,
+  ActivityEventRow,
+  ActivityQueryParams,
 } from "@dashboard-agent/shared";
 
 declare global {
@@ -127,6 +129,10 @@ declare global {
       roles: {
         list: () => Promise<Array<RoleTemplate & { agentCount: number }>>;
         get: (id: string) => Promise<RoleDetail | null>;
+      };
+      activity: {
+        query: (params: ActivityQueryParams) => Promise<ActivityEventRow[]>;
+        onNew: (cb: (row: ActivityEventRow) => void) => () => void;
       };
     };
   }

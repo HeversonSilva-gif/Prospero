@@ -5,26 +5,13 @@ import type Database from "better-sqlite3";
 import type {
   ActivityAction,
   ActivityEventRow,
+  ActivityQueryParams,
   ActorKind,
   EntityKind,
 } from "@dashboard-agent/shared";
 
-export interface ActivityQueryFilters {
-  actorKind?: ActorKind;
-  action?: ActivityAction;
-  entityKind?: EntityKind;
-  entityId?: string;
-  agentId?: string;
-  sinceMs?: number;
-  untilMs?: number;
-}
-
-export interface ActivityQueryParams {
-  companyId: string;
-  filters?: ActivityQueryFilters;
-  cursor?: { beforeCreatedAt: number; beforeId: string };
-  limit?: number;
-}
+// Re-export for ergonomic imports inside main code.
+export type { ActivityQueryFilters, ActivityQueryParams } from "@dashboard-agent/shared";
 
 export interface ActivityRepository {
   query(params: ActivityQueryParams): ActivityEventRow[];
