@@ -14,7 +14,7 @@
     "activity": "Atividade"
   },
   "dashboard": {
-    "placeholder": "M2 — Autenticação e Configurações concluídas. Os widgets do dashboard chegam em M6.",
+    "placeholder": "Dashboard ainda é stub. Widgets (Recent Activity, Active Agents, Custos hoje, métricas) chegam em M9 — consomem o Activity stream (M7.7 ✅) e Costs (M8).",
     "createDemoCompany": "Criar empresa de demonstração"
   },
   "agent": {

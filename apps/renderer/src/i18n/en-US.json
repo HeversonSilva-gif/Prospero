@@ -14,7 +14,7 @@
     "activity": "Activity"
   },
   "dashboard": {
-    "placeholder": "M2 — Auth & Settings done. Dashboard widgets land in M6.",
+    "placeholder": "Dashboard is a stub. Widgets (Recent Activity, Active Agents, Costs today, metrics) land in M9 — they consume the Activity stream (M7.7 ✅) and Costs (M8).",
     "createDemoCompany": "Create demo company"
   },
   "agent": {
