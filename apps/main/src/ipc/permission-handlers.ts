@@ -5,6 +5,7 @@ import type Database from "better-sqlite3";
 import { IPC, type PermissionResolution, type PermissionRequest } from "@dashboard-agent/shared";
 import { getPermissionsDir } from "../security/permissions-dir.js";
 import { createInboxRepository } from "../inbox/repository.js";
+import { createApprovalsRepository } from "../approvals/repository.js";
 import { broadcastInboxUpdate } from "./inbox-handlers.js";
 
 export const broadcastPermissionRequest = (req: PermissionRequest): void => {
@@ -15,6 +16,7 @@ export const broadcastPermissionRequest = (req: PermissionRequest): void => {
 
 export const registerPermissionHandlers = (db: Database.Database): void => {
   const inbox = createInboxRepository(db);
+  const approvals = createApprovalsRepository(db);
   ipcMain.handle(
     IPC.PERMISSION_RESOLVE,
     (_e, payload: { toolUseId: string; resolution: PermissionResolution }): void => {
@@ -25,15 +27,27 @@ export const registerPermissionHandlers = (db: Database.Database): void => {
         `[m5/permission] resolve toolUseId=${payload.toolUseId} behavior=${payload.resolution.behavior} → writing ${target}`,
       );
       writeFileSync(target, JSON.stringify(payload.resolution));
-      // Mark the matching inbox approval as read directly here — avoids racing with
-      // the file-watcher's onResolved callback (chokidar's awaitWriteFinish may miss
-      // the event if the MCP child unlinks the file before stabilization).
-      const updated = inbox.markReadByToolUseId(payload.toolUseId);
-      if (updated !== null) {
+
+      // Prefer new format: approval row + inbox pointer.
+      const approval = approvals.findPendingByToolUseId(payload.toolUseId);
+      if (approval !== null) {
+        const updated = inbox.markReadByApprovalId(approval.id);
+        if (updated !== null) {
+          console.log(
+            `[m5/permission] resolve markRead HIT (new format) itemId=${updated.id} approvalId=${approval.id}`,
+          );
+          broadcastInboxUpdate(updated.companyId);
+          return;
+        }
+      }
+
+      // Legacy fallback: payload_json LIKE %toolUseId%.
+      const updatedLegacy = inbox.markReadByToolUseId(payload.toolUseId);
+      if (updatedLegacy !== null) {
         console.log(
-          `[m5/permission] resolve markRead HIT itemId=${updated.id} companyId=${updated.companyId} (${payload.resolution.behavior})`,
+          `[m5/permission] resolve markRead HIT (legacy format) itemId=${updatedLegacy.id}`,
         );
-        broadcastInboxUpdate(updated.companyId);
+        broadcastInboxUpdate(updatedLegacy.companyId);
       } else {
         console.log(`[m5/permission] resolve markRead NO-HIT for ${payload.toolUseId}`);
       }
