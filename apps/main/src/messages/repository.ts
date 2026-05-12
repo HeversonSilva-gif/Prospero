@@ -58,6 +58,7 @@ export type MessagesRepository = {
   list(threadId: string): Message[];
   listByParticipants(companyId: string, participants: string[]): Message[];
   listByAgentParticipating(agentId: string): Message[];
+  countUnansweredQuestions(agentId: string): number;
 };
 
 export const createMessagesRepository = (db: Database.Database): MessagesRepository => {
@@ -169,6 +170,35 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
         ...rowToMessage(r),
         threadParticipants: r.t_participants_json.split("|"),
       }));
+    },
+    countUnansweredQuestions(agentId) {
+      // For each question this agent sent, check whether the same thread has a
+      // later (or same-tick) message from anyone but this agent. Same-tick
+      // matters because better-sqlite3 inserts often share Date.now() within a
+      // millisecond — strict > would mark same-tick replies as unanswered.
+      const rows = db
+        .prepare(
+          `SELECT m.id, m.thread_id, m.created_at
+             FROM messages m
+            WHERE m.sender_kind = 'agent'
+              AND m.sender_id = ?
+              AND m.kind = 'question'`,
+        )
+        .all(agentId) as Array<{ id: string; thread_id: string; created_at: number }>;
+      let unanswered = 0;
+      const replyCheck = db.prepare(
+        `SELECT 1 FROM messages
+          WHERE thread_id = ?
+            AND id != ?
+            AND created_at >= ?
+            AND NOT (sender_kind = 'agent' AND sender_id = ?)
+          LIMIT 1`,
+      );
+      for (const q of rows) {
+        const replied = replyCheck.get(q.thread_id, q.id, q.created_at, agentId);
+        if (replied === undefined) unanswered += 1;
+      }
+      return unanswered;
     },
   };
 };
