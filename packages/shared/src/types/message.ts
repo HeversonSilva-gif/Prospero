@@ -33,8 +33,9 @@ export type Message = {
 };
 
 export type AgentEvent =
-  | { kind: "session"; agentId: string; sessionId: string }
-  | { kind: "status"; agentId: string; status: AgentStatus; currentAction: string | null }
+  | { kind: "session-id-changed"; agentId: string; sessionId: string | null }
+  | { kind: "status-changed"; agentId: string; status: AgentStatus; updatedAt: number }
+  | { kind: "current-action-changed"; agentId: string; action: string | null }
   | { kind: "message-append"; agentId: string; message: Message }
   | { kind: "tool-call"; agentId: string; threadId: string; tool: ToolCallView }
   | {
