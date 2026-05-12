@@ -8,6 +8,9 @@ import { MessageList } from "../components/MessageList.js";
 import { DelegationsPanel } from "../components/DelegationsPanel.js";
 import { Composer } from "../components/Composer.js";
 import { AgentConfigPanel } from "../components/agent-panel/AgentConfigPanel.js";
+import { AgentHeader } from "../components/agent-panel/AgentHeader.js";
+import { RunsModal } from "../components/agent-panel/RunsModal.js";
+import { IssueFormModal } from "../components/issues/IssueFormModal.js";
 
 type Tab = "chat" | "delegations";
 
@@ -19,6 +22,8 @@ export const Agent = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<PermissionRequest[]>([]);
   const [tab, setTab] = useState<Tab>("chat");
+  const [showAssignTask, setShowAssignTask] = useState(false);
+  const [showRuns, setShowRuns] = useState(false);
 
   // Load all messages for this agent across all threads
   useEffect(() => {
@@ -89,17 +94,11 @@ export const Agent = () => {
   return (
     <div className="flex h-screen">
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="px-6 py-3.5 border-b border-surface-border flex items-center gap-3.5">
-          <div className="w-9 h-9 rounded-md bg-gradient-to-br from-brand to-brand-dark text-white flex items-center justify-center text-[13px] font-bold">
-            {agent.name.slice(0, 2).toUpperCase()}
-          </div>
-          <div className="flex-1">
-            <div className="font-bold text-[15px] text-brand-dark">{agent.name}</div>
-            <div className="text-[11px] text-ink-muted mt-0.5">
-              {agent.role} · {agent.status}
-            </div>
-          </div>
-        </header>
+        <AgentHeader
+          agent={agent}
+          onAssignTask={() => setShowAssignTask(true)}
+          onOpenRuns={() => setShowRuns(true)}
+        />
         <div className="flex border-b border-surface-border px-6">
           <button
             type="button"
@@ -148,6 +147,15 @@ export const Agent = () => {
         <Composer onSubmit={(text) => void onSend(text)} />
       </div>
       <AgentConfigPanel agent={agent} />
+
+      {showAssignTask && (
+        <IssueFormModal
+          companyId={agent.companyId}
+          initialAssigneeId={agent.id}
+          onClose={() => setShowAssignTask(false)}
+        />
+      )}
+      {showRuns && <RunsModal agentId={agent.id} onClose={() => setShowRuns(false)} />}
     </div>
   );
 };

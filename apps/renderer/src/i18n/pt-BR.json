@@ -66,6 +66,29 @@
         "add": "+ adicionar",
         "removeTitle": "Remover acesso",
         "allAccess": "(acesso a todos os projetos)"
+      },
+      "reportsTo": {
+        "label": "Reporta para",
+        "none": "(ninguém)"
+      },
+      "mode": {
+        "label": "Modo",
+        "supervised": "Supervisionado",
+        "auto": "Auto"
+      },
+      "alwaysOn": {
+        "label": "Sempre ativo",
+        "hint": "Agente inicia automaticamente quando o app abre."
+      },
+      "schedule": {
+        "label": "Agendamento",
+        "wakeUp": "Rodar agora",
+        "wakeUpHint": "Força um turn com mensagem de sistema."
+      },
+      "skillsEdit": {
+        "required": "Obrigatórias",
+        "optional": "Opcionais",
+        "addLabel": "Adicionar skill…"
       }
     },
     "issues": {
@@ -77,6 +100,67 @@
       "tokensOut": "Tokens saída",
       "lastActivity": "Última atividade",
       "m8Note": "Tracking disponível em M8."
+    },
+    "header": {
+      "pause": "Pausar",
+      "resume": "Retomar",
+      "assignTask": "Atribuir tarefa",
+      "runs": "Runs",
+      "menu": {
+        "copyId": "Copiar ID do agente",
+        "resetSession": "Resetar sessão",
+        "terminate": "Encerrar agente"
+      },
+      "status": {
+        "idle": "Ocioso",
+        "thinking": "Pensando",
+        "working": "Trabalhando",
+        "waiting": "Aguardando",
+        "error": "Erro",
+        "paused": "Pausado",
+        "terminated": "Encerrado"
+      }
+    },
+    "terminate": {
+      "title": "Encerrar agente?",
+      "message": "{{name}} vai parar de responder. Mensagens passadas ficam no histórico. Não dá pra desfazer.",
+      "reasonLabel": "Motivo (opcional)",
+      "confirm": "Encerrar",
+      "cancel": "Cancelar"
+    },
+    "runs": {
+      "title": "Histórico de runs",
+      "empty": "Nenhuma run ainda.",
+      "session": "Sessão {{n}}",
+      "turn": "{{when}} · {{tools}} chamadas de tool",
+      "close": "Fechar"
+    },
+    "instructions": {
+      "expand": "Expandir",
+      "modalTitle": "Editar instruções",
+      "applyNote": "Mudanças entram no próximo turn. Use Resetar sessão pra aplicar agora.",
+      "close": "Fechar"
+    },
+    "new": {
+      "title": "Contratar agente",
+      "shortLabel": "Novo",
+      "fields": {
+        "name": "Nome",
+        "role": "Papel",
+        "title": "Título",
+        "reportsTo": "Reporta para",
+        "model": "Modelo",
+        "mode": "Modo",
+        "persona": "Persona",
+        "skills": "Skills",
+        "projects": "Projetos"
+      },
+      "submit": "Contratar",
+      "cancel": "Cancelar",
+      "errors": {
+        "nameRequired": "Nome obrigatório",
+        "personaTooShort": "Persona precisa ter pelo menos 20 caracteres"
+      }
     }
   },
   "org": {
