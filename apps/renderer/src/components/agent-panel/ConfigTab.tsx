@@ -12,6 +12,7 @@ import { useProjectsStore } from "../../stores/projects.js";
 import { AgentProjectsEditor } from "./AgentProjectsEditor.js";
 import { ChangeRoleModal } from "./ChangeRoleModal.js";
 import { categorizeSkills } from "./skillCategorize.js";
+import { InstructionsFullScreenModal } from "./InstructionsFullScreenModal.js";
 
 type Props = { agent: Agent };
 
@@ -35,6 +36,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
   const [modelError, setModelError] = useState<string | null>(null);
   const [persona, setPersona] = useState(agent.systemPrompt);
   const [personaSavedAt, setPersonaSavedAt] = useState<number | null>(null);
+  const [showInstructionsExpand, setShowInstructionsExpand] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -285,9 +287,18 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
       </section>
 
       <section>
-        <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
-          {t("agent.config.persona.label")}
-        </h3>
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-[10px] uppercase text-ink-soft font-semibold">
+            {t("agent.config.persona.label")}
+          </h3>
+          <button
+            type="button"
+            onClick={() => setShowInstructionsExpand(true)}
+            className="text-[10px] text-ink-soft hover:text-brand underline"
+          >
+            {t("agent.instructions.expand")}
+          </button>
+        </div>
         <textarea
           value={persona}
           onChange={(e) => setPersona(e.target.value)}
@@ -316,6 +327,18 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
             await setRole(agent.id, roleId, { preserveModel });
             setShowRoleModal(false);
           }}
+        />
+      )}
+
+      {showInstructionsExpand && (
+        <InstructionsFullScreenModal
+          initialValue={persona}
+          onSave={(v) => {
+            setPersona(v);
+            void setSystemPrompt(agent.id, v);
+            setPersonaSavedAt(Date.now());
+          }}
+          onClose={() => setShowInstructionsExpand(false)}
         />
       )}
     </div>
