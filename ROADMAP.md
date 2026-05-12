@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-12 (M7.5 fechado: PR-A `a633e41`, PR-B `baca895`, PR-C `bb9cb39`; M7.5 completo end-to-end; **próximo:** M7.7 Activity Stream ou M7.6 Agent Studio)
+> **Última atualização:** 2026-05-12 (M7.5 fechado; **M7.7 PR-A entregue na branch `feat/m7.7-pr-a`** — foundation: migration 0009 `activity_events` + recorder helper + 4 repos com dual-write + mcp tools + approvals; 426 tests passing (delta +34); pronto pra merge em master)
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 
@@ -15,8 +15,8 @@
 | Métrica | Valor |
 |---|---|
 | Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5** (8/14 do v1: M1–M10 + M7.5 + M7.6 + M7.7 + M8.5) |
-| Em curso | — (próximo: **M7.7 Activity Stream** ou **M7.6 Agent Studio**) |
-| Testes | **392 passing** (349 main + 10 renderer + 33 shared), 0 lint/typecheck errors |
+| Em curso | **M7.7 PR-A** ready-to-merge (branch `feat/m7.7-pr-a`, 14 commits, foundation done). Próximo: PR-B (UI rota `/activity`). |
+| Testes | **426 passing** (383 main + 10 renderer + 33 shared), 0 lint/typecheck errors. Delta PR-A: +34. |
 | Commits no master | ~165 |
 | LoC (apps + packages) | ~14k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · vitest · Playwright (E2E, skipped) |
