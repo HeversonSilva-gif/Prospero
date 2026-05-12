@@ -21,6 +21,14 @@
   }
 }
 
+/* Frameless window drag region — only the TitleBar uses these. */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag-region {
+  -webkit-app-region: no-drag;
+}
+
 @layer utilities {
   @keyframes activity-row-enter {
     0% {

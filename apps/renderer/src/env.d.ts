@@ -151,6 +151,13 @@ declare global {
         query: (params: ActivityQueryParams) => Promise<ActivityEventRow[]>;
         onNew: (cb: (row: ActivityEventRow) => void) => () => void;
       };
+      windowControls: {
+        minimize: () => Promise<void>;
+        maximizeToggle: () => Promise<void>;
+        close: () => Promise<void>;
+        isMaximized: () => Promise<boolean>;
+        onStateChanged: (cb: (state: { isMaximized: boolean }) => void) => () => void;
+      };
     };
   }
 }

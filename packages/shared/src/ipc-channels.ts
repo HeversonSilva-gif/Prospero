@@ -55,6 +55,11 @@ export const IPC = {
   AGENTS_HIRE_FROM_UI: "agents:hire-from-ui",
   ACTIVITY_QUERY: "activity:query",
   ACTIVITY_NEW: "activity:new",
+  WINDOW_MINIMIZE: "window:minimize",
+  WINDOW_MAXIMIZE_TOGGLE: "window:maximize-toggle",
+  WINDOW_CLOSE: "window:close",
+  WINDOW_IS_MAXIMIZED: "window:is-maximized",
+  WINDOW_STATE_CHANGED: "window:state-changed",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

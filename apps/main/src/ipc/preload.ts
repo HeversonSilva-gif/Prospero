@@ -203,4 +203,15 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
       return () => ipcRenderer.removeListener(IPC.ACTIVITY_NEW, handler);
     },
   },
+  windowControls: {
+    minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE) as Promise<void>,
+    maximizeToggle: () => ipcRenderer.invoke(IPC.WINDOW_MAXIMIZE_TOGGLE) as Promise<void>,
+    close: () => ipcRenderer.invoke(IPC.WINDOW_CLOSE) as Promise<void>,
+    isMaximized: () => ipcRenderer.invoke(IPC.WINDOW_IS_MAXIMIZED) as Promise<boolean>,
+    onStateChanged: (cb: (state: { isMaximized: boolean }) => void) => {
+      const handler = (_e: unknown, s: { isMaximized: boolean }) => cb(s);
+      ipcRenderer.on(IPC.WINDOW_STATE_CHANGED, handler);
+      return () => ipcRenderer.removeListener(IPC.WINDOW_STATE_CHANGED, handler);
+    },
+  },
 });

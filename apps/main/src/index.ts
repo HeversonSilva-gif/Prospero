@@ -4,6 +4,7 @@ import type Database from "better-sqlite3";
 import { IPC } from "@dashboard-agent/shared";
 import { createMainWindow } from "./window/main-window.js";
 import { registerIpcHandlers } from "./ipc/handlers.js";
+import { registerWindowHandlers } from "./ipc/window-handlers.js";
 import { createTray } from "./tray/index.js";
 import { openDatabase } from "./db/client.js";
 import { databasePath } from "./db/path.js";
@@ -97,6 +98,7 @@ void app.whenReady().then(() => {
   });
 
   mainWindow = createMainWindow();
+  registerWindowHandlers(mainWindow);
   tray = createTray(getWindow);
 });
 

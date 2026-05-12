@@ -21,6 +21,7 @@ import { Org } from "./routes/Org.js";
 import { Activity } from "./routes/Activity.js";
 import { AgentNew } from "./routes/AgentNew.js";
 import { SidebarFooter } from "./components/SidebarFooter.js";
+import { TitleBar } from "./components/TitleBar.js";
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
   idle: "bg-ink-soft",
@@ -158,11 +159,18 @@ const Sidebar = () => {
   );
 };
 
+const Shell = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex flex-col h-screen overflow-hidden bg-surface">
+    <TitleBar />
+    <div className="flex-1 min-h-0 flex">{children}</div>
+  </div>
+);
+
 const Layout = ({ children }: { children: React.ReactNode }) => (
-  <div className="min-h-screen flex">
+  <>
     <Sidebar />
     <main className="flex-1 overflow-auto">{children}</main>
-  </div>
+  </>
 );
 
 export const App = () => {
@@ -256,133 +264,137 @@ export const App = () => {
 
   if (!settingsLoaded || !authLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-soft">
-        <p className="text-ink-muted">Loading…</p>
-      </div>
+      <Shell>
+        <div className="flex-1 flex items-center justify-center bg-surface-soft">
+          <p className="text-ink-muted">Loading…</p>
+        </div>
+      </Shell>
     );
   }
 
   return (
     <HashRouter>
-      <Routes>
-        <Route
-          path="/setup"
-          element={hasToken ? <Navigate to="/dashboard" replace /> : <SetupWizard />}
-        />
-        <Route
-          path="/dashboard"
-          element={
-            hasToken ? (
+      <Shell>
+        <Routes>
+          <Route
+            path="/setup"
+            element={hasToken ? <Navigate to="/dashboard" replace /> : <SetupWizard />}
+          />
+          <Route
+            path="/dashboard"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/settings"
+            element={
               <Layout>
-                <Dashboard />
+                <Settings />
               </Layout>
-            ) : (
-              <Navigate to="/setup" replace />
-            )
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <Layout>
-              <Settings />
-            </Layout>
-          }
-        />
-        <Route
-          path="/inbox"
-          element={
-            hasToken ? (
+            }
+          />
+          <Route
+            path="/inbox"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Inbox />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/projects"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Projects />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/issues"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Issues />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/skills"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Skills />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/org"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Org />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/activity"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Activity />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/agents/:id"
+            element={
               <Layout>
-                <Inbox />
+                <AgentRoute />
               </Layout>
-            ) : (
-              <Navigate to="/setup" replace />
-            )
-          }
-        />
-        <Route
-          path="/projects"
-          element={
-            hasToken ? (
-              <Layout>
-                <Projects />
-              </Layout>
-            ) : (
-              <Navigate to="/setup" replace />
-            )
-          }
-        />
-        <Route
-          path="/issues"
-          element={
-            hasToken ? (
-              <Layout>
-                <Issues />
-              </Layout>
-            ) : (
-              <Navigate to="/setup" replace />
-            )
-          }
-        />
-        <Route
-          path="/skills"
-          element={
-            hasToken ? (
-              <Layout>
-                <Skills />
-              </Layout>
-            ) : (
-              <Navigate to="/setup" replace />
-            )
-          }
-        />
-        <Route
-          path="/org"
-          element={
-            hasToken ? (
-              <Layout>
-                <Org />
-              </Layout>
-            ) : (
-              <Navigate to="/setup" replace />
-            )
-          }
-        />
-        <Route
-          path="/activity"
-          element={
-            hasToken ? (
-              <Layout>
-                <Activity />
-              </Layout>
-            ) : (
-              <Navigate to="/setup" replace />
-            )
-          }
-        />
-        <Route
-          path="/agents/:id"
-          element={
-            <Layout>
-              <AgentRoute />
-            </Layout>
-          }
-        />
-        <Route
-          path="/agents/new"
-          element={
-            hasToken ? (
-              <Layout>
-                <AgentNew />
-              </Layout>
-            ) : (
-              <Navigate to="/setup" replace />
-            )
-          }
-        />
-        <Route path="*" element={<Navigate to={hasToken ? "/dashboard" : "/setup"} replace />} />
-      </Routes>
+            }
+          />
+          <Route
+            path="/agents/new"
+            element={
+              hasToken ? (
+                <Layout>
+                  <AgentNew />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route path="*" element={<Navigate to={hasToken ? "/dashboard" : "/setup"} replace />} />
+        </Routes>
+      </Shell>
     </HashRouter>
   );
 };

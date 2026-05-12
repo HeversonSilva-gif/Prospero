@@ -11,7 +11,8 @@ export const createMainWindow = (): BrowserWindow => {
     minWidth: 960,
     minHeight: 600,
     show: false,
-    backgroundColor: "#F5F5FA",
+    frame: false, // custom titlebar in renderer (TitleBar.tsx)
+    backgroundColor: "#0a0a0a",
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
