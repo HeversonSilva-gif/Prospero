@@ -10,6 +10,7 @@ import { createProjectsRepository } from "../projects/repository.js";
 import { createSettingsRepository } from "../settings/repository.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
 import { createArtifactsRepository } from "../artifacts/repository.js";
+import { tryGetRecorder } from "../activity/index.js";
 
 export type ToolContext = {
   agentId: string;
@@ -72,7 +73,7 @@ export const toolDefinitions = [
     inputSchema: z.object({}),
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (_input: unknown, ctx: ToolContext): Promise<string> => {
-      const repo = createAgentsRepository(ctx.db);
+      const repo = createAgentsRepository(ctx.db, tryGetRecorder());
       const agents = repo.listByCompany(ctx.companyId);
       return JSON.stringify({
         agents: agents.map((a) => ({
@@ -92,8 +93,8 @@ export const toolDefinitions = [
     inputSchema: z.object({}),
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (_input: unknown, ctx: ToolContext): Promise<string> => {
-      const agents = createAgentsRepository(ctx.db);
-      const projects = createProjectsRepository(ctx.db);
+      const agents = createAgentsRepository(ctx.db, tryGetRecorder());
+      const projects = createProjectsRepository(ctx.db, tryGetRecorder());
       const agent = agents.getById(ctx.agentId);
       if (agent === null) return JSON.stringify({ projects: [] });
       const all = projects.listByCompany(ctx.companyId);
@@ -158,7 +159,7 @@ export const toolDefinitions = [
       },
       ctx: ToolContext,
     ): Promise<string> => {
-      const agents = createAgentsRepository(ctx.db);
+      const agents = createAgentsRepository(ctx.db, tryGetRecorder());
       const messages = createMessagesRepository(ctx.db);
       const settings = createSettingsRepository(ctx.db).read();
 
@@ -190,6 +191,7 @@ export const toolDefinitions = [
         model: roleModel ?? settings.defaultModelForNewAgents,
         skills: roleSkills,
         templateId,
+        actor: { kind: "agent", id: ctx.agentId },
       });
       const reportsTo = input.reports_to ?? ctx.agentId;
       ctx.db.prepare("UPDATE agents SET reports_to = ? WHERE id = ?").run(reportsTo, agent.id);
@@ -204,8 +206,22 @@ export const toolDefinitions = [
     inputSchema: z.object({ agent_id: z.string() }),
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (input: { agent_id: string }, ctx: ToolContext): Promise<string> => {
+      const target = ctx.db
+        .prepare("SELECT id, company_id FROM agents WHERE id = ?")
+        .get(input.agent_id) as { id: string; company_id: string } | undefined;
       ctx.emit({ kind: "agent.kill", payload: { agentId: input.agent_id } });
       ctx.db.prepare("DELETE FROM agents WHERE id = ?").run(input.agent_id);
+      if (target !== undefined) {
+        tryGetRecorder()?.recordActivity({
+          companyId: target.company_id,
+          actor: { kind: "agent", id: ctx.agentId },
+          action: "agent.terminated",
+          entityKind: "agent",
+          entityId: input.agent_id,
+          agentId: input.agent_id,
+          payload: { reason: "fire_agent invoked" },
+        });
+      }
       return JSON.stringify({ ok: true });
     },
   },
@@ -232,7 +248,7 @@ export const toolDefinitions = [
       },
       ctx: ToolContext,
     ): Promise<string> => {
-      const issues = createIssuesRepository(ctx.db);
+      const issues = createIssuesRepository(ctx.db, tryGetRecorder());
       const lookup = issues.resolveProjectByNameOrId(ctx.companyId, input.project);
       if (lookup.matches === 0) return JSON.stringify({ ok: false, error: "project not found" });
       if (lookup.matches > 1)
@@ -267,7 +283,7 @@ export const toolDefinitions = [
       input: { agent_id: string; content: string },
       ctx: ToolContext,
     ): Promise<string> => {
-      const agents = createAgentsRepository(ctx.db);
+      const agents = createAgentsRepository(ctx.db, tryGetRecorder());
       const messages = createMessagesRepository(ctx.db);
       const sender = agents.getById(ctx.agentId);
       if (sender === null) {
@@ -373,7 +389,7 @@ export const toolDefinitions = [
       },
       ctx: ToolContext,
     ): Promise<string> => {
-      const issues = createIssuesRepository(ctx.db);
+      const issues = createIssuesRepository(ctx.db, tryGetRecorder());
       const resolved = resolveIssueIdOrIdentifier(ctx.db, input.id, ctx.companyId);
       if (resolved === null) {
         return JSON.stringify({ ok: false, error: "issue not found" });
@@ -431,7 +447,7 @@ export const toolDefinitions = [
       input: { issue_id: string; agent_id: string },
       ctx: ToolContext,
     ): Promise<string> => {
-      const issues = createIssuesRepository(ctx.db);
+      const issues = createIssuesRepository(ctx.db, tryGetRecorder());
       const resolved = resolveIssueIdOrIdentifier(ctx.db, input.issue_id, ctx.companyId);
       if (resolved === null) {
         return JSON.stringify({ ok: false, error: "issue not found" });
@@ -469,7 +485,7 @@ export const toolDefinitions = [
       },
       ctx: ToolContext,
     ): Promise<string> => {
-      const issues = createIssuesRepository(ctx.db);
+      const issues = createIssuesRepository(ctx.db, tryGetRecorder());
       const filter: Parameters<typeof issues.list>[0] = { companyId: ctx.companyId };
       if (input.project !== undefined) {
         const lookup = issues.resolveProjectByNameOrId(ctx.companyId, input.project);
@@ -500,7 +516,7 @@ export const toolDefinitions = [
     run: async (input: { issue_id: string }, ctx: ToolContext): Promise<string> => {
       const resolved = resolveIssueIdOrIdentifier(ctx.db, input.issue_id, ctx.companyId);
       if (resolved === null) return JSON.stringify({ ok: false, error: "not found" });
-      const issues = createIssuesRepository(ctx.db);
+      const issues = createIssuesRepository(ctx.db, tryGetRecorder());
       const i = issues.getById(resolved);
       if (i === null) return JSON.stringify({ ok: false, error: "not found" });
       return JSON.stringify({
