@@ -1322,6 +1322,15 @@
               ☁️ <strong>Rodar agentes numa VPS remota (Docker)</strong> — escolha per-agent: local
               (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
             </li>
+            <li>
+              🧠 <strong>Cada agente com memória própria que aprende com o tempo</strong> — depois
+              de tarefas complexas o agente anota lições no <code>MEMORY.md</code> dele, cria
+              "skills" automáticos (manual de como fazer uma coisa), e usa nas próximas sessões.
+              Cada funcionário vai ficando melhor com a experiência. Inclui busca em conversas
+              antigas. Inspirado no
+              <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>
+              (NousResearch). → M11 (pós-v1, v1.1)
+            </li>
           </ul>
         </div>
       </section>
@@ -2828,12 +2837,16 @@
             </div>
             <div class="where">Big architectural change. Worker isolation + SDK</div>
           </div>
-          <div class="wish-row" data-wish="v2">
+          <div class="wish-row" data-wish="planned">
             <div class="item-name">Memory / Knowledge base</div>
             <div>
-              <span class="wish-status"><span class="sq"></span>v2+</span>
+              <span class="wish-status"><span class="sq"></span>M11</span>
             </div>
-            <div class="where">RAG por agente (sqlite-vss ou vector DB)</div>
+            <div class="where">
+              Per-agent MEMORY.md + skills procedurais auto-criados + FTS5 session search + nudges
+              em turn-complete. Inspirado em Hermes Agent (NousResearch). Vector embeddings ficam
+              v1.2.
+            </div>
           </div>
           <div class="wish-row" data-wish="v2">
             <div class="item-name">Plan inline-edit (texto) antes de approve</div>
@@ -2971,7 +2984,11 @@
           <div class="v2-group">
             <h4>Knowledge / Artifacts</h4>
             <ul>
-              <li><span class="tag">[PC]</span>Memory / Knowledge base (RAG)</li>
+              <li>
+                <span class="tag">[PC]</span><del>Memory / Knowledge base (RAG)</del> — movido pra
+                <strong>M11</strong> (Agent Memory &amp; Learning Loop, inspirado Hermes Agent).
+                Vector embeddings ficam pendentes pra v1.2.
+              </li>
               <li><span class="tag">[new]</span>Artifacts ricos (snapshots, diffs)</li>
               <li><span class="tag">[PC]</span>Enforced Outcomes</li>
               <li><span class="tag">[new]</span>Activity Log audit-grade</li>
