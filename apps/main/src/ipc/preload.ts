@@ -23,6 +23,8 @@ import {
   type IssuePriority,
   type RoleTemplate,
   type RoleDetail,
+  type ActivityEventRow,
+  type ActivityQueryParams,
 } from "@dashboard-agent/shared";
 
 contextBridge.exposeInMainWorld("dashboardAgent", {
@@ -163,5 +165,14 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
     list: () =>
       ipcRenderer.invoke(IPC.ROLES_LIST) as Promise<Array<RoleTemplate & { agentCount: number }>>,
     get: (id: string) => ipcRenderer.invoke(IPC.ROLES_GET, { id }) as Promise<RoleDetail | null>,
+  },
+  activity: {
+    query: (params: ActivityQueryParams) =>
+      ipcRenderer.invoke(IPC.ACTIVITY_QUERY, params) as Promise<ActivityEventRow[]>,
+    onNew: (cb: (row: ActivityEventRow) => void) => {
+      const handler = (_e: unknown, row: ActivityEventRow) => cb(row);
+      ipcRenderer.on(IPC.ACTIVITY_NEW, handler);
+      return () => ipcRenderer.removeListener(IPC.ACTIVITY_NEW, handler);
+    },
   },
 });

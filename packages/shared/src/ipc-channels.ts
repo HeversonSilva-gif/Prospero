@@ -44,6 +44,8 @@ export const IPC = {
   AGENTS_SET_SYSTEM_PROMPT: "agents:set-system-prompt",
   AGENTS_SET_REPORTS_TO: "agents:set-reports-to",
   AGENTS_STATS: "agents:stats",
+  ACTIVITY_QUERY: "activity:query",
+  ACTIVITY_NEW: "activity:new",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

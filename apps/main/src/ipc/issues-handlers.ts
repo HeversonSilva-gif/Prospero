@@ -18,6 +18,7 @@ import { createIssueCommentsRepository } from "../issues/comments-repository.js"
 import { createArtifactsRepository } from "../artifacts/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
+import { tryGetRecorder } from "../activity/index.js";
 import { getEventsDir } from "../orchestrator/events-dir.js";
 import { broadcastIssueChanged } from "./issue-events-broadcast.js";
 
@@ -28,10 +29,10 @@ const broadcast = (event: AgentEvent): void => {
 };
 
 export const registerIssuesHandlers = (db: Database.Database): void => {
-  const issues = createIssuesRepository(db);
+  const issues = createIssuesRepository(db, tryGetRecorder());
   const comments = createIssueCommentsRepository(db);
   const messages = createMessagesRepository(db);
-  const agents = createAgentsRepository(db);
+  const agents = createAgentsRepository(db, tryGetRecorder());
   const eventsDir = getEventsDir(app.getPath("userData"));
 
   // Wake the assignee agent when an issue is created or reassigned to them.
@@ -192,12 +193,22 @@ export const registerIssuesHandlers = (db: Database.Database): void => {
         content: payload.content,
       });
       const issue = issues.getById(payload.issueId);
-      if (issue !== null)
+      if (issue !== null) {
         broadcastIssueChanged({
           kind: "comment-added",
           issueId: c.issueId,
           companyId: issue.companyId,
         });
+        tryGetRecorder()?.recordActivity({
+          companyId: issue.companyId,
+          actor: { kind: "user" },
+          action: "issue.comment_added",
+          entityKind: "issue",
+          entityId: issue.id,
+          agentId: issue.assigneeId,
+          payload: { commentId: c.id, preview: payload.content.slice(0, 200) },
+        });
+      }
       return c;
     },
   );
