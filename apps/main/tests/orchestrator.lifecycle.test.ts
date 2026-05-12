@@ -1,13 +1,5 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import {
-  buildClaudeArgs,
-  registerRunner,
-  removeRunner,
-  getRunner,
-  activeRunnerCount,
-  MAX_CONCURRENT_AGENTS,
-  type AgentRunner,
-} from "../src/orchestrator/lifecycle.js";
+import { describe, expect, it } from "vitest";
+import { buildClaudeArgs, MAX_CONCURRENT_AGENTS } from "../src/orchestrator/lifecycle.js";
 import type { Agent } from "@dashboard-agent/shared";
 
 const baseAgent: Agent = {
@@ -26,14 +18,8 @@ const baseAgent: Agent = {
   skills: [],
   templateId: null,
   reportsTo: null,
+  adapterName: "claude-oauth-local",
 };
-
-const fakeRunner = (id: string, alive: boolean): AgentRunner => ({
-  agentId: id,
-  send: () => undefined,
-  kill: () => undefined,
-  isAlive: () => alive,
-});
 
 describe("buildClaudeArgs", () => {
   it("includes --system-prompt, stream-json IO, --mcp-config — and NOT -p", () => {
@@ -134,30 +120,7 @@ describe("buildClaudeArgs", () => {
   });
 });
 
-describe("runner registry", () => {
-  beforeEach(() => {
-    // clean registry between tests
-    for (let i = 0; i < 10; i++) removeRunner(`agent_${String(i)}`);
-  });
-
-  it("register + get + remove", () => {
-    const r = fakeRunner("agent_a", true);
-    registerRunner(r);
-    expect(getRunner("agent_a")).toBe(r);
-    removeRunner("agent_a");
-    expect(getRunner("agent_a")).toBeUndefined();
-  });
-
-  it("activeRunnerCount counts alive runners only", () => {
-    registerRunner(fakeRunner("agent_x", true));
-    registerRunner(fakeRunner("agent_y", false));
-    registerRunner(fakeRunner("agent_z", true));
-    expect(activeRunnerCount()).toBe(2);
-    removeRunner("agent_x");
-    removeRunner("agent_y");
-    removeRunner("agent_z");
-  });
-
+describe("lifecycle constants", () => {
   it("MAX_CONCURRENT_AGENTS is 4", () => {
     expect(MAX_CONCURRENT_AGENTS).toBe(4);
   });

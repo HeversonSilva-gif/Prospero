@@ -46,6 +46,12 @@ export default defineConfig([
       // Copy SQL migrations to dist/migrations (where the bundled code looks for them).
       // The bundled code's __dirname resolves to dist/, so migrations must be at dist/migrations/.
       copyTreeIfExists(resolve("src/db/migrations"), resolve("dist/migrations"));
+      // Copy orchestrator preamble.md so runtime composeSystemPrompt can readFileSync it.
+      mkdirSync(resolve("dist/orchestrator"), { recursive: true });
+      copyFileSync(
+        resolve("src/orchestrator/preamble.md"),
+        resolve("dist/orchestrator/preamble.md"),
+      );
       // Launch electron in watch mode (dev.cjs is idempotent — uses lockfile to prevent multiple).
       launchDevElectron();
     },

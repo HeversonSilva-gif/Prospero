@@ -18,6 +18,7 @@ const agent = (mode: "supervised" | "auto"): Agent => ({
   skills: [],
   templateId: null,
   reportsTo: null,
+  adapterName: "claude-oauth-local",
 });
 
 const WS = "C:\\Workspace";

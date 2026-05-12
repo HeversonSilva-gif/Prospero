@@ -12,17 +12,9 @@
 //   - {"type":"stream_event", event:{type:"content_block_*"|"message_stop", ...}}
 // Still parsed for forward compatibility.
 
-export type AssistantContentBlock =
-  | { kind: "text"; text: string }
-  | { kind: "tool-use"; id: string; name: string; input: unknown };
+import type { AssistantContentBlock, ParsedEvent } from "@dashboard-agent/shared";
 
-export type ParsedEvent =
-  | { kind: "session-init"; sessionId: string }
-  | { kind: "assistant-message"; blocks: AssistantContentBlock[] }
-  | { kind: "tool-result"; toolUseId: string; content: string; isError: boolean }
-  | { kind: "turn-complete" }
-  | { kind: "api-retry"; attempt: number; error: string }
-  | { kind: "unknown"; raw: unknown };
+export type { AssistantContentBlock, ParsedEvent };
 
 const safeParse = (s: string): unknown => {
   try {

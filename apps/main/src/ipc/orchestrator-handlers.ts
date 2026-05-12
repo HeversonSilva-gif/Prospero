@@ -13,10 +13,10 @@ import { redactString } from "../auth/token-redact.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { loadDecryptedToken } from "../auth/token-storage.js";
-import { ensureRunner, getRunner, removeRunner } from "../orchestrator/lifecycle.js";
+import { ensureAdapter, getAdapter, removeAdapter } from "../orchestrator/lifecycle.js";
 import { createRouter } from "../orchestrator/router.js";
 import type { Sender } from "../orchestrator/router.js";
-import type { ParsedEvent } from "../orchestrator/stream-parser.js";
+import type { ParsedEvent } from "@dashboard-agent/shared";
 import { databasePath } from "../db/path.js";
 import { getPermissionsDir } from "../security/permissions-dir.js";
 import { getEventsDir } from "../orchestrator/events-dir.js";
@@ -38,8 +38,8 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
 
   const router = createRouter({
     writeStdin: (agentId, content) => {
-      const r = getRunner(agentId);
-      if (r !== undefined && r.isAlive()) r.send(content);
+      const a = getAdapter(agentId);
+      if (a !== undefined && a.isAlive()) a.sendInput(content);
     },
   });
 
@@ -69,9 +69,9 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       router.enqueue(p.targetId, p.threadId, p.content, sender);
     } else if (kind === "agent.kill" && typeof payload === "object" && payload !== null) {
       const p = payload as { agentId: string };
-      const r = getRunner(p.agentId);
-      r?.kill();
-      removeRunner(p.agentId);
+      const a = getAdapter(p.agentId);
+      a?.kill();
+      removeAdapter(p.agentId);
       broadcast({ kind: "roster-changed", companyId });
     } else if (kind === "agent.spawn-needed") {
       broadcast({ kind: "roster-changed", companyId });
@@ -137,7 +137,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   void startEventsWatcher({ dir: eventsDir, onEvent: dispatchAgentEvent });
 
   const ensureAgentRunner = (agent: Agent): void => {
-    const existing = getRunner(agent.id);
+    const existing = getAdapter(agent.id);
     if (existing !== undefined && existing.isAlive()) return;
 
     const token = loadDecryptedToken(db);
@@ -145,7 +145,16 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
 
     const collectedToolCalls = new Map<string, ToolCallView>();
 
-    ensureRunner(
+    const onError = (err: Error): void => {
+      console.error(`[claude:${agent.id}] spawn error: ${err.message}`);
+      removeAdapter(agent.id);
+      agents.clearSessionId(agent.id);
+      agents.updateStatus(agent.id, { status: "error", currentAction: null });
+      broadcast({ kind: "error", agentId: agent.id, message: err.message });
+      broadcast({ kind: "status", agentId: agent.id, status: "error", currentAction: null });
+    };
+
+    void ensureAdapter(
       {
         agent,
         oauthToken: token,
@@ -246,7 +255,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         },
         onExit: (code) => {
           console.error(`[claude:${agent.id}] exit code: ${String(code)}`);
-          removeRunner(agent.id);
+          removeAdapter(agent.id);
           if (code !== 0) {
             agents.clearSessionId(agent.id);
           }
@@ -261,25 +270,8 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
             currentAction: null,
           });
         },
-        onError: (err) => {
-          console.error(`[claude:${agent.id}] spawn error: ${err.message}`);
-          removeRunner(agent.id);
-          agents.clearSessionId(agent.id);
-          agents.updateStatus(agent.id, { status: "error", currentAction: null });
-          broadcast({
-            kind: "error",
-            agentId: agent.id,
-            message: err.message,
-          });
-          broadcast({
-            kind: "status",
-            agentId: agent.id,
-            status: "error",
-            currentAction: null,
-          });
-        },
       },
-    );
+    ).catch(onError);
   };
 
   // Restart helper for config mutations. Trocar --model / --allowedTools /
@@ -287,10 +279,10 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   // Kills runner if alive, zera claude_session_id pra próxima mensagem não
   // tentar --resume com session stale, e broadcast roster pra UI re-render.
   const restartIfRunning = (agentId: string, companyId: string): void => {
-    const runner = getRunner(agentId);
-    if (runner !== undefined && runner.isAlive()) {
-      runner.kill();
-      removeRunner(agentId);
+    const a = getAdapter(agentId);
+    if (a !== undefined && a.isAlive()) {
+      a.kill();
+      removeAdapter(agentId);
     }
     agents.clearSessionId(agentId);
     agents.updateStatus(agentId, { status: "idle", currentAction: null });
@@ -302,9 +294,9 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   );
 
   ipcMain.handle(IPC.AGENT_KILL, (_e, payload: { agentId: string }): void => {
-    const runner = getRunner(payload.agentId);
-    runner?.kill();
-    removeRunner(payload.agentId);
+    const a = getAdapter(payload.agentId);
+    a?.kill();
+    removeAdapter(payload.agentId);
     agents.updateStatus(payload.agentId, { status: "idle", currentAction: null });
   });
 

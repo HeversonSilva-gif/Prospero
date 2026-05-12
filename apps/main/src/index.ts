@@ -9,7 +9,7 @@ import { openDatabase } from "./db/client.js";
 import { databasePath } from "./db/path.js";
 import { startPermissionWatcher } from "./security/permission-watcher.js";
 import { getPermissionsDir } from "./security/permissions-dir.js";
-import { getAgentSandboxCwd } from "./orchestrator/lifecycle.js";
+import { getAgentSandboxCwd } from "./orchestrator/util/paths.js";
 import { broadcastPermissionRequest } from "./ipc/permission-handlers.js";
 import { broadcastInboxUpdate } from "./ipc/inbox-handlers.js";
 import { createInboxRepository } from "./inbox/repository.js";
