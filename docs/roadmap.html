@@ -1247,8 +1247,20 @@
                 <strong>Soft-stop por budget de issue</strong> — mesmo se a daily não estourou
               </li>
               <li>
-                4 budgets editáveis (daily/agent, per-issue, rate-window, window-hours) — _UI vem no
-                M8 PR-B_
+                <strong>Rota /costs com gráficos</strong> — linha tokens/dia, barra top agentes,
+                donut por projeto + tabela + filtros
+              </li>
+              <li>
+                <strong>Widget "Custos hoje"</strong> no Dashboard com progress bar do limite Max
+              </li>
+              <li>
+                <strong>Settings → Budgets</strong> com 4 caps editáveis (daily/agent, per-issue,
+                rate-window) + reset
+              </li>
+              <li><strong>ModelDropdown</strong> mostra $/$$/$$$ pra tier relativo do modelo</li>
+              <li>
+                <strong>StatsTab do agente</strong> mostra tokens 7d (entrada/saída/cache) + custo
+                total
               </li>
             </ul>
           </div>
@@ -1296,11 +1308,10 @@
         <div class="layperson-future">
           <div class="heading">🚧 O que ainda NÃO funciona (próximas releases)</div>
           <ul>
-            <li>📊 <strong>Tela de custos com gráficos</strong> — vem no PR-B do M8 (próximo)</li>
             <li>
               🎯 <strong>Goals com CEO planejando automaticamente</strong> — você cria objetivo, CEO
               monta plano completo (agentes a contratar + issues + estimates), você aprova num modo
-              PR-review → M8.5
+              PR-review → M8.5 (próximo)
             </li>
             <li>
               📈 <strong>Dashboard inicial com widgets dinâmicos</strong> — Agentes ativos / Issues
@@ -1321,8 +1332,8 @@
           <span class="index">/01</span>
           <h2>v1 progress</h2>
           <span class="note"
-            >M1—M10 · M8 PR-A backend mergeado em <code>56da29c</code> · próximo M8 PR-B UI
-            (desbloqueia M8.5/M9/M10)</span
+            >M1—M10 · M8 fechado em <code>4c943fe</code> · próximo M8.5 Goals (CEO planning
+            automático)</span
           >
         </div>
 
@@ -1368,11 +1379,11 @@
               <div class="dot"></div>
               <div class="label">M7.6</div>
             </div>
-            <div class="progress-step" data-status="progress">
+            <div class="progress-step" data-status="done">
               <div class="dot"></div>
               <div class="label">M8</div>
             </div>
-            <div class="progress-step" data-status="planned">
+            <div class="progress-step" data-status="progress">
               <div class="dot"></div>
               <div class="label">M8.5</div>
             </div>
@@ -1387,11 +1398,10 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M8 PR-A backend mergeado (<code>56da29c</code>) — cost
-              tracking + soft-stop + 4 IPCs. Próximo: <strong>M8 PR-B UI</strong> (<code
-                >/costs</code
-              >
-              route + Dashboard widget + Settings Budgets). Desbloqueia M8.5 / M9 / M10.
+              <strong>Estágio:</strong> M8 fechado (<code>4c943fe</code>) — PR-A backend + PR-B UI
+              mergeados. <code>/costs</code> route + Dashboard widget + Settings Budgets +
+              ModelDropdown hints + StatsTab real. <strong>11/14 milestones</strong>. Próximo:
+              <strong>M8.5 Goals</strong> (CEO planning automático).
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -1565,14 +1575,15 @@
               ConfigTab (M7.6 PR-B).
             </div>
           </div>
-          <div class="module" data-status="partial">
+          <div class="module" data-status="complete">
             <div class="name">Costs</div>
-            <div class="status-line"><span class="sq"></span>parcial</div>
+            <div class="status-line"><span class="sq"></span>completo</div>
             <div class="note">
-              <strong>M8 PR-A backend ✅</strong> (<code>56da29c</code>). Migration 0011
-              <code>cost_events</code> + tracking automático de tokens por turn + pricing
-              opus/sonnet/haiku + soft-stop por budget diário/per-issue + 4 IPCs. UI
-              <code>/costs</code> com gráficos vem no <strong>M8 PR-B</strong>.
+              <strong>M8 fechado</strong> (<code>4c943fe</code>). PR-A backend: migration 0011
+              <code>cost_events</code> + tracking automático + pricing + soft-stop daily/per-issue +
+              4 IPCs. PR-B UI: rota <code>/costs</code> com 3 gráficos recharts (lazy) + filtros +
+              tabela. Dashboard widget "Custos hoje". Settings Budgets. ModelDropdown $/$$/$$$.
+              StatsTab com tokens 7d + custo.
             </div>
           </div>
           <div class="module" data-status="none">

@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-12 — **M8 PR-A backend mergeado em master via `56da29c`**. Cost tracking + soft-stop + 4 IPCs. Próximo: **M8 PR-B UI** (`/costs` route + Dashboard widget + Settings Budgets).
+> **Última atualização:** 2026-05-12 — **M8 fechado (PR-A + PR-B mergeados em master via `4c943fe`)**. Cost tracking + soft-stop + `/costs` route + Dashboard widget + Settings Budgets + ModelDropdown hints + StatsTab real. **11/14 milestones fechados**. Próximo: **M8.5 Goals** (CEO planning automático).
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 >
@@ -57,13 +57,16 @@
 - Trocar a quem o agente **reporta** (organograma)
 - Histórico de **runs** (sessões) com timestamps + duração
 
-### 💰 Custos (NOVO — backend pronto em 2026-05-12)
+### 💰 Custos (M8 completo — 2026-05-12)
 - Tracking **automático de tokens** consumidos por turn (entrada, saída, cache)
 - **Pricing aproximado em USD** pros 3 modelos Claude 4.x
 - **Soft-stop por budget diário** — agente passou do limite, pausa sozinho + alerta na inbox
 - **Soft-stop por budget de issue** — mesmo se a daily não estourou
-- Configurável: 4 budgets editáveis (daily/agent, per-issue, rate-window, window-hours)
-- 🚧 _Tela de gráficos `/costs` chega no M8 PR-B (próximo)_
+- **Rota `/costs`** com 3 gráficos (linha tokens/dia, barra top agentes, donut por projeto) + tabela + filtros (escopo, agente, projeto, adapter, período)
+- **Widget "Custos hoje"** no Dashboard com progress bar do limite Max
+- **Settings → Budgets** com 4 caps editáveis (daily/agent, per-issue, rate-window, window-hours) + reset
+- **ModelDropdown** com chips $/$$/$$$ pra tier relativo
+- **StatsTab do agente** mostra tokens 7d (entrada/saída/cache) + custo total
 
 ### 🔒 Segurança
 - Token Claude Max **criptografado at-rest** com DPAPI (Windows)
@@ -89,8 +92,7 @@
 
 ### 🚧 O que ainda NÃO funciona (próximas releases)
 
-- 📊 **Tela de custos com gráficos** — vem no PR-B do M8 (próximo)
-- 🎯 **Goals com CEO planejando automaticamente** — você cria objetivo, CEO monta plano completo (agentes a contratar + issues + estimates), você aprova num modo PR-review → M8.5
+- 🎯 **Goals com CEO planejando automaticamente** — você cria objetivo, CEO monta plano completo (agentes a contratar + issues + estimates), você aprova num modo PR-review → M8.5 (próximo)
 - 📈 **Dashboard inicial com widgets dinâmicos** — Agentes ativos / Issues em andamento / Inbox / Custos hoje → M9
 - 🏢 **Trocar entre empresas via dropdown da sidebar** → M9
 - ☁️ **Rodar agentes numa VPS remota (Docker)** — escolha per-agent: local (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
@@ -166,7 +168,7 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 | **Agents** | ✅ Completo | Sidebar com status colors + "+ Novo" button. `/agents/:id` chat unified + AgentHeader sticky (Pause/Resume/Assign Task/Runs/⋯ menu) + ConfigTab completo (role/model/reports-to/mode/always-on/schedule/skills editáveis/persona com expand). RunsModal + InstructionsFullScreenModal + TerminateConfirmModal + AgentNew form. Backend: M7.6 PR-A (9 IPCs + migration 0010 + activity dual-write). UI: M7.6 PR-B. |
 | **Org Chart** | ✅ Completo | Rota `/org` SVG handcrafted vertical tree + click drawer + drag-to-reassign + confirm modal + anti-cycle (backend + UI toast). |
 | **Skills** | ✅ Completo | Rota `/skills` master-detail (5 roles seedados, tools chips por skill, agentsUsing). Hard-gate via `--allowedTools`. Edit per-agent disponível no ConfigTab do agente (M7.6 PR-B). |
-| **Costs** | ❌ Não iniciado | Tabela `costs_log` existe. Tracking automático **NÃO** liga (M8). Rota `/costs` zerada (M8). |
+| **Costs** | ✅ Completo | M8 PR-A backend (`56da29c`): migration 0011 `cost_events` + tracking por turn + pricing opus/sonnet/haiku + soft-stop daily/per-issue + 4 IPCs. M8 PR-B UI (`4c943fe`): rota `/costs` com 3 gráficos recharts (lazy) + filtros + tabela. Dashboard widget "Custos hoje". Settings Budgets. ModelDropdown $/$$/$$$. StatsTab real. |
 | **Goals + CEO Planning** | ❌ Não iniciado | Tabela `goals`/`goal_plans` não existe. Feature além do Paperclip (CEO-planner automático). M8.5. |
 | **Settings** | ✅ Completo | OAuth token (manual + auto-detect M2), language, theme, default model. Defaults de mode/always_on **NÃO** UI ainda — M9. |
 
