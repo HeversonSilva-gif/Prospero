@@ -66,6 +66,29 @@
         "add": "+ add",
         "removeTitle": "Remove access",
         "allAccess": "(access to all projects)"
+      },
+      "reportsTo": {
+        "label": "Reports to",
+        "none": "(no one)"
+      },
+      "mode": {
+        "label": "Mode",
+        "supervised": "Supervised",
+        "auto": "Auto"
+      },
+      "alwaysOn": {
+        "label": "Always on",
+        "hint": "Agent auto-starts when the app launches."
+      },
+      "schedule": {
+        "label": "Schedule",
+        "wakeUp": "Run now",
+        "wakeUpHint": "Force a turn with a system message."
+      },
+      "skillsEdit": {
+        "required": "Required",
+        "optional": "Optional",
+        "addLabel": "Add skill…"
       }
     },
     "issues": {
@@ -77,6 +100,67 @@
       "tokensOut": "Tokens out",
       "lastActivity": "Last activity",
       "m8Note": "Tracking available in M8."
+    },
+    "header": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "assignTask": "Assign Task",
+      "runs": "Runs",
+      "menu": {
+        "copyId": "Copy Agent ID",
+        "resetSession": "Reset session",
+        "terminate": "Terminate agent"
+      },
+      "status": {
+        "idle": "Idle",
+        "thinking": "Thinking",
+        "working": "Working",
+        "waiting": "Waiting",
+        "error": "Error",
+        "paused": "Paused",
+        "terminated": "Terminated"
+      }
+    },
+    "terminate": {
+      "title": "Terminate agent?",
+      "message": "{{name}} will stop responding. Past messages stay in history. This cannot be undone.",
+      "reasonLabel": "Reason (optional)",
+      "confirm": "Terminate",
+      "cancel": "Cancel"
+    },
+    "runs": {
+      "title": "Run history",
+      "empty": "No runs yet.",
+      "session": "Session {{n}}",
+      "turn": "{{when}} · {{tools}} tool calls",
+      "close": "Close"
+    },
+    "instructions": {
+      "expand": "Expand",
+      "modalTitle": "Edit instructions",
+      "applyNote": "Changes take effect on the next turn. Use Reset session to apply now.",
+      "close": "Close"
+    },
+    "new": {
+      "title": "Hire new agent",
+      "shortLabel": "New",
+      "fields": {
+        "name": "Name",
+        "role": "Role template",
+        "title": "Title",
+        "reportsTo": "Reports to",
+        "model": "Model",
+        "mode": "Mode",
+        "persona": "Persona",
+        "skills": "Skills",
+        "projects": "Projects"
+      },
+      "submit": "Hire",
+      "cancel": "Cancel",
+      "errors": {
+        "nameRequired": "Name is required",
+        "personaTooShort": "Persona must be at least 20 characters"
+      }
     }
   },
   "org": {
