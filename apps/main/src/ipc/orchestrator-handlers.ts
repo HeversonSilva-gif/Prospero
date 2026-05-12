@@ -34,7 +34,7 @@ import {
 } from "../orchestrator/events-watcher.js";
 import { broadcastIssueChanged } from "./issue-events-broadcast.js";
 import { enqueueOrPark, drainPausedBacklog, pauseBacklog } from "./agents-pause-backlog.js";
-import { HIRE_FROM_UI_INPUT_SCHEMA } from "@dashboard-agent/shared";
+import { HIRE_FROM_UI_INPUT_SCHEMA } from "../schemas/hire-agent-input.js";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
