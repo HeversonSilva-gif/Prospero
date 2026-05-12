@@ -16,6 +16,7 @@ import { buildClaudeArgs } from "./build-args.js";
 import { findClaudeExe } from "./resolve-binary.js";
 import { prepareSandbox, seedSandboxCredentials, writeSandboxSettings } from "./prepare-sandbox.js";
 import { parseStreamLine } from "./stream-parser.js";
+import { FakeClaude, isFakeClaudeEnabled } from "./fake-claude.js";
 import { buildSpawnEnv } from "../../env.js";
 import { setupMcpHandshake } from "../../mcp-handshake.js";
 import { mergeSpawnEnv } from "../../util/env-merge.js";
@@ -84,22 +85,26 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
     dlog(`configDir=${agentConfigDir} ephemeral=${String(isEphemeralConfigDir)}`);
     dlog(`args: ${JSON.stringify(args)}`);
 
-    const claudeExe = findClaudeExe();
-    dlog(`spawn strategy: ${claudeExe !== null ? `direct exe (${claudeExe})` : "cross-spawn"}`);
-
-    this.child =
-      claudeExe !== null
-        ? nodeSpawn(claudeExe, args, {
-            env: spawnEnv,
-            cwd: spawnCwd,
-            stdio: ["pipe", "pipe", "pipe"],
-            windowsHide: true,
-          })
-        : crossSpawn("claude", args, {
-            env: spawnEnv,
-            cwd: spawnCwd,
-            stdio: ["pipe", "pipe", "pipe"],
-          });
+    if (isFakeClaudeEnabled()) {
+      dlog(`spawn strategy: FakeClaude stub (E2E mode)`);
+      this.child = new FakeClaude() as unknown as ChildProcess;
+    } else {
+      const claudeExe = findClaudeExe();
+      dlog(`spawn strategy: ${claudeExe !== null ? `direct exe (${claudeExe})` : "cross-spawn"}`);
+      this.child =
+        claudeExe !== null
+          ? nodeSpawn(claudeExe, args, {
+              env: spawnEnv,
+              cwd: spawnCwd,
+              stdio: ["pipe", "pipe", "pipe"],
+              windowsHide: true,
+            })
+          : crossSpawn("claude", args, {
+              env: spawnEnv,
+              cwd: spawnCwd,
+              stdio: ["pipe", "pipe", "pipe"],
+            });
+    }
 
     dlog(`spawned pid=${String(this.child.pid ?? "unknown")}`);
     this.child.on("spawn", () => {

@@ -1,10 +1,13 @@
-import Database from "better-sqlite3";
-import { applyMigrations } from "../../../apps/main/src/db/migrations.js";
-import { runPostMigrations } from "../../../apps/main/src/db/post-migrations/index.js";
-
 // Seeds the SQLite DB directly (not through IPC) for tests that need
 // preconditions like "company exists with CEO already hired". The Electron
 // app is launched against the same DB file via DASHBOARD_AGENT_USER_DATA.
+//
+// Imports are lazy so this module loads cleanly under Playwright's CJS
+// runner even when the suite is skipped — without it, top-level ESM-only
+// imports from the main app (import.meta.url usage) crash the test
+// discovery pass.
+
+import Database from "better-sqlite3";
 
 export type SeedOptions = {
   companyId?: string;
@@ -16,7 +19,10 @@ export type SeedOptions = {
 
 export const dbPathOf = (userDataDir: string): string => `${userDataDir}/dashboard-agent.db`;
 
-export const seedDb = (dbPath: string, opts: SeedOptions = {}): void => {
+export const seedDb = async (dbPath: string, opts: SeedOptions = {}): Promise<void> => {
+  const { applyMigrations } = await import("../../../apps/main/src/db/migrations.js");
+  const { runPostMigrations } = await import("../../../apps/main/src/db/post-migrations/index.js");
+
   const db = new Database(dbPath);
   try {
     applyMigrations(db);
