@@ -23,6 +23,7 @@ type Row = {
   status: string;
   current_action: string | null;
   model: string;
+  adapter_name: string;
   created_at: number;
   updated_at: number;
 };
@@ -43,6 +44,7 @@ const rowToAgent = (r: Row): Agent => ({
   skills: JSON.parse(r.skills_json) as string[],
   templateId: r.template_id,
   reportsTo: r.reports_to,
+  adapterName: r.adapter_name,
 });
 
 export type CreateAgentInput = {

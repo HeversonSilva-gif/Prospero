@@ -20,6 +20,7 @@ describe("buildSpawnEnv", () => {
         skills: [],
         templateId: null,
         reportsTo: null,
+        adapterName: "claude-oauth-local",
       },
       "sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_xyz123",
       "/tmp/db/dashboard-agent.db",

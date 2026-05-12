@@ -21,6 +21,7 @@ const agent: Agent = {
   skills: [],
   templateId: null,
   reportsTo: null,
+  adapterName: "claude-oauth-local",
 };
 
 describe(

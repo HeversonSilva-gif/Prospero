@@ -18,6 +18,7 @@ const mkAgent = (id: string, reportsTo: string | null): Agent => ({
   skills: [],
   templateId: null,
   reportsTo,
+  adapterName: "claude-oauth-local",
 });
 
 describe("layoutTree", () => {

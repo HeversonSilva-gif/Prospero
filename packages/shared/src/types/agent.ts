@@ -24,6 +24,7 @@ export type Agent = {
   skills: string[];
   templateId: string | null;
   reportsTo: string | null;
+  adapterName: string;
 };
 
 export type AgentStats = {

@@ -26,6 +26,7 @@ const baseAgent: Agent = {
   skills: [],
   templateId: null,
   reportsTo: null,
+  adapterName: "claude-oauth-local",
 };
 
 const fakeRunner = (id: string, alive: boolean): AgentRunner => ({
