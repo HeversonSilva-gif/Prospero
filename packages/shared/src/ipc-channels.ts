@@ -60,6 +60,11 @@ export const IPC = {
   WINDOW_CLOSE: "window:close",
   WINDOW_IS_MAXIMIZED: "window:is-maximized",
   WINDOW_STATE_CHANGED: "window:state-changed",
+  COSTS_QUERY: "costs:query",
+  COSTS_AGGREGATE_TODAY: "costs:aggregate-today",
+  COSTS_GET_BUDGETS: "costs:get-budgets",
+  COSTS_SET_BUDGETS: "costs:set-budgets",
+  COSTS_NEW: "costs:new",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
