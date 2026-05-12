@@ -16,7 +16,7 @@ import { loadDecryptedToken } from "../auth/token-storage.js";
 import { ensureRunner, getRunner, removeRunner } from "../orchestrator/lifecycle.js";
 import { createRouter } from "../orchestrator/router.js";
 import type { Sender } from "../orchestrator/router.js";
-import type { ParsedEvent } from "../orchestrator/stream-parser.js";
+import type { ParsedEvent } from "@dashboard-agent/shared";
 import { databasePath } from "../db/path.js";
 import { getPermissionsDir } from "../security/permissions-dir.js";
 import { getEventsDir } from "../orchestrator/events-dir.js";

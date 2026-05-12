@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseStreamLine } from "../src/orchestrator/stream-parser.js";
+import { parseStreamLine } from "../src/orchestrator/adapters/claude-oauth-local/stream-parser.js";
 
 describe("parseStreamLine", () => {
   it("returns null for empty/whitespace lines", () => {

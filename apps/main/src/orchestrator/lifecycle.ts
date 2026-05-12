@@ -13,8 +13,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { resolveSkillTools, type Agent } from "@dashboard-agent/shared";
-import { parseStreamLine, type ParsedEvent } from "./stream-parser.js";
+import { resolveSkillTools, type Agent, type ParsedEvent } from "@dashboard-agent/shared";
+import { parseStreamLine } from "./adapters/claude-oauth-local/stream-parser.js";
 import { buildSpawnEnv, type SpawnEnv } from "./env.js";
 import { writeMcpConfigFile } from "./mcp-config.js";
 import { buildAgentSystemPrompt } from "./system-prompt.js";
