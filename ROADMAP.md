@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-12 (M7.5 fechado; **M7.7 PR-A entregue na branch `feat/m7.7-pr-a`** — foundation: migration 0009 `activity_events` + recorder helper + 4 repos com dual-write + mcp tools + approvals; 426 tests passing (delta +34); pronto pra merge em master)
+> **Última atualização:** 2026-05-12 (M7.5 fechado; **M7.7 PR-A mergeado em master (`3220f00`)** — foundation: migration 0009 `activity_events` + recorder helper + 4 repos com dual-write + mcp tools + approvals. **M7.7 PR-B entregue na branch `feat/m7.7-pr-b`** — UI: rota `/activity` + filtros (actor/action/entity/agent/when) + search + infinite scroll + ACTIVITY_NEW real-time + animation 700ms + i18n PT/EN. 411 tests (383 main + 28 renderer; delta +18 renderer). Bundle 362 → 375.31 kB (+13.31 kB, abaixo do gate +20 kB). Pronto pra merge.)
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 
@@ -15,8 +15,8 @@
 | Métrica | Valor |
 |---|---|
 | Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5** (8/14 do v1: M1–M10 + M7.5 + M7.6 + M7.7 + M8.5) |
-| Em curso | **M7.7 PR-A** ready-to-merge (branch `feat/m7.7-pr-a`, 14 commits, foundation done). Próximo: PR-B (UI rota `/activity`). |
-| Testes | **426 passing** (383 main + 10 renderer + 33 shared), 0 lint/typecheck errors. Delta PR-A: +34. |
+| Em curso | **M7.7 PR-B** ready-to-merge (branch `feat/m7.7-pr-b`, 11 commits, UI done). Após merge: M7.7 fecha; próximo M7.6 (Agent Studio) ou M8 (Costs). |
+| Testes | **411 passing** (383 main + 28 renderer + 33 shared), 0 lint/typecheck errors. Delta PR-B: +18 renderer (activityRender ×6, useActivityStream ×8, matchesSearch ×4). |
 | Commits no master | ~165 |
 | LoC (apps + packages) | ~14k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · vitest · Playwright (E2E, skipped) |
@@ -32,7 +32,7 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 |---|---|---|
 | **Multi-empresa** | 🟡 Parcial | Backend pronto (`companies` table, `company:create-demo` IPC). UI: dropdown topo da sidebar pra trocar entre empresas **AINDA NÃO** (M9). Sidebar mostra a primeira company por default. |
 | **Dashboard** | 🟡 Stub | Rota `/dashboard` existe (placeholder M2). Widgets §6.4 + Recent Activity + Active Agents **NÃO** (M9 consome Activity stream do M7.7). |
-| **Activity stream** | ❌ Não iniciado | Sem tabela unificada. `issue_events` (M6) cobre só issues. Página `/activity` cross-cutting **NÃO** (M7.7 foundation). |
+| **Activity stream** | ✅ Completo | Migration 0009 `activity_events` + recorder helper + dual-write em 17 call sites (PR-A). Rota `/activity` com 5 filtros + search + infinite scroll + real-time prepend via `ACTIVITY_NEW` + 700ms animação fade-down (PR-B). Sem `issue_events` migrado — dual-write paralelo. |
 | **Inbox** | ✅ Completo | Rota `/inbox` com filter pills (All/Approvals/Completed/Suggestions/Errors/Security). Approve/Reject inline. Auto-mark-read no resolve. Badge unread no sidebar. **M7.5 PR-B:** dual-format handler suporta legacy embedded payload + new `approval_id` pointer. |
 | **Issues** | ✅ Completo | MCP tools (create/update/assign/list/check_status/record_artifact) reais. Kanban /issues com 5 colunas + drag-drop. Modal de detail com comments + sub-tasks + tool history. **M7.5 PR-B:** identifier humano `<SLUG>-N` (ex: `BACKEND-7`) em todos call sites + artifacts accordion + soft warning ao marcar `done` sem artifacts. |
 | **Projects** | ✅ Completo | Rota /projects master/detail com folder picker + color picker. Auto-cria 'Default Workspace' migration do workspaceCwd legado. Allowlist per agent via chip toggle. |

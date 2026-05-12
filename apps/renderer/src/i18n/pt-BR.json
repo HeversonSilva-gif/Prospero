@@ -10,7 +10,8 @@
     "projects": "Projetos",
     "issues": "Issues",
     "skills": "Habilidades",
-    "orgChart": "Organograma"
+    "orgChart": "Organograma",
+    "activity": "Atividade"
   },
   "dashboard": {
     "placeholder": "M2 — Autenticação e Configurações concluídas. Os widgets do dashboard chegam em M6.",
@@ -268,5 +269,92 @@
     "detail.agentsUsing": "Agentes usando este cargo",
     "detail.noAgents": "Nenhum agente usa este cargo no momento.",
     "detail.skillsGroup": "Habilidade: {{skill}}"
+  },
+  "activity": {
+    "title": "Atividade",
+    "subtitle": "Tudo o que aconteceu na empresa.",
+    "search": "Buscar…",
+    "empty": "Nenhuma atividade ainda.",
+    "loadMore": "Carregar mais",
+    "deleted": "(excluído)",
+    "you": "Você",
+    "system": "Sistema",
+    "filter": {
+      "actor": "Ator",
+      "action": "Ação",
+      "entity": "Entidade",
+      "agent": "Agente",
+      "when": "Quando",
+      "all": "Todos",
+      "clear": "Limpar filtros",
+      "actorKind": {
+        "user": "Usuário",
+        "agent": "Agente",
+        "system": "Sistema"
+      },
+      "entityKind": {
+        "agent": "Agente",
+        "issue": "Issue",
+        "project": "Projeto",
+        "approval": "Aprovação",
+        "session": "Sessão",
+        "company": "Empresa",
+        "goal": "Meta"
+      },
+      "whenKey": {
+        "today": "Hoje",
+        "7d": "Últimos 7 dias",
+        "30d": "Últimos 30 dias",
+        "all": "Todo o tempo"
+      }
+    },
+    "action": {
+      "agent": {
+        "hired": "{{actor}} contratou {{name}}",
+        "role_changed": "{{actor}} mudou o papel de {{target}} de {{from}} para {{to}}",
+        "model_changed": "{{actor}} mudou o modelo de {{target}} de {{from}} para {{to}}",
+        "persona_edited": "{{actor}} editou a persona de {{target}}",
+        "skills_changed": "{{actor}} atualizou as skills de {{target}}",
+        "reports_to_changed": "{{actor}} mudou a linha de reporte de {{target}}",
+        "allowed_projects_changed": "{{actor}} atualizou o acesso a projetos de {{target}}",
+        "paused": "{{actor}} pausou {{target}}",
+        "resumed": "{{actor}} retomou {{target}}",
+        "terminated": "{{actor}} encerrou {{target}}"
+      },
+      "issue": {
+        "created": "{{actor}} criou {{identifier}} — {{title}}",
+        "status_changed": "{{actor}} moveu {{target}} de {{from}} para {{to}}",
+        "assignee_changed": "{{actor}} reatribuiu {{target}}",
+        "priority_changed": "{{actor}} mudou a prioridade de {{target}} para {{to}}",
+        "comment_added": "{{actor}} comentou em {{target}}"
+      },
+      "approval": {
+        "requested": "{{actor}} solicitou aprovação para {{toolName}}",
+        "approved": "{{actor}} aprovou uma solicitação",
+        "rejected": "{{actor}} rejeitou uma solicitação"
+      },
+      "project": {
+        "created": "{{actor}} criou o projeto {{name}}",
+        "updated": "{{actor}} atualizou o projeto {{target}}",
+        "deleted": "{{actor}} excluiu o projeto {{name}}"
+      },
+      "goal": {
+        "created": "{{actor}} criou a meta {{title}}",
+        "plan_proposed": "{{actor}} propôs um plano com {{stepCount}} passo(s)",
+        "plan_approved": "{{actor}} aprovou o plano",
+        "status_changed": "{{actor}} mudou o status da meta de {{from}} para {{to}}"
+      },
+      "session": {
+        "started": "Sessão de {{target}} iniciada",
+        "ended": "Sessão de {{target}} encerrada"
+      },
+      "cost": {
+        "day_summary": "Resumo diário: {{inputTokens}} in / {{outputTokens}} out"
+      },
+      "company": {
+        "created": "Empresa {{name}} criada",
+        "updated": "Empresa atualizada"
+      }
+    }
   }
 }

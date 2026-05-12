@@ -10,7 +10,8 @@
     "projects": "Projects",
     "issues": "Issues",
     "skills": "Skills",
-    "orgChart": "Org Chart"
+    "orgChart": "Org Chart",
+    "activity": "Activity"
   },
   "dashboard": {
     "placeholder": "M2 — Auth & Settings done. Dashboard widgets land in M6.",
@@ -268,5 +269,92 @@
     "detail.agentsUsing": "Agents using this role",
     "detail.noAgents": "No agents currently use this role.",
     "detail.skillsGroup": "Skill: {{skill}}"
+  },
+  "activity": {
+    "title": "Activity",
+    "subtitle": "Everything that happened across the company.",
+    "search": "Search…",
+    "empty": "No activity yet.",
+    "loadMore": "Load more",
+    "deleted": "(deleted)",
+    "you": "You",
+    "system": "System",
+    "filter": {
+      "actor": "Actor",
+      "action": "Action",
+      "entity": "Entity",
+      "agent": "Agent",
+      "when": "When",
+      "all": "All",
+      "clear": "Clear filters",
+      "actorKind": {
+        "user": "User",
+        "agent": "Agent",
+        "system": "System"
+      },
+      "entityKind": {
+        "agent": "Agent",
+        "issue": "Issue",
+        "project": "Project",
+        "approval": "Approval",
+        "session": "Session",
+        "company": "Company",
+        "goal": "Goal"
+      },
+      "whenKey": {
+        "today": "Today",
+        "7d": "Last 7 days",
+        "30d": "Last 30 days",
+        "all": "All time"
+      }
+    },
+    "action": {
+      "agent": {
+        "hired": "{{actor}} hired {{name}}",
+        "role_changed": "{{actor}} changed {{target}}'s role from {{from}} to {{to}}",
+        "model_changed": "{{actor}} changed {{target}}'s model from {{from}} to {{to}}",
+        "persona_edited": "{{actor}} edited {{target}}'s persona",
+        "skills_changed": "{{actor}} updated {{target}}'s skills",
+        "reports_to_changed": "{{actor}} changed {{target}}'s reporting line",
+        "allowed_projects_changed": "{{actor}} updated {{target}}'s project access",
+        "paused": "{{actor}} paused {{target}}",
+        "resumed": "{{actor}} resumed {{target}}",
+        "terminated": "{{actor}} terminated {{target}}"
+      },
+      "issue": {
+        "created": "{{actor}} created {{identifier}} — {{title}}",
+        "status_changed": "{{actor}} moved {{target}} from {{from}} to {{to}}",
+        "assignee_changed": "{{actor}} reassigned {{target}}",
+        "priority_changed": "{{actor}} changed priority of {{target}} to {{to}}",
+        "comment_added": "{{actor}} commented on {{target}}"
+      },
+      "approval": {
+        "requested": "{{actor}} requested approval for {{toolName}}",
+        "approved": "{{actor}} approved a request",
+        "rejected": "{{actor}} rejected a request"
+      },
+      "project": {
+        "created": "{{actor}} created project {{name}}",
+        "updated": "{{actor}} updated project {{target}}",
+        "deleted": "{{actor}} deleted project {{name}}"
+      },
+      "goal": {
+        "created": "{{actor}} created goal {{title}}",
+        "plan_proposed": "{{actor}} proposed a plan with {{stepCount}} step(s)",
+        "plan_approved": "{{actor}} approved the plan",
+        "status_changed": "{{actor}} changed goal status from {{from}} to {{to}}"
+      },
+      "session": {
+        "started": "{{target}} session started",
+        "ended": "{{target}} session ended"
+      },
+      "cost": {
+        "day_summary": "Daily summary: {{inputTokens}} in / {{outputTokens}} out"
+      },
+      "company": {
+        "created": "Company {{name}} created",
+        "updated": "Company updated"
+      }
+    }
   }
 }
