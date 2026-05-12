@@ -18,6 +18,11 @@ import { ensureAdapter, getAdapter, removeAdapter } from "../orchestrator/lifecy
 import { createRouter } from "../orchestrator/router.js";
 import type { Sender } from "../orchestrator/router.js";
 import type { ParsedEvent } from "@dashboard-agent/shared";
+import { mapToolUseToAction } from "../orchestrator/current-action-mapper.js";
+import {
+  createCurrentActionDebouncer,
+  type CurrentActionDebouncer,
+} from "../orchestrator/event-throttle.js";
 import { databasePath } from "../db/path.js";
 import { getPermissionsDir } from "../security/permissions-dir.js";
 import { getEventsDir } from "../orchestrator/events-dir.js";
@@ -36,6 +41,11 @@ const broadcast = (event: AgentEvent): void => {
 export const registerOrchestratorHandlers = (db: Database.Database): void => {
   const agents = createAgentsRepository(db);
   const messages = createMessagesRepository(db);
+
+  const currentActionDebouncer: CurrentActionDebouncer = createCurrentActionDebouncer(
+    (agentId, action) => broadcast({ kind: "current-action-changed", agentId, action }),
+    200,
+  );
 
   const router = createRouter({
     writeStdin: (agentId, content) => {
@@ -154,7 +164,14 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       agents.clearSessionId(agent.id);
       agents.updateStatus(agent.id, { status: "error", currentAction: null });
       broadcast({ kind: "error", agentId: agent.id, message: err.message });
-      broadcast({ kind: "status", agentId: agent.id, status: "error", currentAction: null });
+      broadcast({
+        kind: "status-changed",
+        agentId: agent.id,
+        status: "error",
+        updatedAt: Date.now(),
+      });
+      currentActionDebouncer.cancel(agent.id);
+      broadcast({ kind: "current-action-changed", agentId: agent.id, action: null });
     };
 
     void ensureAdapter(
@@ -170,14 +187,19 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         onEvent: (ev: ParsedEvent) => {
           if (ev.kind === "session-init") {
             agents.setSessionId(agent.id, ev.sessionId);
-            broadcast({ kind: "session", agentId: agent.id, sessionId: ev.sessionId });
+            broadcast({
+              kind: "session-id-changed",
+              agentId: agent.id,
+              sessionId: ev.sessionId,
+            });
             agents.updateStatus(agent.id, { status: "thinking", currentAction: null });
             broadcast({
-              kind: "status",
+              kind: "status-changed",
               agentId: agent.id,
               status: "thinking",
-              currentAction: null,
+              updatedAt: Date.now(),
             });
+            currentActionDebouncer.schedule(agent.id, null);
           } else if (ev.kind === "assistant-message") {
             let textContent = "";
             const tools: ToolCallView[] = [];
@@ -194,16 +216,18 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
                 };
                 tools.push(tc);
                 collectedToolCalls.set(block.id, tc);
+                const actionText = mapToolUseToAction(block.name, block.input);
                 agents.updateStatus(agent.id, {
                   status: "working",
-                  currentAction: `Using ${block.name}`.slice(0, 80),
+                  currentAction: actionText,
                 });
                 broadcast({
-                  kind: "status",
+                  kind: "status-changed",
                   agentId: agent.id,
                   status: "working",
-                  currentAction: `Using ${block.name}`.slice(0, 80),
+                  updatedAt: Date.now(),
                 });
+                currentActionDebouncer.schedule(agent.id, actionText);
               }
             }
             const threadId = router.getCurrentThread(agent.id);
@@ -236,7 +260,14 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
             const stillBusy = router.getCurrentThread(agent.id) !== null;
             const status = stillBusy ? "thinking" : "idle";
             agents.updateStatus(agent.id, { status, currentAction: null });
-            broadcast({ kind: "status", agentId: agent.id, status, currentAction: null });
+            broadcast({
+              kind: "status-changed",
+              agentId: agent.id,
+              status,
+              updatedAt: Date.now(),
+            });
+            currentActionDebouncer.flush(agent.id);
+            currentActionDebouncer.schedule(agent.id, null);
             // Refresh agents roster on every turn-complete. Covers the case where this
             // turn called hire_agent/fire_agent and the renderer needs to see the new
             // sidebar state. stderr-based agent.spawn-needed events don't always reach
@@ -267,11 +298,13 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
             currentAction: null,
           });
           broadcast({
-            kind: "status",
+            kind: "status-changed",
             agentId: agent.id,
             status: code === 0 ? "idle" : "error",
-            currentAction: null,
+            updatedAt: Date.now(),
           });
+          currentActionDebouncer.cancel(agent.id);
+          broadcast({ kind: "current-action-changed", agentId: agent.id, action: null });
         },
       },
     ).catch(onError);
@@ -289,6 +322,8 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     }
     agents.clearSessionId(agentId);
     agents.updateStatus(agentId, { status: "idle", currentAction: null });
+    currentActionDebouncer.cancel(agentId);
+    broadcast({ kind: "current-action-changed", agentId, action: null });
     broadcast({ kind: "roster-changed", companyId });
   };
 
@@ -301,6 +336,18 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     a?.kill();
     removeAdapter(payload.agentId);
     agents.updateStatus(payload.agentId, { status: "idle", currentAction: null });
+    currentActionDebouncer.cancel(payload.agentId);
+    const agent = agents.getById(payload.agentId);
+    broadcast({
+      kind: "status-changed",
+      agentId: payload.agentId,
+      status: "idle",
+      updatedAt: Date.now(),
+    });
+    broadcast({ kind: "current-action-changed", agentId: payload.agentId, action: null });
+    if (agent !== null) {
+      broadcast({ kind: "roster-changed", companyId: agent.companyId });
+    }
   });
 
   ipcMain.handle(
