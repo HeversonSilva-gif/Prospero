@@ -13,3 +13,4 @@ export * from "./issue.js";
 export * from "./activity.js";
 export * from "./hire-agent-input.js";
 export * from "./costs.js";
+export * from "./goal.js";

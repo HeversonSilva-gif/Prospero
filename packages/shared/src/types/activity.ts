@@ -44,11 +44,13 @@ export const ACTIVITY_ACTIONS = [
   "project.created",
   "project.updated",
   "project.deleted",
-  // Goal (4) — defined, not emitted until M8.5
+  // Goal (6) — M8.5 PR-A wires these up
   "goal.created",
   "goal.plan_proposed",
   "goal.plan_approved",
+  "goal.plan_rejected",
   "goal.status_changed",
+  "goal.subgoal_recorded",
   // Session / Cost (3) — session.* optional in PR-A; cost.day_summary depends M8
   "session.started",
   "session.ended",
