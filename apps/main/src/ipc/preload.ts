@@ -117,6 +117,8 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
       ipcRenderer.invoke(IPC.PROJECTS_CHECK_PATHS, { companyId }) as Promise<
         Record<string, ProjectPathStatus>
       >,
+    setSlug: (projectId: string, slug: string) =>
+      ipcRenderer.invoke(IPC.PROJECTS_SET_SLUG, { projectId, slug }) as Promise<void>,
   },
   issues: {
     list: (payload: {
