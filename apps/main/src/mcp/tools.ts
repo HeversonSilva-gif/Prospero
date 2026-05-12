@@ -8,6 +8,7 @@ import { createInboxRepository } from "../inbox/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
 import { createSettingsRepository } from "../settings/repository.js";
+import { createApprovalsRepository } from "../approvals/repository.js";
 
 export type ToolContext = {
   agentId: string;
@@ -530,6 +531,31 @@ export const toolDefinitions = [
           ? (rawInput.tool_input as Record<string, unknown>)
           : {});
       const toolUseId = rawInput.tool_use_id ?? rawInput.permission_request_id ?? "unknown";
+
+      // Persist a structured approval row so the inbox surface gets a typed
+      // payload + audit history. Inbox row stores only the approval pointer.
+      const approvals = createApprovalsRepository(ctx.db);
+      const approval = approvals.create({
+        agentId: ctx.agentId,
+        kind: "tool_call",
+        payload: {
+          tool_name: rawInput.tool_name,
+          tool_input: toolInput,
+          tool_use_id: toolUseId,
+        },
+      });
+      const inbox = createInboxRepository(ctx.db);
+      inbox.create({
+        companyId: ctx.companyId,
+        kind: "approval",
+        actorId: ctx.agentId,
+        title: `Approval — ${rawInput.tool_name}`,
+        preview: null,
+        payloadJson: JSON.stringify({ approval_id: approval.id, tool_use_id: toolUseId }),
+        requiresAction: true,
+        approvalId: approval.id,
+      });
+
       const reqPath = join(ctx.permissionsDir, `${toolUseId}.req.json`);
       writeFileSync(
         reqPath,
@@ -541,6 +567,12 @@ export const toolDefinitions = [
         }),
       );
       const result = await waitForResolution(ctx.permissionsDir, toolUseId, 30 * 60_000);
+      approvals.decide(
+        approval.id,
+        result.behavior === "allow" ? "approved" : "rejected",
+        "user",
+        result.behavior === "deny" ? result.message : undefined,
+      );
       safeUnlink(reqPath);
       // Claude Code's --permission-prompt-tool requires `updatedInput` (a Record) on
       // allow responses. Without it, the response fails Zod validation on claude's

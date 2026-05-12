@@ -72,6 +72,7 @@ describe("m3 types and channels", () => {
       preview: null,
       payloadJson: null,
       requiresAction: false,
+      approvalId: null,
       readAt: null,
       createdAt: 1,
     };

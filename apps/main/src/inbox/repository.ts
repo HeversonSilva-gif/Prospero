@@ -11,6 +11,7 @@ type Row = {
   preview: string | null;
   payload_json: string | null;
   requires_action: number;
+  approval_id: string | null;
   read_at: number | null;
   created_at: number;
 };
@@ -24,6 +25,7 @@ const rowToItem = (r: Row): InboxItem => ({
   preview: r.preview,
   payloadJson: r.payload_json,
   requiresAction: r.requires_action === 1,
+  approvalId: r.approval_id,
   readAt: r.read_at,
   createdAt: r.created_at,
 });
@@ -36,6 +38,7 @@ export type CreateInboxInput = {
   preview?: string | null;
   requiresAction?: boolean;
   payloadJson?: string | null;
+  approvalId?: string | null;
 };
 
 export type InboxRepository = {
@@ -43,12 +46,13 @@ export type InboxRepository = {
   listByCompany(companyId: string): InboxItem[];
   markRead(id: string): void;
   markReadByToolUseId(toolUseId: string): InboxItem | null;
+  markReadByApprovalId(approvalId: string): InboxItem | null;
 };
 
 export const createInboxRepository = (db: Database.Database): InboxRepository => {
   const insert = db.prepare(`
-    INSERT INTO inbox_items (id, company_id, kind, actor_id, title, preview, payload_json, requires_action, read_at, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+    INSERT INTO inbox_items (id, company_id, kind, actor_id, title, preview, payload_json, requires_action, approval_id, read_at, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
   `);
   const list = db.prepare(
     "SELECT * FROM inbox_items WHERE company_id = ? ORDER BY created_at DESC",
@@ -68,6 +72,7 @@ export const createInboxRepository = (db: Database.Database): InboxRepository =>
         input.preview ?? null,
         input.payloadJson ?? null,
         input.requiresAction === true ? 1 : 0,
+        input.approvalId ?? null,
         now,
       );
       return {
@@ -79,6 +84,7 @@ export const createInboxRepository = (db: Database.Database): InboxRepository =>
         preview: input.preview ?? null,
         payloadJson: input.payloadJson ?? null,
         requiresAction: input.requiresAction === true,
+        approvalId: input.approvalId ?? null,
         readAt: null,
         createdAt: now,
       };
@@ -91,13 +97,22 @@ export const createInboxRepository = (db: Database.Database): InboxRepository =>
       markReadStmt.run(Date.now(), id);
     },
     markReadByToolUseId(toolUseId) {
-      // Find inbox item whose payload_json contains this toolUseId. Naive substring match
-      // against JSON string — adequate for the small inbox sizes expected in v1.
+      // Legacy fallback for inbox items written before approval_id existed —
+      // their payload_json embeds the toolUseId. Naive substring match is
+      // adequate for the small inbox sizes expected in v1.
       const row = db
         .prepare(
           `SELECT * FROM inbox_items WHERE kind = 'approval' AND read_at IS NULL AND payload_json LIKE ? LIMIT 1`,
         )
         .get(`%${toolUseId}%`) as Row | undefined;
+      if (row === undefined) return null;
+      markReadStmt.run(Date.now(), row.id);
+      return rowToItem({ ...row, read_at: Date.now() });
+    },
+    markReadByApprovalId(approvalId) {
+      const row = db
+        .prepare(`SELECT * FROM inbox_items WHERE approval_id = ? AND read_at IS NULL LIMIT 1`)
+        .get(approvalId) as Row | undefined;
       if (row === undefined) return null;
       markReadStmt.run(Date.now(), row.id);
       return rowToItem({ ...row, read_at: Date.now() });
