@@ -27,6 +27,10 @@ export const getRecorder = (): Recorder => {
   return _recorder;
 };
 
+// Soft variant for handler files that may be exercised in tests that skip
+// initRecorder (and thus skip dual-write). Returns undefined when uninitialized.
+export const tryGetRecorder = (): Recorder | undefined => _recorder ?? undefined;
+
 export const _setRecorderForTest = (rec: Recorder | null): void => {
   _recorder = rec;
 };

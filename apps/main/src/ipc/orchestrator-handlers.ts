@@ -12,6 +12,7 @@ import {
 } from "@dashboard-agent/shared";
 import { redactString } from "../auth/token-redact.js";
 import { createAgentsRepository } from "../agents/repository.js";
+import { tryGetRecorder } from "../activity/index.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { loadDecryptedToken } from "../auth/token-storage.js";
 import { ensureAdapter, getAdapter, removeAdapter } from "../orchestrator/lifecycle.js";
@@ -39,7 +40,7 @@ const broadcast = (event: AgentEvent): void => {
 };
 
 export const registerOrchestratorHandlers = (db: Database.Database): void => {
-  const agents = createAgentsRepository(db);
+  const agents = createAgentsRepository(db, tryGetRecorder());
   const messages = createMessagesRepository(db);
 
   const currentActionDebouncer: CurrentActionDebouncer = createCurrentActionDebouncer(

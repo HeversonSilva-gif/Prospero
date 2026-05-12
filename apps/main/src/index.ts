@@ -15,6 +15,7 @@ import { broadcastInboxUpdate } from "./ipc/inbox-handlers.js";
 import { createInboxRepository } from "./inbox/repository.js";
 import { createAgentsRepository } from "./agents/repository.js";
 import { createProjectsRepository } from "./projects/repository.js";
+import { getRecorder } from "./activity/index.js";
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -35,7 +36,7 @@ void app.whenReady().then(() => {
   registerIpcHandlers(db);
 
   // Permission watcher (M5 spec §6.4)
-  const agentsRepo = createAgentsRepository(db);
+  const agentsRepo = createAgentsRepository(db, getRecorder());
   const projectsRepo = createProjectsRepository(db);
   const inboxRepo = createInboxRepository(db);
   const permissionsDir = getPermissionsDir(app.getPath("userData"));
