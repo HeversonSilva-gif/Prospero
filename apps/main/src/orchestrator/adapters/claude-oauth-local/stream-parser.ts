@@ -142,7 +142,10 @@ export const parseStreamLine = (line: string): ParsedEvent | null => {
   if (data["type"] === "result") {
     const usage = safeReadUsage(data["usage"]);
     const model = readModel(data);
-    return { kind: "turn-complete", usage, model };
+    const event: ParsedEvent = { kind: "turn-complete" };
+    if (usage !== undefined) event.usage = usage;
+    if (model !== undefined) event.model = model;
+    return event;
   }
 
   // legacy partial-message stream events (still emitted with --include-partial-messages)

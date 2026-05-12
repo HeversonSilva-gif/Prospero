@@ -47,4 +47,5 @@ export type AgentEvent =
       error?: string;
     }
   | { kind: "error"; agentId: string; message: string }
-  | { kind: "roster-changed"; companyId: string };
+  | { kind: "roster-changed"; companyId: string }
+  | { kind: "costs-new"; agentId: string; deltaTokens: number; deltaCents: number };

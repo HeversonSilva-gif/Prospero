@@ -35,6 +35,12 @@ import {
 import { broadcastIssueChanged } from "./issue-events-broadcast.js";
 import { enqueueOrPark, drainPausedBacklog, pauseBacklog } from "./agents-pause-backlog.js";
 import { HIRE_FROM_UI_INPUT_SCHEMA } from "../schemas/hire-agent-input.js";
+import { createCostsRepository } from "../costs/repository.js";
+import { createBudgetsRepository } from "../costs/budgets-repository.js";
+import { createCostRecorder, type CostsBroadcast } from "../costs/recorder.js";
+import { checkAndPause, type EnforceBudgetDeps } from "../costs/enforce-budget.js";
+import { rollUpYesterdayIfNeeded } from "../costs/day-summary.js";
+import { createInboxRepository } from "../inbox/repository.js";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -45,6 +51,78 @@ const broadcast = (event: AgentEvent): void => {
 export const registerOrchestratorHandlers = (db: Database.Database): void => {
   const agents = createAgentsRepository(db, tryGetRecorder());
   const messages = createMessagesRepository(db);
+  const inbox = createInboxRepository(db);
+  const costsRepo = createCostsRepository(db);
+  const budgetsRepo = createBudgetsRepository(db);
+
+  // Debounced broadcast: aggregate costs:new deltas over 1s windows so the
+  // renderer isn't bombarded after fast-firing turns.
+  const pendingCosts = new Map<string, { tokens: number; cents: number }>();
+  let costsBroadcastTimer: NodeJS.Timeout | null = null;
+  const broadcastCostsDelta: CostsBroadcast = (payload) => {
+    const existing = pendingCosts.get(payload.agentId) ?? { tokens: 0, cents: 0 };
+    existing.tokens += payload.deltaTokens;
+    existing.cents += payload.deltaCents;
+    pendingCosts.set(payload.agentId, existing);
+    if (costsBroadcastTimer === null) {
+      costsBroadcastTimer = setTimeout(() => {
+        for (const [agentId, agg] of pendingCosts.entries()) {
+          broadcast({
+            kind: "costs-new",
+            agentId,
+            deltaTokens: agg.tokens,
+            deltaCents: agg.cents,
+          });
+        }
+        pendingCosts.clear();
+        costsBroadcastTimer = null;
+      }, 1000);
+    }
+  };
+
+  const costRecorder = createCostRecorder({
+    costsRepo,
+    broadcast: broadcastCostsDelta,
+  });
+
+  const enforceDeps: EnforceBudgetDeps = {
+    costsRepo,
+    budgetsRepo,
+    pauseAgent: (agentId, reason) => {
+      agents.pause(agentId, reason);
+      broadcast({
+        kind: "status-changed",
+        agentId,
+        status: "paused",
+        updatedAt: Date.now(),
+      });
+    },
+    notifySecurityAlert: (input) => {
+      const limitDesc = input.reason === "budget_exceeded_daily" ? "diário" : "por issue";
+      inbox.create({
+        companyId: input.companyId,
+        kind: "security_alert",
+        actorId: input.agentId,
+        title: `Budget ${limitDesc} excedido`,
+        preview: `Agent gastou ${String(input.tokens)} tokens (limite ${String(input.limit)})`,
+        payloadJson: JSON.stringify(input),
+        requiresAction: true,
+      });
+    },
+    recordPauseActivity: (input) => {
+      const rec = tryGetRecorder();
+      if (rec === undefined) return;
+      rec.recordActivity({
+        companyId: input.companyId,
+        actor: { kind: "system" },
+        action: "agent.paused",
+        entityKind: "agent",
+        entityId: input.agentId,
+        agentId: input.agentId,
+        payload: { reason: input.reason },
+      });
+    },
+  };
 
   const currentActionDebouncer: CurrentActionDebouncer = createCurrentActionDebouncer(
     (agentId, action) => broadcast({ kind: "current-action-changed", agentId, action }),
@@ -259,6 +337,40 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
               });
             }
           } else if (ev.kind === "turn-complete") {
+            // M8: persist usage + enforce budget + lazy day-summary roll-up.
+            // Note: per-issue enforcement requires router.getCurrentIssue
+            // which doesn't exist v1; falls back to null (daily cap still
+            // works). M8.5 will add issue tracking to router.
+            if (ev.usage !== undefined) {
+              const projectIds = agent.allowedProjects;
+              const projectId = projectIds.length === 1 ? projectIds[0]! : null;
+              costRecorder.recordTurn({
+                companyId: agent.companyId,
+                agentId: agent.id,
+                projectId,
+                issueId: null,
+                adapterName: agent.adapterName,
+                model: ev.model ?? agent.model,
+                sessionId: agent.claudeSessionId,
+                usage: ev.usage,
+              });
+              checkAndPause(enforceDeps, {
+                companyId: agent.companyId,
+                agentId: agent.id,
+                issueId: null,
+              });
+              const activityRec = tryGetRecorder();
+              if (activityRec !== undefined) {
+                rollUpYesterdayIfNeeded({
+                  db,
+                  now: () => Date.now(),
+                  companyId: agent.companyId,
+                  agentId: agent.id,
+                  costsRepo,
+                  activityRecorder: activityRec,
+                });
+              }
+            }
             collectedToolCalls.clear();
             router.onTurnComplete(agent.id);
             const stillBusy = router.getCurrentThread(agent.id) !== null;
