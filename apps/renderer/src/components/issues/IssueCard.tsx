@@ -38,7 +38,12 @@ export const IssueCard: FC<Props> = ({ issue, projectColor, assigneeName, onClic
     >
       <div className="flex items-start gap-2">
         <span className="w-2 h-2 rounded-full mt-1 shrink-0" style={{ background: projectColor }} />
-        <span className="font-medium text-brand-dark line-clamp-2 flex-1">{issue.title}</span>
+        <span className="font-medium text-brand-dark line-clamp-2 flex-1">
+          {issue.identifier !== null && (
+            <span className="font-mono text-[10px] text-ink-soft mr-1">{issue.identifier}</span>
+          )}
+          {issue.title}
+        </span>
       </div>
       <div className="flex items-center justify-between mt-2 text-[10px] text-ink-muted">
         <span>👤 {assigneeName ?? "—"}</span>

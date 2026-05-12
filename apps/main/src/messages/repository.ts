@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type { Message, SenderKind, ToolCallView } from "@dashboard-agent/shared";
+import type { Message, MessageKind, SenderKind, ToolCallView } from "@dashboard-agent/shared";
 import { threadKey } from "./thread-key.js";
 
 type ThreadRow = {
@@ -16,6 +16,7 @@ type MessageRow = {
   sender_kind: string;
   sender_id: string | null;
   content: string;
+  kind: string;
   tool_calls_json: string | null;
   created_at: number;
 };
@@ -26,6 +27,7 @@ const rowToMessage = (r: MessageRow): Message => ({
   senderKind: r.sender_kind as SenderKind,
   senderId: r.sender_id,
   content: r.content,
+  kind: r.kind as MessageKind,
   toolCalls: r.tool_calls_json === null ? null : (JSON.parse(r.tool_calls_json) as ToolCallView[]),
   createdAt: r.created_at,
 });
@@ -36,6 +38,7 @@ export type AppendInput = {
   senderKind: SenderKind;
   senderId: string | null;
   content: string;
+  kind?: MessageKind;
   toolCalls?: ToolCallView[] | null;
 };
 
@@ -44,6 +47,7 @@ export type AppendToThreadIdInput = {
   senderKind: SenderKind;
   senderId: string | null;
   content: string;
+  kind?: MessageKind;
   toolCalls?: ToolCallView[] | null;
 };
 
@@ -54,6 +58,7 @@ export type MessagesRepository = {
   list(threadId: string): Message[];
   listByParticipants(companyId: string, participants: string[]): Message[];
   listByAgentParticipating(agentId: string): Message[];
+  countUnansweredQuestions(agentId: string): number;
 };
 
 export const createMessagesRepository = (db: Database.Database): MessagesRepository => {
@@ -64,7 +69,7 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
     "INSERT INTO threads (id, company_id, participants_json, created_at) VALUES (?, ?, ?, ?)",
   );
   const insertMessage = db.prepare(
-    "INSERT INTO messages (id, thread_id, sender_kind, sender_id, content, tool_calls_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO messages (id, thread_id, sender_kind, sender_id, content, kind, tool_calls_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const listByThread = db.prepare(
     "SELECT * FROM messages WHERE thread_id = ? ORDER BY created_at ASC, id ASC",
@@ -85,6 +90,7 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
       const thread = ensureThread(input.companyId, input.participants);
       const id = `msg_${randomUUID()}`;
       const now = Date.now();
+      const kind = input.kind ?? "message";
       const toolCallsJson =
         input.toolCalls === null || input.toolCalls === undefined
           ? null
@@ -95,6 +101,7 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
         input.senderKind,
         input.senderId,
         input.content,
+        kind,
         toolCallsJson,
         now,
       );
@@ -104,6 +111,7 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
         senderKind: input.senderKind,
         senderId: input.senderId,
         content: input.content,
+        kind,
         toolCalls: input.toolCalls ?? null,
         createdAt: now,
       };
@@ -111,6 +119,7 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
     appendToThreadId(input) {
       const id = `msg_${randomUUID()}`;
       const now = Date.now();
+      const kind = input.kind ?? "message";
       const toolCallsJson =
         input.toolCalls === null || input.toolCalls === undefined
           ? null
@@ -121,6 +130,7 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
         input.senderKind,
         input.senderId,
         input.content,
+        kind,
         toolCallsJson,
         now,
       );
@@ -130,6 +140,7 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
         senderKind: input.senderKind,
         senderId: input.senderId,
         content: input.content,
+        kind,
         toolCalls: input.toolCalls ?? null,
         createdAt: now,
       };
@@ -159,6 +170,35 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
         ...rowToMessage(r),
         threadParticipants: r.t_participants_json.split("|"),
       }));
+    },
+    countUnansweredQuestions(agentId) {
+      // For each question this agent sent, check whether the same thread has a
+      // later (or same-tick) message from anyone but this agent. Same-tick
+      // matters because better-sqlite3 inserts often share Date.now() within a
+      // millisecond — strict > would mark same-tick replies as unanswered.
+      const rows = db
+        .prepare(
+          `SELECT m.id, m.thread_id, m.created_at
+             FROM messages m
+            WHERE m.sender_kind = 'agent'
+              AND m.sender_id = ?
+              AND m.kind = 'question'`,
+        )
+        .all(agentId) as Array<{ id: string; thread_id: string; created_at: number }>;
+      let unanswered = 0;
+      const replyCheck = db.prepare(
+        `SELECT 1 FROM messages
+          WHERE thread_id = ?
+            AND id != ?
+            AND created_at >= ?
+            AND NOT (sender_kind = 'agent' AND sender_id = ?)
+          LIMIT 1`,
+      );
+      for (const q of rows) {
+        const replied = replyCheck.get(q.thread_id, q.id, q.created_at, agentId);
+        if (replied === undefined) unanswered += 1;
+      }
+      return unanswered;
     },
   };
 };

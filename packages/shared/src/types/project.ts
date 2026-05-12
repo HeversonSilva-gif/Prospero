@@ -4,6 +4,7 @@ export type Project = {
   name: string;
   path: string;
   color: string;
+  slug: string | null;
   createdAt: number;
 };
 

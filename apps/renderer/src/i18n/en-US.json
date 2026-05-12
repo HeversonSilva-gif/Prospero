@@ -166,6 +166,14 @@
     "reject": "Reject",
     "toolCall": "Approve use of {{name}}?"
   },
+  "message": {
+    "kind": {
+      "proposal": "Proposal",
+      "question": "Question",
+      "confirmation": "Confirmed",
+      "observation": "Note"
+    }
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -234,7 +242,18 @@
       "expand": "expand",
       "reassign": "Reassign",
       "delete": "Delete issue",
-      "confirmDelete": "Delete this issue and all its sub-tasks?"
+      "confirmDelete": "Delete this issue and all its sub-tasks?",
+      "artifacts": {
+        "title": "Artifacts",
+        "empty": "No artifacts recorded yet.",
+        "kind": {
+          "file_path": "File",
+          "commit_sha": "Commit",
+          "pr_url": "PR",
+          "snapshot": "Snapshot",
+          "output_text": "Output"
+        }
+      }
     }
   },
   "skills": {

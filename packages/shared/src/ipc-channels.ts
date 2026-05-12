@@ -27,6 +27,8 @@ export const IPC = {
   PROJECTS_DELETE: "projects:delete",
   PROJECTS_OPEN_FOLDER: "projects:open-folder",
   PROJECTS_CHECK_PATHS: "projects:check-paths",
+  PROJECTS_SET_SLUG: "projects:set-slug",
+  ARTIFACTS_LIST_BY_ISSUE: "artifacts:list-by-issue",
   AGENTS_SET_ALLOWED_PROJECTS: "agents:set-allowed-projects",
   ISSUES_LIST: "issues:list",
   ISSUES_GET: "issues:get",

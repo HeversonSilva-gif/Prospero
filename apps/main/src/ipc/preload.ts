@@ -16,6 +16,7 @@ import {
   type Project,
   type ProjectPathStatus,
   type Issue,
+  type IssueArtifact,
   type IssueDetail,
   type IssueComment,
   type IssueStatus,
@@ -117,6 +118,8 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
       ipcRenderer.invoke(IPC.PROJECTS_CHECK_PATHS, { companyId }) as Promise<
         Record<string, ProjectPathStatus>
       >,
+    setSlug: (projectId: string, slug: string) =>
+      ipcRenderer.invoke(IPC.PROJECTS_SET_SLUG, { projectId, slug }) as Promise<void>,
   },
   issues: {
     list: (payload: {
@@ -147,6 +150,8 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
     delete: (id: string) => ipcRenderer.invoke(IPC.ISSUES_DELETE, { id }) as Promise<{ ok: true }>,
     addComment: (issueId: string, content: string) =>
       ipcRenderer.invoke(IPC.ISSUES_ADD_COMMENT, { issueId, content }) as Promise<IssueComment>,
+    listArtifacts: (issueId: string) =>
+      ipcRenderer.invoke(IPC.ARTIFACTS_LIST_BY_ISSUE, { issueId }) as Promise<IssueArtifact[]>,
     onChanged: (cb: (event: { kind: string; issueId: string; companyId: string }) => void) => {
       const handler = (_e: unknown, ev: { kind: string; issueId: string; companyId: string }) =>
         cb(ev);

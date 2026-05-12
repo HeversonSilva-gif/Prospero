@@ -44,4 +44,15 @@ export const registerProjectsHandlers = (db: Database.Database): void => {
     (_e, payload: { companyId: string }): Record<string, ProjectPathStatus> =>
       repo.checkPaths(payload.companyId),
   );
+
+  ipcMain.handle(
+    IPC.PROJECTS_SET_SLUG,
+    (_e, payload: { projectId: string; slug: string }): void => {
+      const cleaned = payload.slug.trim().toUpperCase();
+      if (!/^[A-Z0-9]+(?:-[A-Z0-9]+)?$/.test(cleaned)) {
+        throw new Error("slug must be uppercase alphanumeric (optional -N suffix)");
+      }
+      repo.setSlug(payload.projectId, cleaned);
+    },
+  );
 };

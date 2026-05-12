@@ -21,6 +21,8 @@ type IssueRow = {
   assignee_id: string | null;
   status: string;
   priority: string;
+  identifier: string | null;
+  issue_number: number | null;
   created_by: string | null;
   created_at: number;
   updated_at: number;
@@ -36,6 +38,8 @@ const rowToIssue = (r: IssueRow): Issue => ({
   assigneeId: r.assignee_id,
   status: r.status as IssueStatus,
   priority: r.priority as IssuePriority,
+  identifier: r.identifier,
+  issueNumber: r.issue_number,
   createdBy: r.created_by,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
@@ -76,6 +80,7 @@ export type ListIssuesFilter = {
 export type IssuesRepository = {
   create(input: CreateIssueInput, actor?: ActorContext): Issue;
   getById(id: string): Issue | null;
+  getByIdentifier(identifier: string): Issue | null;
   getDetail(id: string): IssueDetail | null;
   list(filter: ListIssuesFilter): Issue[];
   update(id: string, patch: UpdateIssueInput, actor: ActorContext): Issue | null;
@@ -105,10 +110,15 @@ const writeEvent = (
 
 export const createIssuesRepository = (db: Database.Database): IssuesRepository => {
   const insert = db.prepare(`
-    INSERT INTO issues (id, company_id, project_id, parent_id, title, description, assignee_id, status, priority, created_by, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'todo', ?, ?, ?, ?)
+    INSERT INTO issues (id, company_id, project_id, parent_id, title, description, assignee_id, status, priority, identifier, issue_number, created_by, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'todo', ?, ?, ?, ?, ?, ?)
   `);
   const byId = db.prepare("SELECT * FROM issues WHERE id = ?");
+  const byIdentifierStmt = db.prepare("SELECT * FROM issues WHERE identifier = ?");
+  const maxNumberForProject = db.prepare(
+    "SELECT COALESCE(MAX(issue_number), 0) AS max_n FROM issues WHERE project_id = ?",
+  );
+  const slugForProject = db.prepare("SELECT slug FROM projects WHERE id = ?");
   const childrenStmt = db.prepare(
     "SELECT * FROM issues WHERE parent_id = ? ORDER BY created_at ASC",
   );
@@ -119,33 +129,53 @@ export const createIssuesRepository = (db: Database.Database): IssuesRepository 
     "SELECT * FROM issue_comments WHERE issue_id = ? ORDER BY created_at ASC",
   );
 
+  const createTx = db.transaction((input: CreateIssueInput, actor: ActorContext): Issue => {
+    const id = `iss_${randomUUID()}`;
+    const now = Date.now();
+    let issueNumber: number | null = null;
+    let identifier: string | null = null;
+    if (input.projectId !== null) {
+      const row = maxNumberForProject.get(input.projectId) as { max_n: number };
+      issueNumber = row.max_n + 1;
+      const slugRow = slugForProject.get(input.projectId) as { slug: string | null } | undefined;
+      const slug = slugRow?.slug ?? null;
+      identifier = slug === null ? null : `${slug}-${issueNumber}`;
+    }
+    insert.run(
+      id,
+      input.companyId,
+      input.projectId,
+      input.parentId,
+      input.title,
+      input.description,
+      input.assigneeId,
+      input.priority,
+      identifier,
+      issueNumber,
+      input.createdBy,
+      now,
+      now,
+    );
+    writeEvent(db, id, "created", actor, {
+      title: input.title,
+      project_id: input.projectId,
+      assignee_id: input.assigneeId,
+      priority: input.priority,
+      identifier,
+    });
+    return rowToIssue(byId.get(id) as IssueRow);
+  });
+
   const repo: IssuesRepository = {
     create(input, actor = { actorKind: "system", actorId: null }) {
-      const id = `iss_${randomUUID()}`;
-      const now = Date.now();
-      insert.run(
-        id,
-        input.companyId,
-        input.projectId,
-        input.parentId,
-        input.title,
-        input.description,
-        input.assigneeId,
-        input.priority,
-        input.createdBy,
-        now,
-        now,
-      );
-      writeEvent(db, id, "created", actor, {
-        title: input.title,
-        project_id: input.projectId,
-        assignee_id: input.assigneeId,
-        priority: input.priority,
-      });
-      return rowToIssue(byId.get(id) as IssueRow);
+      return createTx(input, actor);
     },
     getById(id) {
       const row = byId.get(id) as IssueRow | undefined;
+      return row ? rowToIssue(row) : null;
+    },
+    getByIdentifier(identifier) {
+      const row = byIdentifierStmt.get(identifier) as IssueRow | undefined;
       return row ? rowToIssue(row) : null;
     },
     getDetail(id) {

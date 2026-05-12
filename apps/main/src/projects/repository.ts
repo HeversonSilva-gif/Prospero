@@ -9,6 +9,7 @@ type Row = {
   name: string;
   path: string;
   color: string;
+  slug: string | null;
   created_at: number;
 };
 
@@ -18,6 +19,7 @@ const rowToProject = (r: Row): Project => ({
   name: r.name,
   path: r.path,
   color: r.color,
+  slug: r.slug,
   createdAt: r.created_at,
 });
 
@@ -26,6 +28,7 @@ export type CreateProjectInput = {
   name: string;
   path: string;
   color: string;
+  slug?: string | null;
 };
 
 export type UpdateProjectInput = {
@@ -39,24 +42,34 @@ export type ProjectsRepository = {
   getById(id: string): Project | null;
   listByCompany(companyId: string): Project[];
   update(id: string, patch: UpdateProjectInput): Project | null;
+  setSlug(id: string, slug: string): void;
   delete(id: string): void;
   checkPaths(companyId: string): Record<string, ProjectPathStatus>;
 };
 
 export const createProjectsRepository = (db: Database.Database): ProjectsRepository => {
   const insert = db.prepare(
-    "INSERT INTO projects (id, company_id, name, path, color, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+    "INSERT INTO projects (id, company_id, name, path, color, slug, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
   );
   const byId = db.prepare("SELECT * FROM projects WHERE id = ?");
   const byCompany = db.prepare(
     "SELECT * FROM projects WHERE company_id = ? ORDER BY created_at ASC",
   );
   const del = db.prepare("DELETE FROM projects WHERE id = ?");
+  const updateSlug = db.prepare("UPDATE projects SET slug = ? WHERE id = ?");
 
   return {
     create(input) {
       const id = `proj_${randomUUID()}`;
-      insert.run(id, input.companyId, input.name, input.path, input.color, Date.now());
+      insert.run(
+        id,
+        input.companyId,
+        input.name,
+        input.path,
+        input.color,
+        input.slug ?? null,
+        Date.now(),
+      );
       return rowToProject(byId.get(id) as Row);
     },
     getById(id) {
@@ -81,6 +94,10 @@ export const createProjectsRepository = (db: Database.Database): ProjectsReposit
         id,
       );
       return rowToProject(byId.get(id) as Row);
+    },
+    setSlug(id, slug) {
+      if (slug.trim() === "") throw new Error("slug must be non-empty");
+      updateSlug.run(slug, id);
     },
     delete(id) {
       del.run(id);

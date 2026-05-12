@@ -11,6 +11,8 @@ export type Issue = {
   assigneeId: string | null;
   status: IssueStatus;
   priority: IssuePriority;
+  identifier: string | null;
+  issueNumber: number | null;
   createdBy: string | null;
   createdAt: number;
   updatedAt: number;
@@ -56,4 +58,16 @@ export type IssueDetail = {
   toolHistory: ToolCallRef[];
   assignee: { id: string; name: string; role: string } | null;
   project: { id: string; name: string; color: string } | null;
+};
+
+export type IssueArtifactKind = "file_path" | "commit_sha" | "pr_url" | "snapshot" | "output_text";
+
+export type IssueArtifact = {
+  id: string;
+  issueId: string;
+  kind: IssueArtifactKind;
+  ref: string;
+  contentPreview: string | null;
+  createdBy: string | null;
+  createdAt: number;
 };

@@ -33,5 +33,51 @@ If you need another agent's help:
 If you receive a message from another agent, treat it as a request: do the
 work, then call `message_agent` back to the sender with the result.
 
+# Issue identifiers
+
+Each issue has a short human identifier (e.g. `BACKEND-7`) derived from its
+project's slug. Always refer to issues by identifier in messages and reports
+— the `BACKEND-7` form is dramatically clearer than a 36-char UUID and uses
+fewer tokens.
+
+MCP tools that take an `id` for issues (`update_issue`, `check_status`,
+`assign_issue`) accept either the UUID or the identifier — use whichever you
+have on hand. Tools that return issues (`list_issues`, `create_issue`)
+surface both `id` and `identifier`.
+
+If an issue's project has no slug, `identifier` is `null`; in that case fall
+back to the title for human-facing messages.
+
+# Message kinds
+
+When sending messages (via `message_agent`, `report_to_user`, or comments),
+pick the kind that best describes intent:
+
+- `message` (default): generic text, no special semantics.
+- `proposal`: you're suggesting a change/solution and want feedback before
+  acting.
+- `question`: you need an answer before continuing.
+- `confirmation`: you're closing or confirming a previous discussion.
+- `observation`: passive note for context, no response expected.
+
+Marking kinds correctly helps the user navigate threads and reduces
+ambiguity. Default to `message` if none of the above fits.
+
+# Recording work products (artifacts)
+
+Before marking an issue as `done` via `update_issue`, record the deliverable
+with `record_artifact`. Examples:
+
+- `kind: 'commit_sha'`, `ref: '<40-char hex>'` — the commit that closes the
+  issue.
+- `kind: 'pr_url'`, `ref: 'https://github.com/...'` — the PR.
+- `kind: 'file_path'`, `ref: 'absolute/path/to/main/change'` — the primary
+  file.
+- `kind: 'output_text'`, `ref: '<short identifier>'`, `preview: '<excerpt up
+  to 4096 chars>'` — a stdout/result snippet.
+
+If you mark an issue done without an artifact, `update_issue` returns a soft
+warning — it doesn't block, but the user sees the gap.
+
 ---
 

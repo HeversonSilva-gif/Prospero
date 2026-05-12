@@ -8,6 +8,8 @@ import { createInboxRepository } from "../inbox/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
 import { createSettingsRepository } from "../settings/repository.js";
+import { createApprovalsRepository } from "../approvals/repository.js";
+import { createArtifactsRepository } from "../artifacts/repository.js";
 
 export type ToolContext = {
   agentId: string;
@@ -23,6 +25,20 @@ const safeUnlink = (p: string): void => {
   } catch {
     /* best effort */
   }
+};
+
+const resolveIssueIdOrIdentifier = (
+  db: Database.Database,
+  raw: string,
+  companyId: string,
+): string | null => {
+  const repo = createIssuesRepository(db);
+  if (raw.startsWith("iss_")) {
+    const direct = repo.getById(raw);
+    return direct !== null && direct.companyId === companyId ? direct.id : null;
+  }
+  const byIdent = repo.getByIdentifier(raw);
+  return byIdent !== null && byIdent.companyId === companyId ? byIdent.id : null;
 };
 
 export const waitForResolution = async (
@@ -235,7 +251,11 @@ export const toolDefinitions = [
         { actorKind: "agent", actorId: ctx.agentId },
       );
       ctx.emit({ kind: "issue.created", payload: { issueId: created.id } });
-      return JSON.stringify({ id: created.id, title: created.title });
+      return JSON.stringify({
+        id: created.id,
+        identifier: created.identifier,
+        title: created.title,
+      });
     },
   },
   {
@@ -354,8 +374,12 @@ export const toolDefinitions = [
       ctx: ToolContext,
     ): Promise<string> => {
       const issues = createIssuesRepository(ctx.db);
-      const existing = issues.getById(input.id);
-      if (existing === null || existing.companyId !== ctx.companyId) {
+      const resolved = resolveIssueIdOrIdentifier(ctx.db, input.id, ctx.companyId);
+      if (resolved === null) {
+        return JSON.stringify({ ok: false, error: "issue not found" });
+      }
+      const existing = issues.getById(resolved);
+      if (existing === null) {
         return JSON.stringify({ ok: false, error: "issue not found" });
       }
       const patch: Parameters<typeof issues.update>[1] = {};
@@ -364,7 +388,7 @@ export const toolDefinitions = [
       if (input.title !== undefined) patch.title = input.title;
       if (input.assignee !== undefined) patch.assigneeId = input.assignee;
       if (input.priority !== undefined) patch.priority = input.priority;
-      const next = issues.update(input.id, patch, { actorKind: "agent", actorId: ctx.agentId });
+      const next = issues.update(resolved, patch, { actorKind: "agent", actorId: ctx.agentId });
       if (next === null) return JSON.stringify({ ok: false, error: "issue not found" });
       if (input.status === "done") {
         const inbox = createInboxRepository(ctx.db);
@@ -382,7 +406,20 @@ export const toolDefinitions = [
         });
       }
       ctx.emit({ kind: "issue.updated", payload: { issueId: next.id } });
-      return JSON.stringify({ id: next.id, status: next.status });
+      let warning: string | undefined;
+      if (input.status === "done") {
+        const artifacts = createArtifactsRepository(ctx.db);
+        if (artifacts.countForIssue(resolved) === 0) {
+          warning =
+            "Issue marked done without recording an artifact. Use `record_artifact` to attach a commit SHA, PR URL, file path, or output text for the audit trail.";
+        }
+      }
+      const response: { id: string; status: string; warning?: string } = {
+        id: next.id,
+        status: next.status,
+      };
+      if (warning !== undefined) response.warning = warning;
+      return JSON.stringify(response);
     },
   },
   {
@@ -395,8 +432,8 @@ export const toolDefinitions = [
       ctx: ToolContext,
     ): Promise<string> => {
       const issues = createIssuesRepository(ctx.db);
-      const existing = issues.getById(input.issue_id);
-      if (existing === null || existing.companyId !== ctx.companyId) {
+      const resolved = resolveIssueIdOrIdentifier(ctx.db, input.issue_id, ctx.companyId);
+      if (resolved === null) {
         return JSON.stringify({ ok: false, error: "issue not found" });
       }
       const targetAgent = ctx.db
@@ -406,7 +443,7 @@ export const toolDefinitions = [
         return JSON.stringify({ ok: false, error: "agent not found" });
       }
       const next = issues.update(
-        input.issue_id,
+        resolved,
         { assigneeId: input.agent_id },
         { actorKind: "agent", actorId: ctx.agentId },
       );
@@ -446,6 +483,7 @@ export const toolDefinitions = [
       return JSON.stringify({
         issues: list.map((i) => ({
           id: i.id,
+          identifier: i.identifier,
           title: i.title,
           status: i.status,
           assignee: i.assigneeId,
@@ -460,12 +498,14 @@ export const toolDefinitions = [
     inputSchema: z.object({ issue_id: z.string() }),
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (input: { issue_id: string }, ctx: ToolContext): Promise<string> => {
+      const resolved = resolveIssueIdOrIdentifier(ctx.db, input.issue_id, ctx.companyId);
+      if (resolved === null) return JSON.stringify({ ok: false, error: "not found" });
       const issues = createIssuesRepository(ctx.db);
-      const i = issues.getById(input.issue_id);
-      if (i === null || i.companyId !== ctx.companyId)
-        return JSON.stringify({ ok: false, error: "not found" });
+      const i = issues.getById(resolved);
+      if (i === null) return JSON.stringify({ ok: false, error: "not found" });
       return JSON.stringify({
         id: i.id,
+        identifier: i.identifier,
         status: i.status,
         assignee: i.assigneeId,
         updated_at: i.updatedAt,
@@ -505,6 +545,31 @@ export const toolDefinitions = [
           ? (rawInput.tool_input as Record<string, unknown>)
           : {});
       const toolUseId = rawInput.tool_use_id ?? rawInput.permission_request_id ?? "unknown";
+
+      // Persist a structured approval row so the inbox surface gets a typed
+      // payload + audit history. Inbox row stores only the approval pointer.
+      const approvals = createApprovalsRepository(ctx.db);
+      const approval = approvals.create({
+        agentId: ctx.agentId,
+        kind: "tool_call",
+        payload: {
+          tool_name: rawInput.tool_name,
+          tool_input: toolInput,
+          tool_use_id: toolUseId,
+        },
+      });
+      const inbox = createInboxRepository(ctx.db);
+      inbox.create({
+        companyId: ctx.companyId,
+        kind: "approval",
+        actorId: ctx.agentId,
+        title: `Approval — ${rawInput.tool_name}`,
+        preview: null,
+        payloadJson: JSON.stringify({ approval_id: approval.id, tool_use_id: toolUseId }),
+        requiresAction: true,
+        approvalId: approval.id,
+      });
+
       const reqPath = join(ctx.permissionsDir, `${toolUseId}.req.json`);
       writeFileSync(
         reqPath,
@@ -516,6 +581,12 @@ export const toolDefinitions = [
         }),
       );
       const result = await waitForResolution(ctx.permissionsDir, toolUseId, 30 * 60_000);
+      approvals.decide(
+        approval.id,
+        result.behavior === "allow" ? "approved" : "rejected",
+        "user",
+        result.behavior === "deny" ? result.message : undefined,
+      );
       safeUnlink(reqPath);
       // Claude Code's --permission-prompt-tool requires `updatedInput` (a Record) on
       // allow responses. Without it, the response fails Zod validation on claude's
@@ -524,6 +595,56 @@ export const toolDefinitions = [
         return JSON.stringify({ behavior: "allow", updatedInput: toolInput });
       }
       return JSON.stringify(result);
+    },
+  },
+  {
+    name: "record_artifact",
+    description:
+      "Record a deliverable for an issue (commit SHA, PR URL, file path, snapshot, or output text). Call this before marking an issue as done so it has an audit trail.",
+    inputSchema: z.object({
+      issue_id: z.string(),
+      kind: z.enum(["file_path", "commit_sha", "pr_url", "snapshot", "output_text"]),
+      ref: z.string().min(1).max(1024),
+      preview: z.string().max(4096).optional(),
+    }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (
+      input: {
+        issue_id: string;
+        kind: "file_path" | "commit_sha" | "pr_url" | "snapshot" | "output_text";
+        ref: string;
+        preview?: string;
+      },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      // Defensive length checks — Zod's inputSchema enforces them at the MCP
+      // boundary, but unit tests call run() directly and need a runtime guard.
+      if (input.ref.length === 0 || input.ref.length > 1024) {
+        return JSON.stringify({ ok: false, error: "ref length out of bounds" });
+      }
+      if (input.preview !== undefined && input.preview.length > 4096) {
+        return JSON.stringify({ ok: false, error: "preview length exceeds 4096" });
+      }
+      const resolvedId = resolveIssueIdOrIdentifier(ctx.db, input.issue_id, ctx.companyId);
+      if (resolvedId === null) {
+        return JSON.stringify({ ok: false, error: "issue not found" });
+      }
+      if (input.kind === "commit_sha" && !/^[a-f0-9]{40}$/i.test(input.ref)) {
+        return JSON.stringify({ ok: false, error: "commit_sha must be 40-char hex" });
+      }
+      if (input.kind === "pr_url" && !/^https?:\/\//i.test(input.ref)) {
+        return JSON.stringify({ ok: false, error: "pr_url must be http(s)" });
+      }
+      const repo = createArtifactsRepository(ctx.db);
+      const artifact = repo.create({
+        issueId: resolvedId,
+        kind: input.kind,
+        ref: input.ref,
+        contentPreview: input.preview ?? null,
+        createdBy: ctx.agentId,
+      });
+      ctx.emit({ kind: "issue.updated", payload: { issueId: resolvedId } });
+      return JSON.stringify({ id: artifact.id, issue_id: resolvedId, kind: artifact.kind });
     },
   },
 ] as const;

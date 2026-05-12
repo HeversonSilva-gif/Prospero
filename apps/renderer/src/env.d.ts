@@ -15,6 +15,7 @@ import type {
   Project,
   ProjectPathStatus,
   Issue,
+  IssueArtifact,
   IssueDetail,
   IssueComment,
   IssueStatus,
@@ -118,6 +119,7 @@ declare global {
         }) => Promise<Issue | null>;
         delete: (id: string) => Promise<{ ok: true }>;
         addComment: (issueId: string, content: string) => Promise<IssueComment>;
+        listArtifacts: (issueId: string) => Promise<IssueArtifact[]>;
         onChanged: (
           cb: (event: { kind: string; issueId: string; companyId: string }) => void,
         ) => () => void;

@@ -9,6 +9,7 @@ export type InboxItem = {
   preview: string | null;
   payloadJson: string | null;
   requiresAction: boolean;
+  approvalId: string | null;
   readAt: number | null;
   createdAt: number;
 };
