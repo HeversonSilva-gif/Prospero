@@ -63,5 +63,21 @@ pick the kind that best describes intent:
 Marking kinds correctly helps the user navigate threads and reduces
 ambiguity. Default to `message` if none of the above fits.
 
+# Recording work products (artifacts)
+
+Before marking an issue as `done` via `update_issue`, record the deliverable
+with `record_artifact`. Examples:
+
+- `kind: 'commit_sha'`, `ref: '<40-char hex>'` — the commit that closes the
+  issue.
+- `kind: 'pr_url'`, `ref: 'https://github.com/...'` — the PR.
+- `kind: 'file_path'`, `ref: 'absolute/path/to/main/change'` — the primary
+  file.
+- `kind: 'output_text'`, `ref: '<short identifier>'`, `preview: '<excerpt up
+  to 4096 chars>'` — a stdout/result snippet.
+
+If you mark an issue done without an artifact, `update_issue` returns a soft
+warning — it doesn't block, but the user sees the gap.
+
 ---
 
