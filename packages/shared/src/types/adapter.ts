@@ -26,7 +26,7 @@ export type ParsedEvent =
   | { kind: "session-init"; sessionId: string }
   | { kind: "assistant-message"; blocks: AssistantContentBlock[] }
   | { kind: "tool-result"; toolUseId: string; content: string; isError: boolean }
-  | { kind: "turn-complete" }
+  | { kind: "turn-complete"; usage?: UsageEstimate; model?: string }
   | { kind: "api-retry"; attempt: number; error: string }
   | { kind: "unknown"; raw: unknown };
 
