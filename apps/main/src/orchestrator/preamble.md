@@ -33,5 +33,20 @@ If you need another agent's help:
 If you receive a message from another agent, treat it as a request: do the
 work, then call `message_agent` back to the sender with the result.
 
+# Issue identifiers
+
+Each issue has a short human identifier (e.g. `BACKEND-7`) derived from its
+project's slug. Always refer to issues by identifier in messages and reports
+— the `BACKEND-7` form is dramatically clearer than a 36-char UUID and uses
+fewer tokens.
+
+MCP tools that take an `id` for issues (`update_issue`, `check_status`,
+`assign_issue`) accept either the UUID or the identifier — use whichever you
+have on hand. Tools that return issues (`list_issues`, `create_issue`)
+surface both `id` and `identifier`.
+
+If an issue's project has no slug, `identifier` is `null`; in that case fall
+back to the title for human-facing messages.
+
 ---
 
