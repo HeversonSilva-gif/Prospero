@@ -17,10 +17,12 @@ export type EntityKind =
 
 // Runtime list — drives exhaustive Zod schema coverage in apps/main.
 export const ACTIVITY_ACTIONS = [
-  // Agent (10)
+  // Agent (12)
   "agent.hired",
   "agent.role_changed",
   "agent.model_changed",
+  "agent.mode_changed",
+  "agent.always_on_changed",
   "agent.persona_edited",
   "agent.skills_changed",
   "agent.reports_to_changed",
