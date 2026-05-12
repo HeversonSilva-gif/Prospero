@@ -7,6 +7,7 @@ import {
   type AgentEvent,
   type AgentStats,
   type Message,
+  type MessageKind,
   type ToolCallView,
 } from "@dashboard-agent/shared";
 import { redactString } from "../auth/token-redact.js";
@@ -83,7 +84,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       const row = db
         .prepare(
           `SELECT m.id, m.thread_id, m.sender_kind, m.sender_id, m.content,
-                  m.tool_calls_json, m.created_at FROM messages m WHERE m.id = ?`,
+                  m.kind, m.tool_calls_json, m.created_at FROM messages m WHERE m.id = ?`,
         )
         .get(p.messageId) as
         | {
@@ -92,6 +93,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
             sender_kind: string;
             sender_id: string | null;
             content: string;
+            kind: string;
             tool_calls_json: string | null;
             created_at: number;
           }
@@ -106,6 +108,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
             senderKind: row.sender_kind as "agent" | "user" | "system",
             senderId: row.sender_id,
             content: row.content,
+            kind: row.kind as MessageKind,
             toolCalls:
               row.tool_calls_json === null
                 ? null

@@ -166,6 +166,14 @@
     "reject": "Rejeitar",
     "toolCall": "Aprovar uso de {{name}}?"
   },
+  "message": {
+    "kind": {
+      "proposal": "Proposta",
+      "question": "Pergunta",
+      "confirmation": "Confirmado",
+      "observation": "Nota"
+    }
+  },
   "common": {
     "save": "Salvar",
     "cancel": "Cancelar",

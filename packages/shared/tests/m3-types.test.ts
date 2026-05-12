@@ -44,6 +44,7 @@ describe("m3 types and channels", () => {
       senderKind: "user",
       senderId: null,
       content: "hi",
+      kind: "message",
       toolCalls: null,
       createdAt: 1,
     };

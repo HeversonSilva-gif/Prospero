@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
-import type { Agent, Message } from "@dashboard-agent/shared";
+import { useTranslation } from "react-i18next";
+import type { Agent, Message, MessageKind } from "@dashboard-agent/shared";
 import { ToolCallCard } from "./ToolCallCard.js";
 
 type Props = {
@@ -9,7 +10,15 @@ type Props = {
 
 const initials = (name: string): string => name.slice(0, 2).toUpperCase();
 
+const KIND_STYLES: Record<Exclude<MessageKind, "message">, string> = {
+  proposal: "bg-amber-100 text-amber-900 border-amber-300",
+  question: "bg-sky-100 text-sky-900 border-sky-300",
+  confirmation: "bg-emerald-100 text-emerald-900 border-emerald-300",
+  observation: "bg-slate-100 text-slate-700 border-slate-300",
+};
+
 export const MessageList = ({ messages, agents }: Props) => {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const agentsById = useMemo(() => new Map(agents.map((a) => [a.id, a])), [agents]);
 
@@ -53,8 +62,15 @@ export const MessageList = ({ messages, agents }: Props) => {
             </div>
             <div className="space-y-1">
               {!isUser && (
-                <div className="text-[10px] uppercase tracking-wide text-ink-soft font-semibold">
-                  {name}
+                <div className="text-[10px] uppercase tracking-wide text-ink-soft font-semibold flex items-center gap-1.5">
+                  <span>{name}</span>
+                  {m.kind !== "message" && (
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border ${KIND_STYLES[m.kind]}`}
+                    >
+                      {t(`message.kind.${m.kind}`)}
+                    </span>
+                  )}
                 </div>
               )}
               {m.content !== "" && (
