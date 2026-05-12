@@ -25,6 +25,20 @@ const safeUnlink = (p: string): void => {
   }
 };
 
+const resolveIssueIdOrIdentifier = (
+  db: Database.Database,
+  raw: string,
+  companyId: string,
+): string | null => {
+  const repo = createIssuesRepository(db);
+  if (raw.startsWith("iss_")) {
+    const direct = repo.getById(raw);
+    return direct !== null && direct.companyId === companyId ? direct.id : null;
+  }
+  const byIdent = repo.getByIdentifier(raw);
+  return byIdent !== null && byIdent.companyId === companyId ? byIdent.id : null;
+};
+
 export const waitForResolution = async (
   dir: string,
   toolUseId: string,
@@ -235,7 +249,11 @@ export const toolDefinitions = [
         { actorKind: "agent", actorId: ctx.agentId },
       );
       ctx.emit({ kind: "issue.created", payload: { issueId: created.id } });
-      return JSON.stringify({ id: created.id, title: created.title });
+      return JSON.stringify({
+        id: created.id,
+        identifier: created.identifier,
+        title: created.title,
+      });
     },
   },
   {
@@ -354,8 +372,12 @@ export const toolDefinitions = [
       ctx: ToolContext,
     ): Promise<string> => {
       const issues = createIssuesRepository(ctx.db);
-      const existing = issues.getById(input.id);
-      if (existing === null || existing.companyId !== ctx.companyId) {
+      const resolved = resolveIssueIdOrIdentifier(ctx.db, input.id, ctx.companyId);
+      if (resolved === null) {
+        return JSON.stringify({ ok: false, error: "issue not found" });
+      }
+      const existing = issues.getById(resolved);
+      if (existing === null) {
         return JSON.stringify({ ok: false, error: "issue not found" });
       }
       const patch: Parameters<typeof issues.update>[1] = {};
@@ -364,7 +386,7 @@ export const toolDefinitions = [
       if (input.title !== undefined) patch.title = input.title;
       if (input.assignee !== undefined) patch.assigneeId = input.assignee;
       if (input.priority !== undefined) patch.priority = input.priority;
-      const next = issues.update(input.id, patch, { actorKind: "agent", actorId: ctx.agentId });
+      const next = issues.update(resolved, patch, { actorKind: "agent", actorId: ctx.agentId });
       if (next === null) return JSON.stringify({ ok: false, error: "issue not found" });
       if (input.status === "done") {
         const inbox = createInboxRepository(ctx.db);
@@ -395,8 +417,8 @@ export const toolDefinitions = [
       ctx: ToolContext,
     ): Promise<string> => {
       const issues = createIssuesRepository(ctx.db);
-      const existing = issues.getById(input.issue_id);
-      if (existing === null || existing.companyId !== ctx.companyId) {
+      const resolved = resolveIssueIdOrIdentifier(ctx.db, input.issue_id, ctx.companyId);
+      if (resolved === null) {
         return JSON.stringify({ ok: false, error: "issue not found" });
       }
       const targetAgent = ctx.db
@@ -406,7 +428,7 @@ export const toolDefinitions = [
         return JSON.stringify({ ok: false, error: "agent not found" });
       }
       const next = issues.update(
-        input.issue_id,
+        resolved,
         { assigneeId: input.agent_id },
         { actorKind: "agent", actorId: ctx.agentId },
       );
@@ -446,6 +468,7 @@ export const toolDefinitions = [
       return JSON.stringify({
         issues: list.map((i) => ({
           id: i.id,
+          identifier: i.identifier,
           title: i.title,
           status: i.status,
           assignee: i.assigneeId,
@@ -460,12 +483,14 @@ export const toolDefinitions = [
     inputSchema: z.object({ issue_id: z.string() }),
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (input: { issue_id: string }, ctx: ToolContext): Promise<string> => {
+      const resolved = resolveIssueIdOrIdentifier(ctx.db, input.issue_id, ctx.companyId);
+      if (resolved === null) return JSON.stringify({ ok: false, error: "not found" });
       const issues = createIssuesRepository(ctx.db);
-      const i = issues.getById(input.issue_id);
-      if (i === null || i.companyId !== ctx.companyId)
-        return JSON.stringify({ ok: false, error: "not found" });
+      const i = issues.getById(resolved);
+      if (i === null) return JSON.stringify({ ok: false, error: "not found" });
       return JSON.stringify({
         id: i.id,
+        identifier: i.identifier,
         status: i.status,
         assignee: i.assigneeId,
         updated_at: i.updatedAt,
