@@ -23,6 +23,13 @@ let stopPermissionWatcher: (() => Promise<void>) | null = null;
 
 const getWindow = (): BrowserWindow | null => mainWindow;
 
+// E2E support: when DASHBOARD_AGENT_USER_DATA is set, point Electron at an
+// isolated tmp directory so the suite doesn't touch the user's real DB.
+const e2eUserData = process.env["DASHBOARD_AGENT_USER_DATA"];
+if (e2eUserData !== undefined && e2eUserData !== "") {
+  app.setPath("userData", e2eUserData);
+}
+
 void app.whenReady().then(() => {
   db = openDatabase(databasePath());
   registerIpcHandlers(db);

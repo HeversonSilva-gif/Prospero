@@ -104,21 +104,34 @@ const Sidebar = () => {
             {t("nav.agents")}
           </div>
           <nav className="flex flex-col gap-1 text-sm text-ink-muted">
-            {agents.map((a) => (
-              <NavLink
-                key={a.id}
-                to={`/agents/${a.id}`}
-                className={({ isActive }) =>
-                  `px-2 py-1 rounded flex items-center gap-2 ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-                }
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${STATUS_COLOR[a.status]}`}
-                  title={a.status}
-                />
-                <span className="truncate">{a.name}</span>
-              </NavLink>
-            ))}
+            {agents.map((a) => {
+              const showAction =
+                (a.status === "working" || a.status === "thinking") &&
+                a.currentAction !== null &&
+                a.currentAction !== "";
+              return (
+                <NavLink
+                  key={a.id}
+                  to={`/agents/${a.id}`}
+                  className={({ isActive }) =>
+                    `px-2 py-1 rounded flex flex-col gap-0.5 ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
+                  }
+                >
+                  <span className="flex items-center gap-2">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${STATUS_COLOR[a.status]}`}
+                      title={a.status}
+                    />
+                    <span className="truncate">{a.name}</span>
+                  </span>
+                  {showAction && (
+                    <span className="pl-3.5 text-[10px] italic text-ink-soft truncate">
+                      {a.currentAction}
+                    </span>
+                  )}
+                </NavLink>
+              );
+            })}
           </nav>
         </>
       )}
@@ -141,7 +154,9 @@ export const App = () => {
   const loadAuth = useAuthStore((s) => s.load);
   const hasToken = useAuthStore((s) => s.status.hasToken);
   const loadAgents = useAgentsStore((s) => s.load);
-  const applyStatus = useAgentsStore((s) => s.applyStatus);
+  const applyAgentStatus = useAgentsStore((s) => s.applyAgentStatus);
+  const applyCurrentAction = useAgentsStore((s) => s.applyCurrentAction);
+  const applySessionId = useAgentsStore((s) => s.applySessionId);
   const appendMessage = useMessagesStore((s) => s.append);
   const patchToolCall = useMessagesStore((s) => s.patchToolCallResult);
   const loadInbox = useInboxStore((s) => s.load);
@@ -187,13 +202,39 @@ export const App = () => {
   // Subscribe to agent:event broadcasts
   useEffect(() => {
     const off = window.dashboardAgent.agents.onEvent((ev) => {
-      if (ev.kind === "message-append") appendMessage(ev.message);
-      else if (ev.kind === "tool-result") patchToolCall(ev.threadId, ev.toolCallId, ev.result);
-      else if (ev.kind === "status") applyStatus(ev.agentId, ev.status, ev.currentAction);
-      else if (ev.kind === "roster-changed") void loadAgents(ev.companyId);
+      switch (ev.kind) {
+        case "message-append":
+          appendMessage(ev.message);
+          break;
+        case "tool-result":
+          patchToolCall(ev.threadId, ev.toolCallId, ev.result);
+          break;
+        case "status-changed":
+          applyAgentStatus(ev.agentId, ev.status);
+          break;
+        case "current-action-changed":
+          applyCurrentAction(ev.agentId, ev.action);
+          break;
+        case "session-id-changed":
+          applySessionId(ev.agentId, ev.sessionId);
+          break;
+        case "roster-changed":
+          void loadAgents(ev.companyId);
+          break;
+        case "tool-call":
+        case "error":
+          break;
+      }
     });
     return off;
-  }, [appendMessage, patchToolCall, applyStatus, loadAgents]);
+  }, [
+    appendMessage,
+    patchToolCall,
+    applyAgentStatus,
+    applyCurrentAction,
+    applySessionId,
+    loadAgents,
+  ]);
 
   if (!settingsLoaded || !authLoaded) {
     return (

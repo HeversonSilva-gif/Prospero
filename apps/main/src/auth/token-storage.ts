@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import { safeStorage } from "electron";
+import { readFileSync } from "node:fs";
 import type { TokenSource, TokenStatus } from "@dashboard-agent/shared";
 import { isWellFormedToken } from "./token-validate.js";
 import { redactToken } from "./token-redact.js";
@@ -63,6 +64,17 @@ export const loadTokenStatus = (db: Database.Database): TokenStatus => {
 };
 
 export const loadDecryptedToken = (db: Database.Database): string | null => {
+  // E2E bypass: when DASHBOARD_AGENT_E2E_TOKEN_PATH is set, read a plaintext
+  // token from that file. The fake-claude stub (also gated by env var) is the
+  // only consumer, so a fake token works.
+  const e2eTokenPath = process.env["DASHBOARD_AGENT_E2E_TOKEN_PATH"];
+  if (e2eTokenPath !== undefined && e2eTokenPath !== "") {
+    try {
+      return readFileSync(e2eTokenPath, "utf8").trim();
+    } catch {
+      return null;
+    }
+  }
   const cipher64 = select(db, KEY_CIPHERTEXT);
   if (cipher64 === null) return null;
   if (!safeStorage.isEncryptionAvailable()) return null;

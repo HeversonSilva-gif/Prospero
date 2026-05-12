@@ -5,7 +5,9 @@ type State = {
   agents: Agent[];
   loaded: boolean;
   load: (companyId: string) => Promise<void>;
-  applyStatus: (agentId: string, status: AgentStatus, currentAction: string | null) => void;
+  applyAgentStatus: (agentId: string, status: AgentStatus) => void;
+  applyCurrentAction: (agentId: string, action: string | null) => void;
+  applySessionId: (agentId: string, sessionId: string | null) => void;
   setAllowedProjects: (agentId: string, projectIds: string[]) => Promise<void>;
   setModel: (agentId: string, model: string) => Promise<void>;
   setRole: (
@@ -33,9 +35,17 @@ export const useAgentsStore = create<State>((set, get) => ({
     const list = await window.dashboardAgent.agents.list(companyId);
     set({ agents: list, loaded: true });
   },
-  applyStatus: (agentId, status, currentAction) =>
+  applyAgentStatus: (agentId, status) =>
     set((s) => ({
-      agents: s.agents.map((a) => (a.id === agentId ? { ...a, status, currentAction } : a)),
+      agents: s.agents.map((a) => (a.id === agentId ? { ...a, status } : a)),
+    })),
+  applyCurrentAction: (agentId, action) =>
+    set((s) => ({
+      agents: s.agents.map((a) => (a.id === agentId ? { ...a, currentAction: action } : a)),
+    })),
+  applySessionId: (agentId, sessionId) =>
+    set((s) => ({
+      agents: s.agents.map((a) => (a.id === agentId ? { ...a, claudeSessionId: sessionId } : a)),
     })),
   setAllowedProjects: async (agentId, projectIds) => {
     await window.dashboardAgent.agents.setAllowedProjects(agentId, projectIds);
