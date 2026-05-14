@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations } from "../db/migrations.js";
-import { scanPlanningWithoutPlan } from "./recovery.js";
+import { scanPlanningWithoutPlan, scanStuckNarrated } from "./recovery.js";
+import { createInboxRepository } from "../inbox/repository.js";
 import { createGoalsRepository } from "./repository.js";
 import { createGoalPlansRepository } from "./plans-repository.js";
 import { createCompaniesRepository } from "../companies/repository.js";
@@ -98,5 +99,50 @@ describe("scanPlanningWithoutPlan", () => {
       },
     });
     expect(called).toBe(0);
+  });
+});
+
+describe("scanStuckNarrated", () => {
+  it("creates inbox goal_error for goals stuck in narrated execution", () => {
+    const env = setup();
+    const goals = createGoalsRepository(env.db);
+    const goal = goals.create({ companyId: env.companyId, title: "Stuck" });
+    goals.updateStatus(goal.id, "planning");
+    goals.updateStatus(goal.id, "proposed");
+    goals.updateStatus(goal.id, "approved");
+    goals.setExecutionState(goal.id, {
+      planId: "p_x",
+      mode: "narrated",
+      includeAgentIndexes: null,
+      includeIssueIndexes: null,
+      agentIndexToId: { 0: "ag_1" },
+      issueIndexToId: {},
+      step: "hiring",
+      startedAt: Date.now(),
+      ceoId: env.ceoId,
+      threadId: "th_1",
+    });
+
+    const created = scanStuckNarrated(env.db);
+
+    expect(created).toHaveLength(1);
+    const inbox = createInboxRepository(env.db).listByCompany(env.companyId);
+    const stuckItem = inbox.find((i) => i.kind === "goal_error");
+    expect(stuckItem).toBeDefined();
+    expect(stuckItem?.title).toContain("Stuck");
+    const payload = JSON.parse(stuckItem!.payloadJson!) as { step: string; goalId: string };
+    expect(payload.step).toBe("narrated_halted");
+    expect(payload.goalId).toBe(goal.id);
+  });
+
+  it("does NOT create inbox for goals in approved without execution state", () => {
+    const env = setup();
+    const goals = createGoalsRepository(env.db);
+    const goal = goals.create({ companyId: env.companyId, title: "Clean" });
+    goals.updateStatus(goal.id, "planning");
+    goals.updateStatus(goal.id, "proposed");
+    goals.updateStatus(goal.id, "approved");
+    const created = scanStuckNarrated(env.db);
+    expect(created).toEqual([]);
   });
 });

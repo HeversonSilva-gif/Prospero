@@ -29,7 +29,7 @@ import { databasePath } from "../db/path.js";
 import { getPermissionsDir } from "../security/permissions-dir.js";
 import { getEventsDir } from "../orchestrator/events-dir.js";
 import { registerGoalsHandlers } from "./goals-handlers.js";
-import { scanPlanningWithoutPlan } from "../goals/recovery.js";
+import { scanPlanningWithoutPlan, scanStuckNarrated } from "../goals/recovery.js";
 import {
   startEventsWatcher,
   type AgentEvent as AgentSideEvent,
@@ -751,5 +751,24 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     }
   } catch (e) {
     console.error("[goals] recovery scan failed", e);
+  }
+
+  // M8.6 — Boot recovery for narrated executions halted mid-loop (CEO
+  // max-turns hit, app crash). Creates a goal_error inbox per stuck goal so
+  // the user can choose to resume or rollback via /inbox CTAs.
+  try {
+    const halted = scanStuckNarrated(db);
+    if (halted.length > 0) {
+      console.log(`[goals/narrated] flagged ${halted.length} stuck narrated execution(s)`);
+      try {
+        for (const win of BrowserWindow.getAllWindows()) {
+          win.webContents.send(IPC.INBOX_UPDATE, {});
+        }
+      } catch {
+        /* boot may be pre-window */
+      }
+    }
+  } catch (e) {
+    console.error("[goals/narrated] recovery scan failed", e);
   }
 };
