@@ -6,6 +6,7 @@ export type CompaniesRepository = {
   create(input: { name: string }): Company;
   getById(id: string): Company | null;
   list(): Company[];
+  delete(id: string): void;
 };
 
 const rowToCompany = (row: { id: string; name: string; created_at: number }): Company => ({
@@ -18,6 +19,7 @@ export const createCompaniesRepository = (db: Database.Database): CompaniesRepos
   const insertStmt = db.prepare("INSERT INTO companies (id, name, created_at) VALUES (?, ?, ?)");
   const selectByIdStmt = db.prepare("SELECT id, name, created_at FROM companies WHERE id = ?");
   const listStmt = db.prepare("SELECT id, name, created_at FROM companies ORDER BY created_at ASC");
+  const deleteStmt = db.prepare("DELETE FROM companies WHERE id = ?");
 
   return {
     create(input) {
@@ -35,6 +37,9 @@ export const createCompaniesRepository = (db: Database.Database): CompaniesRepos
     list() {
       const rows = listStmt.all() as { id: string; name: string; created_at: number }[];
       return rows.map(rowToCompany);
+    },
+    delete(id) {
+      deleteStmt.run(id);
     },
   };
 };
