@@ -110,7 +110,7 @@
 
 ### 🚧 O que ainda NÃO funciona (próximas releases)
 
-- 📈 **Dashboard inicial com widgets dinâmicos** — Agentes ativos / Issues em andamento / Inbox / Custos hoje → M9 PR-B
+- 📈 **Dashboard inicial com widgets dinâmicos** ✅ M9 PR-B (2026-05-14) — 7 widgets + Recent Activity timeline
 - 🏢 **Trocar entre empresas via dropdown da sidebar** ✅ M9 PR-A (2026-05-14)
 - ☁️ **Rodar agentes numa VPS remota (Docker)** — escolha per-agent: local (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
 - 🧠 **Empresa que aprende com a experiência (não só o funcionário)** — após cada issue concluído, o sistema **extrai automaticamente** um "skill" (manual de como fazer aquilo) a partir do trabalho real, você revisa e aceita. Conhecimento institucional **transfere entre funcionários**: se demite o BackendEng e contrata outro, o novato já chega sabendo o que a empresa aprendeu. CEO escreve retrospectiva ao completar um Goal. Inclui busca em conversas antigas. → M11 (pós-v1, v1.1)
@@ -190,7 +190,7 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 | Módulo | Status | Notas |
 |---|---|---|
 | **Multi-empresa** | ✅ Completo | M9 PR-A (2026-05-14): `companies:create`/`:delete` IPCs com validation + cascade DELETE. Renderer `useCompaniesStore` (zustand) com activeId persistido em `settings.activeCompanyId`. `<CompanySwitcher />` dropdown no topo da Sidebar + `CreateCompanyModal` + `DeleteCompanyConfirm` (counts + cascade warning + last-company guard). App.tsx reativo a `activeCompanyId` (reload agents/inbox/projects/issues). `roster-changed` event guarded contra clobber de stores quando company não-ativa emite. |
-| **Dashboard** | 🟡 Stub | Rota `/dashboard` existe (placeholder M2). Widgets §6.4 + Recent Activity + Active Agents **NÃO** (M9 consome Activity stream do M7.7). |
+| **Dashboard** | ✅ Completo | M9 PR-B (2026-05-14): 7 widgets em grid 2-col + Recent Activity full-width. Active Agents / Active Issues / Inbox unread / Costs today / Active Agents Panel / Goals Progress / Recent Activity (10 eventos live). Selectors puros em `lib/dashboard/selectors.ts`. |
 | **Activity stream** | ✅ Completo | Migration 0009 `activity_events` + recorder helper + dual-write em 17 call sites (PR-A). Rota `/activity` com 5 filtros + search + infinite scroll + real-time prepend via `ACTIVITY_NEW` + 700ms animação fade-down (PR-B). Sem `issue_events` migrado — dual-write paralelo. |
 | **Inbox** | ✅ Completo | Rota `/inbox` com filter pills (All/Approvals/Completed/Suggestions/Errors/Security). Approve/Reject inline. Auto-mark-read no resolve. Badge unread no sidebar. **M7.5 PR-B:** dual-format handler suporta legacy embedded payload + new `approval_id` pointer. |
 | **Issues** | ✅ Completo | MCP tools (create/update/assign/list/check_status/record_artifact) reais. Kanban /issues com 5 colunas + drag-drop. Modal de detail com comments + sub-tasks + tool history. **M7.5 PR-B:** identifier humano `<SLUG>-N` (ex: `BACKEND-7`) em todos call sites + artifacts accordion + soft warning ao marcar `done` sem artifacts. |
@@ -725,13 +725,14 @@ M11 (Agent Memory & Learning Loop — inspirado Hermes) ─── v1.1
 
 Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundation do M7.5** (adapter pattern, approvals decoupled, system prompt composable).
 
-- [ ] **Dashboard widgets:** (consume Activity stream do M7.7)
-  - [ ] Agentes Ativos (count + lista mini)
-  - [ ] Issues em Andamento (count Doing+Review por project)
-  - [ ] Inbox unread (count + último item)
-  - [ ] Custos Hoje (tokens + % Max — alimenta de M8)
-  - [ ] **Recent Activity** (últimos 10 eventos de `activity_events` com fade-in animation)
-  - [ ] **Active Agents Panel** (per-agent status com `currentAction` granular do M7.5)
+- [x] **Dashboard widgets:** ✅ **PR-B mergeado 2026-05-14** — 7 widgets em grid 2-col + Recent Activity full-width
+  - [x] Agentes Ativos (count + top 3 mini list com status dot)
+  - [x] Issues em Andamento (count Doing+Review + breakdown por project)
+  - [x] Inbox unread (count + último item snippet)
+  - [x] Custos Hoje (reuso CostsTodayWidget existente)
+  - [x] **Recent Activity** (últimos 10 eventos com live subscribe via useActivityStream)
+  - [x] **Active Agents Panel** (per-agent status com `currentAction` granular)
+  - [x] Goals em andamento (top 3 in_progress sorted updatedAt desc)
 - [x] **Multi-empresa:** ✅ **PR-A mergeado 2026-05-14** — store + sidebar dropdown + create/delete modals + active company persistido em settings
   - [x] Dropdown topo da sidebar pra trocar de company (`<CompanySwitcher />`)
   - [x] Criar nova empresa (`CreateCompanyModal` com Enter/Escape)

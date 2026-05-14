@@ -1381,10 +1381,6 @@
           <div class="heading">🚧 O que ainda NÃO funciona (próximas releases)</div>
           <ul>
             <li>
-              📈 <strong>Dashboard inicial com widgets dinâmicos</strong> — Agentes ativos / Issues
-              em andamento / Inbox / Custos hoje → M9 PR-B
-            </li>
-            <li>
               ☁️ <strong>Rodar agentes numa VPS remota (Docker)</strong> — escolha per-agent: local
               (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
             </li>
@@ -1493,13 +1489,11 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M9 PR-D api-key adapter mergeado em 2026-05-14 (<code
-                >claude-api-key-local</code
-              >
-              + <code>safeStorage</code> + 3 IPCs + Settings auth mode + Setup wizard authSource
-              step). <strong>758 testes passing</strong> (+27 vs PR-A). 13/14 milestones; M9 em
-              curso com 4 PRs restantes (B · C · E · F). Próximo:
-              <strong>M9 PR-B Dashboard widgets</strong>.
+              <strong>Estágio:</strong> M9 PR-B Dashboard widgets mergeado em 2026-05-14 (7 widgets
+              em grid 2-col + Recent Activity full-width + selectors puros em
+              <code>lib/dashboard/</code>). <strong>763 testes passing</strong> (+5 vs PR-D). 13/14
+              milestones; M9 em curso com 3 PRs restantes (C · E · F). Próximo:
+              <strong>M9 PR-C /agents list + Settings defaults</strong>.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -1524,34 +1518,34 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M9 PR-D mergeado</div>
+            <div class="title">M9 PR-B mergeado</div>
             <ul class="bullets">
               <li>
                 <span><strong>13 / 14</strong> milestones do v1 · M9 em curso</span>
               </li>
               <li>
                 <span
-                  ><strong>758</strong> testes passing (606 main + 33 shared + 119 renderer) · 0
+                  ><strong>763</strong> testes passing (606 main + 33 shared + 124 renderer) · 0
                   lint/typecheck errors</span
                 >
               </li>
               <li>
                 <span
-                  ><strong>API key adapter</strong> agora ✅ — Setup wizard authSource + Settings
-                  authMode + safeStorage + sem 4-agent cap em api-key</span
+                  ><strong>Dashboard widgets</strong> agora ✅ — 7 widgets em grid 2-col + Recent
+                  Activity full-width com live subscribe</span
                 >
               </li>
               <li>
-                <span>Master pós-M9 PR-D · ~20 commits novos · ~1k LoC TS/TSX</span>
+                <span>Master pós-M9 PR-B · ~10 commits novos · ~700 LoC TS/TSX</span>
               </li>
               <li>
                 <span
-                  >Próximos PRs M9: B (Dashboard widgets) · C (/agents list) · E (error handling) ·
-                  F (Paperclip wishlist)</span
+                  >Próximos PRs M9: C (/agents list + Settings defaults) · E (error handling) · F
+                  (Paperclip wishlist)</span
                 >
               </li>
             </ul>
-            <div class="eta">v1 quase fechado · 4 PRs do M9 + M10 (VPS adapter) restantes</div>
+            <div class="eta">v1 quase fechado · 3 PRs do M9 + M10 (VPS adapter) restantes</div>
           </div>
 
           <div class="card" data-kind="next">
@@ -1655,12 +1649,14 @@
               DELETE já existia em <code>0001_initial.sql</code>.
             </div>
           </div>
-          <div class="module" data-status="stub">
+          <div class="module" data-status="complete">
             <div class="name">Dashboard</div>
-            <div class="status-line"><span class="sq"></span>stub</div>
+            <div class="status-line"><span class="sq"></span>completo</div>
             <div class="note">
-              Rota <code>/dashboard</code> stub. Widgets §6.4 + Recent Activity + Active Agents pra
-              M9 (consome M7.7).
+              M9 PR-B (2026-05-14): 7 widgets em grid 2-col + Recent Activity full-width.
+              ActiveAgents · ActiveIssues · InboxUnread · CostsToday · ActiveAgentsPanel ·
+              GoalsProgress + RecentActivity (10 eventos live via <code>useActivityStream</code>).
+              Selectors puros em <code>lib/dashboard/selectors.ts</code>.
             </div>
           </div>
           <div class="module" data-status="complete">
@@ -2804,25 +2800,28 @@
                 <strong
                   >PR-A (multi-empresa) + PR-D (api-key adapter) mergeados em 2026-05-14</strong
                 >
-                — switcher na sidebar, dual auth (OAuth Max ↔ API key) via adapter pattern, Setup
-                wizard authSource + Settings authMode + safeStorage + 4-agent cap só em OAuth.
-                Próximo: PR-B (Dashboard widgets). Aproveita foundation do M7.5.
+                — switcher na sidebar, dual auth (OAuth Max ↔ API key), Dashboard widgets em grid +
+                Recent Activity full-width. Próximo: PR-C (/agents list + Settings defaults).
+                Aproveita foundation do M7.5.
               </p>
               <div class="feature-group">
-                <div class="group-name">Dashboard widgets (consome Activity M7.7)</div>
+                <div class="group-name">
+                  ✅ Dashboard widgets (PR-B · 2026-05-14) — consome Activity M7.7
+                </div>
                 <ul class="feature-list">
-                  <li>Agentes Ativos (count + lista mini)</li>
-                  <li>Issues em Andamento</li>
-                  <li>Inbox unread</li>
-                  <li>Custos Hoje (tokens + % Max — alimenta de M8)</li>
+                  <li>ActiveAgentsWidget — count + top 3 mini list</li>
+                  <li>ActiveIssuesWidget — count Doing+Review + breakdown por project</li>
+                  <li>InboxUnreadWidget — count + último item snippet</li>
+                  <li>CostsTodayWidget — reuso direto (M8)</li>
                   <li>
-                    <strong>Recent Activity</strong> — últimos 10 eventos de
-                    <code>activity_events</code> com fade-in
+                    <strong>RecentActivityWidget</strong> — últimos 10 eventos via
+                    <code>useActivityStream</code> com live subscribe
                   </li>
                   <li>
-                    <strong>Active Agents Panel</strong> — per-agent status com
-                    <code>currentAction</code> granular do M7.5
+                    <strong>ActiveAgentsPanelWidget</strong> — per-agent status com
+                    <code>currentAction</code> granular
                   </li>
+                  <li>GoalsProgressWidget — top 3 in_progress goals</li>
                 </ul>
               </div>
               <div class="feature-group">
