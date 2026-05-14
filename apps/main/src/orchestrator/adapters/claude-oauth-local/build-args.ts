@@ -1,5 +1,6 @@
 import { resolveSkillTools, type Agent } from "@dashboard-agent/shared";
-import { buildAgentSystemPrompt } from "../../system-prompt.js";
+import { composeSystemPrompt } from "../../system-prompt.js";
+import { goalsSystemPromptBlock } from "../../system-prompt-goals.js";
 
 // We deliberately omit `-p` (--print): that flag makes claude wait for stdin EOF before
 // emitting any assistant output, which is incompatible with the persistent runner that
@@ -11,9 +12,14 @@ import { buildAgentSystemPrompt } from "../../system-prompt.js";
 // and ignores any global MCP servers the host user has configured.
 export const buildClaudeArgs = (agent: Agent, mcpConfigPath: string): string[] => {
   const allowedTools = resolveSkillTools(agent.skills);
+  const isCeo = agent.role === "ceo" || agent.role === "CEO";
   const args = [
     "--system-prompt",
-    buildAgentSystemPrompt(agent.systemPrompt, agent.skills),
+    composeSystemPrompt({
+      agentPersona: agent.systemPrompt,
+      skills: agent.skills,
+      ...(isCeo ? { goalsBlock: goalsSystemPromptBlock } : {}),
+    }),
     "--model",
     agent.model,
     "--allowedTools",

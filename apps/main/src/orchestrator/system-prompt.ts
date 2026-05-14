@@ -29,6 +29,7 @@ export type ComposeArgs = {
   skills: string[];
   role?: { name: string; description: string } | null;
   preambleOverride?: string;
+  goalsBlock?: string;
 };
 
 export const composeSystemPrompt = (args: ComposeArgs): string => {
@@ -54,7 +55,8 @@ Tools outside this list are not available to you and will fail if you attempt
 to call them. If you need a capability you don't have, ask the user to update
 your role.
 `;
-  return preamble + roleBlock + args.agentPersona + skillsBlock;
+  const goalsBlock = args.goalsBlock ?? "";
+  return preamble + roleBlock + args.agentPersona + skillsBlock + goalsBlock;
 };
 
 // Backwards-compatible wrapper used by build-args.ts. Keeps the existing
