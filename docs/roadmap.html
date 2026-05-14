@@ -1417,8 +1417,8 @@
           <span class="index">/01</span>
           <h2>v1 progress</h2>
           <span class="note"
-            >M1—M10 · M8 fechado em <code>4c943fe</code> · próximo M8.5 Goals (CEO planning
-            automático)</span
+            >M1—M10 · M8.6 fechado em 2026-05-14 (live execution &amp; kanban collab) · próximo M9
+            Dashboard + multi-empresa + 2º adapter</span
           >
         </div>
 
@@ -1519,53 +1519,72 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M7.6 fechado</div>
+            <div class="title">M8.6 fechado</div>
             <ul class="bullets">
               <li>
-                <span><strong>10 / 14</strong> milestones do v1</span>
-              </li>
-              <li>
-                <span><strong>472</strong> testes passing · 0 lint/typecheck errors</span>
+                <span><strong>13 / 14</strong> milestones do v1</span>
               </li>
               <li>
                 <span
-                  ><strong>8 / 12</strong> módulos ✅ (Activity stream + Agents acabaram de
-                  fechar)</span
+                  ><strong>711</strong> testes passing (570 main + 33 shared + 108 renderer) · 0
+                  lint/typecheck errors</span
                 >
               </li>
               <li>
-                <span>Master <code>bc38f4a</code> (M7.6 PR-B merge)</span>
+                <span><strong>11 / 12</strong> módulos ✅ (faltam Dashboard widgets do M9)</span>
               </li>
               <li>
-                <span>Bundle renderer <strong>448 kB</strong></span>
+                <span>Master pós-M8.6 PR-A backend + PR-B UI · ~245 commits · ~18k LoC TS/TSX</span>
               </li>
-            </ul>
-            <div class="eta">Q3 2026 — 10 milestones em ~6 semanas de trabalho focado</div>
-          </div>
-
-          <div class="card" data-kind="next">
-            <div class="kicker">próximo</div>
-            <div class="title">M8 Costs</div>
-            <ul class="bullets">
-              <li>
-                <span>Schema <code>cost_events</code> adapter-aware</span>
-              </li>
-              <li>
-                <span><strong>Soft-stop</strong> at turn-complete quando budget estoura</span>
-              </li>
-              <li>
-                <span>Rota <code>/costs</code> com gráficos + filtros por agent/project/dia</span>
-              </li>
-              <li><span>Dashboard widget "Custos hoje"</span></li>
               <li>
                 <span
-                  ><strong>Desbloqueia</strong>: M8.5 (estimates) · M9 (widget) · M10
-                  (per-adapter)</span
+                  >M8.5 + M8.6 entregam <strong>Goals + Live Execution</strong> — CEO planeja e
+                  executa atomicamente OR narrado opt-in</span
                 >
               </li>
             </ul>
             <div class="eta">
-              ETA: <strong>~3-5 dias</strong> · split sugerido PR-A (backend) + PR-B (UI)
+              v1 quase fechado · falta apenas M9 (Dashboard + multi-empresa + API key) + M10 (VPS
+              adapter)
+            </div>
+          </div>
+
+          <div class="card" data-kind="next">
+            <div class="kicker">próximo</div>
+            <div class="title">M9 Dashboard + Multi-empresa</div>
+            <ul class="bullets">
+              <li>
+                <span
+                  >Dashboard widgets dinâmicos (Active Agents · Issues · Inbox · Custos · Recent
+                  Activity) consumindo Activity Stream (M7.7)</span
+                >
+              </li>
+              <li>
+                <span
+                  >Multi-empresa: dropdown na sidebar + criar/deletar · active company
+                  persistido</span
+                >
+              </li>
+              <li>
+                <span
+                  ><code>/agents</code> lista (galeria de role_templates) + right panel rico</span
+                >
+              </li>
+              <li>
+                <span
+                  >Settings: defaults de mode/always_on + banner OAuth expiring (30d antes)</span
+                >
+              </li>
+              <li>
+                <span
+                  ><strong>2º adapter <code>claude-api-key-local</code></strong> via M7.5 adapter
+                  pattern — dual auth (OAuth Max OR API key)</span
+                >
+              </li>
+            </ul>
+            <div class="eta">
+              ETA: <strong>~10-14 dias</strong> · pode split em sub-PRs (Dashboard / Multi-empresa /
+              API key adapter)
             </div>
           </div>
 
@@ -1640,9 +1659,11 @@
             <div class="name">Activity stream</div>
             <div class="status-line"><span class="sq"></span>completo</div>
             <div class="note">
-              Migration 0009 <code>activity_events</code> + recorder helper + dual-write em 17 call
+              Migration 0009 <code>activity_events</code> + recorder helper + dual-write em 17+ call
               sites. Rota <code>/activity</code> com 5 filtros + search + infinite scroll +
-              real-time prepend via <code>ACTIVITY_NEW</code> + fade-down 700ms. M7.7 ✅.
+              real-time prepend via <code>ACTIVITY_NEW</code> + fade-down 700ms. M7.7 ✅. M8.5+M8.6
+              adicionaram 9 actions <code>goal.*</code> + <code>issue.commented</code> +
+              <code>issue.unlocked_by_deps</code>.
             </div>
           </div>
           <div class="module" data-status="complete">
@@ -1650,7 +1671,10 @@
             <div class="status-line"><span class="sq"></span>completo</div>
             <div class="note">
               Rota <code>/inbox</code> com filter pills, approve/reject inline, auto-mark-read,
-              badge unread.
+              badge unread. M8.5 adicionou 3 kinds
+              <code>goal_proposed</code>/<code>executing</code>/<code>error</code> com link
+              <em>Open goal</em>. M8.6 adicionou CTAs <em>Resume narrated</em> /
+              <em>Rollback</em> em <code>goal_error</code> step=narrated_halted.
             </div>
           </div>
           <div class="module" data-status="complete">
@@ -1706,7 +1730,7 @@
               StatsTab com tokens 7d + custo.
             </div>
           </div>
-          <div class="module" data-status="none">
+          <div class="module" data-status="complete">
             <div class="name">Goals + CEO Planning</div>
             <div class="status-line"><span class="sq"></span>completo</div>
             <div class="note">
@@ -1723,8 +1747,9 @@
             <div class="name">Settings</div>
             <div class="status-line"><span class="sq"></span>completo</div>
             <div class="note">
-              OAuth + language + theme + default model. Defaults de mode/always_on ainda só DB — UI
-              pra M9.
+              OAuth + language + theme + default model + Budgets (M8) +
+              <strong>Executor mode</strong> Atomic/Narrated (M8.6, default atomic). Defaults de
+              mode/always_on ainda só DB — UI pra M9.
             </div>
           </div>
         </div>
@@ -1740,14 +1765,14 @@
 
         <div class="filters" id="filters">
           <button class="filter-chip active" data-filter="all">
-            all <span class="count">14</span>
+            all <span class="count">16</span>
           </button>
-          <button class="filter-chip" data-filter="done">done <span class="count">10</span></button>
+          <button class="filter-chip" data-filter="done">done <span class="count">13</span></button>
           <button class="filter-chip" data-filter="progress">
             in progress <span class="count">0</span>
           </button>
           <button class="filter-chip" data-filter="planned">
-            planned <span class="count">4</span>
+            planned <span class="count">3</span>
           </button>
         </div>
 
@@ -2430,14 +2455,16 @@
           </article>
 
           <!-- ──── M8 ──── -->
-          <article class="milestone" data-status="planned">
+          <article class="milestone" data-status="done">
             <div class="ms-rail">
               <div class="num">M08</div>
-              <div class="status-row"><span class="status-dot"></span>planned</div>
-              <div class="meta">depende M7.5</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">
+                fechado 2026-05-12 · <code>56da29c</code> + <code>4c943fe</code>
+              </div>
             </div>
             <div class="ms-body">
-              <h3>Costs UI + Token Tracking</h3>
+              <h3>Costs UI + Token Tracking ✅</h3>
               <p class="tagline">
                 Schema <code>cost_events</code> adapter-aware. Soft-stop at
                 <code>turn-complete</code> (não heartbeat). Rota <code>/costs</code> com gráficos.
@@ -2609,6 +2636,145 @@
                   <li>M7.5 (médio — system prompt composable)</li>
                   <li>M7.6 (médio — <code>agents:hire-from-ui</code> reusado pelo executor)</li>
                   <li>M7.7 (logs do fluxo de plan)</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- ──── M8.6 ──── -->
+          <article class="milestone" data-status="done">
+            <div class="ms-rail">
+              <div class="num">M8.6</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">fechado 2026-05-14 · ~30 commits · +64 testes</div>
+            </div>
+            <div class="ms-body">
+              <h3>Live Execution &amp; Kanban Collab — camada viva sobre M8.5 ✅</h3>
+              <p class="tagline">
+                CEO entra em <strong>loop streamado</strong> (hire → create → comment → finalize) em
+                vez de transação atômica. Kanban ganha sender badges + real-time comments. Issues
+                acordam <strong>topologicamente</strong> conforme dependências completam. Default =
+                atomic (M8.5), narrated opt-in.
+              </p>
+              <div class="design-note">
+                <span class="label">Decisão arquitetural</span>
+                <strong>Default = atomic, narrated opt-in</strong> (decisão revisada do
+                brainstorming: tokens não podem inflar 2-3× por approve). Atomic mode é o código
+                M8.5 só renomeado <code>executePlanAtomic</code>; novo
+                <code>executePlanNarrated</code> enqueue CEO turn via
+                <code>orchestrator.enqueueExecuteRequest</code> + persiste
+                <code>goals.execution_state_json</code> pra crash recovery.<br />
+                <strong>Topological wake-up só pra plan-driven issues</strong> — user-created issues
+                têm <code>depends_on_json</code> NULL → wake imediato (M5 behavior preservado).
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Schema (Migration 0014)</div>
+                <ul class="feature-list">
+                  <li>
+                    <code>goals.execution_state_json TEXT</code> — JSON {planId, mode,
+                    agentIndexToId, issueIndexToId, step, ceoId, threadId}. NULL = não está em
+                    narrated. Cleared no finalize.
+                  </li>
+                  <li>
+                    <code>issues.depends_on_json TEXT</code> — array de issue.id (resolvidos no
+                    momento da criação). Partial index pra LIKE lookups baratos.
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">MCP tools novas (4)</div>
+                <ul class="feature-list">
+                  <li>
+                    <code>comment_on_issue(issueId, comment)</code> — qualquer agente comenta,
+                    sanitizer M5, activity <code>issue.commented</code>, broadcast
+                    <code>issues:changed</code> kind=comment-added
+                  </li>
+                  <li>
+                    <code>hire_agent_for_plan(planIndex)</code> — idempotente, valida
+                    <code>reportsToIndex</code> chain, persiste no state
+                  </li>
+                  <li>
+                    <code>create_issue_for_plan(planIndex)</code> — resolve assignee + deps via
+                    state, popula <code>goal_id</code> + <code>depends_on_json</code>
+                  </li>
+                  <li>
+                    <code>finalize_goal_execution(goalId, abort?)</code> — valida completude ou
+                    rollback transacional (terminate agents + delete issues + plan rejected)
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Backend infra</div>
+                <ul class="feature-list">
+                  <li>
+                    <code>executePlan</code> dispatcher em <code>goals/executor.ts</code> rota
+                    atomic vs narrated por <code>opts.mode</code> ?? settings.executorMode
+                  </li>
+                  <li>
+                    Hook em <code>issues-handlers.ts ISSUES_UPDATE</code> quando
+                    <code>status→done</code> → <code>computeUnlockedDependents</code> →
+                    <code>notifyAssignee</code> waves + activity
+                    <code>issue.unlocked_by_deps</code>
+                  </li>
+                  <li>
+                    Boot recovery <code>scanStuckNarrated</code> — detecta
+                    <code>goals.status='approved' AND execution_state_json NOT NULL</code> → inbox
+                    <code>goal_error</code> step=<code>narrated_halted</code>
+                  </li>
+                  <li>
+                    IPCs novos: <code>goals:narrated-resume</code>,
+                    <code>goals:narrated-rollback</code>,
+                    <code>settings:get/set-executor-mode</code>
+                  </li>
+                  <li>
+                    <code>Settings.executorMode</code> atomic/narrated (default atomic) persistido
+                    no JSON único de <code>app-settings</code>
+                  </li>
+                  <li>
+                    Activity actions novas: <code>issue.commented</code>,
+                    <code>issue.unlocked_by_deps</code>, <code>goal.narrated_step</code>
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">UI</div>
+                <ul class="feature-list">
+                  <li>Settings: radio Atomic/Narrated com descrição de custo</li>
+                  <li>
+                    GoalPlanReview: checkbox "Aprovar narrado" override per-goal + hint de tokens
+                    (base vs ~2.5× narrado)
+                  </li>
+                  <li>
+                    IssueCommentsList: <code>SenderBadge</code> component (CEO brand-bg, agent
+                    surface-soft com nome, user brand)
+                  </li>
+                  <li>
+                    IssueDetailModal: subscreve <code>issues:changed</code> kind=comment-added pra
+                    refetch live durante narrated execution
+                  </li>
+                  <li>
+                    Inbox: <code>goal_error</code> step=narrated_halted mostra 2 CTAs "Retomar
+                    narrado" / "Cancelar e reverter"
+                  </li>
+                  <li>i18n PT/EN +30 keys com parity test extendido</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Pré-req (todos cumpridos)</div>
+                <ul class="feature-list">
+                  <li>✅ M8.5 — executor atomic + planning UI fundação</li>
+                  <li>✅ M6 — <code>issue_comments</code> table</li>
+                  <li>✅ M5 — <code>notifyAssignee</code> mechanism + sanitizer</li>
+                  <li>✅ M7.7 — activity recorder + render dispatch</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Pendente</div>
+                <ul class="feature-list">
+                  <li>
+                    Smoke manual end-to-end — user vai rodar <em>depois</em> de V2 estar pronta
+                    (decisão dele).
+                  </li>
                 </ul>
               </div>
             </div>
