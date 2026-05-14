@@ -126,6 +126,9 @@ declare global {
         delete: (id: string) => Promise<{ ok: true }>;
         openFolder: (id: string) => Promise<{ opened: boolean }>;
         checkPaths: (companyId: string) => Promise<Record<string, ProjectPathStatus>>;
+        setIcon: (id: string, icon: string | null) => Promise<{ ok: true }>;
+        archive: (id: string) => Promise<{ ok: true }>;
+        unarchive: (id: string) => Promise<{ ok: true }>;
       };
       issues: {
         list: (payload: {

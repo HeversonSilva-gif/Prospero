@@ -170,6 +170,12 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
       >,
     setSlug: (projectId: string, slug: string) =>
       ipcRenderer.invoke(IPC.PROJECTS_SET_SLUG, { projectId, slug }) as Promise<void>,
+    setIcon: (id: string, icon: string | null) =>
+      ipcRenderer.invoke(IPC.PROJECTS_SET_ICON, { id, icon }) as Promise<{ ok: true }>,
+    archive: (id: string) =>
+      ipcRenderer.invoke(IPC.PROJECTS_ARCHIVE, { id }) as Promise<{ ok: true }>,
+    unarchive: (id: string) =>
+      ipcRenderer.invoke(IPC.PROJECTS_UNARCHIVE, { id }) as Promise<{ ok: true }>,
   },
   issues: {
     list: (payload: {

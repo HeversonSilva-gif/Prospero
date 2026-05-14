@@ -56,4 +56,31 @@ export const registerProjectsHandlers = (db: Database.Database): void => {
       repo.setSlug(payload.projectId, cleaned);
     },
   );
+
+  ipcMain.handle(
+    IPC.PROJECTS_SET_ICON,
+    (_e, payload: { id: string; icon: string | null }): { ok: true } => {
+      if (typeof payload.id !== "string" || payload.id === "") {
+        throw new Error("[projects:set-icon] id is required");
+      }
+      repo.setIcon(payload.id, payload.icon);
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(IPC.PROJECTS_ARCHIVE, (_e, payload: { id: string }): { ok: true } => {
+    if (typeof payload.id !== "string" || payload.id === "") {
+      throw new Error("[projects:archive] id is required");
+    }
+    repo.archive(payload.id);
+    return { ok: true };
+  });
+
+  ipcMain.handle(IPC.PROJECTS_UNARCHIVE, (_e, payload: { id: string }): { ok: true } => {
+    if (typeof payload.id !== "string" || payload.id === "") {
+      throw new Error("[projects:unarchive] id is required");
+    }
+    repo.unarchive(payload.id);
+    return { ok: true };
+  });
 };
