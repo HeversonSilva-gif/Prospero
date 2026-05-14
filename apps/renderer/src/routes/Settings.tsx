@@ -246,6 +246,59 @@ export const Settings = () => {
         </div>
       </section>
 
+      <section className="bg-surface-card border border-surface-border rounded-lg p-5 mb-4">
+        <h2 className="text-base font-semibold text-brand-dark mb-2">
+          {t("settings.agentDefaults.title")}
+        </h2>
+        <p className="text-xs text-ink-muted mb-3">{t("settings.agentDefaults.subtitle")}</p>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-ink mb-1">
+              {t("settings.agentDefaults.modeLabel")}
+            </label>
+            <div className="flex gap-3 text-sm">
+              {(["supervised", "auto"] as const).map((m) => (
+                <label key={m} className="flex items-center gap-1">
+                  <input
+                    type="radio"
+                    name="defaultAgentMode"
+                    checked={settings.defaultAgentMode === m}
+                    onChange={() =>
+                      void window.dashboardAgent.settings
+                        .update({ defaultAgentMode: m })
+                        .then(() => loadSettings())
+                    }
+                  />
+                  {t(`agent.config.mode.${m}`)}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.defaultAlwaysOn}
+              onChange={(e) =>
+                void window.dashboardAgent.settings
+                  .update({ defaultAlwaysOn: e.target.checked })
+                  .then(() => loadSettings())
+              }
+              className="mt-1"
+            />
+            <div>
+              <div className="text-sm font-medium text-ink">
+                {t("settings.agentDefaults.alwaysOnLabel")}
+              </div>
+              <div className="text-xs text-ink-muted">
+                {t("settings.agentDefaults.alwaysOnDesc")}
+              </div>
+            </div>
+          </label>
+        </div>
+      </section>
+
       <section className="mb-6">
         <h2 className="text-sm font-semibold text-brand-dark mb-2">
           {t("settings.workspace.label")}
