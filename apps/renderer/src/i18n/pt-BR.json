@@ -9,10 +9,173 @@
     "agents": "Agentes",
     "projects": "Projetos",
     "issues": "Issues",
+    "goals": "Objetivos",
     "skills": "Habilidades",
     "orgChart": "Organograma",
     "activity": "Atividade",
     "costs": "Custos"
+  },
+  "goals": {
+    "list": {
+      "title": "Objetivos",
+      "subtitle": "Defina o que quer alcançar; o CEO propõe um plano.",
+      "new": "Novo objetivo",
+      "loading": "Carregando…",
+      "empty": "Sem objetivos.",
+      "emptyHint": "Você ainda não tem objetivos. Crie o primeiro e peça ao CEO para planejar.",
+      "createFirst": "Criar o primeiro objetivo"
+    },
+    "new": {
+      "title": "Novo objetivo",
+      "subtitle": "Descreva o resultado desejado. O CEO transformará em um plano com agentes e issues.",
+      "submit": "Criar objetivo",
+      "submitting": "Criando…",
+      "cancel": "Cancelar",
+      "fields": {
+        "title": "Título",
+        "description": "Descrição",
+        "level": "Nível",
+        "deadline": "Prazo",
+        "owner": "Responsável",
+        "parent": "Objetivo pai",
+        "budget": "Orçamento (tokens)",
+        "criteria": "Critérios de sucesso"
+      },
+      "placeholders": {
+        "title": "Lançar v1 do produto X",
+        "description": "Mais contexto, restrições, escopo…",
+        "noOwner": "— Nenhum —",
+        "noParent": "— Nenhum —",
+        "budget": "Ex: 500000",
+        "criteria": "Como saberemos que foi alcançado?"
+      },
+      "errors": {
+        "titleRequired": "Título é obrigatório."
+      }
+    },
+    "level": {
+      "company": "Empresa",
+      "team": "Time",
+      "agent": "Agente",
+      "task": "Tarefa"
+    },
+    "status": {
+      "draft": "Rascunho",
+      "planning": "Planejando",
+      "proposed": "Proposto",
+      "approved": "Aprovado",
+      "in_progress": "Em andamento",
+      "achieved": "Alcançado",
+      "cancelled": "Cancelado"
+    },
+    "detail": {
+      "loading": "Carregando objetivo…",
+      "backToList": "Voltar para objetivos",
+      "noPlanYet": "Esse objetivo ainda não tem um plano.",
+      "askCeoToPlan": "Pedir ao CEO para planejar",
+      "requestingPlan": "Solicitando plano…",
+      "noCurrentPlan": "Nenhum plano atual.",
+      "planning": "CEO está montando o plano. Volte em alguns instantes.",
+      "subgoalsPending": "Sub-objetivos aparecerão aqui (M8.6).",
+      "issuesPending": "Issues vinculadas aparecerão aqui em breve.",
+      "tabs": {
+        "plan": "Plano",
+        "subgoals": "Sub-objetivos",
+        "issues": "Issues",
+        "history": "Histórico"
+      },
+      "fields": {
+        "level": "Nível",
+        "owner": "Responsável",
+        "noOwner": "—",
+        "deadline": "Prazo",
+        "budget": "Orçamento",
+        "tokens": "tokens",
+        "criteria": "Critérios de sucesso"
+      }
+    },
+    "plan": {
+      "versionLabel": "Plano v{{version}}",
+      "proposedBy": "proposto pelo CEO",
+      "summary": "Resumo",
+      "expand": "Detalhes",
+      "collapse": "Recolher",
+      "includeAgent": "Incluir agente {{name}}",
+      "includeIssue": "Incluir issue {{title}}",
+      "status": {
+        "proposed": "Proposto",
+        "approved": "Aprovado",
+        "rejected": "Rejeitado",
+        "superseded": "Substituído"
+      },
+      "agents": {
+        "title": "Agentes a contratar ({{count}})",
+        "none": "Nenhum agente novo."
+      },
+      "agentFields": {
+        "persona": "Persona",
+        "skills": "Habilidades",
+        "reportsTo": "Reporta para",
+        "rationale": "Justificativa"
+      },
+      "issues": {
+        "title": "Issues a criar ({{count}})",
+        "none": "Nenhuma issue."
+      },
+      "issueFields": {
+        "assignee": "Responsável",
+        "estimate": "Estimativa",
+        "deps": "Depende de",
+        "rationale": "Justificativa"
+      },
+      "risks": {
+        "title": "Riscos ({{count}})",
+        "mitigation": "Mitigação"
+      },
+      "estimates": {
+        "title": "Estimativas",
+        "totalTokens": "Tokens totais",
+        "cost": "Custo estimado",
+        "duration": "Duração",
+        "days": "{{count}} dia(s)",
+        "dailyBudget": "Do orçamento diário"
+      },
+      "actions": {
+        "approve": "✓ Aprovar e executar",
+        "approving": "Executando…",
+        "requestChanges": "↻ Pedir mudanças",
+        "reject": "✗ Rejeitar"
+      },
+      "validation": {
+        "title": "Não é possível aprovar:",
+        "issue-assignee-excluded": "Issue #{{issueIndex}} depende do agente #{{agentIndex}}, que está excluído.",
+        "issue-dep-excluded": "Issue #{{issueIndex}} depende da issue #{{depIndex}}, que está excluída.",
+        "agent-reports-to-excluded": "Agente #{{agentIndex}} reporta para #{{reportsToIndex}}, que está excluído."
+      },
+      "requestChanges": {
+        "title": "Pedir mudanças no plano",
+        "subtitle": "Descreva o que precisa mudar. O CEO refará o plano com base nesse feedback.",
+        "placeholder": "Ex: incluir QA, reduzir escopo da issue #2…",
+        "submit": "Enviar pedido",
+        "submitting": "Enviando…",
+        "cancel": "Cancelar",
+        "errorEmpty": "Feedback não pode ser vazio."
+      },
+      "reject": {
+        "title": "Rejeitar plano",
+        "confirm": "Isso cancela o objetivo. Adicione um motivo (opcional).",
+        "placeholder": "Motivo (opcional)",
+        "submit": "Rejeitar e cancelar",
+        "submitting": "Rejeitando…",
+        "cancel": "Voltar"
+      },
+      "history": {
+        "empty": "Sem versões anteriores.",
+        "agentsCount": "{{count}} agente(s)",
+        "issuesCount": "{{count}} issue(s)",
+        "feedback": "Feedback"
+      }
+    }
   },
   "dashboard": {
     "placeholder": "Dashboard ainda é stub. Widgets (Recent Activity, Active Agents, métricas) chegam em M9 — Custos hoje já funciona via M8.",
@@ -312,13 +475,17 @@
     "approve": "Aprovar",
     "reject": "Rejeitar",
     "markRead": "Marcar como lido",
+    "openGoal": "Abrir objetivo",
     "filter": {
       "all": "Todos",
       "approval": "Aprovações",
       "completed": "Concluídos",
       "suggestion": "Sugestões",
       "error": "Erros",
-      "security_alert": "Segurança"
+      "security_alert": "Segurança",
+      "goal_proposed": "Planos propostos",
+      "goal_executing": "Executando",
+      "goal_error": "Falhas de objetivo"
     }
   },
   "approval": {

@@ -9,10 +9,173 @@
     "agents": "Agents",
     "projects": "Projects",
     "issues": "Issues",
+    "goals": "Goals",
     "skills": "Skills",
     "orgChart": "Org Chart",
     "activity": "Activity",
     "costs": "Costs"
+  },
+  "goals": {
+    "list": {
+      "title": "Goals",
+      "subtitle": "Define what you want to achieve; the CEO proposes a plan.",
+      "new": "New goal",
+      "loading": "Loading…",
+      "empty": "No goals.",
+      "emptyHint": "You have no goals yet. Create the first one and ask the CEO to plan it.",
+      "createFirst": "Create the first goal"
+    },
+    "new": {
+      "title": "New goal",
+      "subtitle": "Describe the desired outcome. The CEO will turn it into a plan with agents and issues.",
+      "submit": "Create goal",
+      "submitting": "Creating…",
+      "cancel": "Cancel",
+      "fields": {
+        "title": "Title",
+        "description": "Description",
+        "level": "Level",
+        "deadline": "Deadline",
+        "owner": "Owner",
+        "parent": "Parent goal",
+        "budget": "Budget (tokens)",
+        "criteria": "Success criteria"
+      },
+      "placeholders": {
+        "title": "Ship v1 of product X",
+        "description": "More context, constraints, scope…",
+        "noOwner": "— None —",
+        "noParent": "— None —",
+        "budget": "e.g. 500000",
+        "criteria": "How will we know it's done?"
+      },
+      "errors": {
+        "titleRequired": "Title is required."
+      }
+    },
+    "level": {
+      "company": "Company",
+      "team": "Team",
+      "agent": "Agent",
+      "task": "Task"
+    },
+    "status": {
+      "draft": "Draft",
+      "planning": "Planning",
+      "proposed": "Proposed",
+      "approved": "Approved",
+      "in_progress": "In progress",
+      "achieved": "Achieved",
+      "cancelled": "Cancelled"
+    },
+    "detail": {
+      "loading": "Loading goal…",
+      "backToList": "Back to goals",
+      "noPlanYet": "This goal has no plan yet.",
+      "askCeoToPlan": "Ask CEO to plan",
+      "requestingPlan": "Requesting plan…",
+      "noCurrentPlan": "No current plan.",
+      "planning": "CEO is drafting the plan. Check back in a moment.",
+      "subgoalsPending": "Sub-goals will appear here (M8.6).",
+      "issuesPending": "Linked issues will appear here soon.",
+      "tabs": {
+        "plan": "Plan",
+        "subgoals": "Sub-goals",
+        "issues": "Issues",
+        "history": "History"
+      },
+      "fields": {
+        "level": "Level",
+        "owner": "Owner",
+        "noOwner": "—",
+        "deadline": "Deadline",
+        "budget": "Budget",
+        "tokens": "tokens",
+        "criteria": "Success criteria"
+      }
+    },
+    "plan": {
+      "versionLabel": "Plan v{{version}}",
+      "proposedBy": "proposed by CEO",
+      "summary": "Summary",
+      "expand": "Details",
+      "collapse": "Collapse",
+      "includeAgent": "Include agent {{name}}",
+      "includeIssue": "Include issue {{title}}",
+      "status": {
+        "proposed": "Proposed",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "superseded": "Superseded"
+      },
+      "agents": {
+        "title": "Agents to hire ({{count}})",
+        "none": "No new agents."
+      },
+      "agentFields": {
+        "persona": "Persona",
+        "skills": "Skills",
+        "reportsTo": "Reports to",
+        "rationale": "Rationale"
+      },
+      "issues": {
+        "title": "Issues to create ({{count}})",
+        "none": "No issues."
+      },
+      "issueFields": {
+        "assignee": "Assignee",
+        "estimate": "Estimate",
+        "deps": "Depends on",
+        "rationale": "Rationale"
+      },
+      "risks": {
+        "title": "Risks ({{count}})",
+        "mitigation": "Mitigation"
+      },
+      "estimates": {
+        "title": "Estimates",
+        "totalTokens": "Total tokens",
+        "cost": "Estimated cost",
+        "duration": "Duration",
+        "days": "{{count}} day(s)",
+        "dailyBudget": "Of daily budget"
+      },
+      "actions": {
+        "approve": "✓ Approve & execute",
+        "approving": "Executing…",
+        "requestChanges": "↻ Request changes",
+        "reject": "✗ Reject"
+      },
+      "validation": {
+        "title": "Cannot approve:",
+        "issue-assignee-excluded": "Issue #{{issueIndex}} depends on agent #{{agentIndex}}, which is excluded.",
+        "issue-dep-excluded": "Issue #{{issueIndex}} depends on issue #{{depIndex}}, which is excluded.",
+        "agent-reports-to-excluded": "Agent #{{agentIndex}} reports to #{{reportsToIndex}}, which is excluded."
+      },
+      "requestChanges": {
+        "title": "Request plan changes",
+        "subtitle": "Describe what should change. The CEO will redo the plan based on this feedback.",
+        "placeholder": "e.g. include QA, reduce scope of issue #2…",
+        "submit": "Send request",
+        "submitting": "Sending…",
+        "cancel": "Cancel",
+        "errorEmpty": "Feedback cannot be empty."
+      },
+      "reject": {
+        "title": "Reject plan",
+        "confirm": "This cancels the goal. Add a reason (optional).",
+        "placeholder": "Reason (optional)",
+        "submit": "Reject & cancel",
+        "submitting": "Rejecting…",
+        "cancel": "Back"
+      },
+      "history": {
+        "empty": "No previous versions.",
+        "agentsCount": "{{count}} agent(s)",
+        "issuesCount": "{{count}} issue(s)",
+        "feedback": "Feedback"
+      }
+    }
   },
   "dashboard": {
     "placeholder": "Dashboard is a stub. Widgets (Recent Activity, Active Agents, metrics) land in M9 — Costs today already works via M8.",
@@ -312,13 +475,17 @@
     "approve": "Approve",
     "reject": "Reject",
     "markRead": "Mark as read",
+    "openGoal": "Open goal",
     "filter": {
       "all": "All",
       "approval": "Approvals",
       "completed": "Completed",
       "suggestion": "Suggestions",
       "error": "Errors",
-      "security_alert": "Security"
+      "security_alert": "Security",
+      "goal_proposed": "Proposed plans",
+      "goal_executing": "Executing",
+      "goal_error": "Goal failures"
     }
   },
   "approval": {
