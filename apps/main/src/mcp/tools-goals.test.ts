@@ -127,3 +127,70 @@ describe("goalsToolDefinitions — read tools", () => {
     );
   });
 });
+
+describe("submit_goal_plan", () => {
+  let env: ReturnType<typeof setup>;
+  beforeEach(() => {
+    env = setup();
+  });
+
+  const validPayload = {
+    summary: "Sample plan summary spanning at least twenty characters of text.",
+    agentsToHire: [],
+    issuesToCreate: [],
+    estimatedTotalTokens: 5000,
+    estimatedDurationDays: 1,
+    estimatedCostCents: 25,
+    risks: [],
+  };
+
+  it("rejects when goal not in planning status", async () => {
+    const goalsRepo = createGoalsRepository(env.ctx.db);
+    const goal = goalsRepo.create({ companyId: env.companyId, title: "X" });
+    const tool = findTool("submit_goal_plan");
+    await expect(tool.run({ goalId: goal.id, plan: validPayload }, env.ctx)).rejects.toThrow(
+      /not in planning/i,
+    );
+  });
+
+  it("accepts valid plan and creates version 1 + transitions goal to proposed", async () => {
+    const goalsRepo = createGoalsRepository(env.ctx.db);
+    const goal = goalsRepo.create({ companyId: env.companyId, title: "X" });
+    goalsRepo.updateStatus(goal.id, "planning");
+
+    const tool = findTool("submit_goal_plan");
+    const result = JSON.parse(await tool.run({ goalId: goal.id, plan: validPayload }, env.ctx)) as {
+      planId: string;
+      version: number;
+    };
+    expect(result.version).toBe(1);
+
+    const afterGoal = goalsRepo.getById(goal.id);
+    expect(afterGoal?.status).toBe("proposed");
+  });
+
+  it("supersedes existing proposed plan when re-submitted in planning state", async () => {
+    const goalsRepo = createGoalsRepository(env.ctx.db);
+    const goal = goalsRepo.create({ companyId: env.companyId, title: "X" });
+    goalsRepo.updateStatus(goal.id, "planning");
+    const tool = findTool("submit_goal_plan");
+    await tool.run({ goalId: goal.id, plan: validPayload }, env.ctx);
+    goalsRepo.updateStatus(goal.id, "planning");
+    const second = JSON.parse(await tool.run({ goalId: goal.id, plan: validPayload }, env.ctx)) as {
+      planId: string;
+      version: number;
+    };
+    expect(second.version).toBe(2);
+  });
+
+  it("returns Zod errors as structured detail", async () => {
+    const goalsRepo = createGoalsRepository(env.ctx.db);
+    const goal = goalsRepo.create({ companyId: env.companyId, title: "X" });
+    goalsRepo.updateStatus(goal.id, "planning");
+    const tool = findTool("submit_goal_plan");
+    const bad = { ...validPayload, summary: "tiny" };
+    await expect(tool.run({ goalId: goal.id, plan: bad }, env.ctx)).rejects.toThrow(
+      /invalid_plan/i,
+    );
+  });
+});

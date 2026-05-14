@@ -3,6 +3,7 @@ import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalPlansRepository } from "../goals/plans-repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { getCostBaseline } from "../costs/baseline.js";
+import { GoalPlanPayloadSchema, type GoalPlanPayload } from "../schemas/goalPlan.js";
 import type { ToolContext } from "./tools.js";
 import type { GoalStatus, GoalLevel } from "@dashboard-agent/shared";
 
@@ -146,10 +147,88 @@ const getCostBaselineTool: Tool = {
   },
 };
 
+const submitGoalPlan: Tool = {
+  name: "submit_goal_plan",
+  description:
+    "Submit a structured plan for a goal in 'planning' status. Validates payload (Zod + DAG). Creates a new plan version and transitions the goal to 'proposed'. The user reviews and approves the plan in the UI.",
+  inputSchema: z.object({
+    goalId: z.string(),
+    plan: z.unknown(),
+  }),
+  run: async (input, ctx) => {
+    const parsedShell = submitGoalPlan.inputSchema.parse(input) as {
+      goalId: string;
+      plan: unknown;
+    };
+    const goalsRepo = createGoalsRepository(ctx.db);
+    const plansRepo = createGoalPlansRepository(ctx.db);
+
+    const goal = goalsRepo.getById(parsedShell.goalId);
+    if (!goal || goal.companyId !== ctx.companyId) {
+      throw new Error(`goal ${parsedShell.goalId} not found`);
+    }
+    if (goal.status !== "planning") {
+      throw new Error(
+        `goal ${parsedShell.goalId} is not in planning status (current=${goal.status})`,
+      );
+    }
+
+    const parsed = GoalPlanPayloadSchema.safeParse(parsedShell.plan);
+    if (!parsed.success) {
+      const detail = parsed.error.issues.map((i) => ({
+        path: i.path.join("."),
+        message: i.message,
+      }));
+      throw new Error(`invalid_plan: ${JSON.stringify(detail)}`);
+    }
+    const payload: GoalPlanPayload = parsed.data;
+
+    const existing = plansRepo.getCurrent(goal.id);
+    if (existing && existing.status === "proposed") {
+      plansRepo.markSuperseded(existing.id);
+    }
+
+    const version = plansRepo.nextVersion(goal.id);
+    const plan = plansRepo.insert({
+      goalId: goal.id,
+      version,
+      proposedByAgentId: ctx.agentId,
+      summary: payload.summary,
+      agentsToHire: payload.agentsToHire,
+      issuesToCreate: payload.issuesToCreate,
+      estimatedTotalTokens: payload.estimatedTotalTokens ?? null,
+      estimatedDurationDays: payload.estimatedDurationDays ?? null,
+      estimatedCostCents: payload.estimatedCostCents ?? null,
+      risks: payload.risks,
+    });
+
+    goalsRepo.updateStatus(goal.id, "proposed");
+
+    tryGetRecorder()?.recordActivity({
+      companyId: ctx.companyId,
+      actor: { kind: "agent", id: ctx.agentId },
+      action: "goal.plan_proposed",
+      entityKind: "goal",
+      entityId: goal.id,
+      agentId: ctx.agentId,
+      payload: {
+        planId: plan.id,
+        version: plan.version,
+        agentsCount: payload.agentsToHire.length,
+        issuesCount: payload.issuesToCreate.length,
+        estimatedCostCents: payload.estimatedCostCents ?? null,
+      },
+    });
+
+    return Promise.resolve(JSON.stringify({ planId: plan.id, version: plan.version }));
+  },
+};
+
 export const goalsToolDefinitions: Tool[] = [
   listGoals,
   getGoal,
   updateGoalStatus,
   recordSubgoal,
   getCostBaselineTool,
+  submitGoalPlan,
 ];
