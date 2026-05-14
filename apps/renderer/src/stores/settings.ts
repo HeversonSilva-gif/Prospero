@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { AppSettings, ExecutorMode, Language, Theme } from "@dashboard-agent/shared";
+import type { AppSettings, AuthMode, ExecutorMode, Language, Theme } from "@dashboard-agent/shared";
 import { DEFAULT_CLAUDE_MODEL } from "@dashboard-agent/shared";
 import { setLanguage } from "../i18n/index.js";
 import { applyTheme } from "../theme/ThemeProvider.js";
@@ -13,6 +13,7 @@ type State = {
   setWorkspaceCwd: (path: string | null) => Promise<void>;
   setModel: (model: string) => Promise<void>;
   saveExecutorMode: (mode: ExecutorMode) => Promise<void>;
+  setAuthMode: (mode: AuthMode) => Promise<void>;
   pickAndSetWorkspace: () => Promise<void>;
 };
 
@@ -67,5 +68,10 @@ export const useSettingsStore = create<State>((set) => ({
   saveExecutorMode: async (mode) => {
     await window.dashboardAgent.settings.setExecutorMode(mode);
     set((s) => ({ settings: { ...s.settings, executorMode: mode } }));
+  },
+
+  setAuthMode: async (mode) => {
+    const next = await window.dashboardAgent.settings.update({ authMode: mode });
+    set({ settings: next });
   },
 }));
