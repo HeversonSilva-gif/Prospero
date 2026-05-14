@@ -46,4 +46,27 @@ describe("i18n parity", () => {
       expect(enKeys).toContain(`inbox.filter.${k}`);
     }
   });
+
+  it("includes the M8.6 PR-B narrated keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "settings.executor.title",
+      "settings.executor.atomic",
+      "settings.executor.narrated",
+      "goals.plan.actions.narratedToggle",
+      "goals.plan.actions.narratedTokenHint",
+      "issues.detail.commentBadge.ceo",
+      "issues.detail.commentBadge.agent",
+      "issues.detail.commentBadge.user",
+      "inbox.goalError.recovery.resumeNarrated",
+      "inbox.goalError.recovery.rollback",
+      "activity.action.issue.commented",
+      "activity.action.issue.unlocked_by_deps",
+      "activity.action.goal.narrated_step",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
 });

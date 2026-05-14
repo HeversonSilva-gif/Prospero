@@ -144,7 +144,9 @@
         "approve": "✓ Aprovar e executar",
         "approving": "Executando…",
         "requestChanges": "↻ Pedir mudanças",
-        "reject": "✗ Rejeitar"
+        "reject": "✗ Rejeitar",
+        "narratedToggle": "Aprovar em modo narrado (CEO comenta cada passo)",
+        "narratedTokenHint": "Tokens base: {{base}} · narrado: ~{{narrated}}"
       },
       "validation": {
         "title": "Não é possível aprovar:",
@@ -446,7 +448,15 @@
     "budgets.save": "Salvar",
     "budgets.saved": "Salvo!",
     "budgets.reset": "Restaurar padrões",
-    "budgets.errorPositive": "Precisa ser um número inteiro positivo."
+    "budgets.errorPositive": "Precisa ser um número inteiro positivo.",
+    "executor": {
+      "title": "Modo de execução do CEO",
+      "subtitle": "Como o CEO instancia o plano aprovado.",
+      "atomic": "Atômico (rápido, silencioso)",
+      "atomicDesc": "Aprovar = uma transação SQLite instantânea. Padrão.",
+      "narrated": "Narrado (CEO comenta cada passo)",
+      "narratedDesc": "Aprovar = CEO entra em loop streamado emitindo MCP calls. ~2-3× tokens."
+    }
   },
   "wizard": {
     "title": "Bem-vindo ao Dashboard Agent",
@@ -476,6 +486,12 @@
     "reject": "Rejeitar",
     "markRead": "Marcar como lido",
     "openGoal": "Abrir objetivo",
+    "goalError": {
+      "recovery": {
+        "resumeNarrated": "Retomar narrado",
+        "rollback": "Cancelar e reverter"
+      }
+    },
     "filter": {
       "all": "Todos",
       "approval": "Aprovações",
@@ -570,6 +586,11 @@
       "reassign": "Reatribuir",
       "delete": "Excluir issue",
       "confirmDelete": "Excluir essa issue e todas as sub-tarefas?",
+      "commentBadge": {
+        "ceo": "CEO",
+        "agent": "Agente",
+        "user": "Você"
+      },
       "artifacts": {
         "title": "Artefatos",
         "empty": "Nenhum artefato registrado ainda.",
@@ -652,7 +673,9 @@
         "status_changed": "{{actor}} moveu {{target}} de {{from}} para {{to}}",
         "assignee_changed": "{{actor}} reatribuiu {{target}}",
         "priority_changed": "{{actor}} mudou a prioridade de {{target}} para {{to}}",
-        "comment_added": "{{actor}} comentou em {{target}}"
+        "comment_added": "{{actor}} comentou em {{target}}",
+        "commented": "{{actor}} comentou na issue",
+        "unlocked_by_deps": "Issue desbloqueada — dependências concluídas (anterior: {{unlockedBy}})"
       },
       "approval": {
         "requested": "{{actor}} solicitou aprovação para {{toolName}}",
@@ -668,7 +691,8 @@
         "created": "{{actor}} criou a meta {{title}}",
         "plan_proposed": "{{actor}} propôs um plano com {{stepCount}} passo(s)",
         "plan_approved": "{{actor}} aprovou o plano",
-        "status_changed": "{{actor}} mudou o status da meta de {{from}} para {{to}}"
+        "status_changed": "{{actor}} mudou o status da meta de {{from}} para {{to}}",
+        "narrated_step": "{{actor}} executou passo {{step}} (#{{planIndex}}) do plano"
       },
       "session": {
         "started": "Sessão de {{target}} iniciada",

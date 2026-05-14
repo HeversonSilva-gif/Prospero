@@ -144,7 +144,9 @@
         "approve": "✓ Approve & execute",
         "approving": "Executing…",
         "requestChanges": "↻ Request changes",
-        "reject": "✗ Reject"
+        "reject": "✗ Reject",
+        "narratedToggle": "Approve in narrated mode (CEO comments each step)",
+        "narratedTokenHint": "Base tokens: {{base}} · narrated: ~{{narrated}}"
       },
       "validation": {
         "title": "Cannot approve:",
@@ -446,7 +448,15 @@
     "budgets.save": "Save",
     "budgets.saved": "Saved!",
     "budgets.reset": "Reset to defaults",
-    "budgets.errorPositive": "Must be a positive integer."
+    "budgets.errorPositive": "Must be a positive integer.",
+    "executor": {
+      "title": "CEO execution mode",
+      "subtitle": "How the CEO instantiates an approved plan.",
+      "atomic": "Atomic (fast, silent)",
+      "atomicDesc": "Approve = one instant SQLite transaction. Default.",
+      "narrated": "Narrated (CEO comments each step)",
+      "narratedDesc": "Approve = CEO enters a streamed loop emitting MCP calls. ~2-3x tokens."
+    }
   },
   "wizard": {
     "title": "Welcome to Dashboard Agent",
@@ -476,6 +486,12 @@
     "reject": "Reject",
     "markRead": "Mark as read",
     "openGoal": "Open goal",
+    "goalError": {
+      "recovery": {
+        "resumeNarrated": "Resume narrated",
+        "rollback": "Cancel & roll back"
+      }
+    },
     "filter": {
       "all": "All",
       "approval": "Approvals",
@@ -570,6 +586,11 @@
       "reassign": "Reassign",
       "delete": "Delete issue",
       "confirmDelete": "Delete this issue and all its sub-tasks?",
+      "commentBadge": {
+        "ceo": "CEO",
+        "agent": "Agent",
+        "user": "You"
+      },
       "artifacts": {
         "title": "Artifacts",
         "empty": "No artifacts recorded yet.",
@@ -652,7 +673,9 @@
         "status_changed": "{{actor}} moved {{target}} from {{from}} to {{to}}",
         "assignee_changed": "{{actor}} reassigned {{target}}",
         "priority_changed": "{{actor}} changed priority of {{target}} to {{to}}",
-        "comment_added": "{{actor}} commented on {{target}}"
+        "comment_added": "{{actor}} commented on {{target}}",
+        "commented": "{{actor}} commented on the issue",
+        "unlocked_by_deps": "Issue unlocked — dependencies completed (after: {{unlockedBy}})"
       },
       "approval": {
         "requested": "{{actor}} requested approval for {{toolName}}",
@@ -668,7 +691,8 @@
         "created": "{{actor}} created goal {{title}}",
         "plan_proposed": "{{actor}} proposed a plan with {{stepCount}} step(s)",
         "plan_approved": "{{actor}} approved the plan",
-        "status_changed": "{{actor}} changed goal status from {{from}} to {{to}}"
+        "status_changed": "{{actor}} changed goal status from {{from}} to {{to}}",
+        "narrated_step": "{{actor}} executed step {{step}} (#{{planIndex}}) of the plan"
       },
       "session": {
         "started": "{{target}} session started",
