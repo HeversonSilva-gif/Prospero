@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAgentsStore } from "../stores/agents.js";
+import { useCompaniesStore } from "../stores/companies.js";
 import { CostsTodayWidget } from "../components/costs/CostsTodayWidget.js";
 
 export const Dashboard = () => {
@@ -9,17 +9,12 @@ export const Dashboard = () => {
   const navigate = useNavigate();
   const agents = useAgentsStore((s) => s.agents);
   const loadAgents = useAgentsStore((s) => s.load);
-  const [companyId, setCompanyId] = useState<string | null>(null);
-
-  useEffect(() => {
-    void (async () => {
-      const companies = await window.dashboardAgent.companies.list();
-      if (companies.length > 0) setCompanyId(companies[0]!.id);
-    })();
-  }, []);
+  const companyId = useCompaniesStore((s) => s.activeId);
 
   const onCreateDemo = async () => {
     const company = await window.dashboardAgent.companies.createDemo();
+    await useCompaniesStore.getState().load();
+    await useCompaniesStore.getState().setActive(company.id);
     await loadAgents(company.id);
     const updated = useAgentsStore.getState().agents;
     if (updated.length > 0) navigate(`/agents/${updated[0]!.id}`);
