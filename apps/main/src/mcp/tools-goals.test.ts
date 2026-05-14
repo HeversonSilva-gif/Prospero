@@ -126,6 +126,48 @@ describe("goalsToolDefinitions — read tools", () => {
       /not in_progress/i,
     );
   });
+
+  it("list_role_templates returns canonical templates with id, name, model, skills", async () => {
+    env.ctx.db
+      .prepare(
+        `INSERT INTO role_templates (id, name, description, default_system_prompt, default_skills_json, default_model, icon)
+         VALUES ('role-ceo', 'CEO', 'Receives requests from the user.', 'You are CEO.', '["delegation","chat"]', 'claude-opus-4-7', '📋'),
+                ('role-engineer', 'Engineer', 'Writes code.', 'You are an engineer.', '["shell","fs-write"]', 'claude-sonnet-4-6', '👨‍💻')`,
+      )
+      .run();
+
+    const tool = findTool("list_role_templates");
+    const result = JSON.parse(await tool.run({}, env.ctx)) as {
+      templates: Array<{
+        id: string;
+        name: string;
+        description: string;
+        defaultModel: string;
+        defaultSkills: string[];
+      }>;
+    };
+    expect(result.templates).toHaveLength(2);
+    const ceo = result.templates.find((t) => t.id === "role-ceo");
+    expect(ceo).toBeDefined();
+    expect(ceo?.defaultModel).toBe("claude-opus-4-7");
+    expect(ceo?.defaultSkills).toEqual(["delegation", "chat"]);
+  });
+
+  it("list_role_templates omits internal fields (defaultSystemPrompt, icon)", async () => {
+    env.ctx.db
+      .prepare(
+        `INSERT INTO role_templates (id, name, description, default_system_prompt, default_skills_json, default_model, icon)
+         VALUES ('role-qa', 'QA', 'Tests features.', 'You are QA.', '["shell"]', 'claude-sonnet-4-6', '🧪')`,
+      )
+      .run();
+    const tool = findTool("list_role_templates");
+    const result = JSON.parse(await tool.run({}, env.ctx)) as {
+      templates: Array<Record<string, unknown>>;
+    };
+    expect(result.templates[0]).toBeDefined();
+    expect(result.templates[0]).not.toHaveProperty("defaultSystemPrompt");
+    expect(result.templates[0]).not.toHaveProperty("icon");
+  });
 });
 
 describe("submit_goal_plan", () => {

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalPlansRepository } from "../goals/plans-repository.js";
+import { createRoleTemplatesRepository } from "../agents/role-templates-repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { getCostBaseline } from "../costs/baseline.js";
 import { GoalPlanPayloadSchema, type GoalPlanPayload } from "../schemas/goalPlan.js";
@@ -129,6 +130,25 @@ const recordSubgoal: Tool = {
   },
 };
 
+const listRoleTemplates: Tool = {
+  name: "list_role_templates",
+  description:
+    "List available role templates (canonical agent blueprints with default model, skills, and system prompt). Used by the CEO during goal planning to pick agent types for new hires.",
+  inputSchema: z.object({}),
+  // eslint-disable-next-line @typescript-eslint/require-await
+  run: async (_input, ctx) => {
+    const repo = createRoleTemplatesRepository(ctx.db);
+    const templates = repo.listAll().map((t) => ({
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      defaultModel: t.defaultModel,
+      defaultSkills: t.defaultSkills,
+    }));
+    return JSON.stringify({ templates });
+  },
+};
+
 const getCostBaselineTool: Tool = {
   name: "get_cost_baseline",
   description:
@@ -229,6 +249,7 @@ export const goalsToolDefinitions: Tool[] = [
   getGoal,
   updateGoalStatus,
   recordSubgoal,
+  listRoleTemplates,
   getCostBaselineTool,
   submitGoalPlan,
 ];
