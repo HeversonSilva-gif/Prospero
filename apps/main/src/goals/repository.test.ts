@@ -82,3 +82,82 @@ describe("goalsRepository", () => {
     expect(updated.status).toBe("cancelled");
   });
 });
+
+describe("goalsRepository — narrated execution state", () => {
+  let db: Database.Database;
+  let companyId: string;
+  let ceoId: string;
+
+  beforeEach(async () => {
+    db = newDb();
+    companyId = seedCompany(db);
+    const { createAgentsRepository } = await import("../agents/repository.js");
+    const ceo = createAgentsRepository(db).create({
+      companyId,
+      name: "CEO",
+      role: "ceo",
+      systemPrompt: "x",
+      mode: "supervised",
+      alwaysOn: true,
+      model: "claude-opus-4-7",
+      templateId: "ceo",
+    });
+    ceoId = ceo.id;
+  });
+
+  const mkState = (overrides: Partial<{ ceoId: string; planId: string }> = {}) => ({
+    planId: overrides.planId ?? "p_x",
+    mode: "narrated" as const,
+    includeAgentIndexes: null,
+    includeIssueIndexes: null,
+    agentIndexToId: {} as Record<number, string>,
+    issueIndexToId: {} as Record<number, string>,
+    step: "starting" as const,
+    startedAt: 1,
+    ceoId: overrides.ceoId ?? ceoId,
+    threadId: "th_x",
+  });
+
+  it("setExecutionState writes JSON and getExecutionState reads it back", () => {
+    const repo = createGoalsRepository(db);
+    const goal = repo.create({ companyId, title: "G" });
+    const state = mkState();
+    repo.setExecutionState(goal.id, state);
+    expect(repo.getExecutionState(goal.id)).toEqual(state);
+  });
+
+  it("setExecutionState(id, null) clears the column", () => {
+    const repo = createGoalsRepository(db);
+    const goal = repo.create({ companyId, title: "G" });
+    repo.setExecutionState(goal.id, mkState());
+    repo.setExecutionState(goal.id, null);
+    expect(repo.getExecutionState(goal.id)).toBeNull();
+  });
+
+  it("findActiveNarratedByCeo returns goal in approved+state", () => {
+    const repo = createGoalsRepository(db);
+    const goal = repo.create({ companyId, title: "G" });
+    repo.updateStatus(goal.id, "planning");
+    repo.updateStatus(goal.id, "proposed");
+    repo.updateStatus(goal.id, "approved");
+    repo.setExecutionState(goal.id, mkState());
+    const found = repo.findActiveNarratedByCeo(ceoId);
+    expect(found?.id).toBe(goal.id);
+  });
+
+  it("findActiveNarratedByCeo returns null when no goal is active", () => {
+    const repo = createGoalsRepository(db);
+    expect(repo.findActiveNarratedByCeo(ceoId)).toBeNull();
+  });
+
+  it("findStuckNarrated returns goals in approved with state present", () => {
+    const repo = createGoalsRepository(db);
+    const goal = repo.create({ companyId, title: "Stuck" });
+    repo.updateStatus(goal.id, "planning");
+    repo.updateStatus(goal.id, "proposed");
+    repo.updateStatus(goal.id, "approved");
+    repo.setExecutionState(goal.id, { ...mkState(), step: "hiring" });
+    const stuck = repo.findStuckNarrated();
+    expect(stuck.map((g) => g.id)).toContain(goal.id);
+  });
+});

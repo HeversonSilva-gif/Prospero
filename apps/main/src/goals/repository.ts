@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
-import type { Goal, GoalLevel, GoalStatus, CreateGoalInput } from "@dashboard-agent/shared";
+import type {
+  Goal,
+  GoalLevel,
+  GoalStatus,
+  CreateGoalInput,
+  ExecutionState,
+} from "@dashboard-agent/shared";
 
 export type GoalsListFilter = {
   status?: GoalStatus;
@@ -13,6 +19,11 @@ export type GoalsRepository = {
   listByCompany(companyId: string, filter?: GoalsListFilter): Goal[];
   updateStatus(id: string, to: GoalStatus, reason?: string | null): Goal;
   updateTitleDescription(id: string, patch: { title?: string; description?: string | null }): Goal;
+  // M8.6 narrated execution
+  setExecutionState(goalId: string, state: ExecutionState | null): void;
+  getExecutionState(goalId: string): ExecutionState | null;
+  findActiveNarratedByCeo(ceoId: string): Goal | null;
+  findStuckNarrated(): Goal[];
 };
 
 const ALLOWED_TRANSITIONS: Record<GoalStatus, GoalStatus[]> = {
@@ -91,6 +102,20 @@ export const createGoalsRepository = (db: Database.Database): GoalsRepository =>
       updated_at = @updatedAt
     WHERE id = @id
   `);
+
+  const setExecStateStmt = db.prepare(
+    "UPDATE goals SET execution_state_json = ?, updated_at = ? WHERE id = ?",
+  );
+  const getExecStateStmt = db.prepare("SELECT execution_state_json FROM goals WHERE id = ?");
+  const findActiveByCeoStmt = db.prepare(
+    `SELECT * FROM goals
+     WHERE status = 'approved'
+       AND execution_state_json IS NOT NULL
+       AND execution_state_json LIKE '%"ceoId":"' || ? || '"%'`,
+  );
+  const findStuckStmt = db.prepare(
+    "SELECT * FROM goals WHERE status = 'approved' AND execution_state_json IS NOT NULL",
+  );
 
   const create = (input: CreateGoalInput): Goal => {
     const id = `goal_${randomUUID()}`;
@@ -171,5 +196,46 @@ export const createGoalsRepository = (db: Database.Database): GoalsRepository =>
     return after;
   };
 
-  return { create, getById, listByCompany, updateStatus, updateTitleDescription };
+  const setExecutionState = (goalId: string, state: ExecutionState | null): void => {
+    setExecStateStmt.run(state === null ? null : JSON.stringify(state), Date.now(), goalId);
+  };
+
+  const getExecutionState = (goalId: string): ExecutionState | null => {
+    const row = getExecStateStmt.get(goalId) as { execution_state_json: string | null } | undefined;
+    if (row === undefined || row.execution_state_json === null) return null;
+    return JSON.parse(row.execution_state_json) as ExecutionState;
+  };
+
+  const findActiveNarratedByCeo = (ceoId: string): Goal | null => {
+    // LIKE may return false-positives if ceoId appears as substring in another
+    // field's value; filter by parsing JSON.
+    const rows = findActiveByCeoStmt.all(ceoId) as GoalRow[];
+    for (const row of rows) {
+      try {
+        // execution_state_json column not in GoalRow type — read raw
+        const stateRaw = (row as unknown as { execution_state_json: string | null })
+          .execution_state_json;
+        if (stateRaw === null) continue;
+        const parsed = JSON.parse(stateRaw) as ExecutionState;
+        if (parsed.ceoId === ceoId) return rowToGoal(row);
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  };
+
+  const findStuckNarrated = (): Goal[] => (findStuckStmt.all() as GoalRow[]).map(rowToGoal);
+
+  return {
+    create,
+    getById,
+    listByCompany,
+    updateStatus,
+    updateTitleDescription,
+    setExecutionState,
+    getExecutionState,
+    findActiveNarratedByCeo,
+    findStuckNarrated,
+  };
 };
