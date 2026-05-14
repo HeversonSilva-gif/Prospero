@@ -201,7 +201,7 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 | **Costs** | ✅ Completo | M8 PR-A backend (`56da29c`): migration 0011 `cost_events` + tracking por turn + pricing opus/sonnet/haiku + soft-stop daily/per-issue + 4 IPCs. M8 PR-B UI (`4c943fe`): rota `/costs` com 3 gráficos recharts (lazy) + filtros + tabela. Dashboard widget "Custos hoje". Settings Budgets. ModelDropdown $/$$/$$$. StatsTab real. |
 | **Goals + CEO Planning** | ✅ Completo | M8.5 PR-A backend (`1a7a48a`): migration 0012 `goals`/`goal_plans` + Zod schema com DAG validation + 7 MCP tools (`list_goals`/`get_goal`/`update_goal_status`/`record_subgoal`/`list_role_templates`/`get_cost_baseline`/`submit_goal_plan`) + CEO system prompt block + executor atomic com topo sort (hires + issues) + recovery scan + 7 IPCs. M8.5 PR-B UI (`69bde4e`): 3 rotas lazy `/goals`+`/goals/new`+`/goals/:id`, GoalsTree recursivo (`buildGoalTree` helper), GoalDetailHeader, GoalPlanReview com include/exclude checkboxes + estimates recomputadas + validação inline, 2 modals (RequestChanges + Reject), GoalPlanHistory expansível, 3 inbox kinds (`goal_proposed`/`executing`/`error`) com migration 0013 + write backend + render link no Inbox, goalsStore Zustand, i18n PT/EN ~150 keys com parity test. |
 | **Live Execution & Kanban Collab** | ✅ Completo | M8.6 PR-A backend: migration 0014 (`goals.execution_state_json` + `issues.depends_on_json`), executor dispatcher (atomic preserved + narrated branch), `executePlanNarrated` enqueues CEO turn, 4 MCP tools (`comment_on_issue`, `hire_agent_for_plan`, `create_issue_for_plan`, `finalize_goal_execution`), topological activation hook on `issues:update` status=done (waves de notifyAssignee), boot recovery scan (`scanStuckNarrated`), narrated-resume/rollback IPCs, Settings.executorMode atomic/narrated, 3 new activity actions. M8.6 PR-B UI (`d557055`): Settings radio block, GoalPlanReview narrated checkbox + token comparison hint, IssueCommentsList sender badges via SenderBadge component, IssueDetailModal real-time refresh on `issues:changed` comment-added, Inbox narrated_halted CTAs (Resume/Rollback), i18n PT/EN +30 keys + parity extended. |
-| **Settings** | ✅ Completo | OAuth token (manual + auto-detect M2), language, theme, default model. Defaults de mode/always_on **NÃO** UI ainda — M9. |
+| **Settings** | ✅ Completo | OAuth/API key auth (M9 PR-D), language, theme, default model, executor mode, defaults pra novos agentes (mode + always_on — M9 PR-C). Banner OAuth expiry pendente PR-E. |
 
 ---
 
@@ -738,19 +738,19 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
   - [x] Criar nova empresa (`CreateCompanyModal` com Enter/Escape)
   - [x] Deletar empresa (`DeleteCompanyConfirm` + cascade DELETE + counts + last-company warning)
   - [x] Active company persistido em `settings.activeCompanyId` (sem nova migration — JSON blob)
-- [ ] **/agents (lista, não detail):**
-  - [ ] Cards com avatar + nome + role + status
-  - [ ] Botão "+" com galeria de role_templates
+- [x] **/agents (lista, não detail):** ✅ **PR-C mergeado 2026-05-14**
+  - [x] Cards com nome + role + status dot + currentAction (grid responsivo)
+  - [x] Botão "+ Novo agente" com `<RoleTemplateGalleryModal />` → `/agents/new?template=<id>`
 - [ ] **Right panel em /agents/:id:**
   - [ ] Persona (system_prompt edit-in-place)
   - [ ] Skills (cross-link com M7)
   - [ ] Allowed projects (cross-link com M6)
   - [ ] Issues atribuídas
   - [ ] Stats (tokens consumidos, turns, etc)
-- [ ] **Settings:**
-  - [ ] Defaults de mode (`supervised`/`auto`)
-  - [ ] Defaults de `always_on`
-  - [ ] Banner global pra OAuth token expiring (30d antes)
+- [x] **Settings:** ✅ **PR-C mergeado 2026-05-14** (banner expiry deferido pra PR-E)
+  - [x] Defaults de mode (`supervised`/`auto`)
+  - [x] Defaults de `always_on`
+  - [ ] Banner global pra OAuth token expiring (30d antes) → deferido pra PR-E (precisa JWT parsing + IPC novo)
 - [x] **Suporte a API key (2º adapter `claude-api-key-local`)** ✅ **PR-D mergeado 2026-05-14** — dual auth via adapter pattern do M7.5:
   - [x] Setup wizard: pergunta auth source (OAuth Max recomendado / API key)
   - [x] Settings: switch entre OAuth Max e API key (radio + inline API key form com mask/clear)

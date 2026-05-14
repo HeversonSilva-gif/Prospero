@@ -1489,11 +1489,11 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M9 PR-B Dashboard widgets mergeado em 2026-05-14 (7 widgets
-              em grid 2-col + Recent Activity full-width + selectors puros em
-              <code>lib/dashboard/</code>). <strong>763 testes passing</strong> (+5 vs PR-D). 13/14
-              milestones; M9 em curso com 3 PRs restantes (C · E · F). Próximo:
-              <strong>M9 PR-C /agents list + Settings defaults</strong>.
+              <strong>Estágio:</strong> M9 PR-C /agents list + Settings defaults mergeado em
+              2026-05-14 (rota <code>/agents</code> + <code>RoleTemplateGalleryModal</code> +
+              AgentNew lê <code>?template=</code> + defaults de mode/always_on).
+              <strong>769 testes passing</strong> (+6 vs PR-B). 13/14 milestones; M9 em curso com 2
+              PRs restantes (E · F). Próximo: <strong>M9 PR-E error handling §7</strong>.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -1518,34 +1518,35 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M9 PR-B mergeado</div>
+            <div class="title">M9 PR-C mergeado</div>
             <ul class="bullets">
               <li>
                 <span><strong>13 / 14</strong> milestones do v1 · M9 em curso</span>
               </li>
               <li>
                 <span
-                  ><strong>763</strong> testes passing (606 main + 33 shared + 124 renderer) · 0
+                  ><strong>769</strong> testes passing (611 main + 33 shared + 125 renderer) · 0
                   lint/typecheck errors</span
                 >
               </li>
               <li>
                 <span
-                  ><strong>Dashboard widgets</strong> agora ✅ — 7 widgets em grid 2-col + Recent
-                  Activity full-width com live subscribe</span
+                  ><strong>/agents list + Settings defaults</strong> agora ✅ — rota
+                  <code>/agents</code> + gallery modal + AgentNew lê <code>?template=</code> +
+                  defaults mode/always_on</span
                 >
               </li>
               <li>
-                <span>Master pós-M9 PR-B · ~10 commits novos · ~700 LoC TS/TSX</span>
+                <span>Master pós-M9 PR-C · ~6 commits novos · ~400 LoC TS/TSX</span>
               </li>
               <li>
                 <span
-                  >Próximos PRs M9: C (/agents list + Settings defaults) · E (error handling) · F
-                  (Paperclip wishlist)</span
+                  >Próximos PRs M9: E (error handling + OAuth expiry banner) · F (Paperclip
+                  wishlist)</span
                 >
               </li>
             </ul>
-            <div class="eta">v1 quase fechado · 3 PRs do M9 + M10 (VPS adapter) restantes</div>
+            <div class="eta">v1 quase fechado · 2 PRs do M9 + M10 (VPS adapter) restantes</div>
           </div>
 
           <div class="card" data-kind="next">
@@ -1751,9 +1752,10 @@
             <div class="name">Settings</div>
             <div class="status-line"><span class="sq"></span>completo</div>
             <div class="note">
-              OAuth + language + theme + default model + Budgets (M8) +
-              <strong>Executor mode</strong> Atomic/Narrated (M8.6, default atomic). Defaults de
-              mode/always_on ainda só DB — UI pra M9.
+              OAuth/API key auth (M9 PR-D) + language + theme + default model + Budgets (M8) +
+              <strong>Executor mode</strong> Atomic/Narrated (M8.6) +
+              <strong>Defaults pra novos agentes</strong> (mode + always_on, M9 PR-C). Banner OAuth
+              expiry pendente PR-E.
             </div>
           </div>
         </div>
@@ -2798,11 +2800,9 @@
               <p class="tagline">
                 Closing items pra v1 ficar feature-complete.
                 <strong
-                  >PR-A (multi-empresa) + PR-D (api-key adapter) mergeados em 2026-05-14</strong
-                >
-                — switcher na sidebar, dual auth (OAuth Max ↔ API key), Dashboard widgets em grid +
-                Recent Activity full-width. Próximo: PR-C (/agents list + Settings defaults).
-                Aproveita foundation do M7.5.
+                  >PR-A (multi-empresa) + PR-D (api-key adapter) + PR-B (Dashboard widgets) + PR-C
+                  (/agents + Settings defaults) mergeados em 2026-05-14</strong
+                >. Próximo: PR-E (error handling §7). Aproveita foundation do M7.5.
               </p>
               <div class="feature-group">
                 <div class="group-name">
@@ -2889,6 +2889,30 @@
                   <li>Backoff exponencial em rate limit + banner amarelo</li>
                   <li>Heartbeat do agente (5min timeout → status=error + restart)</li>
                   <li>Banner pra OAuth token expiring (30d antes)</li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">
+                  ✅ /agents list + Settings defaults (PR-C · 2026-05-14)
+                </div>
+                <ul class="feature-list">
+                  <li>
+                    Nova rota <code>/agents</code> — grid responsivo de cards com status dot +
+                    currentAction
+                  </li>
+                  <li>
+                    <code>RoleTemplateGalleryModal</code> — picker de template → navega
+                    <code>/agents/new?template=&lt;id&gt;</code>
+                  </li>
+                  <li>
+                    AgentNew lê <code>?template=</code> via <code>useSearchParams</code> + aplica
+                    <code>settings.defaultAgentMode</code>
+                  </li>
+                  <li>
+                    Settings ganha seção "Defaults pra novos agentes" — radio
+                    <code>defaultAgentMode</code> + checkbox <code>defaultAlwaysOn</code>
+                  </li>
+                  <li>Sidebar NavLink "Agentes" com <code>end</code> prop pra exact match</li>
                 </ul>
               </div>
               <div class="feature-group">
