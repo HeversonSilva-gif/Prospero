@@ -42,9 +42,16 @@ export const ensureAdapter = async (
   const existing = adapters.get(opts.agent.id);
   if (existing !== undefined && existing.isAlive()) return existing;
 
-  if (activeAdapterCount() >= MAX_CONCURRENT_AGENTS) {
+  // OAuth Max ToS caps parallel sessions at 4. API key has no such cap
+  // (Anthropic rate limit handles it). The agent.adapterName carries the
+  // mode selected at creation time.
+  const isOauth =
+    (opts.agent.adapterName as string | undefined) === "claude-oauth-local" ||
+    (opts.agent.adapterName as string | undefined) === undefined;
+  if (isOauth && activeAdapterCount() >= MAX_CONCURRENT_AGENTS) {
     throw new Error(
-      `Max concurrent agents (${String(MAX_CONCURRENT_AGENTS)}) reached. Kill one before spawning a new agent.`,
+      `Max concurrent OAuth agents (${String(MAX_CONCURRENT_AGENTS)}) reached. ` +
+        `Kill one before spawning a new agent, or switch to API key mode in Settings.`,
     );
   }
 
