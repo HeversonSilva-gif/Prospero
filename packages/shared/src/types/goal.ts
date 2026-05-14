@@ -2,6 +2,7 @@
 // Zod schemas live in packages/shared/src/schemas/goalPlan.ts.
 
 import type { IssuePriority } from "./issue.js";
+export type { IssuePriority };
 
 export type GoalLevel = "company" | "team" | "agent" | "task";
 
