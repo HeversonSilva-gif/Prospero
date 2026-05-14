@@ -1,6 +1,8 @@
 import { app, BrowserWindow } from "electron";
 import type { Tray } from "electron";
 import type Database from "better-sqlite3";
+import { appendFileSync } from "node:fs";
+import { join } from "node:path";
 import { IPC } from "@dashboard-agent/shared";
 import { createMainWindow } from "./window/main-window.js";
 import { registerIpcHandlers } from "./ipc/handlers.js";
@@ -33,6 +35,27 @@ const e2eUserData = process.env["DASHBOARD_AGENT_USER_DATA"];
 if (e2eUserData !== undefined && e2eUserData !== "") {
   app.setPath("userData", e2eUserData);
 }
+
+// Auto-restart on uncaught exception. Best-effort log to userData/emergency.log
+// then relaunch after a 5s window. The window lets log flush + IPC drain.
+const logEmergency = (err: unknown): void => {
+  try {
+    const dir = app.getPath("userData");
+    const path = join(dir, "emergency.log");
+    const msg = err instanceof Error ? `${err.message}\n${err.stack ?? ""}` : String(err);
+    appendFileSync(path, `[${new Date().toISOString()}] uncaughtException: ${msg}\n\n`);
+  } catch {
+    // best effort
+  }
+};
+
+process.on("uncaughtException", (err) => {
+  logEmergency(err);
+  setTimeout(() => {
+    app.relaunch();
+    app.exit(0);
+  }, 5_000);
+});
 
 void app.whenReady().then(() => {
   db = openDatabase(databasePath());
