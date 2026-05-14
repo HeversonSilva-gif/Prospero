@@ -57,7 +57,7 @@ const setup = () => {
 describe("narratedHandlers.resume", () => {
   it("re-enqueues CEO turn with the original execute request", () => {
     const env = setup();
-    const enqueue = vi.fn(() => ({ threadId: "th_2" }));
+    const enqueue = vi.fn((_ceoId: string, _prompt: string) => ({ threadId: "th_2" }));
     const h = narratedHandlers({
       db: env.db,
       orchestrator: { deliverSystemMessage: vi.fn(), enqueueExecuteRequest: enqueue },
