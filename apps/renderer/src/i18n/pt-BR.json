@@ -480,6 +480,20 @@
       "atomicDesc": "Aprovar = uma transação SQLite instantânea. Padrão.",
       "narrated": "Narrado (CEO comenta cada passo)",
       "narratedDesc": "Aprovar = CEO entra em loop streamado emitindo MCP calls. ~2-3× tokens."
+    },
+    "authMode": {
+      "title": "Modo de autenticação",
+      "subtitle": "OAuth Max usa sua assinatura · API key cobra por token. Mudança vale pra novos agentes.",
+      "oauth": "OAuth Max (recomendado)",
+      "oauthDesc": "Flat rate · limite de 4 agentes simultâneos (ToS Anthropic)",
+      "apiKey": "API key",
+      "apiKeyDesc": "Cobra por token · sem limite de 4 agentes"
+    },
+    "apiKey": {
+      "placeholder": "sk-ant-api03-…",
+      "save": "Salvar",
+      "saving": "Salvando…",
+      "clear": "Remover chave"
     }
   },
   "wizard": {
@@ -501,7 +515,21 @@
     "autoConfirm": "Importar este token",
     "autoCancel": "Cancelar",
     "back": "Voltar",
-    "skipForNow": "Continuar sem token (não recomendado)"
+    "skipForNow": "Continuar sem token (não recomendado)",
+    "authSource": {
+      "title": "Como você quer autenticar?",
+      "subtitle": "Você pode trocar depois em Configurações.",
+      "oauthTitle": "OAuth Max (recomendado)",
+      "oauthDesc": "Usa sua assinatura Claude Max — flat rate, sem cobrança por token. Limite: 4 agentes simultâneos.",
+      "apiKeyTitle": "API key",
+      "apiKeyDesc": "Cobra por token via Anthropic API. Sem limite de 4 agentes — só rate limit da conta."
+    },
+    "apiKey": {
+      "title": "Configurar API key",
+      "subtitle": "Cole sua chave Anthropic (começa com sk-ant-api…). É criptografada com safeStorage e nunca sai do seu computador.",
+      "placeholder": "sk-ant-api03-…",
+      "save": "Salvar e continuar"
+    }
   },
   "inbox": {
     "title": "Inbox",

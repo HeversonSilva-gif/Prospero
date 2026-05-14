@@ -47,6 +47,28 @@ describe("i18n parity", () => {
     }
   });
 
+  it("includes the M9 PR-D api-key keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "wizard.authSource.title",
+      "wizard.authSource.oauthTitle",
+      "wizard.authSource.apiKeyTitle",
+      "wizard.apiKey.title",
+      "wizard.apiKey.placeholder",
+      "wizard.apiKey.save",
+      "settings.authMode.title",
+      "settings.authMode.oauth",
+      "settings.authMode.apiKey",
+      "settings.apiKey.placeholder",
+      "settings.apiKey.save",
+      "settings.apiKey.clear",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
+
   it("includes the M9 PR-A multi-empresa keys in both locales", () => {
     const ptKeys = flatten(ptBR);
     const enKeys = flatten(enUS);

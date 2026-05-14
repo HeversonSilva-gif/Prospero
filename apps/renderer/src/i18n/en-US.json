@@ -480,6 +480,20 @@
       "atomicDesc": "Approve = one instant SQLite transaction. Default.",
       "narrated": "Narrated (CEO comments each step)",
       "narratedDesc": "Approve = CEO enters a streamed loop emitting MCP calls. ~2-3x tokens."
+    },
+    "authMode": {
+      "title": "Authentication mode",
+      "subtitle": "OAuth Max uses your subscription · API key bills per token. Change applies to new agents.",
+      "oauth": "OAuth Max (recommended)",
+      "oauthDesc": "Flat rate · 4-agent concurrent cap (Anthropic ToS)",
+      "apiKey": "API key",
+      "apiKeyDesc": "Per-token billing · no 4-agent cap"
+    },
+    "apiKey": {
+      "placeholder": "sk-ant-api03-…",
+      "save": "Save",
+      "saving": "Saving…",
+      "clear": "Remove key"
     }
   },
   "wizard": {
@@ -501,7 +515,21 @@
     "autoConfirm": "Import this token",
     "autoCancel": "Cancel",
     "back": "Back",
-    "skipForNow": "Continue without a token (not recommended)"
+    "skipForNow": "Continue without a token (not recommended)",
+    "authSource": {
+      "title": "How do you want to authenticate?",
+      "subtitle": "You can switch later in Settings.",
+      "oauthTitle": "OAuth Max (recommended)",
+      "oauthDesc": "Uses your Claude Max subscription — flat rate, no per-token billing. Cap: 4 concurrent agents.",
+      "apiKeyTitle": "API key",
+      "apiKeyDesc": "Billed per token via Anthropic API. No 4-agent cap — only your account rate limit."
+    },
+    "apiKey": {
+      "title": "Configure API key",
+      "subtitle": "Paste your Anthropic key (starts with sk-ant-api…). It's encrypted with safeStorage and never leaves your machine.",
+      "placeholder": "sk-ant-api03-…",
+      "save": "Save and continue"
+    }
   },
   "inbox": {
     "title": "Inbox",
