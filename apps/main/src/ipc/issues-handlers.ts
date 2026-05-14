@@ -18,6 +18,7 @@ import { createIssueCommentsRepository } from "../issues/comments-repository.js"
 import { createArtifactsRepository } from "../artifacts/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
+import { computeUnlockedDependents } from "../issues/topo-activation.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { getEventsDir } from "../orchestrator/events-dir.js";
 import { broadcastIssueChanged } from "./issue-events-broadcast.js";
@@ -166,6 +167,25 @@ export const registerIssuesHandlers = (db: Database.Database): void => {
           (prev === null || prev.assigneeId !== next.assigneeId) &&
           patch.assigneeId !== undefined;
         if (reassigned) notifyAssignee(next);
+
+        // M8.6: topological unlock on status → done. Wake any dependent issues
+        // whose ALL deps are now done. Plan-driven issues populate
+        // depends_on_json; user-created issues have it NULL → loop is a no-op.
+        if (prev?.status !== "done" && next.status === "done") {
+          const unlocked = computeUnlockedDependents(db, next.id, next.companyId);
+          const recorder = tryGetRecorder();
+          for (const dep of unlocked) {
+            notifyAssignee(dep);
+            recorder?.recordActivity({
+              companyId: dep.companyId,
+              actor: { kind: "system" },
+              action: "issue.unlocked_by_deps",
+              entityKind: "issue",
+              entityId: dep.id,
+              payload: { unlockedBy: next.id },
+            });
+          }
+        }
       }
       return next;
     },
