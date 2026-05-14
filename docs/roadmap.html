@@ -1366,7 +1366,11 @@
             <div class="cat">⚙️ Por baixo do capô</div>
             <ul>
               <li>Tudo roda <strong>no seu computador</strong> — single-user, offline-first</li>
-              <li>Usa sua <strong>assinatura Claude Max</strong> — sem cobrança extra de API</li>
+              <li>
+                Usa sua <strong>assinatura Claude Max</strong> (flat rate, até 4 agentes
+                simultâneos) <strong>OU API key</strong> (cobra por token, sem limite de 4) — você
+                escolhe em Configurações (M9 PR-D)
+              </li>
               <li>Dados em SQLite local — você é dono de tudo, zero cloud</li>
               <li>App Electron com tray icon — sobrevive ao fechar janela</li>
             </ul>
@@ -1489,13 +1493,13 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M9 PR-A multi-empresa core mergeado em 2026-05-14 (<code
-                >companies:create/:delete</code
+              <strong>Estágio:</strong> M9 PR-D api-key adapter mergeado em 2026-05-14 (<code
+                >claude-api-key-local</code
               >
-              IPCs + <code>useCompaniesStore</code> + <code>&lt;CompanySwitcher /&gt;</code> + 2
-              modais + App.tsx reativo a <code>activeCompanyId</code>).
-              <strong>731 testes passing</strong> (+20 vs M8.6). 13/14 milestones; M9 em curso com 5
-              PRs restantes (D · B · C · E · F). Próximo: <strong>M9 PR-D API key adapter</strong>.
+              + <code>safeStorage</code> + 3 IPCs + Settings auth mode + Setup wizard authSource
+              step). <strong>758 testes passing</strong> (+27 vs PR-A). 13/14 milestones; M9 em
+              curso com 4 PRs restantes (B · C · E · F). Próximo:
+              <strong>M9 PR-B Dashboard widgets</strong>.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -1520,34 +1524,34 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M9 PR-A mergeado</div>
+            <div class="title">M9 PR-D mergeado</div>
             <ul class="bullets">
               <li>
                 <span><strong>13 / 14</strong> milestones do v1 · M9 em curso</span>
               </li>
               <li>
                 <span
-                  ><strong>731</strong> testes passing (580 main + 33 shared + 118 renderer) · 0
+                  ><strong>758</strong> testes passing (606 main + 33 shared + 119 renderer) · 0
                   lint/typecheck errors</span
                 >
               </li>
               <li>
                 <span
-                  ><strong>Multi-empresa</strong> agora ✅ — switcher + create/delete + active
-                  persistido em settings</span
+                  ><strong>API key adapter</strong> agora ✅ — Setup wizard authSource + Settings
+                  authMode + safeStorage + sem 4-agent cap em api-key</span
                 >
               </li>
               <li>
-                <span>Master pós-M9 PR-A · 10 commits novos · ~600 LoC TS/TSX</span>
+                <span>Master pós-M9 PR-D · ~20 commits novos · ~1k LoC TS/TSX</span>
               </li>
               <li>
                 <span
-                  >Próximos PRs M9: D (API key adapter) · B (Dashboard widgets) · C (/agents list) ·
-                  E (error handling) · F (Paperclip wishlist)</span
+                  >Próximos PRs M9: B (Dashboard widgets) · C (/agents list) · E (error handling) ·
+                  F (Paperclip wishlist)</span
                 >
               </li>
             </ul>
-            <div class="eta">v1 quase fechado · 5 PRs do M9 + M10 (VPS adapter) restantes</div>
+            <div class="eta">v1 quase fechado · 4 PRs do M9 + M10 (VPS adapter) restantes</div>
           </div>
 
           <div class="card" data-kind="next">
@@ -2797,10 +2801,12 @@
               <h3>Dashboard + Multi-empresa + Polish + Reviews + API key</h3>
               <p class="tagline">
                 Closing items pra v1 ficar feature-complete.
-                <strong>PR-A (multi-empresa core) mergeado em 2026-05-14</strong> — switcher na
-                sidebar, 2 modais, active company persistido em settings. Próximo: PR-D (API key
-                adapter). Aproveita foundation do M7.5 (adapter pattern, approvals decoupled, system
-                prompt composable).
+                <strong
+                  >PR-A (multi-empresa) + PR-D (api-key adapter) mergeados em 2026-05-14</strong
+                >
+                — switcher na sidebar, dual auth (OAuth Max ↔ API key) via adapter pattern, Setup
+                wizard authSource + Settings authMode + safeStorage + 4-agent cap só em OAuth.
+                Próximo: PR-B (Dashboard widgets). Aproveita foundation do M7.5.
               </p>
               <div class="feature-group">
                 <div class="group-name">Dashboard widgets (consome Activity M7.7)</div>
@@ -2838,12 +2844,25 @@
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">API key (2º adapter)</div>
+                <div class="group-name">✅ API key — 2º adapter (PR-D · 2026-05-14)</div>
                 <ul class="feature-list">
-                  <li>Setup wizard: pergunta auth source (OAuth Max ou API key)</li>
-                  <li>Settings: switch entre OAuth Max e API key (warning sobre custo)</li>
-                  <li>Novo adapter impl <code>claude-api-key-local</code></li>
-                  <li>Limite dos 4 agentes: aplicar SÓ pra OAuth Max</li>
+                  <li>
+                    Setup wizard ganha step inicial <code>authSource</code> + step
+                    <code>apiKey</code>
+                  </li>
+                  <li>Settings: nova seção <code>authMode</code> (radio) + inline API key form</li>
+                  <li>
+                    Novo adapter impl <code>claude-api-key-local</code>: sem seed de
+                    <code>.credentials.json</code>, passa <code>ANTHROPIC_API_KEY</code> via env
+                  </li>
+                  <li>
+                    3 IPCs novos (<code>auth:api-key-{set,status,clear}</code>) com
+                    <code>safeStorage</code>
+                  </li>
+                  <li>
+                    Limite dos 4 agentes aplicado SÓ pra OAuth (lifecycle.ts guard em
+                    <code>agent.adapterName</code>)
+                  </li>
                 </ul>
               </div>
               <div class="feature-group">

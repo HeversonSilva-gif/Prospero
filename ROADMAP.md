@@ -750,15 +750,14 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
   - [ ] Defaults de mode (`supervised`/`auto`)
   - [ ] Defaults de `always_on`
   - [ ] Banner global pra OAuth token expiring (30d antes)
-- [ ] **Suporte a API key (2º adapter `claude-api-key-local`)** — dual auth via adapter pattern do M7.5:
-  - [ ] Setup wizard: pergunta auth source (OAuth Max recomendado / API key)
-  - [ ] Settings: switch entre OAuth Max e API key (com warning sobre custo: API key cobra por token, OAuth Max é flat-rate)
-  - [ ] `auth-mode.ts` (criado em M7.5) passa a retornar `'oauth' | 'api-key'` baseado no settings
-  - [ ] Storage: `safeStorage.encrypt(apiKey)` igual padrão do OAuth M2; `auth:api-key-set` IPC
-  - [ ] **Novo adapter impl** `claude-api-key-local` em `apps/main/src/orchestrator/adapters/`: estende `claude-oauth-local` mas passa `ANTHROPIC_API_KEY` env var em vez de copiar `.credentials.json`. `--strict-mcp-config` continua ativo (não depende de OAuth).
-  - [ ] Limite dos 4 agentes simultâneos: aplicar SÓ pra OAuth Max (ToS Anthropic). Com API key, limite vira o rate limit normal da conta
-  - [ ] Documentar em SECURITY.md as 2 modes + trade-offs
-  - [ ] Memory `project_dashboardagent` precisa atualização (premissa OAuth-only deixa de ser exclusiva)
+- [x] **Suporte a API key (2º adapter `claude-api-key-local`)** ✅ **PR-D mergeado 2026-05-14** — dual auth via adapter pattern do M7.5:
+  - [x] Setup wizard: pergunta auth source (OAuth Max recomendado / API key)
+  - [x] Settings: switch entre OAuth Max e API key (radio + inline API key form com mask/clear)
+  - [x] `auth-mode.ts` agora retorna `'oauth' | 'api-key'` baseado em `settings.authMode`
+  - [x] Storage: `safeStorage.encryptString(apiKey)` em DB key `auth.apikey.ciphertext` + 3 IPCs (`auth:api-key-{set,status,clear}`)
+  - [x] **Novo adapter impl** `claude-api-key-local` em `apps/main/src/orchestrator/adapters/`: espelha `claude-oauth-local` mas **sem** `seedSandboxCredentials` e passa `ANTHROPIC_API_KEY` env var. `--strict-mcp-config` continua ativo.
+  - [x] Limite dos 4 agentes simultâneos: aplicar SÓ pra OAuth (`lifecycle.ts` guard em `agent.adapterName === 'claude-oauth-local'`)
+  - [x] SECURITY.md atualizado com `claude-api-key-local` threat model completo
 - [ ] **Error handling (spec §7):**
   - [ ] Banner global vermelho quando OAuth inválido
   - [ ] Auto-restart do main em crash + 5s timeout
