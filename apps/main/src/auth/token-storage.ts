@@ -9,8 +9,9 @@ const KEY_CIPHERTEXT = "auth.token.ciphertext";
 const KEY_SOURCE = "auth.token.source";
 const KEY_PREFIX = "auth.token.prefix";
 const KEY_AT = "auth.token.configured_at";
+const KEY_EXPIRES_AT = "auth.token.expires_at";
 
-type SaveInput = { raw: string; source: TokenSource };
+type SaveInput = { raw: string; source: TokenSource; expiresAt?: number | null };
 
 const upsert = (db: Database.Database, key: string, value: string): void => {
   db.prepare(
@@ -43,6 +44,11 @@ export const saveToken = (db: Database.Database, input: SaveInput): void => {
     upsert(db, KEY_SOURCE, input.source);
     upsert(db, KEY_PREFIX, redactToken(raw));
     upsert(db, KEY_AT, String(Date.now()));
+    if (input.expiresAt !== undefined && input.expiresAt !== null) {
+      upsert(db, KEY_EXPIRES_AT, String(input.expiresAt));
+    } else {
+      remove(db, KEY_EXPIRES_AT);
+    }
   });
   tx();
 };
@@ -53,13 +59,16 @@ export const loadTokenStatus = (db: Database.Database): TokenStatus => {
   const source = select(db, KEY_SOURCE);
   const prefix = select(db, KEY_PREFIX);
   const at = select(db, KEY_AT);
+  const expiresAtRaw = select(db, KEY_EXPIRES_AT);
   if (source === null || prefix === null || at === null) return { hasToken: false };
   if (source !== "manual" && source !== "auto-detect") return { hasToken: false };
+  const expiresAt = expiresAtRaw !== null ? Number.parseInt(expiresAtRaw, 10) : null;
   return {
     hasToken: true,
     source,
     maskedPrefix: prefix,
     configuredAt: Number.parseInt(at, 10),
+    expiresAt,
   };
 };
 
@@ -87,6 +96,7 @@ export const clearToken = (db: Database.Database): void => {
     remove(db, KEY_SOURCE);
     remove(db, KEY_PREFIX);
     remove(db, KEY_AT);
+    remove(db, KEY_EXPIRES_AT);
   });
   tx();
 };

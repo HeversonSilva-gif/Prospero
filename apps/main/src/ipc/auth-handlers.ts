@@ -40,19 +40,23 @@ export const registerAuthHandlers = (
   // preview ("we found sk-ant-oat-***") and then calls AUTH_TOKEN_IMPORT_DETECTED to
   // actually import. The raw token never crosses the process boundary toward the renderer.
   ipcMain.handle(IPC.AUTH_TOKEN_DETECT, (): DetectResult => {
-    const raw = detectClaudeCliToken(homeDirProvider());
-    if (raw === null) return { found: false };
-    return { found: true, maskedPrefix: redactToken(raw) };
+    const detected = detectClaudeCliToken(homeDirProvider());
+    if (detected === null) return { found: false };
+    return { found: true, maskedPrefix: redactToken(detected.token) };
   });
 
   // Re-detects and saves in one shot, all on the main side. Returns the resulting status.
   ipcMain.handle(IPC.AUTH_TOKEN_IMPORT_DETECTED, (): Promise<TokenStatus> => {
     return Promise.resolve().then(() => {
-      const raw = detectClaudeCliToken(homeDirProvider());
-      if (raw === null) {
+      const detected = detectClaudeCliToken(homeDirProvider());
+      if (detected === null) {
         throw new Error("No Claude CLI token detected to import");
       }
-      saveToken(db, { raw, source: "auto-detect" });
+      saveToken(db, {
+        raw: detected.token,
+        source: "auto-detect",
+        expiresAt: detected.expiresAt,
+      });
       return loadTokenStatus(db);
     });
   });

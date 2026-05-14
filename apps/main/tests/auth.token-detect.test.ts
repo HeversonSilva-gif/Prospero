@@ -51,7 +51,30 @@ describe("detectClaudeCliToken", () => {
         claudeAiOauth: { accessToken: "sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_xyz123" },
       };
       writeFileSync(join(home, ".claude", ".credentials.json"), JSON.stringify(fake));
-      expect(detectClaudeCliToken(home)).toBe("sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_xyz123");
+      expect(detectClaudeCliToken(home)).toEqual({
+        token: "sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_xyz123",
+        expiresAt: null,
+      });
+    } finally {
+      cleanup();
+    }
+  });
+
+  it("extracts expiresAt when present alongside the token", () => {
+    const { home, cleanup } = setup();
+    try {
+      mkdirSync(join(home, ".claude"));
+      const fake = {
+        claudeAiOauth: {
+          accessToken: "sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_xyz123",
+          expiresAt: 1_800_000_000_000,
+        },
+      };
+      writeFileSync(join(home, ".claude", ".credentials.json"), JSON.stringify(fake));
+      expect(detectClaudeCliToken(home)).toEqual({
+        token: "sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_xyz123",
+        expiresAt: 1_800_000_000_000,
+      });
     } finally {
       cleanup();
     }

@@ -7,6 +7,7 @@ export type TokenStatus =
       source: TokenSource;
       maskedPrefix: string;
       configuredAt: number;
+      expiresAt: number | null;
     };
 
 export type DetectResult = { found: false } | { found: true; maskedPrefix: string };
