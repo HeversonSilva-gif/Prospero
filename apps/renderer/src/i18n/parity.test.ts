@@ -154,6 +154,24 @@ describe("i18n parity", () => {
     }
   });
 
+  it("includes the M9 PR-F.1 projects polish + company export keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "projects.form.icon",
+      "projects.form.iconNone",
+      "projects.list.showArchived",
+      "projects.detail.archive",
+      "projects.detail.unarchive",
+      "settings.companyExport.title",
+      "settings.companyExport.subtitle",
+      "settings.companyExport.action",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
+
   it("includes the M8.6 PR-B narrated keys in both locales", () => {
     const ptKeys = flatten(ptBR);
     const enKeys = flatten(enUS);

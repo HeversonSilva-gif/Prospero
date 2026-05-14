@@ -537,6 +537,14 @@
       "save": "Salvar",
       "saving": "Salvando…",
       "clear": "Remover chave"
+    },
+    "companyExport": {
+      "title": "Exportar empresa",
+      "subtitle": "Baixa um JSON com todos os dados da empresa ativa (agentes, projects, issues, threads, mensagens, inbox, custos, activity). Útil pra backup ou debugging. Import virá em release futura.",
+      "action": "Exportar JSON",
+      "exporting": "Exportando…",
+      "noActiveCompany": "Selecione uma empresa ativa primeiro.",
+      "savedAt": "Salvo como: {{path}}"
     }
   },
   "wizard": {
@@ -653,15 +661,22 @@
       "name": "Nome",
       "path": "Pasta",
       "color": "Cor",
+      "icon": "Ícone",
+      "iconNone": "Sem ícone",
       "pickFolder": "Escolher pasta...",
       "save": "Salvar",
       "cancel": "Cancelar",
       "delete": "Excluir projeto",
       "confirmDelete": "Excluir esse projeto? As issues continuam mas perdem o vínculo."
     },
+    "list": {
+      "showArchived": "Mostrar arquivados"
+    },
     "detail": {
       "openInExplorer": "Abrir no Explorer",
       "edit": "Editar",
+      "archive": "Arquivar projeto",
+      "unarchive": "Desarquivar projeto",
       "agentsWithAccess": "Agentes com acesso",
       "addAgent": "+ Agente",
       "removeAccessTitle": "Clique para remover acesso",

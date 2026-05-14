@@ -537,6 +537,14 @@
       "save": "Save",
       "saving": "Saving…",
       "clear": "Remove key"
+    },
+    "companyExport": {
+      "title": "Export company",
+      "subtitle": "Downloads a JSON with all data from the active company (agents, projects, issues, threads, messages, inbox, costs, activity). Useful for backup or debugging. Import coming in a future release.",
+      "action": "Export JSON",
+      "exporting": "Exporting…",
+      "noActiveCompany": "Select an active company first.",
+      "savedAt": "Saved as: {{path}}"
     }
   },
   "wizard": {
@@ -653,15 +661,22 @@
       "name": "Name",
       "path": "Folder path",
       "color": "Color",
+      "icon": "Icon",
+      "iconNone": "No icon",
       "pickFolder": "Choose folder...",
       "save": "Save",
       "cancel": "Cancel",
       "delete": "Delete project",
       "confirmDelete": "Delete this project? Issues remain but lose their project link."
     },
+    "list": {
+      "showArchived": "Show archived"
+    },
     "detail": {
       "openInExplorer": "Open in Explorer",
       "edit": "Edit",
+      "archive": "Archive project",
+      "unarchive": "Unarchive project",
       "agentsWithAccess": "Agents with access",
       "addAgent": "+ Agent",
       "removeAccessTitle": "Click to remove access",
