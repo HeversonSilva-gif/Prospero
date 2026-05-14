@@ -3,11 +3,13 @@ import type Database from "better-sqlite3";
 import { homedir } from "node:os";
 import {
   IPC,
+  type ApiKeyStatus,
   type DetectResult,
   type TokenSource,
   type TokenStatus,
 } from "@dashboard-agent/shared";
 import { saveToken, loadTokenStatus, clearToken } from "../auth/token-storage.js";
+import { saveApiKey, loadApiKeyStatus, clearApiKey } from "../auth/api-key-storage.js";
 import { detectClaudeCliToken } from "../auth/token-detect.js";
 import { redactToken } from "../auth/token-redact.js";
 
@@ -58,5 +60,26 @@ export const registerAuthHandlers = (
   ipcMain.handle(IPC.AUTH_TOKEN_CLEAR, (): TokenStatus => {
     clearToken(db);
     return loadTokenStatus(db);
+  });
+
+  ipcMain.handle(IPC.AUTH_API_KEY_STATUS, (): ApiKeyStatus => loadApiKeyStatus(db));
+
+  ipcMain.handle(IPC.AUTH_API_KEY_SET, (_event, payload: unknown): Promise<ApiKeyStatus> => {
+    return Promise.resolve().then(() => {
+      if (
+        payload === null ||
+        typeof payload !== "object" ||
+        typeof (payload as { raw: string }).raw !== "string"
+      ) {
+        throw new Error("Invalid payload for api-key-set");
+      }
+      saveApiKey(db, (payload as { raw: string }).raw);
+      return loadApiKeyStatus(db);
+    });
+  });
+
+  ipcMain.handle(IPC.AUTH_API_KEY_CLEAR, (): ApiKeyStatus => {
+    clearApiKey(db);
+    return loadApiKeyStatus(db);
   });
 };
