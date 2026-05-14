@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-14 — **M8.5 PR-A backend ✅ MERGEADO** em master (16 tasks, 65 testes novos, HEAD `6925a5c`). Schema + repos + Zod + 6 MCP tools + CEO system prompt + executor atomic + recovery + 7 IPCs + integration tests. Próximo: **M8.5 PR-B UI** (`/goals` rota + PR-review UI). **11/14 milestones fechados** (v1 = M10); V2 anchor = M11 Agent Memory (ver "Visão V2" abaixo).
+> **Última atualização:** 2026-05-14 — **M8.5 ✅ MERGEADO COMPLETO** em master (PR-A backend + PR-B UI, HEAD `69bde4e`). PR-B adicionou: 3 rotas lazy (`/goals`, `/goals/new`, `/goals/:id`), GoalsTree recursivo, GoalDetailHeader, GoalPlanReview (checkboxes include/exclude + estimates recomputadas client-side + validação de deps), 2 modals (RequestChanges + Reject), GoalPlanHistory, 3 inbox kinds (`goal_proposed`/`executing`/`error`) com write backend + render link, migration 0013 inbox CHECK, MCP tool `list_role_templates`, goalsStore Zustand, i18n PT/EN ~150 keys + parity test. **647 testes** (513 main + 33 shared + 101 renderer; +35 vs PR-A). **11/14 milestones fechados** (v1 = M10); V2 anchor = M11 Agent Memory (ver "Visão V2" abaixo).
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 >
@@ -155,14 +155,14 @@ M8 ✅ ──▶ M8.5 Goals ──▶ M8.6 Live Exec ──▶ M9 Dashboard ─�
 
 | Métrica | Valor |
 |---|---|
-| Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5**, **M7.7**, **M7.6** (10/14 do v1: M1–M10 + M7.5 + M7.6 + M7.7 + M8.5) |
-| Em curso | _Nenhum_. M7.6 fechado em `bc38f4a`. Próximo planejável: M8 Costs ou M8.5 Goals. |
-| Testes | **472 passing** (396 main + 43 renderer + 33 shared), 0 lint/typecheck errors |
-| Commits no master | ~205 |
-| LoC (apps + packages) | ~16k TS/TSX |
+| Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5** (12/14 do v1) |
+| Em curso | _Nenhum_. M8.5 fechado em `69bde4e` (PR-A `1a7a48a` + PR-B). Próximo: M8.6 Live Execution ou M9 Dashboard polish. |
+| Testes | **647 passing** (513 main + 33 shared + 101 renderer), 0 lint/typecheck errors |
+| Commits no master | ~215 |
+| LoC (apps + packages) | ~17k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
-| Restante pra v1 | M8.5 · M8.6 · M9 · M10 (~25-33 dias). **M8 fechado em 2026-05-12.** |
+| Restante pra v1 | M8.6 · M9 · M10 (~20-28 dias). **M8.5 fechado em 2026-05-14.** |
 | V2 anchor | M11 Agent Memory & Learning Loop (~10-14 dias, **âncora V2** — 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). Tese V2: 1-person business via delegação de outcomes + memory que compounda) |
 
 ---
@@ -183,7 +183,7 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 | **Org Chart** | ✅ Completo | Rota `/org` SVG handcrafted vertical tree + click drawer + drag-to-reassign + confirm modal + anti-cycle (backend + UI toast). |
 | **Skills** | ✅ Completo | Rota `/skills` master-detail (5 roles seedados, tools chips por skill, agentsUsing). Hard-gate via `--allowedTools`. Edit per-agent disponível no ConfigTab do agente (M7.6 PR-B). |
 | **Costs** | ✅ Completo | M8 PR-A backend (`56da29c`): migration 0011 `cost_events` + tracking por turn + pricing opus/sonnet/haiku + soft-stop daily/per-issue + 4 IPCs. M8 PR-B UI (`4c943fe`): rota `/costs` com 3 gráficos recharts (lazy) + filtros + tabela. Dashboard widget "Custos hoje". Settings Budgets. ModelDropdown $/$$/$$$. StatsTab real. |
-| **Goals + CEO Planning** | ❌ Não iniciado | Tabela `goals`/`goal_plans` não existe. Feature além do Paperclip (CEO-planner automático). M8.5 entrega atomic foundation; M8.6 adiciona execução narrada + kanban vivo. |
+| **Goals + CEO Planning** | ✅ Completo | M8.5 PR-A backend (`1a7a48a`): migration 0012 `goals`/`goal_plans` + Zod schema com DAG validation + 7 MCP tools (`list_goals`/`get_goal`/`update_goal_status`/`record_subgoal`/`list_role_templates`/`get_cost_baseline`/`submit_goal_plan`) + CEO system prompt block + executor atomic com topo sort (hires + issues) + recovery scan + 7 IPCs. M8.5 PR-B UI (`69bde4e`): 3 rotas lazy `/goals`+`/goals/new`+`/goals/:id`, GoalsTree recursivo (`buildGoalTree` helper), GoalDetailHeader, GoalPlanReview com include/exclude checkboxes + estimates recomputadas + validação inline, 2 modals (RequestChanges + Reject), GoalPlanHistory expansível, 3 inbox kinds (`goal_proposed`/`executing`/`error`) com migration 0013 + write backend + render link no Inbox, goalsStore Zustand, i18n PT/EN ~150 keys com parity test. |
 | **Settings** | ✅ Completo | OAuth token (manual + auto-detect M2), language, theme, default model. Defaults de mode/always_on **NÃO** UI ainda — M9. |
 
 ---

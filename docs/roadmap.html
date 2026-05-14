@@ -1081,8 +1081,8 @@
         <button class="theme-toggle" onclick="toggleTheme()">theme</button>
         <div class="meta-row">
           <div class="left">
-            <span>v1 · 10 / 14</span>
-            <span>last-update 2026-05-12</span>
+            <span>v1 · 12 / 14</span>
+            <span>last-update 2026-05-14</span>
             <span>branch · master</span>
           </div>
           <div>roadmap.html</div>
@@ -1099,19 +1099,19 @@
         <div class="stats">
           <div class="stat">
             <div class="label">Milestones</div>
-            <div class="value">10 <span class="unit">/ 14 fechados</span></div>
+            <div class="value">12 <span class="unit">/ 14 fechados</span></div>
           </div>
           <div class="stat">
             <div class="label">Testes</div>
-            <div class="value">472 <span class="unit">passing</span></div>
+            <div class="value">647 <span class="unit">passing</span></div>
           </div>
           <div class="stat">
             <div class="label">Commits</div>
-            <div class="value">~205 <span class="unit">no master</span></div>
+            <div class="value">~215 <span class="unit">no master</span></div>
           </div>
           <div class="stat">
             <div class="label">LoC apps + packages</div>
-            <div class="value">~16k <span class="unit">TS/TSX</span></div>
+            <div class="value">~17k <span class="unit">TS/TSX</span></div>
           </div>
         </div>
       </header>
@@ -1232,6 +1232,38 @@
           </div>
 
           <div class="layperson-card new-tag">
+            <div class="cat">🎯 Goals & CEO Planning<span class="new-badge">novo</span></div>
+            <ul>
+              <li>
+                Você cria um <strong>objetivo</strong> (título, nível, prazo, critérios) e clica
+                "Pedir ao CEO para planejar"
+              </li>
+              <li>
+                CEO monta um <strong>plano estruturado</strong>: agentes a contratar + issues a
+                criar + dependências + estimativa de tokens/custo/duração + riscos
+              </li>
+              <li>
+                Você revisa num modo <strong>PR-review</strong>: checkbox por agente e por issue pra
+                incluir/excluir antes de aprovar
+              </li>
+              <li>
+                Estimativas <strong>recalculam em tempo real</strong> conforme você desmarca itens
+                (% do budget diário, tokens totais)
+              </li>
+              <li>
+                3 botões: <strong>Aprovar & executar</strong> (cria agentes + issues atomicamente),
+                <strong>Pedir mudanças</strong> (free-text feedback → CEO refaz v2), ou
+                <strong>Rejeitar</strong> (cancela o objetivo)
+              </li>
+              <li>
+                Inbox notifica em cada etapa: plano proposto, executando, falhou (com link direto
+                pro objetivo)
+              </li>
+              <li>Histórico completo de versões superseded/rejeitadas com feedback do user</li>
+            </ul>
+          </div>
+
+          <div class="layperson-card new-tag">
             <div class="cat">💰 Custos<span class="new-badge">novo</span></div>
             <ul>
               <li>
@@ -1309,15 +1341,10 @@
           <div class="heading">🚧 O que ainda NÃO funciona (próximas releases)</div>
           <ul>
             <li>
-              🎯 <strong>Goals com CEO planejando automaticamente</strong> — você cria objetivo, CEO
-              monta plano completo (agentes a contratar + issues + estimates), você aprova num modo
-              PR-review → M8.5 (próximo)
-            </li>
-            <li>
               🎬 <strong>Kanban "vivo" com execução narrada</strong> — depois de aprovar o plano,
               CEO cria as issues uma a uma com comentários de contexto, acorda agentes na ordem das
               dependências (não tudo de uma vez), e conversa nas issues do kanban junto com você e
-              os agentes → M8.6 (depois do M8.5)
+              os agentes → M8.6 (próximo)
             </li>
             <li>
               📈 <strong>Dashboard inicial com widgets dinâmicos</strong> — Agentes ativos / Issues
@@ -1414,7 +1441,7 @@
               <div class="dot"></div>
               <div class="label">M8</div>
             </div>
-            <div class="progress-step" data-status="progress">
+            <div class="progress-step" data-status="done">
               <div class="dot"></div>
               <div class="label">M8.5</div>
             </div>
@@ -1429,10 +1456,13 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M8 fechado (<code>4c943fe</code>) — PR-A backend + PR-B UI
-              mergeados. <code>/costs</code> route + Dashboard widget + Settings Budgets +
-              ModelDropdown hints + StatsTab real. <strong>11/14 milestones</strong>. Próximo:
-              <strong>M8.5 Goals</strong> (CEO planning automático).
+              <strong>Estágio:</strong> M8.5 fechado (<code>69bde4e</code>) — PR-A backend + PR-B UI
+              mergeados. Migration 0012/0013, 7 MCP tools (incl. <code>list_role_templates</code> +
+              <code>submit_goal_plan</code> com DAG validation), executor atomic com topo sort, 3
+              rotas <code>/goals*</code> lazy, GoalPlanReview com include/exclude + estimates
+              recomputadas, 3 inbox kinds <code>goal_*</code>, i18n PT/EN ~150 keys.
+              <strong>12/14 milestones</strong>. Próximo: <strong>M8.6 Live Execution</strong>
+              (kanban vivo + execução narrada).
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -2425,14 +2455,16 @@
           </article>
 
           <!-- ──── M8.5 ──── -->
-          <article class="milestone" data-status="planned">
+          <article class="milestone" data-status="done">
             <div class="ms-rail">
               <div class="num">M8.5</div>
-              <div class="status-row"><span class="status-dot"></span>planned</div>
-              <div class="meta">novo · 10-12 dias · além do Paperclip</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">
+                fechado 2026-05-14 · <code>1a7a48a</code> + <code>69bde4e</code>
+              </div>
             </div>
             <div class="ms-body">
-              <h3>Goals + CEO Planning — feature além do Paperclip</h3>
+              <h3>Goals + CEO Planning — feature além do Paperclip ✅</h3>
               <p class="tagline">
                 User cria Goal → "Ask CEO to plan" → CEO lê e propõe
                 <strong>plano estruturado</strong> (agents+issues+estimates+riscos) → user aprova em
