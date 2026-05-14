@@ -540,11 +540,21 @@
     },
     "companyExport": {
       "title": "Export company",
-      "subtitle": "Downloads a JSON with all data from the active company (agents, projects, issues, threads, messages, inbox, costs, activity). Useful for backup or debugging. Import coming in a future release.",
+      "subtitle": "Downloads a JSON with all data from the active company (agents, projects, issues, threads, messages, inbox, costs, activity). Useful for backup or debugging.",
       "action": "Export JSON",
       "exporting": "Exporting…",
       "noActiveCompany": "Select an active company first.",
       "savedAt": "Saved as: {{path}}"
+    },
+    "companyImport": {
+      "title": "Import company",
+      "subtitle": "Restores a JSON previously exported. Creates a new company with fresh IDs — does not overwrite the active one. If a company with the same name exists, the imported one is renamed “(imported)”.",
+      "action": "Import JSON",
+      "importing": "Importing…",
+      "success": "Imported as: {{name}}",
+      "warningsCount_zero": "{{count}} warning",
+      "warningsCount_one": "{{count}} warning",
+      "warningsCount_other": "{{count}} warnings"
     }
   },
   "wizard": {

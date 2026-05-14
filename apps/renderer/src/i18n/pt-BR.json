@@ -540,11 +540,21 @@
     },
     "companyExport": {
       "title": "Exportar empresa",
-      "subtitle": "Baixa um JSON com todos os dados da empresa ativa (agentes, projects, issues, threads, mensagens, inbox, custos, activity). Útil pra backup ou debugging. Import virá em release futura.",
+      "subtitle": "Baixa um JSON com todos os dados da empresa ativa (agentes, projects, issues, threads, mensagens, inbox, custos, activity). Útil pra backup ou debugging.",
       "action": "Exportar JSON",
       "exporting": "Exportando…",
       "noActiveCompany": "Selecione uma empresa ativa primeiro.",
       "savedAt": "Salvo como: {{path}}"
+    },
+    "companyImport": {
+      "title": "Importar empresa",
+      "subtitle": "Restaura um JSON exportado anteriormente. Cria uma nova empresa com IDs frescos — não sobrescreve a ativa. Se já existir uma com o mesmo nome, a importada vira “(imported)”.",
+      "action": "Importar JSON",
+      "importing": "Importando…",
+      "success": "Importado como: {{name}}",
+      "warningsCount_zero": "{{count}} aviso",
+      "warningsCount_one": "{{count}} aviso",
+      "warningsCount_other": "{{count}} avisos"
     }
   },
   "wizard": {

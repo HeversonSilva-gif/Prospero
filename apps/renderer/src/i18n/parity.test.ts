@@ -154,6 +154,21 @@ describe("i18n parity", () => {
     }
   });
 
+  it("includes the M9 PR-F.2.1 company import keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "settings.companyImport.title",
+      "settings.companyImport.subtitle",
+      "settings.companyImport.action",
+      "settings.companyImport.importing",
+      "settings.companyImport.success",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
+
   it("includes the M9 PR-F.1 projects polish + company export keys in both locales", () => {
     const ptKeys = flatten(ptBR);
     const enKeys = flatten(enUS);
