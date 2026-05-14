@@ -1489,11 +1489,10 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M9 PR-C /agents list + Settings defaults mergeado em
-              2026-05-14 (rota <code>/agents</code> + <code>RoleTemplateGalleryModal</code> +
-              AgentNew lê <code>?template=</code> + defaults de mode/always_on).
-              <strong>769 testes passing</strong> (+6 vs PR-B). 13/14 milestones; M9 em curso com 2
-              PRs restantes (E · F). Próximo: <strong>M9 PR-E error handling §7</strong>.
+              <strong>Estágio:</strong> M9 PR-E error handling §7 mergeado em 2026-05-14 (3 banners
+              globais + heartbeat 5min + auto-restart main + rate-limit detection + OAuth expiry
+              30d). <strong>784 testes passing</strong> (+15 vs PR-C). 13/14 milestones; M9 em curso
+              com 1 PR restante (F). Próximo: <strong>M9 PR-F Paperclip wishlist</strong>.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -1518,35 +1517,31 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M9 PR-C mergeado</div>
+            <div class="title">M9 PR-E mergeado</div>
             <ul class="bullets">
               <li>
                 <span><strong>13 / 14</strong> milestones do v1 · M9 em curso</span>
               </li>
               <li>
                 <span
-                  ><strong>769</strong> testes passing (611 main + 33 shared + 125 renderer) · 0
+                  ><strong>784</strong> testes passing (619 main + 33 shared + 132 renderer) · 0
                   lint/typecheck errors</span
                 >
               </li>
               <li>
                 <span
-                  ><strong>/agents list + Settings defaults</strong> agora ✅ — rota
-                  <code>/agents</code> + gallery modal + AgentNew lê <code>?template=</code> +
-                  defaults mode/always_on</span
+                  ><strong>Error handling §7</strong> agora ✅ — 3 banners globais (auth/expiry/
+                  rate-limit) + heartbeat 5min + auto-restart main + OAuth expiry 30d</span
                 >
               </li>
               <li>
-                <span>Master pós-M9 PR-C · ~6 commits novos · ~400 LoC TS/TSX</span>
+                <span>Master pós-M9 PR-E · ~10 commits novos · ~700 LoC TS/TSX</span>
               </li>
               <li>
-                <span
-                  >Próximos PRs M9: E (error handling + OAuth expiry banner) · F (Paperclip
-                  wishlist)</span
-                >
+                <span>Próximo PR M9: F (Paperclip wishlist polish) — último do M9</span>
               </li>
             </ul>
-            <div class="eta">v1 quase fechado · 2 PRs do M9 + M10 (VPS adapter) restantes</div>
+            <div class="eta">v1 quase fechado · 1 PR do M9 + M10 (VPS adapter) restantes</div>
           </div>
 
           <div class="card" data-kind="next">
@@ -2801,8 +2796,9 @@
                 Closing items pra v1 ficar feature-complete.
                 <strong
                   >PR-A (multi-empresa) + PR-D (api-key adapter) + PR-B (Dashboard widgets) + PR-C
-                  (/agents + Settings defaults) mergeados em 2026-05-14</strong
-                >. Próximo: PR-E (error handling §7). Aproveita foundation do M7.5.
+                  (/agents + Settings defaults) + PR-E (error handling §7) mergeados em
+                  2026-05-14</strong
+                >. Próximo: PR-F (Paperclip wishlist polish) — último PR do M9.
               </p>
               <div class="feature-group">
                 <div class="group-name">
@@ -2882,13 +2878,27 @@
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">Error handling (spec §7)</div>
+                <div class="group-name">✅ Error handling §7 (PR-E · 2026-05-14)</div>
                 <ul class="feature-list">
-                  <li>Banner global vermelho quando OAuth inválido</li>
-                  <li>Auto-restart do main em crash + 5s timeout</li>
-                  <li>Backoff exponencial em rate limit + banner amarelo</li>
-                  <li>Heartbeat do agente (5min timeout → status=error + restart)</li>
-                  <li>Banner pra OAuth token expiring (30d antes)</li>
+                  <li>
+                    <code>AuthErrorBanner</code> vermelho quando nem OAuth nem API key configurado
+                  </li>
+                  <li>
+                    <code>OAuthExpiryBanner</code> amarelo quando token expira ≤30 dias (lê
+                    <code>expiresAt</code> de credentials.json)
+                  </li>
+                  <li>
+                    <code>RateLimitBanner</code> amarelo quando stream-parser surface
+                    <code>rate_limit_event</code> → broadcast agent:event
+                  </li>
+                  <li>
+                    Heartbeat 60s scan: agents working/thinking sem activity_events em 5min →
+                    status=error + inbox <code>agent_unresponsive</code>
+                  </li>
+                  <li>
+                    Auto-restart main em <code>uncaughtException</code>:
+                    <code>app.relaunch() + app.exit(0)</code> após 5s log emergency
+                  </li>
                 </ul>
               </div>
               <div class="feature-group">
