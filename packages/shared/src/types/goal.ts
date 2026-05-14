@@ -89,6 +89,10 @@ export interface GoalWithPlan extends Goal {
   history: GoalPlan[];
 }
 
+export type ExecutePlanResult =
+  | { ok: true; hiredAgentIds: string[]; createdIssueIds: string[] }
+  | { ok: false; error: string; failedAtStep: string };
+
 export interface CreateGoalInput {
   companyId: string;
   title: string;

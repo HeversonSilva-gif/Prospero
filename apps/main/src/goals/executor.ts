@@ -4,16 +4,14 @@ import { createGoalPlansRepository } from "./plans-repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
-import type { AgentToHire, IssueToCreate } from "@dashboard-agent/shared";
+import type { AgentToHire, IssueToCreate, ExecutePlanResult } from "@dashboard-agent/shared";
 
 export type ExecuteOptions = {
   includeAgentIndexes?: Set<number>;
   includeIssueIndexes?: Set<number>;
 };
 
-export type ExecuteResult =
-  | { ok: true; hiredAgentIds: string[]; createdIssueIds: string[] }
-  | { ok: false; error: string; failedAtStep: string };
+export type ExecuteResult = ExecutePlanResult;
 
 const topoSortAgents = (agents: AgentToHire[]): AgentToHire[] => {
   const byIndex = new Map(agents.map((a) => [a.index, a]));

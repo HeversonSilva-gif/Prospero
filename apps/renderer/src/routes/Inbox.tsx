@@ -9,6 +9,9 @@ const KIND_BORDER: Record<InboxKind, string> = {
   suggestion: "border-l-4 border-l-brand",
   error: "border-l-4 border-l-semantic-danger",
   security_alert: "border-l-4 border-l-semantic-danger bg-semantic-danger/5",
+  goal_proposed: "border-l-4 border-l-brand",
+  goal_executing: "border-l-4 border-l-semantic-success",
+  goal_error: "border-l-4 border-l-semantic-danger",
 };
 
 type FilterKey = "all" | InboxKind;
@@ -20,6 +23,9 @@ const FILTERS: FilterKey[] = [
   "suggestion",
   "error",
   "security_alert",
+  "goal_proposed",
+  "goal_executing",
+  "goal_error",
 ];
 
 export const Inbox: FC = () => {

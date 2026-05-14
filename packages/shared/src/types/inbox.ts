@@ -1,4 +1,12 @@
-export type InboxKind = "approval" | "completed" | "suggestion" | "error" | "security_alert";
+export type InboxKind =
+  | "approval"
+  | "completed"
+  | "suggestion"
+  | "error"
+  | "security_alert"
+  | "goal_proposed"
+  | "goal_executing"
+  | "goal_error";
 
 export type InboxItem = {
   id: string;

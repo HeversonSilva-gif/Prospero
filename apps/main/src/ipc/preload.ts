@@ -29,6 +29,11 @@ import {
   type CostsQueryResult,
   type CostsAggregateTodayResult,
   type CostBudgets,
+  type Goal,
+  type GoalStatus,
+  type GoalWithPlan,
+  type CreateGoalInput,
+  type ExecutePlanResult,
 } from "@dashboard-agent/shared";
 
 contextBridge.exposeInMainWorld("dashboardAgent", {
@@ -234,30 +239,21 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
     },
   },
   goals: {
-    list: (args: { companyId: string; status?: string }) =>
-      ipcRenderer.invoke(IPC.GOALS_LIST, args),
-    get: (args: { id: string }) => ipcRenderer.invoke(IPC.GOALS_GET, args),
-    create: (args: {
-      companyId: string;
-      title: string;
-      description?: string | null;
-      level?: string;
-      parentGoalId?: string | null;
-      ownerAgentId?: string | null;
-      budgetMaxTokens?: number | null;
-      deadline?: number | null;
-      successCriteria?: string | null;
-    }) => ipcRenderer.invoke(IPC.GOALS_CREATE, args),
-    requestPlan: (args: { goalId: string }) => ipcRenderer.invoke(IPC.GOALS_REQUEST_PLAN, args),
+    list: (args: { companyId: string; status?: GoalStatus }) =>
+      ipcRenderer.invoke(IPC.GOALS_LIST, args) as Promise<Goal[]>,
+    get: (args: { id: string }) => ipcRenderer.invoke(IPC.GOALS_GET, args) as Promise<GoalWithPlan>,
+    create: (args: CreateGoalInput) => ipcRenderer.invoke(IPC.GOALS_CREATE, args) as Promise<Goal>,
+    requestPlan: (args: { goalId: string }) =>
+      ipcRenderer.invoke(IPC.GOALS_REQUEST_PLAN, args) as Promise<{ ok: true }>,
     approvePlan: (args: {
       planId: string;
       includeAgentIndexes?: number[];
       includeIssueIndexes?: number[];
-    }) => ipcRenderer.invoke(IPC.GOALS_APPROVE_PLAN, args),
+    }) => ipcRenderer.invoke(IPC.GOALS_APPROVE_PLAN, args) as Promise<ExecutePlanResult>,
     requestChanges: (args: { planId: string; feedback: string }) =>
-      ipcRenderer.invoke(IPC.GOALS_REQUEST_CHANGES, args),
+      ipcRenderer.invoke(IPC.GOALS_REQUEST_CHANGES, args) as Promise<{ ok: true }>,
     rejectPlan: (args: { planId: string; reason?: string }) =>
-      ipcRenderer.invoke(IPC.GOALS_REJECT_PLAN, args),
+      ipcRenderer.invoke(IPC.GOALS_REJECT_PLAN, args) as Promise<{ ok: true }>,
   },
   windowControls: {
     minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE) as Promise<void>,

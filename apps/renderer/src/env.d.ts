@@ -28,6 +28,11 @@ import type {
   CostsQueryResult,
   CostsAggregateTodayResult,
   CostBudgets,
+  Goal,
+  GoalStatus,
+  GoalWithPlan,
+  CreateGoalInput,
+  ExecutePlanResult,
 } from "@dashboard-agent/shared";
 
 declare global {
@@ -163,6 +168,19 @@ declare global {
         onNew: (
           cb: (payload: { agentId: string; deltaTokens: number; deltaCents: number }) => void,
         ) => () => void;
+      };
+      goals: {
+        list: (args: { companyId: string; status?: GoalStatus }) => Promise<Goal[]>;
+        get: (args: { id: string }) => Promise<GoalWithPlan>;
+        create: (args: CreateGoalInput) => Promise<Goal>;
+        requestPlan: (args: { goalId: string }) => Promise<{ ok: true }>;
+        approvePlan: (args: {
+          planId: string;
+          includeAgentIndexes?: number[];
+          includeIssueIndexes?: number[];
+        }) => Promise<ExecutePlanResult>;
+        requestChanges: (args: { planId: string; feedback: string }) => Promise<{ ok: true }>;
+        rejectPlan: (args: { planId: string; reason?: string }) => Promise<{ ok: true }>;
       };
       windowControls: {
         minimize: () => Promise<void>;
