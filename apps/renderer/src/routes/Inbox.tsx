@@ -126,6 +126,44 @@ export const Inbox: FC = () => {
                     </Link>
                   );
                 })()}
+              {item.kind === "goal_error" &&
+                (() => {
+                  const goalId = extractGoalId(item.payloadJson);
+                  if (goalId === null || item.payloadJson === null) return null;
+                  let parsed: { step?: string } = {};
+                  try {
+                    parsed = JSON.parse(item.payloadJson) as { step?: string };
+                  } catch {
+                    return null;
+                  }
+                  if (parsed.step !== "narrated_halted") return null;
+                  return (
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void window.dashboardAgent.goals
+                            .narratedResume({ goalId })
+                            .then(() => markRead(item.id));
+                        }}
+                        className="text-xs px-3 py-1 bg-brand text-brand-fg rounded font-semibold"
+                      >
+                        {t("inbox.goalError.recovery.resumeNarrated")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void window.dashboardAgent.goals
+                            .narratedRollback({ goalId })
+                            .then(() => markRead(item.id));
+                        }}
+                        className="text-xs px-3 py-1 bg-semantic-danger text-white rounded font-semibold"
+                      >
+                        {t("inbox.goalError.recovery.rollback")}
+                      </button>
+                    </div>
+                  );
+                })()}
               {item.readAt === null && item.requiresAction === false && (
                 <button
                   onClick={() => void markRead(item.id)}
