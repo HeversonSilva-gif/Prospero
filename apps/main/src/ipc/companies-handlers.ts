@@ -3,6 +3,7 @@ import type Database from "better-sqlite3";
 import { IPC, type Company } from "@dashboard-agent/shared";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createDemoCompany } from "../companies/seed.js";
+import { exportCompany, type CompanyExportV1 } from "../companies/export.js";
 
 export const registerCompaniesHandlers = (db: Database.Database): void => {
   const repo = createCompaniesRepository(db);
@@ -25,5 +26,12 @@ export const registerCompaniesHandlers = (db: Database.Database): void => {
     }
     repo.delete(payload.id);
     return { ok: true };
+  });
+
+  ipcMain.handle(IPC.COMPANY_EXPORT, (_e, payload: { id: string }): CompanyExportV1 => {
+    if (typeof payload.id !== "string" || payload.id.length === 0) {
+      throw new Error("[company:export] id is required");
+    }
+    return exportCompany(db, payload.id);
   });
 };

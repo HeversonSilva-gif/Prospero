@@ -5,6 +5,7 @@ import { useAuthStore } from "../stores/auth.js";
 import { ModelDropdown } from "../components/ModelDropdown.js";
 import { useSettingsStore } from "../stores/settings.js";
 import { BudgetsForm } from "../components/costs/BudgetsForm.js";
+import { useCompaniesStore } from "../stores/companies.js";
 
 export const Settings = () => {
   const { t } = useTranslation();
@@ -26,6 +27,11 @@ export const Settings = () => {
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
   const [apiKeyBusy, setApiKeyBusy] = useState(false);
   const [modelSaved, setModelSaved] = useState(false);
+
+  const activeCompanyId = useCompaniesStore((s) => s.activeId);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportSavedAt, setExportSavedAt] = useState<string | null>(null);
 
   useEffect(() => {
     void loadSettings();
@@ -62,6 +68,32 @@ export const Settings = () => {
     await setModel(next);
     setModelSaved(true);
     window.setTimeout(() => setModelSaved(false), 2000);
+  };
+
+  const onExportCompany = async () => {
+    if (activeCompanyId === null) {
+      setExportError(t("settings.companyExport.noActiveCompany"));
+      return;
+    }
+    setExportBusy(true);
+    setExportError(null);
+    setExportSavedAt(null);
+    try {
+      const snapshot = await window.dashboardAgent.companies.exportSnapshot(activeCompanyId);
+      const json = JSON.stringify(snapshot, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `dashboard-agent-company-${activeCompanyId}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportSavedAt(a.download);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExportBusy(false);
+    }
   };
 
   return (
@@ -297,6 +329,27 @@ export const Settings = () => {
             </div>
           </label>
         </div>
+      </section>
+
+      <section className="bg-surface-card border border-surface-border rounded-lg p-5 mb-4">
+        <h2 className="text-base font-semibold text-brand-dark mb-2">
+          {t("settings.companyExport.title")}
+        </h2>
+        <p className="text-xs text-ink-muted mb-3">{t("settings.companyExport.subtitle")}</p>
+        <button
+          type="button"
+          onClick={() => void onExportCompany()}
+          disabled={exportBusy}
+          className="px-3 py-1.5 text-sm font-semibold bg-brand text-brand-fg rounded disabled:opacity-50"
+        >
+          {exportBusy ? t("settings.companyExport.exporting") : t("settings.companyExport.action")}
+        </button>
+        {exportError !== null && <p className="mt-2 text-xs text-semantic-danger">{exportError}</p>}
+        {exportSavedAt !== null && (
+          <p className="mt-2 text-xs text-semantic-success">
+            {t("settings.companyExport.savedAt", { path: exportSavedAt })}
+          </p>
+        )}
       </section>
 
       <section className="mb-6">

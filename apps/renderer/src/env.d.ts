@@ -62,6 +62,7 @@ declare global {
         createDemo: () => Promise<Company>;
         create: (name: string) => Promise<Company>;
         delete: (id: string) => Promise<{ ok: true }>;
+        exportSnapshot: (id: string) => Promise<unknown>;
       };
       agents: {
         list: (companyId: string) => Promise<Agent[]>;
