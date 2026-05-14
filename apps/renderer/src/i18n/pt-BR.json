@@ -15,6 +15,30 @@
     "activity": "Atividade",
     "costs": "Custos"
   },
+  "company": {
+    "switcher": {
+      "placeholder": "Selecionar empresa…",
+      "create": "Nova empresa",
+      "createFirst": "Criar primeira empresa",
+      "deleteAria": "Deletar {{name}}"
+    },
+    "create": {
+      "title": "Nova empresa",
+      "namePlaceholder": "Nome da empresa",
+      "submit": "Criar",
+      "submitting": "Criando…",
+      "errorEmpty": "Nome é obrigatório"
+    },
+    "delete": {
+      "title": "Deletar empresa",
+      "body": "Deletar \"{{name}}\" remove todos os agentes, issues, projects e histórico associados. Esta ação não pode ser desfeita.",
+      "cascadeCounts": "{{agents}} agente(s), {{issues}} issue(s), {{projects}} project(s) serão deletados.",
+      "cascadeWarning": "Todos os dados da empresa (agentes, issues, projects, threads) serão deletados em cascata.",
+      "lastWarning": "Esta é a única empresa — você ficará sem empresas após deletar.",
+      "confirm": "Deletar",
+      "deleting": "Deletando…"
+    }
+  },
   "goals": {
     "list": {
       "title": "Objetivos",

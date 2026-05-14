@@ -47,6 +47,32 @@ describe("i18n parity", () => {
     }
   });
 
+  it("includes the M9 PR-A multi-empresa keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "company.switcher.placeholder",
+      "company.switcher.create",
+      "company.switcher.createFirst",
+      "company.switcher.deleteAria",
+      "company.create.title",
+      "company.create.namePlaceholder",
+      "company.create.submit",
+      "company.create.submitting",
+      "company.create.errorEmpty",
+      "company.delete.title",
+      "company.delete.body",
+      "company.delete.cascadeCounts",
+      "company.delete.cascadeWarning",
+      "company.delete.lastWarning",
+      "company.delete.confirm",
+      "company.delete.deleting",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
+
   it("includes the M8.6 PR-B narrated keys in both locales", () => {
     const ptKeys = flatten(ptBR);
     const enKeys = flatten(enUS);

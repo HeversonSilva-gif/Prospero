@@ -15,6 +15,30 @@
     "activity": "Activity",
     "costs": "Costs"
   },
+  "company": {
+    "switcher": {
+      "placeholder": "Select company…",
+      "create": "New company",
+      "createFirst": "Create first company",
+      "deleteAria": "Delete {{name}}"
+    },
+    "create": {
+      "title": "New company",
+      "namePlaceholder": "Company name",
+      "submit": "Create",
+      "submitting": "Creating…",
+      "errorEmpty": "Name is required"
+    },
+    "delete": {
+      "title": "Delete company",
+      "body": "Deleting \"{{name}}\" removes all associated agents, issues, projects and history. This action cannot be undone.",
+      "cascadeCounts": "{{agents}} agent(s), {{issues}} issue(s), {{projects}} project(s) will be deleted.",
+      "cascadeWarning": "All company data (agents, issues, projects, threads) will be cascade-deleted.",
+      "lastWarning": "This is your only company — you'll have no companies after deletion.",
+      "confirm": "Delete",
+      "deleting": "Deleting…"
+    }
+  },
   "goals": {
     "list": {
       "title": "Goals",
