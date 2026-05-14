@@ -43,6 +43,10 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
     update: (patch: Partial<AppSettings>) =>
       ipcRenderer.invoke(IPC.SETTINGS_UPDATE, patch) as Promise<AppSettings>,
     pickWorkspace: () => ipcRenderer.invoke(IPC.SETTINGS_PICK_WORKSPACE) as Promise<string | null>,
+    getExecutorMode: () =>
+      ipcRenderer.invoke(IPC.SETTINGS_GET_EXECUTOR_MODE) as Promise<"atomic" | "narrated">,
+    setExecutorMode: (mode: "atomic" | "narrated") =>
+      ipcRenderer.invoke(IPC.SETTINGS_SET_EXECUTOR_MODE, mode) as Promise<{ ok: true }>,
   },
   auth: {
     status: () => ipcRenderer.invoke(IPC.AUTH_TOKEN_STATUS) as Promise<TokenStatus>,
@@ -254,6 +258,10 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
       ipcRenderer.invoke(IPC.GOALS_REQUEST_CHANGES, args) as Promise<{ ok: true }>,
     rejectPlan: (args: { planId: string; reason?: string }) =>
       ipcRenderer.invoke(IPC.GOALS_REJECT_PLAN, args) as Promise<{ ok: true }>,
+    narratedResume: (args: { goalId: string }) =>
+      ipcRenderer.invoke(IPC.GOALS_NARRATED_RESUME, args) as Promise<{ ok: true }>,
+    narratedRollback: (args: { goalId: string }) =>
+      ipcRenderer.invoke(IPC.GOALS_NARRATED_ROLLBACK, args) as Promise<{ aborted: true }>,
   },
   windowControls: {
     minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE) as Promise<void>,

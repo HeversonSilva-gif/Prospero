@@ -26,6 +26,7 @@ describe("settings types and channels", () => {
       theme: "light",
       workspaceCwd: null,
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+      executorMode: "atomic",
     };
     expect(s.language).toBe("pt-BR");
     expect(s.theme).toBe("light");

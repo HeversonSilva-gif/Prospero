@@ -21,6 +21,7 @@ export const useSettingsStore = create<State>((set) => ({
     theme: "light",
     workspaceCwd: null,
     defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+    executorMode: "atomic",
   },
   loaded: false,
 

@@ -72,6 +72,10 @@ export const IPC = {
   GOALS_APPROVE_PLAN: "goals:approve-plan",
   GOALS_REQUEST_CHANGES: "goals:request-changes",
   GOALS_REJECT_PLAN: "goals:reject-plan",
+  GOALS_NARRATED_RESUME: "goals:narrated-resume",
+  GOALS_NARRATED_ROLLBACK: "goals:narrated-rollback",
+  SETTINGS_GET_EXECUTOR_MODE: "settings:get-executor-mode",
+  SETTINGS_SET_EXECUTOR_MODE: "settings:set-executor-mode",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

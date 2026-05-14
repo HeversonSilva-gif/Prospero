@@ -43,6 +43,8 @@ declare global {
         get: () => Promise<AppSettings>;
         update: (patch: Partial<AppSettings>) => Promise<AppSettings>;
         pickWorkspace: () => Promise<string | null>;
+        getExecutorMode: () => Promise<"atomic" | "narrated">;
+        setExecutorMode: (mode: "atomic" | "narrated") => Promise<{ ok: true }>;
       };
       auth: {
         status: () => Promise<TokenStatus>;
@@ -181,6 +183,8 @@ declare global {
         }) => Promise<ExecutePlanResult>;
         requestChanges: (args: { planId: string; feedback: string }) => Promise<{ ok: true }>;
         rejectPlan: (args: { planId: string; reason?: string }) => Promise<{ ok: true }>;
+        narratedResume: (args: { goalId: string }) => Promise<{ ok: true }>;
+        narratedRollback: (args: { goalId: string }) => Promise<{ aborted: true }>;
       };
       windowControls: {
         minimize: () => Promise<void>;
