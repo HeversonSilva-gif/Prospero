@@ -1,5 +1,7 @@
 // M8.5 — Goal + GoalPlan shared types.
-// Zod schemas live in packages/shared/src/schemas/goalPlan.ts.
+// Zod schemas live in apps/main/src/schemas/goalPlan.ts (zod is a runtime dep
+// that cannot live in shared — see project_m7_6_lessons.md fix #1: zod
+// in shared breaks preload sandbox bundle).
 
 import type { IssuePriority } from "./issue.js";
 export type { IssuePriority };

@@ -1,0 +1,175 @@
+// M8.5 — Zod schema for submit_goal_plan MCP tool payload.
+//
+// Lives in apps/main (not packages/shared) because zod is a runtime
+// dependency. Putting it in shared bundles zod into the preload sandbox
+// which doesn't resolve node_modules (see project_m7_6_lessons.md fix #1).
+// TS interfaces for the same shapes live in packages/shared/src/types/goal.ts.
+
+import { z } from "zod";
+
+export const MODEL_PRESETS = [
+  "opus-4",
+  "sonnet-4",
+  "haiku-4",
+  "opus-4-thinking",
+  "sonnet-4-thinking",
+] as const;
+
+const indexRef = z.union([z.number().int().nonnegative(), z.literal("CEO")]);
+
+const AgentToHireSchema = z.object({
+  index: z.number().int().nonnegative(),
+  name: z.string().min(1).max(80),
+  roleTemplateId: z.string().min(1),
+  model: z.enum(MODEL_PRESETS),
+  personaSummary: z.string().min(10).max(500),
+  skills: z.array(z.string()).max(20),
+  reportsToIndex: indexRef,
+  rationale: z.string().min(1).max(500),
+});
+
+const IssueToCreateSchema = z.object({
+  index: z.number().int().nonnegative(),
+  title: z.string().min(1).max(200),
+  description: z.string().max(5000),
+  priority: z.enum(["low", "medium", "high", "urgent"]),
+  assigneeIndex: indexRef,
+  estimatedTokens: z.number().int().positive(),
+  dependsOnIndexes: z.array(z.number().int().nonnegative()).max(20),
+  rationale: z.string().min(1).max(500),
+});
+
+const RiskSchema = z.object({
+  description: z.string().min(1).max(500),
+  mitigation: z.string().min(1).max(500),
+  severity: z.enum(["low", "medium", "high"]),
+});
+
+const checkSequentialIndexes = <T extends { index: number }>(
+  items: T[],
+  ctx: z.RefinementCtx,
+  label: string,
+): void => {
+  const seen = new Set<number>();
+  for (const it of items) {
+    if (seen.has(it.index)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${label} index ${it.index} is duplicated`,
+      });
+    }
+    seen.add(it.index);
+  }
+  for (let i = 0; i < items.length; i++) {
+    if (!seen.has(i)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${label} indexes must be sequential 0..N-1 (missing ${i})`,
+      });
+    }
+  }
+};
+
+const hasCycle = (n: number, edges: (i: number) => number[]): boolean => {
+  const color = new Array<number>(n).fill(0);
+  const dfs = (u: number): boolean => {
+    color[u] = 1;
+    for (const v of edges(u)) {
+      if (v < 0 || v >= n) continue;
+      if (color[v] === 1) return true;
+      if (color[v] === 0 && dfs(v)) return true;
+    }
+    color[u] = 2;
+    return false;
+  };
+  for (let i = 0; i < n; i++) {
+    if (color[i] === 0 && dfs(i)) return true;
+  }
+  return false;
+};
+
+export const GoalPlanPayloadSchema = z
+  .object({
+    summary: z.string().min(20).max(2000),
+    agentsToHire: z.array(AgentToHireSchema).max(20),
+    issuesToCreate: z.array(IssueToCreateSchema).max(50),
+    estimatedTotalTokens: z.number().int().positive().nullable().optional(),
+    estimatedDurationDays: z.number().int().positive().nullable().optional(),
+    estimatedCostCents: z.number().int().nonnegative().nullable().optional(),
+    risks: z.array(RiskSchema).max(10),
+  })
+  .superRefine((data, ctx) => {
+    checkSequentialIndexes(data.agentsToHire, ctx, "agentsToHire");
+    checkSequentialIndexes(data.issuesToCreate, ctx, "issuesToCreate");
+
+    const agentCount = data.agentsToHire.length;
+    const issueCount = data.issuesToCreate.length;
+
+    for (const a of data.agentsToHire) {
+      if (a.reportsToIndex !== "CEO") {
+        const r = a.reportsToIndex;
+        if (r < 0 || r >= agentCount) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `agentsToHire[${a.index}].reportsToIndex ${r} is out of range`,
+          });
+        }
+        if (r === a.index) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `agentsToHire[${a.index}] cannot report to itself`,
+          });
+        }
+      }
+    }
+
+    const reportsCycle = hasCycle(agentCount, (i) => {
+      const r = data.agentsToHire[i]?.reportsToIndex;
+      return typeof r === "number" ? [r] : [];
+    });
+    if (reportsCycle) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "agentsToHire reports_to forms a cycle",
+      });
+    }
+
+    for (const i of data.issuesToCreate) {
+      if (i.assigneeIndex !== "CEO") {
+        const a = i.assigneeIndex;
+        if (a < 0 || a >= agentCount) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `issuesToCreate[${i.index}].assigneeIndex ${a} is out of range`,
+          });
+        }
+      }
+    }
+
+    for (const i of data.issuesToCreate) {
+      for (const d of i.dependsOnIndexes) {
+        if (d < 0 || d >= issueCount) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `issuesToCreate[${i.index}].dependsOnIndexes contains out-of-range ${d}`,
+          });
+        }
+        if (d === i.index) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `issuesToCreate[${i.index}] cannot depend on itself`,
+          });
+        }
+      }
+    }
+
+    const depsCycle = hasCycle(issueCount, (i) => data.issuesToCreate[i]?.dependsOnIndexes ?? []);
+    if (depsCycle) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "issuesToCreate dependsOnIndexes forms a cycle",
+      });
+    }
+  });
+
+export type GoalPlanPayload = z.infer<typeof GoalPlanPayloadSchema>;
