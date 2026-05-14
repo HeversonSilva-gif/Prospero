@@ -619,6 +619,19 @@
     "confirm": "Confirm",
     "delete": "Delete"
   },
+  "banners": {
+    "authError": {
+      "message": "Authentication token not configured. Agents can't run.",
+      "action": "Configure"
+    },
+    "oauthExpiry": {
+      "message": "OAuth token expires in {{days}} days.",
+      "action": "Renew"
+    },
+    "rateLimit": {
+      "message": "Rate limit reached — agent paused."
+    }
+  },
   "agents": {
     "list": {
       "title": "Agents",

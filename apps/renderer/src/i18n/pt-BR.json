@@ -619,6 +619,19 @@
     "confirm": "Confirmar",
     "delete": "Excluir"
   },
+  "banners": {
+    "authError": {
+      "message": "Token de autenticação não configurado. Agentes não podem rodar.",
+      "action": "Configurar"
+    },
+    "oauthExpiry": {
+      "message": "Token OAuth expira em {{days}} dias.",
+      "action": "Renovar"
+    },
+    "rateLimit": {
+      "message": "Rate limit atingido — agente pausado."
+    }
+  },
   "agents": {
     "list": {
       "title": "Agentes",

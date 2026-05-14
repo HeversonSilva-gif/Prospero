@@ -27,6 +27,21 @@ describe("i18n parity", () => {
     expect(enOnly).toEqual([]);
   });
 
+  it("includes the M9 PR-E banner keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "banners.authError.message",
+      "banners.authError.action",
+      "banners.oauthExpiry.message",
+      "banners.oauthExpiry.action",
+      "banners.rateLimit.message",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
+
   it("includes the M8.5 PR-B goals namespace in both locales", () => {
     const ptKeys = flatten(ptBR);
     const enKeys = flatten(enUS);
