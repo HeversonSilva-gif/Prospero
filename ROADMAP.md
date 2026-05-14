@@ -121,16 +121,22 @@
 
 **Recomendação:** M8 Costs.
 
-### ▸ Horizonte (v1 = M10 fechado · v1.1 = M11)
+### ▸ Horizonte (v1 = M10 fechado · V2 começa em M11)
 
 ```
 M8 ✅ ──▶ M8.5 Goals ──▶ M8.6 Live Exec ──▶ M9 Dashboard ──▶ M10 VPS adapter ──▶ v1 ✅
             ~9-11d         ~6-8d              ~6-8d            ~4-6d
                                                                     │
                                                                     ▼
-                                                            M11 Agent Memory ──▶ v1.1
-                                                                ~10-14d
+                                                       M11 Agent Memory ──▶ V2 ✦
+                                                       (âncora V2)  10-14d
+                                                                    │
+                                                                    ▼
+                                          V2 Tier 1: Enforced Outcomes · Routines · Plays
+                                                  (cada um apoia-se em M11)
 ```
+
+**Tese V2 — "1-person business":** o produto muda de natureza. V1 = "time de IA que você gerencia via chat"; V2 = "**delegação de outcomes que você só revisa**". Persona: qualquer pessoa criando um 1-person business apoiada numa empresa de agentes que aprende. Detalhe completo na seção "Visão V2" abaixo.
 
 **O que v1 entrega quando estiver pronto:**
 
@@ -157,7 +163,7 @@ M8 ✅ ──▶ M8.5 Goals ──▶ M8.6 Live Exec ──▶ M9 Dashboard ─�
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
 | Restante pra v1 | M8.5 · M8.6 · M9 · M10 (~25-33 dias). **M8 fechado em 2026-05-12.** |
-| Próximo v1.1 | M11 Agent Memory & Learning Loop (~10-14 dias, 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md)) |
+| V2 anchor | M11 Agent Memory & Learning Loop (~10-14 dias, **âncora V2** — 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). Tese V2: 1-person business via delegação de outcomes + memory que compounda) |
 
 ---
 
@@ -876,11 +882,13 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
 
 ---
 
-### 🆕 M11 — Agent Memory & Learning Loop — **pós-v1 (v1.1)**
+### 🆕 M11 — Agent Memory & Learning Loop — **V2 anchor (primeira feature pós-v1)**
 
 **Origem:** pesquisa Hermes Agent ([NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent), 2026-05-12). Doc completo em [docs/hermes-memory-learning-system.md](docs/hermes-memory-learning-system.md). Substitui o item v2+ "Memory / Knowledge base" por implementação concreta — **inspirada** no closed learning loop do Hermes mas com **3 inflexões deliberadas** que aproveitam vantagens estruturais do nosso codebase (Activity stream, Issues, Goals, CEO-planner).
 
-**Por que pós-v1:** v1 = M10 está locked. Mexer aqui antes adicionaria 1-2 semanas no critical path sem desbloquear nenhum milestone v1. **Pós-M10 vira a primeira feature da v1.1** — transformador o suficiente pra merecer milestone próprio.
+**Por que V2 começa aqui:** v1 = M10 está locked; mexer antes adicionaria 1-2 semanas no critical path sem desbloquear v1. Pós-M10, M11 vira **âncora da V2** porque memória persistente é o que muda a natureza do produto — de "chat com agentes" pra "time que aprende com sua experiência". A tese V2 "1-person business" depende disso: solo founder cria leverage apoiado numa empresa de agentes que **compounda** know-how em vez de reiniciar a cada conversa. Sem M11 antes, as outras apostas V2 (Enforced Outcomes, Routines, Plays) viram features sólidas mas estáticas.
+
+**Arquitetura: matriz 3 camadas × 2 níveis (Hermes-style, simétrico).** As 3 camadas cognitivas do Hermes (declarativa, procedural, episódica) replicadas em 2 níveis (individual + coletivo), com fluxo bidirecional (descendente via inheritance, ascendente via `skill_promote` + `memory_add({applies_to_role})` + retrospectivas CEO).
 
 #### 🔀 As 3 inflexões vs Hermes
 
@@ -1071,9 +1079,9 @@ Auto-narração via MCP tool (`memory_add`, `skill_create`) **vira fallback** �
 - [ ] **SECURITY.md** — seção "Memory + Skills threat model" incluindo derivation
 - [ ] **README** — featurette "What's new in v1.1"
 
-#### Out-of-scope v1.1 (postergado v1.2+ ou v2+)
+#### Out-of-scope M11 (postergado pra V2 Tier 2+)
 
-- ❌ **Vector embeddings + semantic search** — custo + complexidade; FTS5 atende v1.1
+- ❌ **Vector embeddings + semantic search** — custo + complexidade; FTS5 atende M11. Vector vira ponto de entrada do Knowledge Base RAG (V2 Tier 2).
 - ❌ **Indexed memory routing** (sub-docs por tópico estilo Hermes #22612) — MEMORY.md cap 1 KB não precisa
 - ❌ **Graph edges genéricos** (Updates/Contradicts/RelatedTo) — sem vector, valor marginal
 - ❌ **Memory bulletin horário** (#346 §4) — wasteful em desktop offline-first
@@ -1082,8 +1090,53 @@ Auto-narração via MCP tool (`memory_add`, `skill_create`) **vira fallback** �
 - ❌ **Skill hub remoto** (download de GitHub/NPM) — threat model (`feedback_security_priority`)
 - ❌ **Honcho/Mem0/RetainDB providers** — cloud-only, viola `project_dashboardagent`
 - ❌ **Multi-user memory partitioning** — single-user explícito (ToS Anthropic Max)
+- ❌ **AI memory reviewer (não-humano)** — **deferred pra V2 Tier 2.** Em M11, todo `skill_candidate` passa por review humano via inbox. Quando volume crescer (com Routines/Plays disparando muitos issues), humano vira gargalo. Próxima geração: agente revisor (Haiku, modelo barato) faz pré-filtro com confidence flag; humano só vê os duvidosos. Documentado aqui pra não esquecer.
 
-**Custos:** 10-14 dias estimados (subiu de 8-12 por causa da derivation pipeline + role-inheritance — vale o gasto, é o diferencial). **Pré-req:** M10 (close v1), M8 (cost budget aplica em derivation), M8.5 (Goals → retrospectivas), M7.6 (terminate → modal promote skills). **Posição:** primeira feature de v1.1.
+**Custos:** 10-14 dias estimados (subiu de 8-12 por causa da derivation pipeline + role-inheritance — vale o gasto, é o diferencial). **Pré-req:** M10 (close v1), M8 (cost budget aplica em derivation), M8.5 (Goals → retrospectivas), M7.6 (terminate → modal promote skills). **Posição:** **V2 anchor** — primeira feature pós-v1, fundação pras outras apostas V2 (ver seção "Visão V2" abaixo).
+
+---
+
+## 🎯 Visão V2 — "1-Person Business"
+
+> **Tese:** V2 muda a natureza do produto. V1 entrega "um time de IA que você gerencia via chat". V2 vira "**delegação de outcomes que você só revisa**" — você abre o app uma vez por dia pra olhar o que rodou enquanto dormia, não 20× pra empurrar trabalho. **Persona-alvo: qualquer pessoa que queira criar um 1-person business** apoiada numa empresa de agentes que aprende com a experiência.
+
+**Definida em 2026-05-14** após brainstorm V2. Decisão estratégica: M11 (memory) deixa de ser "primeira feature de v1.1" e vira **âncora da V2** — sem memory bidirecional (3 camadas × 2 níveis), as outras apostas V2 viram features estáticas que não compoundam.
+
+### Sequência V2 (M11 = âncora, 3 apostas Tier 1 apoiam-se nele)
+
+| Ordem | Aposta | Custo | Pré-req | Por que aqui |
+|---|---|---|---|---|
+| **V2.0** | **M11 — Agent Memory & Learning Loop** | 10-14d | M10 | **Fundação.** 3 camadas Hermes (declarativa/procedural/episódica) × 2 níveis (individual/coletivo). Fluxo bidirecional: descendente via inheritance (`hire_agent` carrega skills + memories role-scoped), ascendente via `skill_promote` + `memory_add({applies_to_role})` + retrospectivas CEO em `goal.achieved`. Sem isso, Tier 1 vira estático. |
+| **V2 Tier 1** | **Enforced Outcomes** — `done` que significa `done` | 8-10d | M11 | Solo founder não consegue revisar 50 saídas/dia. Issue só passa pra `done` após quality gates executáveis (tests/build/lint/bench). Skills M11 carregam "como rodar gate X". Falha → vira sub-issue automática. |
+| **V2 Tier 1** | **Routines** — agentes que acordam sozinhos | 5-7d | M11 | Pra 1 pessoa, leverage assíncrono É o produto. Cron-like + smart triggers (M11 enriquece com padrões aprendidos pra disparar follow-ups inteligentes). |
+| **V2 Tier 1** | **Workflow Plays** — playbooks pré-prontos pro CEO | 6-8d | M11 + M8.5 | Mata cold-start. CEO escolhe play ("Migrar auth", "Investigar incidente prod", "Lançar feature X com tests") → spawna agentes + issues + gates pré-configurados. Evolui com retrospectivas que CEO grava em company memory. |
+
+### V2 Tier 2 (v2.1+, ordem TBD)
+
+- **AI memory reviewer** — pré-filtro com confidence flag pra `skill_candidate`. Humano só revisa os duvidosos. Crítico quando volume crescer (Routines + Plays geram muitos issues, derivation pipeline lota inbox).
+- **Adapter ecosystem** — Cursor / Codex / Gemini / OpenClaw como peers (M7.5 já tem foundation, M10 traz primeiro adapter remoto). 4-6d por adapter. Mata lock-in mas é gourmet enquanto gargalo é orquestração.
+- **Knowledge Base RAG** — vector embeddings sobre repo / docs / ADRs / PRs antigos. Extensão tardia do M11 (memory cobre "agente sabe do projeto"; RAG cobre conteúdo histórico fora dele). Ponto onde vector finalmente faz sentido.
+- **Async + Trust governance** — fechar dívida M5: auto mode 24h timeout + smart escalation (auto pra Read/Search, supervised pra Bash/Write, auto-degrada se padrão suspeito). Sem isso V2 fica capada — você quer delegar mas continua sendo paged 50× ao dia.
+
+### O que NÃO vai pra V2
+
+- ❌ **Multi-user** — bloqueado por ToS Anthropic Max.
+- ❌ **Web app / cloud hosting** — out-of-scope explícito; mudaria o produto.
+- ❌ **Self-Organization** (agentes reorganizando hierarquia entre si) — valor prático baixo, risco emergente alto.
+- ❌ **MAXIMIZER MODE sozinho** — só faz sentido acoplado a Enforced Outcomes.
+- ❌ **Plugin SDK completo** — comunidade construirá via skills + MCP servers existentes; SDK próprio é big arch change pra pouco retorno.
+
+### Custo total estimado V2 (M11 + Tier 1)
+
+| Bloco | Custo |
+|---|---|
+| M11 (âncora) | 10-14d |
+| Enforced Outcomes | 8-10d |
+| Routines | 5-7d |
+| Workflow Plays | 6-8d |
+| **Total V2 core** | **~30-39 dias trabalho contínuo** |
+
+V2 Tier 2 (AI reviewer + adapters + RAG + governance) adiciona +20-30d, mas pode shippar como v2.1/v2.2 incrementais.
 
 ---
 
@@ -1177,7 +1230,7 @@ Mapeamento de cada item da wishlist do [Paperclip](https://github.com/paperclipa
 
 ## v2+ (fora do v1)
 
-Tudo daqui pra baixo é post-v1. Organizado por tema. Origens marcadas com [PC] = Paperclip comparison, [M5] = débito M5, [novo] = nasce aqui.
+Tudo daqui pra baixo é post-v1. Organizado por tema. **Sequência V2 priorizada** está na seção "[Visão V2 — 1-Person Business](#-visão-v2--1-person-business)" acima — esta tabela é o catálogo bruto por área. Origens marcadas com [PC] = Paperclip comparison, [M5] = débito M5, [novo] = nasce aqui.
 
 ### Multi-agente avançado
 

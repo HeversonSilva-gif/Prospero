@@ -1337,7 +1337,21 @@
               escreve retrospectiva ao completar um Goal. Inclui busca em conversas antigas.
               Inspirado mas com 3 inflexões deliberadas sobre o
               <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>
-              (NousResearch). → M11 (pós-v1, v1.1)
+              (NousResearch). → <strong>M11 — âncora da V2</strong> (primeira coisa depois do v1)
+            </li>
+            <li>
+              ✦ <strong>V2 — "1-person business"</strong> — depois que o v1 fechar, o produto muda
+              de natureza: deixa de ser "chat com agentes" e vira "<strong
+                >delegação de outcomes que você só revisa</strong
+              >". Você abre o app uma vez por dia pra ver o que rodou enquanto dormia, não 20× pra
+              empurrar trabalho. A V2 entrega 4 capacidades sobre o M11:
+              <strong>Enforced Outcomes</strong> (issue só vira "pronto" quando passa em
+              testes/build/lint automaticamente), <strong>Routines</strong> (agentes acordam
+              sozinhos em horário definido — "toda segunda 7h auditar dependencies"),
+              <strong>Workflow Plays</strong> (playbooks prontos pro CEO escolher: "Migrar auth",
+              "Investigar incidente prod") e <strong>AI memory reviewer</strong> (quando o volume de
+              skills criadas crescer, um agente revisor pré-filtra; humano só vê os duvidosos). → V2
+              (depois do v1)
             </li>
           </ul>
         </div>
@@ -1495,9 +1509,10 @@
 
           <div class="card" data-kind="horizon">
             <div class="kicker">horizonte</div>
-            <div class="title">v1 fechado</div>
+            <div class="title">v1 ✅ → V2 ✦</div>
             <div class="flow">
-              M8 ✅ ──▶ M8.5 ──▶ M8.6 ──▶ M9 ──▶ M10 ──▶ v1 ✅ ~9-11d ~6-8d ~6-8d ~4-6d
+              M8 ✅ ──▶ M8.5 ──▶ M8.6 ──▶ M9 ──▶ M10 ──▶ v1 ✅ ──▶ <strong>M11 (V2 anchor)</strong>
+              ──▶ V2 Tier 1
             </div>
             <ul class="bullets" style="margin-top: 12px">
               <li>
@@ -1511,9 +1526,24 @@
               </li>
               <li><span>Dashboard rico (M9) + multi-empresa</span></li>
               <li><span>Hybrid distribution (M10) — local OU VPS Docker per-agent</span></li>
-              <li><span>Adapter ecosystem extensível</span></li>
+              <li>
+                <span
+                  ><strong>V2 anchor (M11)</strong> — memory 3 camadas × 2 níveis, bidirecional.
+                  Solo founder cria 1-person business apoiado numa empresa que compounda
+                  know-how</span
+                >
+              </li>
+              <li>
+                <span
+                  ><strong>V2 Tier 1</strong> — Enforced Outcomes · Routines · Plays (cada um
+                  apoia-se em M11)</span
+                >
+              </li>
             </ul>
-            <div class="eta">Restante: <strong>~25-33 dias</strong> de trabalho contínuo</div>
+            <div class="eta">
+              v1 restante: <strong>~25-33d</strong> · V2 core (M11 + Tier 1):
+              <strong>~30-39d</strong>
+            </div>
           </div>
         </div>
       </section>
@@ -2689,7 +2719,7 @@
             <div class="ms-rail">
               <div class="num">M11</div>
               <div class="status-row"><span class="status-dot"></span>planned</div>
-              <div class="meta">novo · pós-v1 (v1.1)</div>
+              <div class="meta">novo · <strong>âncora V2</strong></div>
             </div>
             <div class="ms-body">
               <h3>Agent Memory &amp; Learning Loop</h3>
@@ -2699,12 +2729,17 @@
                 goal.achieved) + role-based inheritance + company memory + FTS5 session search.
                 Inspirado mas com <strong>3 inflexões deliberadas</strong> sobre o closed learning
                 loop do <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>.
-                <strong>Primeira feature da v1.1.</strong>
+                <strong>Âncora da V2 — fundação pra Enforced Outcomes, Routines e Plays.</strong>
               </p>
               <div class="design-note">
-                <span class="label">Por que pós-v1</span>
-                v1 = M10 está locked. Implementar antes adiciona 1-2 semanas no critical path sem
-                desbloquear M10. Design completo em
+                <span class="label">Por que V2 começa aqui</span>
+                v1 = M10 está locked; mexer antes adicionaria 1-2 semanas no critical path sem
+                desbloquear v1. Pós-M10, M11 vira <strong>âncora da V2</strong> porque memória
+                persistente é o que muda a natureza do produto — de "chat com agentes" pra "time que
+                aprende com sua experiência". A tese V2 "1-person business" depende disso: solo
+                founder cria leverage apoiado numa empresa de agentes que
+                <strong>compounda</strong> know-how em vez de reiniciar a cada conversa. Design
+                completo em
                 <a href="hermes-memory-learning-system.md"
                   ><code>docs/hermes-memory-learning-system.md</code></a
                 >
@@ -3186,7 +3221,82 @@
         <div class="section-head">
           <span class="index">/06</span>
           <h2>v2+ backlog</h2>
-          <span class="note">post-v1 · organizado por tema</span>
+          <span class="note">post-v1 · visão V2 priorizada · catálogo por tema abaixo</span>
+        </div>
+
+        <div
+          class="v2-vision"
+          style="
+            border: 1px solid var(--accent, #4a9eff);
+            padding: 18px 22px;
+            margin-bottom: 28px;
+            border-radius: 8px;
+            background: rgba(74, 158, 255, 0.04);
+          "
+        >
+          <h3 style="margin: 0 0 10px 0">✦ Visão V2 — "1-person business"</h3>
+          <p style="margin: 0 0 14px 0; font-style: italic; opacity: 0.85">
+            <strong>Tese:</strong> V2 muda a natureza do produto. V1 entrega "time de IA que você
+            gerencia via chat"; V2 vira "<strong>delegação de outcomes que você só revisa</strong>"
+            — você abre o app uma vez por dia pra ver o que rodou enquanto dormia. Persona-alvo:
+            qualquer pessoa que queira criar um 1-person business apoiada numa empresa de agentes
+            que aprende com a experiência. Definida em 2026-05-14.
+          </p>
+
+          <h4 style="margin: 14px 0 6px 0">Sequência V2 (priorizada)</h4>
+          <ol style="margin: 0 0 14px 18px; line-height: 1.7">
+            <li>
+              <strong>V2.0 — M11 Agent Memory & Learning Loop</strong> (10-14d) · <em>âncora.</em> 3
+              camadas Hermes (declarativa/procedural/episódica) × 2 níveis (individual + coletivo)
+              com fluxo bidirecional. Sem isso, Tier 1 vira estático.
+            </li>
+            <li>
+              <strong>V2 Tier 1 — Enforced Outcomes</strong> (8-10d) · <em>requer M11.</em>
+              <code>done</code> só passa após gates executáveis (tests/build/lint/bench). Falha vira
+              sub-issue automática. Skills M11 carregam "como rodar gate X".
+            </li>
+            <li>
+              <strong>V2 Tier 1 — Routines</strong> (5-7d) · <em>requer M11.</em> Agentes acordam
+              sozinhos. Cron-like + smart triggers (M11 enriquece com padrões aprendidos).
+            </li>
+            <li>
+              <strong>V2 Tier 1 — Workflow Plays</strong> (6-8d) · <em>requer M11 + M8.5.</em>
+              Playbooks pré-prontos pro CEO escolher. Evolui via retrospectivas em company memory.
+            </li>
+          </ol>
+
+          <h4 style="margin: 14px 0 6px 0">V2 Tier 2 (v2.1+)</h4>
+          <ul style="margin: 0 0 14px 18px; line-height: 1.7">
+            <li>
+              <strong>AI memory reviewer</strong> — pré-filtro de <code>skill_candidate</code> com
+              confidence flag. Humano só revisa duvidosos. Crítico quando volume crescer.
+            </li>
+            <li>
+              <strong>Adapter ecosystem</strong> — Cursor / Codex / Gemini / OpenClaw como peers.
+              ~4-6d por adapter. Foundation M7.5 + primeiro adapter M10.
+            </li>
+            <li>
+              <strong>Knowledge Base RAG</strong> — vector embeddings sobre repo / docs / ADRs /
+              PRs. Extensão tardia do M11; onde vector finalmente faz sentido.
+            </li>
+            <li>
+              <strong>Async + Trust governance</strong> — fechar dívida M5 (auto mode 24h timeout +
+              smart escalation). Sem isso, V2 fica capada.
+            </li>
+          </ul>
+
+          <h4 style="margin: 14px 0 6px 0">Custo V2 core (M11 + Tier 1)</h4>
+          <p style="margin: 0 0 6px 0">
+            <strong>~30-39 dias</strong> de trabalho contínuo. V2 Tier 2 adiciona +20-30d, shippa
+            como v2.1/v2.2 incrementais.
+          </p>
+
+          <h4 style="margin: 14px 0 6px 0">O que NÃO vai pra V2</h4>
+          <p style="margin: 0; opacity: 0.8; font-size: 0.92em">
+            Multi-user (ToS Max) · web app / cloud hosting (out-of-scope) · self-organization (valor
+            baixo, risco emergente) · MAXIMIZER sozinho (só com Enforced Outcomes) · plugin SDK
+            próprio (big arch change, comunidade usa skills + MCP).
+          </p>
         </div>
 
         <div class="v2-grid">
@@ -3312,7 +3422,7 @@
           <a href="paperclip-comparison.md">comparison.md</a>
         </div>
         <div class="ascii">─── built locally · offline-first · no cdn ───</div>
-        <div>generated 2026-05-12</div>
+        <div>generated 2026-05-14 (V2 vision added)</div>
       </footer>
     </main>
 
