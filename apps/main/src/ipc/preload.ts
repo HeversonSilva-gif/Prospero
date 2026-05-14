@@ -233,6 +233,32 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
       return () => ipcRenderer.off(IPC.AGENT_EVENT, handler);
     },
   },
+  goals: {
+    list: (args: { companyId: string; status?: string }) =>
+      ipcRenderer.invoke(IPC.GOALS_LIST, args),
+    get: (args: { id: string }) => ipcRenderer.invoke(IPC.GOALS_GET, args),
+    create: (args: {
+      companyId: string;
+      title: string;
+      description?: string | null;
+      level?: string;
+      parentGoalId?: string | null;
+      ownerAgentId?: string | null;
+      budgetMaxTokens?: number | null;
+      deadline?: number | null;
+      successCriteria?: string | null;
+    }) => ipcRenderer.invoke(IPC.GOALS_CREATE, args),
+    requestPlan: (args: { goalId: string }) => ipcRenderer.invoke(IPC.GOALS_REQUEST_PLAN, args),
+    approvePlan: (args: {
+      planId: string;
+      includeAgentIndexes?: number[];
+      includeIssueIndexes?: number[];
+    }) => ipcRenderer.invoke(IPC.GOALS_APPROVE_PLAN, args),
+    requestChanges: (args: { planId: string; feedback: string }) =>
+      ipcRenderer.invoke(IPC.GOALS_REQUEST_CHANGES, args),
+    rejectPlan: (args: { planId: string; reason?: string }) =>
+      ipcRenderer.invoke(IPC.GOALS_REJECT_PLAN, args),
+  },
   windowControls: {
     minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE) as Promise<void>,
     maximizeToggle: () => ipcRenderer.invoke(IPC.WINDOW_MAXIMIZE_TOGGLE) as Promise<void>,

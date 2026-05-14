@@ -65,6 +65,13 @@ export const IPC = {
   COSTS_GET_BUDGETS: "costs:get-budgets",
   COSTS_SET_BUDGETS: "costs:set-budgets",
   COSTS_NEW: "costs:new",
+  GOALS_LIST: "goals:list",
+  GOALS_GET: "goals:get",
+  GOALS_CREATE: "goals:create",
+  GOALS_REQUEST_PLAN: "goals:request-plan",
+  GOALS_APPROVE_PLAN: "goals:approve-plan",
+  GOALS_REQUEST_CHANGES: "goals:request-changes",
+  GOALS_REJECT_PLAN: "goals:reject-plan",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

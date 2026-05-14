@@ -28,6 +28,8 @@ import {
 import { databasePath } from "../db/path.js";
 import { getPermissionsDir } from "../security/permissions-dir.js";
 import { getEventsDir } from "../orchestrator/events-dir.js";
+import { registerGoalsHandlers } from "./goals-handlers.js";
+import { scanPlanningWithoutPlan } from "../goals/recovery.js";
 import {
   startEventsWatcher,
   type AgentEvent as AgentSideEvent,
@@ -709,4 +711,31 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     broadcast({ kind: "roster-changed", companyId: created.companyId });
     return created;
   });
+
+  // M8.5 — Goals + CEO Planning. Wire orchestrator bridge so goal-plan
+  // requests reach the CEO as a system-from-user message; reuse the same
+  // ensureAgentRunner + router.enqueue path as AGENT_SEND_MESSAGE.
+  const deliverSystemMessage = (agentId: string, text: string): void => {
+    const agent = agents.getById(agentId);
+    if (agent === null) return;
+    ensureAgentRunner(agent);
+    const thread = messages.ensureThread(agent.companyId, ["user", agent.id]);
+    router.enqueue(agent.id, thread.id, text, { kind: "user", id: null, name: "System" });
+  };
+  registerGoalsHandlers({ db, orchestrator: { deliverSystemMessage } });
+
+  // Boot recovery — re-enqueue [GOAL_PLAN_REQUEST] for goals stuck in 'planning'
+  // with no proposed plan (CEO crash mid-turn). Runs once after orchestrator is
+  // ready. Idempotent: re-running finds nothing because the CEO turn will
+  // either produce a plan (status moves to proposed) or fail again (logged).
+  try {
+    const recovered = scanPlanningWithoutPlan(db, { deliverSystemMessage });
+    if (recovered > 0) {
+       
+      console.log(`[goals] recovery scanned ${recovered} stuck planning goal(s)`);
+    }
+  } catch (e) {
+     
+    console.error("[goals] recovery scan failed", e);
+  }
 };
