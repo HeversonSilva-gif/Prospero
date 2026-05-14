@@ -23,3 +23,27 @@ export const buildSpawnEnv = (
   PERMISSIONS_DIR: permissionsDir,
   EVENTS_DIR: eventsDir,
 });
+
+export type SpawnEnvApiKey = {
+  ANTHROPIC_API_KEY: string;
+  AGENT_ID: string;
+  COMPANY_ID: string;
+  DB_PATH: string;
+  PERMISSIONS_DIR: string;
+  EVENTS_DIR: string;
+};
+
+export const buildSpawnEnvApiKey = (
+  agent: Agent,
+  apiKey: string,
+  dbPath: string,
+  permissionsDir: string,
+  eventsDir: string,
+): SpawnEnvApiKey => ({
+  ANTHROPIC_API_KEY: apiKey,
+  AGENT_ID: agent.id,
+  COMPANY_ID: agent.companyId,
+  DB_PATH: dbPath,
+  PERMISSIONS_DIR: permissionsDir,
+  EVENTS_DIR: eventsDir,
+});
