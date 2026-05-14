@@ -16,6 +16,9 @@ type State = {
   }) => Promise<Project>;
   update: (input: { id: string; name?: string; path?: string; color?: string }) => Promise<void>;
   delete: (id: string) => Promise<void>;
+  setIcon: (id: string, icon: string | null) => Promise<void>;
+  archive: (id: string) => Promise<void>;
+  unarchive: (id: string) => Promise<void>;
   select: (id: string | null) => void;
 };
 
@@ -55,6 +58,24 @@ export const useProjectsStore = create<State>((set) => ({
       const selectedId = s.selectedId === id ? (projects[0]?.id ?? null) : s.selectedId;
       return { projects, selectedId };
     });
+  },
+  setIcon: async (id, icon) => {
+    await window.dashboardAgent.projects.setIcon(id, icon);
+    set((s) => ({
+      projects: s.projects.map((p) => (p.id === id ? { ...p, icon } : p)),
+    }));
+  },
+  archive: async (id) => {
+    await window.dashboardAgent.projects.archive(id);
+    set((s) => ({
+      projects: s.projects.map((p) => (p.id === id ? { ...p, archivedAt: Date.now() } : p)),
+    }));
+  },
+  unarchive: async (id) => {
+    await window.dashboardAgent.projects.unarchive(id);
+    set((s) => ({
+      projects: s.projects.map((p) => (p.id === id ? { ...p, archivedAt: null } : p)),
+    }));
   },
   select: (id) => set({ selectedId: id }),
 }));
