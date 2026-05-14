@@ -10,6 +10,8 @@ export const IPC = {
   AUTH_TOKEN_CLEAR: "auth:token-clear",
   COMPANY_LIST: "company:list",
   COMPANY_CREATE_DEMO: "company:create-demo",
+  COMPANY_CREATE: "company:create",
+  COMPANY_DELETE: "company:delete",
   AGENT_LIST: "agent:list",
   AGENT_SEND_MESSAGE: "agent:send-message",
   AGENT_KILL: "agent:kill",
