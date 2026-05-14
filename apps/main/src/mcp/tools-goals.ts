@@ -1,7 +1,11 @@
 import { z } from "zod";
+import { BrowserWindow } from "electron";
+import { IPC } from "@dashboard-agent/shared";
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalPlansRepository } from "../goals/plans-repository.js";
 import { createRoleTemplatesRepository } from "../agents/role-templates-repository.js";
+import { createInboxRepository } from "../inbox/repository.js";
+import { createAgentsRepository } from "../agents/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { getCostBaseline } from "../costs/baseline.js";
 import { GoalPlanPayloadSchema, type GoalPlanPayload } from "../schemas/goalPlan.js";
@@ -223,6 +227,27 @@ const submitGoalPlan: Tool = {
     });
 
     goalsRepo.updateStatus(goal.id, "proposed");
+
+    const ceo = createAgentsRepository(ctx.db).getById(ctx.agentId);
+    const ceoName = ceo?.name ?? "CEO";
+    createInboxRepository(ctx.db).create({
+      companyId: ctx.companyId,
+      kind: "goal_proposed",
+      actorId: ctx.agentId,
+      title: `${ceoName} proposed a plan for "${goal.title}"`,
+      preview: payload.summary.slice(0, 200),
+      payloadJson: JSON.stringify({ goalId: goal.id, planId: plan.id }),
+      requiresAction: true,
+    });
+    // BrowserWindow is undefined when this tool runs outside an Electron host
+    // (unit tests). The DB write above is what matters; broadcast is best-effort.
+    try {
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send(IPC.INBOX_UPDATE, { companyId: ctx.companyId });
+      }
+    } catch {
+      /* tests run without an Electron host */
+    }
 
     tryGetRecorder()?.recordActivity({
       companyId: ctx.companyId,

@@ -1,7 +1,20 @@
 import { useState, type FC } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { InboxItem, InboxKind, PermissionResolution } from "@dashboard-agent/shared";
 import { useInboxStore } from "../stores/inbox.js";
+
+const GOAL_KINDS: InboxKind[] = ["goal_proposed", "goal_executing", "goal_error"];
+
+const extractGoalId = (payloadJson: string | null): string | null => {
+  if (payloadJson === null) return null;
+  try {
+    const parsed = JSON.parse(payloadJson) as { goalId?: unknown };
+    return typeof parsed.goalId === "string" ? parsed.goalId : null;
+  } catch {
+    return null;
+  }
+};
 
 const KIND_BORDER: Record<InboxKind, string> = {
   approval: "border-l-4 border-l-semantic-warning",
@@ -97,6 +110,22 @@ export const Inbox: FC = () => {
                   </button>
                 </div>
               )}
+              {GOAL_KINDS.includes(item.kind) &&
+                (() => {
+                  const goalId = extractGoalId(item.payloadJson);
+                  if (goalId === null) return null;
+                  return (
+                    <Link
+                      to={`/goals/${goalId}`}
+                      onClick={() => {
+                        if (item.readAt === null) void markRead(item.id);
+                      }}
+                      className="text-xs text-brand hover:underline font-semibold mt-2 inline-block"
+                    >
+                      {t("inbox.openGoal")} →
+                    </Link>
+                  );
+                })()}
               {item.readAt === null && item.requiresAction === false && (
                 <button
                   onClick={() => void markRead(item.id)}

@@ -5,6 +5,7 @@ import type { Goal, GoalWithPlan, CreateGoalInput, GoalStatus } from "@dashboard
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalPlansRepository } from "../goals/plans-repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
+import { createInboxRepository } from "../inbox/repository.js";
 import { formatGoalPlanRequest } from "../goals/format-request.js";
 import { executePlan, type ExecuteResult } from "../goals/executor.js";
 import { tryGetRecorder } from "../activity/index.js";
@@ -185,10 +186,34 @@ export const registerGoalsHandlers = (deps: GoalsHandlersDeps): void => {
       _e,
       args: { planId: string; includeAgentIndexes?: number[]; includeIssueIndexes?: number[] },
     ) => {
+      const plansRepoLocal = createGoalPlansRepository(deps.db);
+      const goalsRepoLocal = createGoalsRepository(deps.db);
+      const inboxRepo = createInboxRepository(deps.db);
+      const planBefore = plansRepoLocal.getById(args.planId);
+      const goalForInbox = planBefore !== null ? goalsRepoLocal.getById(planBefore.goalId) : null;
       const result = await h.approvePlan(args);
-      if (result.ok) {
+      if (result.ok && goalForInbox !== null) {
         broadcast("agents:list-changed", { hiredAgentIds: result.hiredAgentIds });
         broadcast("issues:list-changed", { createdIssueIds: result.createdIssueIds });
+        inboxRepo.create({
+          companyId: goalForInbox.companyId,
+          kind: "goal_executing",
+          title: `Plan for "${goalForInbox.title}" is executing`,
+          preview: `${result.hiredAgentIds.length} agents hired, ${result.createdIssueIds.length} issues created`,
+          payloadJson: JSON.stringify({ goalId: goalForInbox.id, planId: args.planId }),
+          requiresAction: false,
+        });
+        broadcast(IPC.INBOX_UPDATE, { companyId: goalForInbox.companyId });
+      } else if (!result.ok && goalForInbox !== null) {
+        inboxRepo.create({
+          companyId: goalForInbox.companyId,
+          kind: "goal_error",
+          title: `Plan execution failed for "${goalForInbox.title}"`,
+          preview: `${result.failedAtStep}: ${result.error}`.slice(0, 200),
+          payloadJson: JSON.stringify({ goalId: goalForInbox.id, planId: args.planId }),
+          requiresAction: true,
+        });
+        broadcast(IPC.INBOX_UPDATE, { companyId: goalForInbox.companyId });
       }
       return result;
     },
