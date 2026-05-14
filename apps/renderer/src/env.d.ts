@@ -180,6 +180,7 @@ declare global {
           planId: string;
           includeAgentIndexes?: number[];
           includeIssueIndexes?: number[];
+          mode?: "atomic" | "narrated";
         }) => Promise<ExecutePlanResult>;
         requestChanges: (args: { planId: string; feedback: string }) => Promise<{ ok: true }>;
         rejectPlan: (args: { planId: string; reason?: string }) => Promise<{ ok: true }>;

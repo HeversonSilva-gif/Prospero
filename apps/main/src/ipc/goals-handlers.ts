@@ -6,8 +6,9 @@ import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalPlansRepository } from "../goals/plans-repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
+import { createSettingsRepository } from "../settings/repository.js";
 import { formatGoalPlanRequest } from "../goals/format-request.js";
-import { executePlan, type ExecuteResult } from "../goals/executor.js";
+import { executePlan, type DispatchOptions, type ExecuteResult } from "../goals/executor.js";
 import { tryGetRecorder } from "../activity/index.js";
 
 export type GoalsOrchestrator = {
@@ -37,6 +38,7 @@ export type GoalsHandlers = {
     planId: string;
     includeAgentIndexes?: number[];
     includeIssueIndexes?: number[];
+    mode?: "atomic" | "narrated";
   }): Promise<ExecuteResult>;
   requestChanges(args: { planId: string; feedback: string }): Promise<{ ok: true }>;
   rejectPlan(args: { planId: string; reason?: string }): Promise<{ ok: true }>;
@@ -100,15 +102,17 @@ export const goalsHandlers = (deps: GoalsHandlersDeps): GoalsHandlers => {
     },
 
     approvePlan(args) {
-      const opts: {
-        includeAgentIndexes?: Set<number>;
-        includeIssueIndexes?: Set<number>;
-      } = {};
+      const opts: DispatchOptions = {};
       if (args.includeAgentIndexes !== undefined) {
         opts.includeAgentIndexes = new Set(args.includeAgentIndexes);
       }
       if (args.includeIssueIndexes !== undefined) {
         opts.includeIssueIndexes = new Set(args.includeIssueIndexes);
+      }
+      if (args.mode !== undefined) opts.mode = args.mode;
+      const effectiveMode = opts.mode ?? createSettingsRepository(deps.db).getExecutorMode();
+      if (effectiveMode === "narrated") {
+        opts.narrated = { orchestrator: deps.orchestrator };
       }
       return Promise.resolve(executePlan(deps.db, args.planId, opts));
     },
@@ -187,7 +191,12 @@ export const registerGoalsHandlers = (deps: GoalsHandlersDeps): void => {
     IPC.GOALS_APPROVE_PLAN,
     async (
       _e,
-      args: { planId: string; includeAgentIndexes?: number[]; includeIssueIndexes?: number[] },
+      args: {
+        planId: string;
+        includeAgentIndexes?: number[];
+        includeIssueIndexes?: number[];
+        mode?: "atomic" | "narrated";
+      },
     ) => {
       const plansRepoLocal = createGoalPlansRepository(deps.db);
       const goalsRepoLocal = createGoalsRepository(deps.db);

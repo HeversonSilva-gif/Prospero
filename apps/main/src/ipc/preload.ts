@@ -253,6 +253,7 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
       planId: string;
       includeAgentIndexes?: number[];
       includeIssueIndexes?: number[];
+      mode?: "atomic" | "narrated";
     }) => ipcRenderer.invoke(IPC.GOALS_APPROVE_PLAN, args) as Promise<ExecutePlanResult>,
     requestChanges: (args: { planId: string; feedback: string }) =>
       ipcRenderer.invoke(IPC.GOALS_REQUEST_CHANGES, args) as Promise<{ ok: true }>,
