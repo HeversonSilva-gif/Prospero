@@ -1,12 +1,16 @@
 import { useEffect, useState, type FC, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAgentsStore } from "../stores/agents.js";
 import { useRolesStore } from "../stores/roles.js";
+import { useSettingsStore } from "../stores/settings.js";
 
 export const AgentNew: FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialTemplate = searchParams.get("template") ?? "";
+  const settings = useSettingsStore((s) => s.settings);
   const hireFromUi = useAgentsStore((s) => s.hireFromUi);
   const agents = useAgentsStore((s) => s.agents);
   const roles = useRolesStore((s) => s.roles);
@@ -14,9 +18,9 @@ export const AgentNew: FC = () => {
 
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [roleTemplateId, setRoleTemplateId] = useState<string>("");
+  const [roleTemplateId, setRoleTemplateId] = useState<string>(initialTemplate);
   const [reportsTo, setReportsTo] = useState("");
-  const [mode, setMode] = useState<"supervised" | "auto">("supervised");
+  const [mode, setMode] = useState<"supervised" | "auto">(settings.defaultAgentMode);
   const [persona, setPersona] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
