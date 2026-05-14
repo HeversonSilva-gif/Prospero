@@ -29,6 +29,7 @@ const Costs = lazy(() => import("./routes/Costs.js"));
 const Goals = lazy(() => import("./routes/Goals.js"));
 const GoalNew = lazy(() => import("./routes/GoalNew.js"));
 const GoalDetail = lazy(() => import("./routes/GoalDetail.js"));
+const Agents = lazy(() => import("./routes/Agents.js").then((m) => ({ default: m.Agents })));
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
   idle: "bg-ink-soft",
@@ -87,6 +88,15 @@ const Sidebar = () => {
           }
         >
           {t("nav.issues")}
+        </NavLink>
+        <NavLink
+          to="/agents"
+          end
+          className={({ isActive }) =>
+            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
+          }
+        >
+          {t("nav.agents")}
         </NavLink>
         <NavLink
           to="/goals"
@@ -456,11 +466,17 @@ export const App = () => {
             }
           />
           <Route
-            path="/agents/:id"
+            path="/agents"
             element={
-              <Layout>
-                <AgentRoute />
-              </Layout>
+              hasToken ? (
+                <Layout>
+                  <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                    <Agents />
+                  </Suspense>
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
             }
           />
           <Route
@@ -473,6 +489,14 @@ export const App = () => {
               ) : (
                 <Navigate to="/setup" replace />
               )
+            }
+          />
+          <Route
+            path="/agents/:id"
+            element={
+              <Layout>
+                <AgentRoute />
+              </Layout>
             }
           />
           <Route path="*" element={<Navigate to={hasToken ? "/dashboard" : "/setup"} replace />} />
