@@ -30,12 +30,14 @@ export const ACTIVITY_ACTIONS = [
   "agent.paused",
   "agent.resumed",
   "agent.terminated",
-  // Issue (5)
+  // Issue (7) — +2 from M8.6
   "issue.created",
   "issue.status_changed",
   "issue.assignee_changed",
   "issue.priority_changed",
   "issue.comment_added",
+  "issue.commented",
+  "issue.unlocked_by_deps",
   // Approval (3)
   "approval.requested",
   "approval.approved",
@@ -44,13 +46,14 @@ export const ACTIVITY_ACTIONS = [
   "project.created",
   "project.updated",
   "project.deleted",
-  // Goal (6) — M8.5 PR-A wires these up
+  // Goal (7) — +1 from M8.6 narrated step
   "goal.created",
   "goal.plan_proposed",
   "goal.plan_approved",
   "goal.plan_rejected",
   "goal.status_changed",
   "goal.subgoal_recorded",
+  "goal.narrated_step",
   // Session / Cost (3) — session.* optional in PR-A; cost.day_summary depends M8
   "session.started",
   "session.ended",

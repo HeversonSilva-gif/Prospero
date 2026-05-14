@@ -93,6 +93,29 @@ export type ExecutePlanResult =
   | { ok: true; hiredAgentIds: string[]; createdIssueIds: string[] }
   | { ok: false; error: string; failedAtStep: string };
 
+// M8.6 — Narrated execution state.
+// Persisted as JSON in goals.execution_state_json. NULL = goal not in
+// narrated execution. Cleared on finalize_goal_execution (success or abort).
+export type ExecutionStateStep =
+  | "starting"
+  | "hiring"
+  | "creating_issues"
+  | "commenting"
+  | "finalizing";
+
+export interface ExecutionState {
+  planId: string;
+  mode: "narrated";
+  includeAgentIndexes: number[] | null;
+  includeIssueIndexes: number[] | null;
+  agentIndexToId: Record<number, string>;
+  issueIndexToId: Record<number, string>;
+  step: ExecutionStateStep;
+  startedAt: number;
+  ceoId: string;
+  threadId: string;
+}
+
 export interface CreateGoalInput {
   companyId: string;
   title: string;
