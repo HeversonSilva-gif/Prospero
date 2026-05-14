@@ -30,6 +30,7 @@ export type ComposeArgs = {
   role?: { name: string; description: string } | null;
   preambleOverride?: string;
   goalsBlock?: string;
+  narratedBlock?: string;
 };
 
 export const composeSystemPrompt = (args: ComposeArgs): string => {
@@ -56,7 +57,8 @@ to call them. If you need a capability you don't have, ask the user to update
 your role.
 `;
   const goalsBlock = args.goalsBlock ?? "";
-  return preamble + roleBlock + args.agentPersona + skillsBlock + goalsBlock;
+  const narratedBlock = args.narratedBlock ?? "";
+  return preamble + roleBlock + args.agentPersona + skillsBlock + goalsBlock + narratedBlock;
 };
 
 // Backwards-compatible wrapper used by build-args.ts. Keeps the existing

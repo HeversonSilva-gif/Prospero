@@ -16,6 +16,10 @@ export type SpawnContext = {
   userDataDir?: string;
   mcpServerJsPath?: string;
   cwd?: string;
+  // M8.6: when true, the narrated-execution system prompt block is injected
+  // into the agent's system prompt. The host resolves this at spawn time by
+  // checking goalsRepo.findActiveNarratedByCeo(agent.id).
+  narratedActive?: boolean;
 };
 
 export type AssistantContentBlock =

@@ -68,7 +68,9 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
     );
 
     const handshake = setupMcpHandshake(env, this.ctx.mcpServerJsPath);
-    const args = buildClaudeArgs(this.ctx.agent, handshake.mcpConfigPath);
+    const args = buildClaudeArgs(this.ctx.agent, handshake.mcpConfigPath, {
+      ...(this.ctx.narratedActive === true ? { narratedActive: true } : {}),
+    });
 
     const { agentConfigDir, agentSandboxCwd, isEphemeralConfigDir } = prepareSandbox(
       this.ctx.agent.id,
