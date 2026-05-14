@@ -1354,7 +1354,10 @@
             <ul>
               <li><strong>Tema</strong> claro ou escuro (paleta monocromática)</li>
               <li><strong>Idioma</strong> português (BR) ou inglês (US) — sem mistura na tela</li>
-              <li>Múltiplas empresas isoladas no banco (dropdown UI vem em M9)</li>
+              <li>
+                Múltiplas empresas isoladas no banco + <strong>dropdown na sidebar</strong> pra
+                trocar/criar/deletar (M9 PR-A 2026-05-14)
+              </li>
               <li>Título customizado da janela (frameless titlebar)</li>
             </ul>
           </div>
@@ -1375,9 +1378,8 @@
           <ul>
             <li>
               📈 <strong>Dashboard inicial com widgets dinâmicos</strong> — Agentes ativos / Issues
-              em andamento / Inbox / Custos hoje → M9
+              em andamento / Inbox / Custos hoje → M9 PR-B
             </li>
-            <li>🏢 <strong>Trocar entre empresas via dropdown da sidebar</strong> → M9</li>
             <li>
               ☁️ <strong>Rodar agentes numa VPS remota (Docker)</strong> — escolha per-agent: local
               (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
@@ -1487,14 +1489,13 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M8.6 fechado em 2026-05-14 — PR-A backend + PR-B UI
-              mergeados. Migration 0014 (<code>execution_state_json</code> +
-              <code>depends_on_json</code>), executor dispatcher (atomic/narrated), 4 MCP tools
-              (<code>comment_on_issue</code>, <code>hire/create/finalize_for_plan</code>),
-              topological issue activation, boot recovery scan, narrated resume/rollback IPCs,
-              Settings radio + GoalPlanReview checkbox + IssueCommentsList sender badges + Inbox
-              recovery CTAs, i18n PT/EN +30 keys. <strong>13/14 milestones</strong>. Próximo:
-              <strong>M9 Dashboard polish</strong>.
+              <strong>Estágio:</strong> M9 PR-A multi-empresa core mergeado em 2026-05-14 (<code
+                >companies:create/:delete</code
+              >
+              IPCs + <code>useCompaniesStore</code> + <code>&lt;CompanySwitcher /&gt;</code> + 2
+              modais + App.tsx reativo a <code>activeCompanyId</code>).
+              <strong>731 testes passing</strong> (+20 vs M8.6). 13/14 milestones; M9 em curso com 5
+              PRs restantes (D · B · C · E · F). Próximo: <strong>M9 PR-D API key adapter</strong>.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -1519,34 +1520,34 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M8.6 fechado</div>
+            <div class="title">M9 PR-A mergeado</div>
             <ul class="bullets">
               <li>
-                <span><strong>13 / 14</strong> milestones do v1</span>
+                <span><strong>13 / 14</strong> milestones do v1 · M9 em curso</span>
               </li>
               <li>
                 <span
-                  ><strong>711</strong> testes passing (570 main + 33 shared + 108 renderer) · 0
+                  ><strong>731</strong> testes passing (580 main + 33 shared + 118 renderer) · 0
                   lint/typecheck errors</span
                 >
               </li>
               <li>
-                <span><strong>11 / 12</strong> módulos ✅ (faltam Dashboard widgets do M9)</span>
+                <span
+                  ><strong>Multi-empresa</strong> agora ✅ — switcher + create/delete + active
+                  persistido em settings</span
+                >
               </li>
               <li>
-                <span>Master pós-M8.6 PR-A backend + PR-B UI · ~245 commits · ~18k LoC TS/TSX</span>
+                <span>Master pós-M9 PR-A · 10 commits novos · ~600 LoC TS/TSX</span>
               </li>
               <li>
                 <span
-                  >M8.5 + M8.6 entregam <strong>Goals + Live Execution</strong> — CEO planeja e
-                  executa atomicamente OR narrado opt-in</span
+                  >Próximos PRs M9: D (API key adapter) · B (Dashboard widgets) · C (/agents list) ·
+                  E (error handling) · F (Paperclip wishlist)</span
                 >
               </li>
             </ul>
-            <div class="eta">
-              v1 quase fechado · falta apenas M9 (Dashboard + multi-empresa + API key) + M10 (VPS
-              adapter)
-            </div>
+            <div class="eta">v1 quase fechado · 5 PRs do M9 + M10 (VPS adapter) restantes</div>
           </div>
 
           <div class="card" data-kind="next">
@@ -1639,12 +1640,15 @@
         </div>
 
         <div class="modules">
-          <div class="module" data-status="partial">
+          <div class="module" data-status="complete">
             <div class="name">Multi-empresa</div>
-            <div class="status-line"><span class="sq"></span>parcial</div>
+            <div class="status-line"><span class="sq"></span>completo</div>
             <div class="note">
-              Backend pronto (companies + IPC). UI dropdown pra trocar entre empresas ainda não —
-              sidebar mostra a primeira por default (M9).
+              M9 PR-A (2026-05-14): <code>companies:create/:delete</code> IPCs +
+              <code>useCompaniesStore</code> + <code>&lt;CompanySwitcher /&gt;</code> dropdown na
+              sidebar + 2 modais (create + delete com counts + last-company warning) + active
+              company persistido em <code>settings.activeCompanyId</code> + App.tsx reativo. Cascade
+              DELETE já existia em <code>0001_initial.sql</code>.
             </div>
           </div>
           <div class="module" data-status="stub">
@@ -2781,17 +2785,22 @@
           </article>
 
           <!-- ──── M9 ──── -->
-          <article class="milestone" data-status="planned">
+          <article class="milestone" data-status="in-progress">
             <div class="ms-rail">
               <div class="num">M09</div>
-              <div class="status-row"><span class="status-dot"></span>planned</div>
-              <div class="meta">closing v1 features</div>
+              <div class="status-row">
+                <span class="status-dot"></span>in progress · PR-A merged
+              </div>
+              <div class="meta">closing v1 features · 6 PRs</div>
             </div>
             <div class="ms-body">
               <h3>Dashboard + Multi-empresa + Polish + Reviews + API key</h3>
               <p class="tagline">
-                Closing items pra v1 ficar feature-complete. Aproveita foundation do M7.5 (adapter
-                pattern, approvals decoupled, system prompt composable).
+                Closing items pra v1 ficar feature-complete.
+                <strong>PR-A (multi-empresa core) mergeado em 2026-05-14</strong> — switcher na
+                sidebar, 2 modais, active company persistido em settings. Próximo: PR-D (API key
+                adapter). Aproveita foundation do M7.5 (adapter pattern, approvals decoupled, system
+                prompt composable).
               </p>
               <div class="feature-group">
                 <div class="group-name">Dashboard widgets (consome Activity M7.7)</div>
@@ -2811,11 +2820,21 @@
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">Multi-empresa</div>
+                <div class="group-name">✅ Multi-empresa (PR-A · 2026-05-14)</div>
                 <ul class="feature-list">
-                  <li>Dropdown topo da sidebar pra trocar de company</li>
-                  <li>Criar nova empresa + Deletar (cascade)</li>
-                  <li>Active company persistido em settings</li>
+                  <li><code>&lt;CompanySwitcher /&gt;</code> dropdown no topo da Sidebar</li>
+                  <li>
+                    <code>CreateCompanyModal</code> + <code>DeleteCompanyConfirm</code> (counts +
+                    cascade warning + last-company guard)
+                  </li>
+                  <li>
+                    Active company persistido em <code>settings.activeCompanyId</code> (sem nova
+                    migration — JSON blob)
+                  </li>
+                  <li>
+                    App.tsx reativo a <code>activeCompanyId</code> — reload
+                    agents/inbox/projects/issues + roster-changed guard
+                  </li>
                 </ul>
               </div>
               <div class="feature-group">

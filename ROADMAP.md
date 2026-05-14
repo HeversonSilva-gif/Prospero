@@ -110,8 +110,8 @@
 
 ### 🚧 O que ainda NÃO funciona (próximas releases)
 
-- 📈 **Dashboard inicial com widgets dinâmicos** — Agentes ativos / Issues em andamento / Inbox / Custos hoje → M9
-- 🏢 **Trocar entre empresas via dropdown da sidebar** → M9
+- 📈 **Dashboard inicial com widgets dinâmicos** — Agentes ativos / Issues em andamento / Inbox / Custos hoje → M9 PR-B
+- 🏢 **Trocar entre empresas via dropdown da sidebar** ✅ M9 PR-A (2026-05-14)
 - ☁️ **Rodar agentes numa VPS remota (Docker)** — escolha per-agent: local (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
 - 🧠 **Empresa que aprende com a experiência (não só o funcionário)** — após cada issue concluído, o sistema **extrai automaticamente** um "skill" (manual de como fazer aquilo) a partir do trabalho real, você revisa e aceita. Conhecimento institucional **transfere entre funcionários**: se demite o BackendEng e contrata outro, o novato já chega sabendo o que a empresa aprendeu. CEO escreve retrospectiva ao completar um Goal. Inclui busca em conversas antigas. → M11 (pós-v1, v1.1)
 
@@ -189,7 +189,7 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 
 | Módulo | Status | Notas |
 |---|---|---|
-| **Multi-empresa** | 🟡 Parcial | Backend pronto (`companies` table, `company:create-demo` IPC). UI: dropdown topo da sidebar pra trocar entre empresas **AINDA NÃO** (M9). Sidebar mostra a primeira company por default. |
+| **Multi-empresa** | ✅ Completo | M9 PR-A (2026-05-14): `companies:create`/`:delete` IPCs com validation + cascade DELETE. Renderer `useCompaniesStore` (zustand) com activeId persistido em `settings.activeCompanyId`. `<CompanySwitcher />` dropdown no topo da Sidebar + `CreateCompanyModal` + `DeleteCompanyConfirm` (counts + cascade warning + last-company guard). App.tsx reativo a `activeCompanyId` (reload agents/inbox/projects/issues). `roster-changed` event guarded contra clobber de stores quando company não-ativa emite. |
 | **Dashboard** | 🟡 Stub | Rota `/dashboard` existe (placeholder M2). Widgets §6.4 + Recent Activity + Active Agents **NÃO** (M9 consome Activity stream do M7.7). |
 | **Activity stream** | ✅ Completo | Migration 0009 `activity_events` + recorder helper + dual-write em 17 call sites (PR-A). Rota `/activity` com 5 filtros + search + infinite scroll + real-time prepend via `ACTIVITY_NEW` + 700ms animação fade-down (PR-B). Sem `issue_events` migrado — dual-write paralelo. |
 | **Inbox** | ✅ Completo | Rota `/inbox` com filter pills (All/Approvals/Completed/Suggestions/Errors/Security). Approve/Reject inline. Auto-mark-read no resolve. Badge unread no sidebar. **M7.5 PR-B:** dual-format handler suporta legacy embedded payload + new `approval_id` pointer. |
@@ -732,11 +732,11 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
   - [ ] Custos Hoje (tokens + % Max — alimenta de M8)
   - [ ] **Recent Activity** (últimos 10 eventos de `activity_events` com fade-in animation)
   - [ ] **Active Agents Panel** (per-agent status com `currentAction` granular do M7.5)
-- [ ] **Multi-empresa:**
-  - [ ] Dropdown topo da sidebar pra trocar de company
-  - [ ] Criar nova empresa (modal com nome)
-  - [ ] Deletar empresa (confirm + cascade DELETE)
-  - [ ] Active company persistido em settings
+- [x] **Multi-empresa:** ✅ **PR-A mergeado 2026-05-14** — store + sidebar dropdown + create/delete modals + active company persistido em settings
+  - [x] Dropdown topo da sidebar pra trocar de company (`<CompanySwitcher />`)
+  - [x] Criar nova empresa (`CreateCompanyModal` com Enter/Escape)
+  - [x] Deletar empresa (`DeleteCompanyConfirm` + cascade DELETE + counts + last-company warning)
+  - [x] Active company persistido em `settings.activeCompanyId` (sem nova migration — JSON blob)
 - [ ] **/agents (lista, não detail):**
   - [ ] Cards com avatar + nome + role + status
   - [ ] Botão "+" com galeria de role_templates
