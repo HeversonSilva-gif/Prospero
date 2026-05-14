@@ -65,6 +65,7 @@ export type CreateAgentInput = {
   model?: string;
   skills?: string[];
   templateId?: string | null;
+  adapterName?: string;
   // Activity actor for the resulting agent.hired event. Defaults to { kind: 'user' }
   // (UI path). MCP tool callers pass { kind: 'agent', id: callerAgentId }.
   actor?: Actor;
@@ -98,8 +99,8 @@ export const createAgentsRepository = (
   recorder?: Recorder,
 ): AgentsRepository => {
   const insert = db.prepare(`
-    INSERT INTO agents (id, company_id, name, role, system_prompt, skills_json, allowed_projects_json, mode, always_on, status, current_action, model, template_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, '[]', ?, ?, 'idle', NULL, ?, ?, ?, ?)
+    INSERT INTO agents (id, company_id, name, role, system_prompt, skills_json, allowed_projects_json, mode, always_on, status, current_action, model, template_id, adapter_name, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, '[]', ?, ?, 'idle', NULL, ?, ?, ?, ?, ?)
   `);
   const byId = db.prepare("SELECT * FROM agents WHERE id = ?");
   const byCompany = db.prepare("SELECT * FROM agents WHERE company_id = ? ORDER BY created_at ASC");
@@ -118,6 +119,7 @@ export const createAgentsRepository = (
       const id = `agent_${randomUUID()}`;
       const now = Date.now();
       const finalModel = input.model || DEFAULT_CLAUDE_MODEL;
+      const adapterName = input.adapterName ?? "claude-oauth-local";
       insert.run(
         id,
         input.companyId,
@@ -129,6 +131,7 @@ export const createAgentsRepository = (
         input.alwaysOn ? 1 : 0,
         finalModel,
         input.templateId ?? null,
+        adapterName,
         now,
         now,
       );

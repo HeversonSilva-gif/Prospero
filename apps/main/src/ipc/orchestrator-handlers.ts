@@ -16,6 +16,7 @@ import { createAgentsRepository } from "../agents/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { loadDecryptedToken } from "../auth/token-storage.js";
+import { getActiveAuthMode } from "../auth/auth-mode.js";
 import { ensureAdapter, getAdapter, removeAdapter } from "../orchestrator/lifecycle.js";
 import { createRouter } from "../orchestrator/router.js";
 import type { Sender } from "../orchestrator/router.js";
@@ -697,6 +698,8 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
 
   ipcMain.handle(IPC.AGENTS_HIRE_FROM_UI, (_e, payload: unknown): Agent => {
     const parsed = HIRE_FROM_UI_INPUT_SCHEMA.parse(payload);
+    const authMode = getActiveAuthMode(db);
+    const adapterName = authMode === "api-key" ? "claude-api-key-local" : "claude-oauth-local";
     const created = agents.create({
       companyId: parsed.company_id,
       name: parsed.name,
@@ -705,6 +708,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       mode: parsed.mode ?? "supervised",
       alwaysOn: false,
       templateId: parsed.role_template_id ?? null,
+      adapterName,
       actor: { kind: "user" },
     });
     if (parsed.reports_to !== undefined && parsed.reports_to !== "") {

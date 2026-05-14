@@ -39,6 +39,22 @@ describe("setModel", () => {
   });
 });
 
+describe("create — adapter_name", () => {
+  it("defaults to claude-oauth-local", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput());
+    expect(a.adapterName).toBe("claude-oauth-local");
+  });
+
+  it("respects explicit adapterName input", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput({ adapterName: "claude-api-key-local" }));
+    expect(a.adapterName).toBe("claude-api-key-local");
+  });
+});
+
 describe("setSystemPrompt", () => {
   it("updates the agent system prompt", () => {
     const db = setupDb();
