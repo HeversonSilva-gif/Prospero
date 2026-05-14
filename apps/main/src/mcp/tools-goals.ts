@@ -6,6 +6,7 @@ import { createGoalPlansRepository } from "../goals/plans-repository.js";
 import { createRoleTemplatesRepository } from "../agents/role-templates-repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
+import { createIssuesRepository } from "../issues/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { getCostBaseline } from "../costs/baseline.js";
 import { GoalPlanPayloadSchema, type GoalPlanPayload } from "../schemas/goalPlan.js";
@@ -269,6 +270,261 @@ const submitGoalPlan: Tool = {
   },
 };
 
+// ──────── M8.6 narrated execution tools ────────
+
+const hireAgentForPlan: Tool = {
+  name: "hire_agent_for_plan",
+  description:
+    "Hire one agent from the current plan's agentsToHire by index. Idempotent: returns the existing id if already hired. Requires this agent to be the CEO of an active narrated execution.",
+  inputSchema: z.object({ planIndex: z.number().int().min(0) }),
+  // eslint-disable-next-line @typescript-eslint/require-await
+  run: async (input, ctx) => {
+    const { planIndex } = hireAgentForPlan.inputSchema.parse(input) as { planIndex: number };
+    const goalsRepo = createGoalsRepository(ctx.db);
+    const goal = goalsRepo.findActiveNarratedByCeo(ctx.agentId);
+    if (goal === null) throw new Error("no active narrated execution for this agent");
+    const state = goalsRepo.getExecutionState(goal.id);
+    if (state === null) throw new Error("execution state missing");
+    const plansRepo = createGoalPlansRepository(ctx.db);
+    const plan = plansRepo.getById(state.planId);
+    if (plan === null) throw new Error(`plan ${state.planId} not found`);
+    const agentSpec = plan.agentsToHire.find((a) => a.index === planIndex);
+    if (agentSpec === undefined) {
+      throw new Error(`planIndex ${planIndex} not in agentsToHire`);
+    }
+    if (state.includeAgentIndexes !== null && !state.includeAgentIndexes.includes(planIndex)) {
+      throw new Error(`planIndex ${planIndex} excluded by filter`);
+    }
+    if (state.agentIndexToId[planIndex] !== undefined) {
+      return JSON.stringify({ agentId: state.agentIndexToId[planIndex], existing: true });
+    }
+    let reportsToId: string;
+    if (agentSpec.reportsToIndex === "CEO") {
+      reportsToId = state.ceoId;
+    } else {
+      const resolved = state.agentIndexToId[agentSpec.reportsToIndex];
+      if (resolved === undefined) {
+        throw new Error(`reportsToIndex ${agentSpec.reportsToIndex} not yet hired`);
+      }
+      reportsToId = resolved;
+    }
+    const agentsRepo = createAgentsRepository(ctx.db, tryGetRecorder());
+    const created = agentsRepo.create({
+      companyId: ctx.companyId,
+      name: agentSpec.name,
+      role: agentSpec.roleTemplateId,
+      systemPrompt: agentSpec.personaSummary,
+      mode: "supervised",
+      alwaysOn: false,
+      model: agentSpec.model,
+      skills: agentSpec.skills,
+      templateId: agentSpec.roleTemplateId,
+    });
+    agentsRepo.setReportsTo(created.id, reportsToId);
+    state.agentIndexToId[planIndex] = created.id;
+    state.step = "hiring";
+    goalsRepo.setExecutionState(goal.id, state);
+    tryGetRecorder()?.recordActivity({
+      companyId: ctx.companyId,
+      actor: { kind: "agent", id: ctx.agentId },
+      action: "goal.narrated_step",
+      entityKind: "goal",
+      entityId: goal.id,
+      agentId: ctx.agentId,
+      payload: { step: "hire", planIndex, agentId: created.id },
+    });
+    try {
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send("agents:list-changed", { hiredAgentIds: [created.id] });
+      }
+    } catch {
+      /* tests */
+    }
+    return JSON.stringify({ agentId: created.id, name: created.name });
+  },
+};
+
+const createIssueForPlan: Tool = {
+  name: "create_issue_for_plan",
+  description:
+    "Create one issue from the current plan's issuesToCreate by index. Requires assignee already hired and all dependsOnIndexes already created. Idempotent.",
+  inputSchema: z.object({ planIndex: z.number().int().min(0) }),
+  // eslint-disable-next-line @typescript-eslint/require-await
+  run: async (input, ctx) => {
+    const { planIndex } = createIssueForPlan.inputSchema.parse(input) as { planIndex: number };
+    const goalsRepo = createGoalsRepository(ctx.db);
+    const goal = goalsRepo.findActiveNarratedByCeo(ctx.agentId);
+    if (goal === null) throw new Error("no active narrated execution for this agent");
+    const state = goalsRepo.getExecutionState(goal.id);
+    if (state === null) throw new Error("execution state missing");
+    const plansRepo = createGoalPlansRepository(ctx.db);
+    const plan = plansRepo.getById(state.planId);
+    if (plan === null) throw new Error(`plan ${state.planId} not found`);
+    const issueSpec = plan.issuesToCreate.find((i) => i.index === planIndex);
+    if (issueSpec === undefined) {
+      throw new Error(`planIndex ${planIndex} not in issuesToCreate`);
+    }
+    if (state.includeIssueIndexes !== null && !state.includeIssueIndexes.includes(planIndex)) {
+      throw new Error(`planIndex ${planIndex} excluded by filter`);
+    }
+    if (state.issueIndexToId[planIndex] !== undefined) {
+      return JSON.stringify({ issueId: state.issueIndexToId[planIndex], existing: true });
+    }
+    let assigneeId: string;
+    if (issueSpec.assigneeIndex === "CEO") {
+      assigneeId = state.ceoId;
+    } else {
+      const resolved = state.agentIndexToId[issueSpec.assigneeIndex];
+      if (resolved === undefined) {
+        throw new Error(`assignee #${issueSpec.assigneeIndex} not yet hired`);
+      }
+      assigneeId = resolved;
+    }
+    const dependsOnIds: string[] = [];
+    for (const depIdx of issueSpec.dependsOnIndexes) {
+      const resolved = state.issueIndexToId[depIdx];
+      if (resolved === undefined) {
+        throw new Error(`dep #${depIdx} not created yet`);
+      }
+      dependsOnIds.push(resolved);
+    }
+    const issuesRepo = createIssuesRepository(ctx.db);
+    const created = issuesRepo.create(
+      {
+        companyId: ctx.companyId,
+        projectId: null,
+        title: issueSpec.title,
+        description: issueSpec.description,
+        priority: issueSpec.priority,
+        assigneeId,
+        parentId: null,
+        createdBy: ctx.agentId,
+      },
+      { actorKind: "agent", actorId: ctx.agentId },
+    );
+    ctx.db
+      .prepare("UPDATE issues SET goal_id = ?, depends_on_json = ? WHERE id = ?")
+      .run(goal.id, dependsOnIds.length > 0 ? JSON.stringify(dependsOnIds) : null, created.id);
+    state.issueIndexToId[planIndex] = created.id;
+    state.step = "creating_issues";
+    goalsRepo.setExecutionState(goal.id, state);
+    tryGetRecorder()?.recordActivity({
+      companyId: ctx.companyId,
+      actor: { kind: "agent", id: ctx.agentId },
+      action: "goal.narrated_step",
+      entityKind: "goal",
+      entityId: goal.id,
+      agentId: ctx.agentId,
+      payload: { step: "issue", planIndex, issueId: created.id },
+    });
+    try {
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send("issues:list-changed", { createdIssueIds: [created.id] });
+      }
+    } catch {
+      /* tests */
+    }
+    return JSON.stringify({ issueId: created.id, title: created.title });
+  },
+};
+
+const finalizeGoalExecution: Tool = {
+  name: "finalize_goal_execution",
+  description:
+    "Close the narrated execution loop. Validates all plan items processed and transitions goal to in_progress. Pass abort=true to roll back created agents/issues and cancel the goal.",
+  inputSchema: z.object({
+    goalId: z.string(),
+    abort: z.boolean().optional(),
+  }),
+  // eslint-disable-next-line @typescript-eslint/require-await
+  run: async (input, ctx) => {
+    const { goalId, abort } = finalizeGoalExecution.inputSchema.parse(input) as {
+      goalId: string;
+      abort?: boolean;
+    };
+    const goalsRepo = createGoalsRepository(ctx.db);
+    const goal = goalsRepo.getById(goalId);
+    if (goal === null || goal.companyId !== ctx.companyId) {
+      throw new Error(`goal ${goalId} not found`);
+    }
+    const state = goalsRepo.getExecutionState(goalId);
+    if (state === null) throw new Error("no active execution for this goal");
+    const plansRepo = createGoalPlansRepository(ctx.db);
+    const plan = plansRepo.getById(state.planId);
+    if (plan === null) throw new Error(`plan ${state.planId} not found`);
+
+    if (abort === true) {
+      const agentsRepo = createAgentsRepository(ctx.db);
+      const issuesRepo = createIssuesRepository(ctx.db);
+      ctx.db.transaction(() => {
+        for (const id of Object.values(state.issueIndexToId)) {
+          issuesRepo.delete(id);
+        }
+        // agents.delete doesn't exist; terminate is the closest equivalent
+        // (status='terminated' + audit trail). Hard-delete left for future.
+        for (const id of Object.values(state.agentIndexToId)) {
+          agentsRepo.terminate(id, "aborted narrated execution");
+        }
+        plansRepo.markRejected(plan.id, "aborted by CEO during narrated execution");
+        goalsRepo.updateStatus(goalId, "cancelled");
+        goalsRepo.setExecutionState(goalId, null);
+      })();
+      return JSON.stringify({ aborted: true });
+    }
+
+    const expectedAgents = state.includeAgentIndexes ?? plan.agentsToHire.map((a) => a.index);
+    const expectedIssues = state.includeIssueIndexes ?? plan.issuesToCreate.map((i) => i.index);
+    const missingAgents = expectedAgents.filter((i) => state.agentIndexToId[i] === undefined);
+    const missingIssues = expectedIssues.filter((i) => state.issueIndexToId[i] === undefined);
+    if (missingAgents.length > 0 || missingIssues.length > 0) {
+      throw new Error(
+        `incomplete: missingAgents=${JSON.stringify(missingAgents)} missingIssues=${JSON.stringify(missingIssues)}`,
+      );
+    }
+
+    plansRepo.markApproved(plan.id, { decidedBy: "ceo-narrated" });
+    goalsRepo.updateStatus(goalId, "in_progress");
+    goalsRepo.setExecutionState(goalId, null);
+
+    const hiredAgentIds = Object.values(state.agentIndexToId);
+    const createdIssueIds = Object.values(state.issueIndexToId);
+
+    createInboxRepository(ctx.db).create({
+      companyId: ctx.companyId,
+      kind: "goal_executing",
+      title: `Plan for "${goal.title}" is executing`,
+      preview: `${hiredAgentIds.length} agents hired, ${createdIssueIds.length} issues created (narrated)`,
+      payloadJson: JSON.stringify({ goalId, planId: plan.id }),
+      requiresAction: false,
+    });
+    try {
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send(IPC.INBOX_UPDATE, { companyId: ctx.companyId });
+      }
+    } catch {
+      /* tests */
+    }
+
+    tryGetRecorder()?.recordActivity({
+      companyId: ctx.companyId,
+      actor: { kind: "agent", id: ctx.agentId },
+      action: "goal.plan_approved",
+      entityKind: "goal",
+      entityId: goalId,
+      agentId: ctx.agentId,
+      payload: {
+        planId: plan.id,
+        version: plan.version,
+        hiredAgentIds,
+        createdIssueIds,
+        approvedBy: "ceo-narrated",
+      },
+    });
+
+    return JSON.stringify({ ok: true, hiredAgentIds, createdIssueIds });
+  },
+};
+
 export const goalsToolDefinitions: Tool[] = [
   listGoals,
   getGoal,
@@ -277,4 +533,7 @@ export const goalsToolDefinitions: Tool[] = [
   listRoleTemplates,
   getCostBaselineTool,
   submitGoalPlan,
+  hireAgentForPlan,
+  createIssueForPlan,
+  finalizeGoalExecution,
 ];
