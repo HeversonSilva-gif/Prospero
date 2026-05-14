@@ -48,4 +48,5 @@ export type AgentEvent =
     }
   | { kind: "error"; agentId: string; message: string }
   | { kind: "roster-changed"; companyId: string }
-  | { kind: "costs-new"; agentId: string; deltaTokens: number; deltaCents: number };
+  | { kind: "costs-new"; agentId: string; deltaTokens: number; deltaCents: number }
+  | { kind: "rate-limited"; agentId: string; retryAfterSec: number | null; message: string };

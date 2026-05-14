@@ -414,6 +414,20 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
               agentId: agent.id,
               message: `API retry attempt ${String(ev.attempt)}: ${ev.error}`,
             });
+          } else if (ev.kind === "rate-limited") {
+            agents.updateStatus(agent.id, { status: "waiting", currentAction: "Rate limited" });
+            broadcast({
+              kind: "status-changed",
+              agentId: agent.id,
+              status: "waiting",
+              updatedAt: Date.now(),
+            });
+            broadcast({
+              kind: "rate-limited",
+              agentId: agent.id,
+              retryAfterSec: ev.retryAfterSec,
+              message: ev.message,
+            });
           }
         },
         onStderr: (line: string) => {
