@@ -112,9 +112,14 @@ export const Projects: FC = () => {
         <ProjectFormModal
           {...(editing !== null ? { initial: editing } : {})}
           onClose={() => setShowForm(false)}
-          onSubmit={async (data) => {
-            if (editing !== null) await updateProj({ id: editing.id, ...data });
-            else await createProj({ companyId, ...data });
+          onSubmit={async ({ name, path, color, icon }) => {
+            if (editing !== null) {
+              await updateProj({ id: editing.id, name, path, color });
+              await useProjectsStore.getState().setIcon(editing.id, icon);
+            } else {
+              const created = await createProj({ companyId, name, path, color });
+              if (icon !== null) await useProjectsStore.getState().setIcon(created.id, icon);
+            }
           }}
         />
       )}

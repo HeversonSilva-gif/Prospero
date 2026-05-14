@@ -13,9 +13,37 @@ const COLORS = [
   "#64748b",
 ];
 
+const ICONS = [
+  "📁",
+  "📦",
+  "🚀",
+  "🛠️",
+  "🧪",
+  "📊",
+  "💡",
+  "🎨",
+  "🔧",
+  "📝",
+  "🔬",
+  "🏗️",
+  "🌐",
+  "📱",
+  "💼",
+  "🎯",
+  "⚙️",
+  "🧭",
+  "🗂️",
+  "🧱",
+];
+
 type Props = {
   initial?: Project;
-  onSubmit: (data: { name: string; path: string; color: string }) => Promise<void>;
+  onSubmit: (data: {
+    name: string;
+    path: string;
+    color: string;
+    icon: string | null;
+  }) => Promise<void>;
   onClose: () => void;
 };
 
@@ -24,6 +52,7 @@ export const ProjectFormModal: FC<Props> = ({ initial, onSubmit, onClose }) => {
   const [name, setName] = useState(initial?.name ?? "");
   const [path, setPath] = useState(initial?.path ?? "");
   const [color, setColor] = useState(initial?.color ?? COLORS[0]!);
+  const [icon, setIcon] = useState<string | null>(initial?.icon ?? null);
   const [busy, setBusy] = useState(false);
 
   const pickFolder = async () => {
@@ -36,7 +65,7 @@ export const ProjectFormModal: FC<Props> = ({ initial, onSubmit, onClose }) => {
     if (name.trim() === "" || path.trim() === "") return;
     setBusy(true);
     try {
-      await onSubmit({ name: name.trim(), path: path.trim(), color });
+      await onSubmit({ name: name.trim(), path: path.trim(), color, icon });
       onClose();
     } finally {
       setBusy(false);
@@ -75,6 +104,29 @@ export const ProjectFormModal: FC<Props> = ({ initial, onSubmit, onClose }) => {
           >
             {t("projects.form.pickFolder")}
           </button>
+        </div>
+        <label className="block text-xs uppercase text-ink-soft mb-1">
+          {t("projects.form.icon")}
+        </label>
+        <div className="grid grid-cols-10 gap-1 mb-3">
+          <button
+            type="button"
+            onClick={() => setIcon(null)}
+            className={`w-7 h-7 rounded text-xs ${icon === null ? "bg-brand text-brand-fg" : "bg-surface-soft text-ink-muted"}`}
+            title={t("projects.form.iconNone")}
+          >
+            —
+          </button>
+          {ICONS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => setIcon(emoji)}
+              className={`w-7 h-7 rounded text-base ${icon === emoji ? "bg-brand-bg ring-2 ring-brand" : "bg-surface-soft hover:bg-surface-border"}`}
+            >
+              {emoji}
+            </button>
+          ))}
         </div>
         <label className="block text-xs uppercase text-ink-soft mb-1">
           {t("projects.form.color")}
