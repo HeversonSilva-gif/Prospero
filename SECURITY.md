@@ -68,15 +68,29 @@ locus.
   `CLAUDE_CONFIG_DIR`, and `--strict-mcp-config` so the agent can't load an
   attacker-controlled MCP server through a stray settings file.
 
-### `claude-api-key-local` (M9 future)
+### `claude-api-key-local` (M9 PR-D, 2026-05-14 ✅)
 
 - **Locus:** same machine.
-- **Credentials:** Anthropic API key from settings.json (encrypted via the same
-  safeStorage path as the OAuth token).
+- **Credentials:** Anthropic API key encrypted via `safeStorage` in the `settings`
+  table (keys `auth.apikey.{ciphertext,prefix,configured_at}`). Renderer only ever
+  sees the masked prefix (`sk-ant-api03-…XXXX`); the raw key never crosses the
+  IPC boundary back to the renderer.
+- **Spawn shape:** sandbox `CLAUDE_CONFIG_DIR` per agent (same as OAuth), but
+  `seedSandboxCredentials` is **skipped** — no `.credentials.json` is written.
+  Instead `ANTHROPIC_API_KEY=<decrypted>` is passed via env on spawn.
+  `--strict-mcp-config` remains active.
 - **Primary threat:** API key in plaintext appearing in process listings,
   command-line history, logs, or crash dumps.
 - **Mitigations:** key is passed only via environment (not argv), redacted in
   all log surfaces via `token-redact.ts`, never persisted to a temp file.
+- **Concurrency cap:** **no cap** — Anthropic's API gateway enforces the
+  account's rate limit. The 4-agent cap from `lifecycle.ts` is gated on
+  `agent.adapterName === 'claude-oauth-local'` and skipped for API key agents.
+- **Mode selection:** `AppSettings.authMode` (`'oauth' | 'api-key'`, default
+  `'oauth'`). Set via Settings UI or Setup Wizard. Changing the mode applies
+  to **new agents only**; existing agents keep their `adapter_name` (set at
+  creation) until terminated and respawned. Both OAuth and API key blobs
+  coexist in `safeStorage` — switching modes does not delete the other.
 
 ### `claude-oauth-remote-docker` (M10 future)
 
