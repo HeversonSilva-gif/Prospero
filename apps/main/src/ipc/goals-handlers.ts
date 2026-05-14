@@ -12,6 +12,9 @@ import { tryGetRecorder } from "../activity/index.js";
 
 export type GoalsOrchestrator = {
   deliverSystemMessage: (agentId: string, text: string) => void;
+  // M8.6: enqueue a system-actor turn carrying the execute-request payload.
+  // Returns the thread id used so executePlanNarrated can persist it.
+  enqueueExecuteRequest: (ceoId: string, prompt: string) => { threadId: string };
 };
 
 export type GoalsHandlersDeps = {

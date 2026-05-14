@@ -722,7 +722,23 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     const thread = messages.ensureThread(agent.companyId, ["user", agent.id]);
     router.enqueue(agent.id, thread.id, text, { kind: "user", id: null, name: "System" });
   };
-  registerGoalsHandlers({ db, orchestrator: { deliverSystemMessage } });
+
+  // M8.6 — Narrated execution. Enqueue a system-actor turn carrying the
+  // [GOAL_EXECUTE_REQUEST] payload and return the thread id so executor can
+  // persist it in goals.execution_state_json.
+  const enqueueExecuteRequest = (ceoId: string, prompt: string): { threadId: string } => {
+    const ceo = agents.getById(ceoId);
+    if (ceo === null) throw new Error(`ceo ${ceoId} not found`);
+    ensureAgentRunner(ceo);
+    const thread = messages.ensureThread(ceo.companyId, ["user", ceo.id]);
+    router.enqueue(ceo.id, thread.id, prompt, { kind: "user", id: null, name: "System" });
+    return { threadId: thread.id };
+  };
+
+  registerGoalsHandlers({
+    db,
+    orchestrator: { deliverSystemMessage, enqueueExecuteRequest },
+  });
 
   // Boot recovery — re-enqueue [GOAL_PLAN_REQUEST] for goals stuck in 'planning'
   // with no proposed plan (CEO crash mid-turn). Runs once after orchestrator is
@@ -731,11 +747,9 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   try {
     const recovered = scanPlanningWithoutPlan(db, { deliverSystemMessage });
     if (recovered > 0) {
-       
       console.log(`[goals] recovery scanned ${recovered} stuck planning goal(s)`);
     }
   } catch (e) {
-     
     console.error("[goals] recovery scan failed", e);
   }
 };

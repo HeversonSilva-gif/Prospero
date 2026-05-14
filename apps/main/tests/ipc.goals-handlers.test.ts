@@ -10,12 +10,17 @@ import { createAgentsRepository } from "../src/agents/repository.js";
 const stubOrchestrator = (): {
   calls: { agentId: string; text: string }[];
   deliverSystemMessage: (agentId: string, text: string) => void;
+  enqueueExecuteRequest: (ceoId: string, prompt: string) => { threadId: string };
 } => {
   const calls: { agentId: string; text: string }[] = [];
   return {
     calls,
     deliverSystemMessage: (agentId, text) => {
       calls.push({ agentId, text });
+    },
+    enqueueExecuteRequest: (ceoId, prompt) => {
+      calls.push({ agentId: ceoId, text: prompt });
+      return { threadId: "th_test" };
     },
   };
 };

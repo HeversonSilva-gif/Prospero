@@ -29,6 +29,10 @@ const newEnv = () => {
       deliverSystemMessage: (agentId, text) => {
         orchCalls.push({ agentId, text });
       },
+      enqueueExecuteRequest: (ceoId, prompt) => {
+        orchCalls.push({ agentId: ceoId, text: prompt });
+        return { threadId: "th_test" };
+      },
     },
   });
   return { db, companyId: company.id, ceoId: ceo.id, h, orchCalls };
