@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import {
   IPC,
+  type ApiKeyStatus,
   type AppSettings,
   type DetectResult,
   type TokenSource,
@@ -56,6 +57,10 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
     importDetected: () =>
       ipcRenderer.invoke(IPC.AUTH_TOKEN_IMPORT_DETECTED) as Promise<TokenStatus>,
     clear: () => ipcRenderer.invoke(IPC.AUTH_TOKEN_CLEAR) as Promise<TokenStatus>,
+    apiKeyStatus: () => ipcRenderer.invoke(IPC.AUTH_API_KEY_STATUS) as Promise<ApiKeyStatus>,
+    apiKeySet: (raw: string) =>
+      ipcRenderer.invoke(IPC.AUTH_API_KEY_SET, { raw }) as Promise<ApiKeyStatus>,
+    apiKeyClear: () => ipcRenderer.invoke(IPC.AUTH_API_KEY_CLEAR) as Promise<ApiKeyStatus>,
   },
   companies: {
     list: () => ipcRenderer.invoke(IPC.COMPANY_LIST) as Promise<Company[]>,

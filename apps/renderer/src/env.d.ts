@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import type {
+  ApiKeyStatus,
   AppSettings,
   DetectResult,
   TokenSource,
@@ -52,6 +53,9 @@ declare global {
         detect: () => Promise<DetectResult>;
         importDetected: () => Promise<TokenStatus>;
         clear: () => Promise<TokenStatus>;
+        apiKeyStatus: () => Promise<ApiKeyStatus>;
+        apiKeySet: (raw: string) => Promise<ApiKeyStatus>;
+        apiKeyClear: () => Promise<ApiKeyStatus>;
       };
       companies: {
         list: () => Promise<Company[]>;
