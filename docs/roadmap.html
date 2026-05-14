@@ -1138,7 +1138,18 @@
                 Criar uma "empresa" virtual e adicionar <strong>projetos</strong> (pastas de código
                 no seu computador)
               </li>
-              <li>Cada projeto tem cor e caminho próprios pra ficar fácil de identificar</li>
+              <li>
+                Cada projeto tem cor, <strong>ícone emoji</strong> e caminho próprios pra ficar
+                fácil de identificar
+              </li>
+              <li>
+                <strong>Arquivar projetos</strong> que terminaram (somem da lista por padrão, toggle
+                "Mostrar arquivados" recupera)
+              </li>
+              <li>
+                <strong>Exportar empresa inteira em JSON</strong> (Settings → Exportar empresa) —
+                backup com agentes/issues/threads/mensagens/inbox/custos/activity
+              </li>
             </ul>
           </div>
 
@@ -1489,10 +1500,12 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M9 PR-E error handling §7 mergeado em 2026-05-14 (3 banners
-              globais + heartbeat 5min + auto-restart main + rate-limit detection + OAuth expiry
-              30d). <strong>784 testes passing</strong> (+15 vs PR-C). 13/14 milestones; M9 em curso
-              com 1 PR restante (F). Próximo: <strong>M9 PR-F Paperclip wishlist</strong>.
+              <strong>Estágio:</strong> M9 PR-F.1 (projects polish + company export) mergeado em
+              2026-05-14. Emoji icon picker + archive toggle + show-archived filter + company:export
+              IPC (JSON schemaVersion 1). <strong>793 testes passing</strong> (+9 vs PR-E). 13/14
+              milestones; M9 em curso com PR-F.2 restante. Próximo:
+              <strong>M9 PR-F.2 — AGENTS.md import/export + Reviews UX + companies.sh import</strong
+              >.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -1517,28 +1530,32 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M9 PR-E mergeado</div>
+            <div class="title">M9 PR-F.1 mergeado</div>
             <ul class="bullets">
               <li>
-                <span><strong>13 / 14</strong> milestones do v1 · M9 em curso</span>
+                <span><strong>13 / 14</strong> milestones do v1 · M9 em curso (5.5/6 PRs)</span>
               </li>
               <li>
                 <span
-                  ><strong>784</strong> testes passing (619 main + 33 shared + 132 renderer) · 0
+                  ><strong>793</strong> testes passing (627 main + 33 shared + 133 renderer) · 0
                   lint/typecheck errors</span
                 >
               </li>
               <li>
                 <span
-                  ><strong>Error handling §7</strong> agora ✅ — 3 banners globais (auth/expiry/
-                  rate-limit) + heartbeat 5min + auto-restart main + OAuth expiry 30d</span
+                  ><strong>Projects polish + company export</strong> agora ✅ — emoji picker (20
+                  hardcoded) + archive/unarchive toggle + show-archived filter + Settings → Exportar
+                  JSON (schemaVersion 1, snapshot-only)</span
                 >
               </li>
               <li>
-                <span>Master pós-M9 PR-E · ~10 commits novos · ~700 LoC TS/TSX</span>
+                <span>Master pós-M9 PR-F.1 · ~7 commits novos · ~250 LoC TS/TSX</span>
               </li>
               <li>
-                <span>Próximo PR M9: F (Paperclip wishlist polish) — último do M9</span>
+                <span
+                  >Próximo PR M9: F.2 (AGENTS.md import/export + Reviews UX + companies.sh import) —
+                  fecha M9</span
+                >
               </li>
             </ul>
             <div class="eta">v1 quase fechado · 1 PR do M9 + M10 (VPS adapter) restantes</div>
@@ -2786,7 +2803,7 @@
             <div class="ms-rail">
               <div class="num">M09</div>
               <div class="status-row">
-                <span class="status-dot"></span>in progress · PR-A merged
+                <span class="status-dot"></span>in progress · 5.5/6 PRs merged
               </div>
               <div class="meta">closing v1 features · 6 PRs</div>
             </div>
@@ -2796,9 +2813,9 @@
                 Closing items pra v1 ficar feature-complete.
                 <strong
                   >PR-A (multi-empresa) + PR-D (api-key adapter) + PR-B (Dashboard widgets) + PR-C
-                  (/agents + Settings defaults) + PR-E (error handling §7) mergeados em
-                  2026-05-14</strong
-                >. Próximo: PR-F (Paperclip wishlist polish) — último PR do M9.
+                  (/agents + Settings defaults) + PR-E (error handling §7) + PR-F.1 (projects polish
+                  + company export) mergeados em 2026-05-14</strong
+                >. Próximo: PR-F.2 (AGENTS.md + Reviews UX + companies.sh import) — fecha M9.
               </p>
               <div class="feature-group">
                 <div class="group-name">
@@ -2861,20 +2878,45 @@
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">Agent Reviews UX (aproveita approvals decoupled M7.5)</div>
+                <div class="group-name">
+                  ✅ Projects polish + company export (PR-F.1 · 2026-05-14)
+                </div>
                 <ul class="feature-list">
-                  <li><code>/issues/:id</code> aba "Review" com diff side-by-side</li>
-                  <li>Botões Approve+merge / Request changes / Reject</li>
-                  <li>Inline comments via <code>approval_comments</code></li>
+                  <li>
+                    Migration 0016: <code>projects.icon</code> +
+                    <code>projects.archived_at</code> (ambos nullable)
+                  </li>
+                  <li>
+                    Emoji picker hardcoded (20 emojis) em ProjectFormModal +
+                    <code>setIcon</code>/<code>archive</code>/<code>unarchive</code> repo methods
+                  </li>
+                  <li>
+                    Projects.tsx: toggle "Mostrar arquivados" + greying visual via
+                    <code>opacity-60</code>
+                  </li>
+                  <li>
+                    <code>company:export</code> IPC + Settings UI "Exportar JSON" — schemaVersion 1
+                    snapshot com
+                    agents/projects/issues/threads/messages/inbox/costs/activity/goals/approvals via
+                    <code>safeCollect</code> (try/catch por tabela)
+                  </li>
+                  <li>
+                    Blob download client-side em vez de Electron <code>dialog.showSaveDialog</code>
+                    — simplifica IPC
+                  </li>
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">Portability (Paperclip wishlist)</div>
+                <div class="group-name">Pendente PR-F.2 (Paperclip wishlist)</div>
                 <ul class="feature-list">
                   <li>
                     AGENTS.md format próprio (YAML front-matter + <code>gray-matter</code> parser)
                   </li>
-                  <li>companies.sh import/export JSON único (não ZIP)</li>
+                  <li>companies.sh <strong>import</strong> JSON (FK remap em 10 tabelas)</li>
+                  <li>
+                    Agent Reviews UX (<code>/issues/:id</code> aba "Review" com diff side-by-side
+                    via <code>react-diff-viewer-continued</code> + inline comments)
+                  </li>
                 </ul>
               </div>
               <div class="feature-group">
@@ -3403,12 +3445,14 @@
             </div>
             <div class="where">M9 · format próprio YAML front-matter</div>
           </div>
-          <div class="wish-row" data-wish="planned">
+          <div class="wish-row" data-wish="partial">
             <div class="item-name">companies.sh import/export</div>
             <div>
-              <span class="wish-status"><span class="sq"></span>planned</span>
+              <span class="wish-status"
+                ><span class="sq"></span>export ✅ PR-F.1 / import PR-F.2</span
+              >
             </div>
-            <div class="where">M9 · JSON único (não ZIP)</div>
+            <div class="where">M9 · JSON único schemaVersion 1 (não ZIP)</div>
           </div>
           <div class="wish-row" data-wish="v2">
             <div class="item-name">Scheduled Routines</div>
@@ -3701,7 +3745,9 @@
             <ul>
               <li><span class="tag">[M5]</span>Tray icon completo (badge + submenu)</li>
               <li><span class="tag">[new]</span>"New Issue" hotkey global</li>
-              <li><span class="tag">[PC]</span>Project icons + nested projects</li>
+              <li>
+                <span class="tag">[PC]</span>Project icons ✅ M9 PR-F.1 / nested projects deferido
+              </li>
               <li><span class="tag">[PC]</span>Skill source sync (só se feedback pedir)</li>
             </ul>
           </div>

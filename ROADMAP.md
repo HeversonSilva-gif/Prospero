@@ -20,7 +20,9 @@
 
 ### 🏢 Organização
 - Criar uma "empresa" virtual e adicionar projetos (pastas de código no seu computador)
-- Cada projeto tem cor e caminho próprios pra ficar fácil de identificar
+- Cada projeto tem cor, **ícone emoji** e caminho próprios pra ficar fácil de identificar
+- **Arquivar projetos** que terminaram (somem da lista por padrão, toggle "Mostrar arquivados" recupera)
+- **Exportar empresa inteira em JSON** (Settings → Exportar empresa) — backup com agentes/issues/threads/mensagens/inbox/custos/activity
 
 ### 👥 Time de agentes Claude
 - "Contratar" agentes Claude — cada um vira tipo um funcionário com persona, função e habilidades próprias
@@ -172,10 +174,10 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 | Métrica | Valor |
 |---|---|
 | Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6** (13/14 do v1) |
-| Em curso | _Nenhum_. M8.6 fechado em 2026-05-14 (PR-A backend + PR-B UI). Próximo: M9 Dashboard polish ou M10 VPS adapter. |
-| Testes | **711 passing** (570 main + 33 shared + 108 renderer), 0 lint/typecheck errors |
-| Commits no master | ~245 |
-| LoC (apps + packages) | ~18k TS/TSX |
+| Em curso | **M9 — 5.5/6 PRs**. PR-A/B/C/D/E/F.1 mergeados em 2026-05-14. Resta PR-F.2 (AGENTS.md + Reviews UX + companies.sh import). |
+| Testes | **793 passing** (627 main + 33 shared + 133 renderer), 0 lint/typecheck errors |
+| Commits no master | ~320 |
+| LoC (apps + packages) | ~21k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
 | Restante pra v1 | M9 · M10 (~10-18 dias). **M8.6 fechado em 2026-05-14.** |
@@ -194,14 +196,14 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 | **Activity stream** | ✅ Completo | Migration 0009 `activity_events` + recorder helper + dual-write em 17 call sites (PR-A). Rota `/activity` com 5 filtros + search + infinite scroll + real-time prepend via `ACTIVITY_NEW` + 700ms animação fade-down (PR-B). Sem `issue_events` migrado — dual-write paralelo. |
 | **Inbox** | ✅ Completo | Rota `/inbox` com filter pills (All/Approvals/Completed/Suggestions/Errors/Security). Approve/Reject inline. Auto-mark-read no resolve. Badge unread no sidebar. **M7.5 PR-B:** dual-format handler suporta legacy embedded payload + new `approval_id` pointer. |
 | **Issues** | ✅ Completo | MCP tools (create/update/assign/list/check_status/record_artifact) reais. Kanban /issues com 5 colunas + drag-drop. Modal de detail com comments + sub-tasks + tool history. **M7.5 PR-B:** identifier humano `<SLUG>-N` (ex: `BACKEND-7`) em todos call sites + artifacts accordion + soft warning ao marcar `done` sem artifacts. |
-| **Projects** | ✅ Completo | Rota /projects master/detail com folder picker + color picker. Auto-cria 'Default Workspace' migration do workspaceCwd legado. Allowlist per agent via chip toggle. |
+| **Projects** | ✅ Completo | Rota /projects master/detail com folder picker + color picker. Auto-cria 'Default Workspace' migration do workspaceCwd legado. Allowlist per agent via chip toggle. **M9 PR-F.1 (2026-05-14):** migration 0016 (`icon` + `archived_at`) + emoji picker (20 hardcoded) + archive/unarchive em ProjectDetail + show-archived toggle com greying. |
 | **Agents** | ✅ Completo | Sidebar com status colors + "+ Novo" button. `/agents/:id` chat unified + AgentHeader sticky (Pause/Resume/Assign Task/Runs/⋯ menu) + ConfigTab completo (role/model/reports-to/mode/always-on/schedule/skills editáveis/persona com expand). RunsModal + InstructionsFullScreenModal + TerminateConfirmModal + AgentNew form. Backend: M7.6 PR-A (9 IPCs + migration 0010 + activity dual-write). UI: M7.6 PR-B. |
 | **Org Chart** | ✅ Completo | Rota `/org` SVG handcrafted vertical tree + click drawer + drag-to-reassign + confirm modal + anti-cycle (backend + UI toast). |
 | **Skills** | ✅ Completo | Rota `/skills` master-detail (5 roles seedados, tools chips por skill, agentsUsing). Hard-gate via `--allowedTools`. Edit per-agent disponível no ConfigTab do agente (M7.6 PR-B). |
 | **Costs** | ✅ Completo | M8 PR-A backend (`56da29c`): migration 0011 `cost_events` + tracking por turn + pricing opus/sonnet/haiku + soft-stop daily/per-issue + 4 IPCs. M8 PR-B UI (`4c943fe`): rota `/costs` com 3 gráficos recharts (lazy) + filtros + tabela. Dashboard widget "Custos hoje". Settings Budgets. ModelDropdown $/$$/$$$. StatsTab real. |
 | **Goals + CEO Planning** | ✅ Completo | M8.5 PR-A backend (`1a7a48a`): migration 0012 `goals`/`goal_plans` + Zod schema com DAG validation + 7 MCP tools (`list_goals`/`get_goal`/`update_goal_status`/`record_subgoal`/`list_role_templates`/`get_cost_baseline`/`submit_goal_plan`) + CEO system prompt block + executor atomic com topo sort (hires + issues) + recovery scan + 7 IPCs. M8.5 PR-B UI (`69bde4e`): 3 rotas lazy `/goals`+`/goals/new`+`/goals/:id`, GoalsTree recursivo (`buildGoalTree` helper), GoalDetailHeader, GoalPlanReview com include/exclude checkboxes + estimates recomputadas + validação inline, 2 modals (RequestChanges + Reject), GoalPlanHistory expansível, 3 inbox kinds (`goal_proposed`/`executing`/`error`) com migration 0013 + write backend + render link no Inbox, goalsStore Zustand, i18n PT/EN ~150 keys com parity test. |
 | **Live Execution & Kanban Collab** | ✅ Completo | M8.6 PR-A backend: migration 0014 (`goals.execution_state_json` + `issues.depends_on_json`), executor dispatcher (atomic preserved + narrated branch), `executePlanNarrated` enqueues CEO turn, 4 MCP tools (`comment_on_issue`, `hire_agent_for_plan`, `create_issue_for_plan`, `finalize_goal_execution`), topological activation hook on `issues:update` status=done (waves de notifyAssignee), boot recovery scan (`scanStuckNarrated`), narrated-resume/rollback IPCs, Settings.executorMode atomic/narrated, 3 new activity actions. M8.6 PR-B UI (`d557055`): Settings radio block, GoalPlanReview narrated checkbox + token comparison hint, IssueCommentsList sender badges via SenderBadge component, IssueDetailModal real-time refresh on `issues:changed` comment-added, Inbox narrated_halted CTAs (Resume/Rollback), i18n PT/EN +30 keys + parity extended. |
-| **Settings** | ✅ Completo | OAuth/API key auth (M9 PR-D), language, theme, default model, executor mode, defaults pra novos agentes (mode + always_on — M9 PR-C), banner global OAuth expiry 30d (M9 PR-E). |
+| **Settings** | ✅ Completo | OAuth/API key auth (M9 PR-D), language, theme, default model, executor mode, defaults pra novos agentes (mode + always_on — M9 PR-C), banner global OAuth expiry 30d (M9 PR-E), **Export company JSON snapshot** (M9 PR-F.1). |
 
 ---
 
@@ -769,10 +771,10 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
   - [ ] Suporte a `<workspaceCwd>/AGENTS.md` no formato declarativo (front-matter YAML + lista de agents)
   - [ ] Settings UI: "Import from AGENTS.md" — parseia, lista preview, click "Hire all" cria os agents
   - [ ] Reverso: "Export AGENTS.md" gera o arquivo a partir dos agents da company atual
-- [ ] **companies.sh import/export** (Paperclip wishlist):
-  - [ ] Settings UI: botão "Export company..." — gera JSON com agents + threads + messages + inbox + projects + issues + costs_log da company selecionada
-  - [ ] Settings UI: botão "Import company..." — file picker, valida shape, INSERT cascade
-  - [ ] Caso de uso: backup, snapshot pré-experimento, share entre instalações
+- [x] **companies.sh export** ✅ **PR-F.1 mergeado 2026-05-14** (import deferido pra PR-F.2 por FK remap não-trivial):
+  - [x] Settings UI: botão "Exportar JSON" — gera JSON com agents/threads/messages/inbox/projects/issues/costs/activity/goals/approvals (schemaVersion 1, snapshot-only)
+  - [ ] Settings UI: botão "Import company..." → **PR-F.2** (FK remap em 10 tabelas)
+  - [x] Caso de uso: backup, snapshot pré-experimento, share entre instalações
 - [ ] **Agent Reviews UX polish** (Paperclip wishlist + spec §6.4) — aproveita `approvals` decoupled do M7.5:
   - [ ] Em `/issues/:id`: aba "Review" com diff/output do agent assignee, botões Approve+merge / Request changes / Reject
   - [ ] Diff side-by-side via `react-diff-viewer-continued` (battle-tested)
@@ -790,7 +792,7 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
   ---
   # texto humano-livre depois
   ```
-- [ ] **Project icons + status (archived vs active)** — pequeno, polish
+- [x] **Project icons + archived state** ✅ **PR-F.1 mergeado 2026-05-14** — emoji picker (20 emojis hardcoded) + archive/unarchive em ProjectDetail + show-archived toggle + greying visual
 - [ ] **Token expiry banner** (OAuth Max 30d antes) — já listado, mantém
 
 ---
@@ -1205,7 +1207,7 @@ Mapeamento de cada item da wishlist do [Paperclip](https://github.com/paperclipa
 | **Goals + CEO planning automático** | 🆕 Planejado | **M8.5 — evolução além do Paperclip.** Lá goals são declarativos; nosso CEO **propõe plano completo** (agents+issues+estimates+riscos) → user aprova em PR-review |
 | **Cloud / Sandbox agents** | 🟡 Parcial v1 + v2 | **M10 absorve parte**: VPS Docker remote adapter. v2 adiciona Cursor, Codex, e2b providers |
 | **Easy AGENTS.md configurations** | 🔄 M9 | Format próprio (YAML front-matter) com `gray-matter` parser |
-| **companies.sh — import/export** | 🔄 M9 | JSON único (não ZIP) — DB menor que Paperclip |
+| **companies.sh — import/export** | 🟡 Export ✅ PR-F.1 / Import 🔄 PR-F.2 | JSON único (não ZIP) — schemaVersion 1, snapshot-only |
 | **Agent Reviews and Approvals** | 🔄 M7.5 + M9 | M7.5: schema `approvals` decoupled. M9: PR-style diff side-by-side + inline comments |
 | **Work Products / Artifacts** | 🔄 M7.5 | Tabela `issue_artifacts` (kind: file_path, commit_sha, pr_url, snapshot) |
 | **Issue identifier humano** (`PRJ-123`) | 🔄 M7.5 | Migration 0004 — UX win trivial |
