@@ -60,6 +60,8 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
   companies: {
     list: () => ipcRenderer.invoke(IPC.COMPANY_LIST) as Promise<Company[]>,
     createDemo: () => ipcRenderer.invoke(IPC.COMPANY_CREATE_DEMO) as Promise<Company>,
+    create: (name: string) => ipcRenderer.invoke(IPC.COMPANY_CREATE, { name }) as Promise<Company>,
+    delete: (id: string) => ipcRenderer.invoke(IPC.COMPANY_DELETE, { id }) as Promise<{ ok: true }>,
   },
   agents: {
     list: (companyId: string) =>

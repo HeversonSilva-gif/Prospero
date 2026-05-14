@@ -56,6 +56,8 @@ declare global {
       companies: {
         list: () => Promise<Company[]>;
         createDemo: () => Promise<Company>;
+        create: (name: string) => Promise<Company>;
+        delete: (id: string) => Promise<{ ok: true }>;
       };
       agents: {
         list: (companyId: string) => Promise<Agent[]>;
