@@ -75,11 +75,41 @@ export const ActivityPayloads = {
   "project.updated": z.object({ patch: z.record(z.unknown()) }),
   "project.deleted": z.object({ name: z.string() }),
 
-  // Goal (4) — defined; not emitted in PR-A (M8.5 plugs in)
-  "goal.created": z.object({ title: z.string() }),
-  "goal.plan_proposed": z.object({ stepCount: z.number().int() }),
-  "goal.plan_approved": z.object({ approvedBy: z.enum(["user", "system"]) }),
-  "goal.status_changed": z.object({ from: z.string(), to: z.string() }),
+  // Goal (6) — M8.5 wires real payloads
+  "goal.created": z.object({
+    title: z.string(),
+    level: z.enum(["company", "team", "agent", "task"]),
+    parentGoalId: z.string().nullable().optional(),
+  }),
+  "goal.plan_proposed": z.object({
+    planId: stringId,
+    version: z.number().int().positive(),
+    agentsCount: z.number().int().nonnegative(),
+    issuesCount: z.number().int().nonnegative(),
+    estimatedCostCents: z.number().int().nullable().optional(),
+  }),
+  "goal.plan_approved": z.object({
+    planId: stringId,
+    version: z.number().int().positive(),
+    hiredAgentIds: z.array(stringId),
+    createdIssueIds: z.array(stringId),
+    approvedBy: z.enum(["user", "system"]),
+  }),
+  "goal.plan_rejected": z.object({
+    planId: stringId,
+    version: z.number().int().positive(),
+    reason: z.enum(["rejected", "superseded"]),
+    userFeedback: z.string().nullable().optional(),
+  }),
+  "goal.status_changed": z.object({
+    from: z.string(),
+    to: z.string(),
+    reason: z.string().nullable().optional(),
+  }),
+  "goal.subgoal_recorded": z.object({
+    childGoalId: stringId,
+    recordedByAgentId: stringId,
+  }),
 
   // Session / Cost (3)
   "session.started": z.object({}),
