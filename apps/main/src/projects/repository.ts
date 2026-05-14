@@ -11,6 +11,8 @@ type Row = {
   path: string;
   color: string;
   slug: string | null;
+  icon: string | null;
+  archived_at: number | null;
   created_at: number;
 };
 
@@ -21,6 +23,8 @@ const rowToProject = (r: Row): Project => ({
   path: r.path,
   color: r.color,
   slug: r.slug,
+  icon: r.icon,
+  archivedAt: r.archived_at,
   createdAt: r.created_at,
 });
 
@@ -44,6 +48,9 @@ export type ProjectsRepository = {
   listByCompany(companyId: string): Project[];
   update(id: string, patch: UpdateProjectInput): Project | null;
   setSlug(id: string, slug: string): void;
+  setIcon(id: string, icon: string | null): void;
+  archive(id: string): void;
+  unarchive(id: string): void;
   delete(id: string): void;
   checkPaths(companyId: string): Record<string, ProjectPathStatus>;
 };
@@ -63,6 +70,8 @@ export const createProjectsRepository = (
   );
   const del = db.prepare("DELETE FROM projects WHERE id = ?");
   const updateSlug = db.prepare("UPDATE projects SET slug = ? WHERE id = ?");
+  const updateIcon = db.prepare("UPDATE projects SET icon = ? WHERE id = ?");
+  const updateArchived = db.prepare("UPDATE projects SET archived_at = ? WHERE id = ?");
 
   return {
     create(input) {
@@ -120,6 +129,15 @@ export const createProjectsRepository = (
     setSlug(id, slug) {
       if (slug.trim() === "") throw new Error("slug must be non-empty");
       updateSlug.run(slug, id);
+    },
+    setIcon(id, icon) {
+      updateIcon.run(icon, id);
+    },
+    archive(id) {
+      updateArchived.run(Date.now(), id);
+    },
+    unarchive(id) {
+      updateArchived.run(null, id);
     },
     delete(id) {
       const current = byId.get(id) as Row | undefined;
