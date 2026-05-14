@@ -1150,6 +1150,11 @@
                 <strong>Exportar empresa inteira em JSON</strong> (Settings → Exportar empresa) —
                 backup com agentes/issues/threads/mensagens/inbox/custos/activity
               </li>
+              <li>
+                <strong>Importar empresa de JSON</strong> (Settings → Importar empresa) — restaura
+                como empresa nova com IDs frescos. Se já existir uma com o mesmo nome, vira
+                "(imported)"
+              </li>
             </ul>
           </div>
 
@@ -1500,12 +1505,12 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M9 PR-F.1 (projects polish + company export) mergeado em
-              2026-05-14. Emoji icon picker + archive toggle + show-archived filter + company:export
-              IPC (JSON schemaVersion 1). <strong>793 testes passing</strong> (+9 vs PR-E). 13/14
-              milestones; M9 em curso com PR-F.2 restante. Próximo:
-              <strong>M9 PR-F.2 — AGENTS.md import/export + Reviews UX + companies.sh import</strong
-              >.
+              <strong>Estágio:</strong> M9 PR-F.2.1 (companies.sh import) mergeado em 2026-05-14.
+              Zod schema + id remap + FK substitution + UPDATE pass pra reflexive FKs + Settings UI
+              com file picker + summary modal. <strong>800 testes passing</strong> (+7 vs PR-F.1).
+              13/14 milestones; M9 em curso com PR-F.2.2 (AGENTS.md) + PR-F.2.3 (Reviews UX)
+              restantes. Próximo:
+              <strong>M9 PR-F.2.2 — AGENTS.md import/export via gray-matter + zod</strong>.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -1530,35 +1535,35 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M9 PR-F.1 mergeado</div>
+            <div class="title">M9 PR-F.2.1 mergeado</div>
             <ul class="bullets">
               <li>
-                <span><strong>13 / 14</strong> milestones do v1 · M9 em curso (5.5/6 PRs)</span>
+                <span><strong>13 / 14</strong> milestones do v1 · M9 em curso (5.7/6 PRs)</span>
               </li>
               <li>
                 <span
-                  ><strong>793</strong> testes passing (627 main + 33 shared + 133 renderer) · 0
+                  ><strong>800</strong> testes passing (633 main + 33 shared + 134 renderer) · 0
                   lint/typecheck errors</span
                 >
               </li>
               <li>
                 <span
-                  ><strong>Projects polish + company export</strong> agora ✅ — emoji picker (20
-                  hardcoded) + archive/unarchive toggle + show-archived filter + Settings → Exportar
-                  JSON (schemaVersion 1, snapshot-only)</span
+                  ><strong>companies.sh import</strong> agora ✅ — zod schema + fresh IDs + FK remap
+                  em 10 tabelas + UPDATE pass pra reflexive FKs + Settings UI com file picker +
+                  summary modal de counts/warnings</span
                 >
               </li>
               <li>
-                <span>Master pós-M9 PR-F.1 · ~7 commits novos · ~250 LoC TS/TSX</span>
+                <span>Master pós-M9 PR-F.2.1 · ~6 commits novos · ~600 LoC TS/TSX</span>
               </li>
               <li>
                 <span
-                  >Próximo PR M9: F.2 (AGENTS.md import/export + Reviews UX + companies.sh import) —
-                  fecha M9</span
+                  >Próximos PRs M9: F.2.2 (AGENTS.md import/export via gray-matter) + F.2.3 (Reviews
+                  UX) — fecham M9</span
                 >
               </li>
             </ul>
-            <div class="eta">v1 quase fechado · 1 PR do M9 + M10 (VPS adapter) restantes</div>
+            <div class="eta">v1 quase fechado · 2 PRs do M9 + M10 (VPS adapter) restantes</div>
           </div>
 
           <div class="card" data-kind="next">
@@ -2803,7 +2808,7 @@
             <div class="ms-rail">
               <div class="num">M09</div>
               <div class="status-row">
-                <span class="status-dot"></span>in progress · 5.5/6 PRs merged
+                <span class="status-dot"></span>in progress · 5.7/6 PRs merged
               </div>
               <div class="meta">closing v1 features · 6 PRs</div>
             </div>
@@ -2814,8 +2819,8 @@
                 <strong
                   >PR-A (multi-empresa) + PR-D (api-key adapter) + PR-B (Dashboard widgets) + PR-C
                   (/agents + Settings defaults) + PR-E (error handling §7) + PR-F.1 (projects polish
-                  + company export) mergeados em 2026-05-14</strong
-                >. Próximo: PR-F.2 (AGENTS.md + Reviews UX + companies.sh import) — fecha M9.
+                  + company export) + PR-F.2.1 (companies.sh import) mergeados em 2026-05-14</strong
+                >. Próximos: PR-F.2.2 (AGENTS.md) + PR-F.2.3 (Reviews UX) — fecham M9.
               </p>
               <div class="feature-group">
                 <div class="group-name">
@@ -2907,15 +2912,46 @@
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">Pendente PR-F.2 (Paperclip wishlist)</div>
+                <div class="group-name">✅ companies.sh import (PR-F.2.1 · 2026-05-14)</div>
                 <ul class="feature-list">
                   <li>
-                    AGENTS.md format próprio (YAML front-matter + <code>gray-matter</code> parser)
+                    Zod schema <code>CompanyImportSchemaV1</code> em <code>apps/main</code>
+                    (não shared) — validates schemaVersion + company shape, rows ficam como
+                    <code>z.record(z.unknown())</code> pra tolerar schema drift
                   </li>
-                  <li>companies.sh <strong>import</strong> JSON (FK remap em 10 tabelas)</li>
                   <li>
-                    Agent Reviews UX (<code>/issues/:id</code> aba "Review" com diff side-by-side
-                    via <code>react-diff-viewer-continued</code> + inline comments)
+                    Pre-pass coleta old IDs → gera fresh UUIDs por entidade. Insere topologicamente
+                    com FK substitution via <code>idMap</code> por tabela. Reflexive FKs
+                    (<code>reports_to</code>, <code>parent_id</code>, <code>parent_goal_id</code>,
+                    <code>goal_id</code>) viram UPDATE pass no final
+                  </li>
+                  <li>
+                    Per-row intersection com <code>PRAGMA table_info</code> defende contra schema
+                    drift (cols antigos descartados silenciosamente). FK OFF dentro da transaction
+                    pra orphans virarem NULL
+                  </li>
+                  <li>
+                    Settings UI ganha "Importar empresa" — file picker JSON, summary expansível com
+                    counts + warnings, reload de <code>useCompaniesStore</code> automático
+                  </li>
+                  <li>
+                    Conflito de nome rename pra <code>(imported)</code> via
+                    <code>uniqueCompanyName</code>
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Pendente PR-F.2.2 + PR-F.2.3 (Paperclip wishlist)</div>
+                <ul class="feature-list">
+                  <li>
+                    PR-F.2.2: AGENTS.md format próprio (YAML front-matter +
+                    <code>gray-matter</code> parser + zod schema + "Hire all" modal com conflict
+                    resolution)
+                  </li>
+                  <li>
+                    PR-F.2.3: Agent Reviews UX (<code>/issues/:id</code> aba "Review" com diff
+                    side-by-side via <code>react-diff-viewer-continued</code> + inline comments via
+                    <code>approval_comments</code>)
                   </li>
                 </ul>
               </div>
@@ -3445,11 +3481,11 @@
             </div>
             <div class="where">M9 · format próprio YAML front-matter</div>
           </div>
-          <div class="wish-row" data-wish="partial">
+          <div class="wish-row" data-wish="done">
             <div class="item-name">companies.sh import/export</div>
             <div>
               <span class="wish-status"
-                ><span class="sq"></span>export ✅ PR-F.1 / import PR-F.2</span
+                ><span class="sq"></span>✅ PR-F.1 export + PR-F.2.1 import</span
               >
             </div>
             <div class="where">M9 · JSON único schemaVersion 1 (não ZIP)</div>
