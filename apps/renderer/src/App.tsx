@@ -24,6 +24,9 @@ import { TitleBar } from "./components/TitleBar.js";
 
 const Activity = lazy(() => import("./routes/Activity.js").then((m) => ({ default: m.Activity })));
 const Costs = lazy(() => import("./routes/Costs.js"));
+const Goals = lazy(() => import("./routes/Goals.js"));
+const GoalNew = lazy(() => import("./routes/GoalNew.js"));
+const GoalDetail = lazy(() => import("./routes/GoalDetail.js"));
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
   idle: "bg-ink-soft",
@@ -79,6 +82,14 @@ const Sidebar = () => {
           }
         >
           {t("nav.issues")}
+        </NavLink>
+        <NavLink
+          to="/goals"
+          className={({ isActive }) =>
+            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
+          }
+        >
+          {t("nav.goals")}
         </NavLink>
         <NavLink
           to="/org"
@@ -391,6 +402,48 @@ export const App = () => {
                 <Layout>
                   <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
                     <Costs />
+                  </Suspense>
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/goals"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                    <Goals />
+                  </Suspense>
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/goals/new"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                    <GoalNew />
+                  </Suspense>
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/goals/:id"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                    <GoalDetail />
                   </Suspense>
                 </Layout>
               ) : (
