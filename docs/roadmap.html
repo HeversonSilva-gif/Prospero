@@ -1708,14 +1708,15 @@
           </div>
           <div class="module" data-status="none">
             <div class="name">Goals + CEO Planning</div>
-            <div class="status-line"><span class="sq"></span>não iniciado</div>
+            <div class="status-line"><span class="sq"></span>completo</div>
             <div class="note">
-              Sem tabela <code>goals</code>/<code>goal_plans</code>. Feature
-              <strong>além do Paperclip</strong> (CEO-planner automático). <strong>M8.5</strong>
-              entrega atomic foundation (planning + approve UI + executor 1-trans);
-              <strong>M8.6</strong> adiciona execução narrada (CEO cria issues 1-by-1 + comentários)
-              + sequenciamento por dependência + kanban como surface colaborativa (CEO/agent/user
-              comentam juntos).
+              Feature <strong>além do Paperclip</strong> (CEO-planner automático).
+              <strong>M8.5</strong> (mergeado 2026-05-14): atomic foundation — tabela
+              <code>goals</code>/<code>goal_plans</code>, planning UI + PR-review approve, executor
+              1-trans, 3 inbox kinds, i18n PT/EN. <strong>M8.6</strong> (mergeado 2026-05-14):
+              execução narrada opt-in (CEO cria issues 1-by-1 + comentários), sequenciamento
+              topológico por dependência, kanban como surface colaborativa (CEO/agent/user comentam
+              juntos), recovery automático se loop crashar.
             </div>
           </div>
           <div class="module" data-status="complete">
@@ -3109,15 +3110,16 @@
               CEO propõe plano completo (agents+issues+estimates+riscos) → user aprova em PR-review
             </div>
           </div>
-          <div class="wish-row" data-wish="planned">
+          <div class="wish-row" data-wish="done">
             <div class="item-name">Execução narrada + kanban vivo</div>
             <div>
-              <span class="wish-status"><span class="sq"></span>planned</span>
+              <span class="wish-status"><span class="sq"></span>done</span>
             </div>
             <div class="where">
-              <strong>M8.6 — camada viva sobre M8.5.</strong> CEO cria issues uma a uma com
-              comentários de contexto, acorda agentes por ordem de dependência, e conversa nas
-              issues do kanban com user + agentes. Atomic mode (M8.5) permanece como fallback.
+              <strong>M8.6 — mergeado 2026-05-14.</strong> CEO cria issues uma a uma com comentários
+              de contexto, acorda agentes por ordem de dependência (topological wake), e conversa
+              nas issues do kanban com user + agentes. Default = atomic (M8.5), narrated opt-in via
+              Settings/GoalPlanReview toggle. Boot recovery se loop crashar.
             </div>
           </div>
           <div class="wish-row" data-wish="planned">

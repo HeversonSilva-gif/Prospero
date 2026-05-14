@@ -68,6 +68,24 @@
 - **ModelDropdown** com chips $/$$/$$$ pra tier relativo
 - **StatsTab do agente** mostra tokens 7d (entrada/saída/cache) + custo total
 
+### 🎯 Goals & CEO Planning (M8.5 completo — 2026-05-14)
+- Criar um **objetivo** (título, nível, prazo, critérios) e pedir "CEO planejar"
+- CEO monta um **plano estruturado**: agentes a contratar + issues a criar + dependências + estimativa de tokens/custo/duração + riscos
+- Revisar num modo **PR-review**: checkbox por agente e por issue pra incluir/excluir antes de aprovar
+- **Estimativas recalculam em tempo real** conforme você desmarca itens (% do budget diário, tokens totais)
+- 3 botões: **Aprovar & executar** (cria agentes + issues atomicamente), **Pedir mudanças** (free-text feedback → CEO refaz v2), ou **Rejeitar** (cancela o objetivo)
+- **Inbox notifica** em cada etapa: plano proposto, executando, falhou (com link direto pro objetivo)
+- **Histórico completo** de versões superseded/rejeitadas com feedback do user
+- Tree view recursiva de objetivos com badges de status + level
+
+### 🎬 Execução narrada — Kanban vivo (M8.6 completo — 2026-05-14)
+- Settings → escolher **Modo Atômico** (default, rápido e silencioso) ou **Narrado** (CEO comenta cada passo)
+- No GoalPlanReview, checkbox **"Aprovar em modo narrado"** override per-goal — mostra comparação de tokens (base vs ~2.5× narrado)
+- Modo narrado: CEO entra num **loop streamado** e emite MCP calls (hire → create → comment) uma a uma — você vê o kanban "ganhando vida" em tempo real
+- Comentários do CEO no modo narrado aparecem inline no IssueDetailModal com **badge** diferenciando CEO / agente / você (real-time)
+- **Topological wake-up**: quando você marca uma issue como done, issues que dependiam dela acordam automaticamente em wave
+- **Boot recovery**: se o app crasha mid-loop, próximo restart cria um item no Inbox com botões **"Retomar narrado"** ou **"Cancelar e reverter"**
+
 ### 🔒 Segurança
 - Token Claude Max **criptografado at-rest** com DPAPI (Windows)
 - Cada agente só consegue mexer nos **projetos que você liberou** explicitamente
@@ -92,8 +110,6 @@
 
 ### 🚧 O que ainda NÃO funciona (próximas releases)
 
-- 🎯 **Goals com CEO planejando automaticamente** — você cria objetivo, CEO monta plano completo (agentes a contratar + issues + estimates), você aprova num modo PR-review → M8.5 (próximo)
-- 🎬 **Kanban "vivo" com execução narrada** — depois de aprovar o plano, CEO cria as issues uma a uma com comentários de contexto, acorda agentes na ordem das dependências (não tudo de uma vez), e conversa nas issues do kanban junto com você e os agentes → M8.6 (depois do M8.5)
 - 📈 **Dashboard inicial com widgets dinâmicos** — Agentes ativos / Issues em andamento / Inbox / Custos hoje → M9
 - 🏢 **Trocar entre empresas via dropdown da sidebar** → M9
 - ☁️ **Rodar agentes numa VPS remota (Docker)** — escolha per-agent: local (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
@@ -124,7 +140,7 @@
 ### ▸ Horizonte (v1 = M10 fechado · V2 começa em M11)
 
 ```
-M8 ✅ ──▶ M8.5 Goals ──▶ M8.6 Live Exec ──▶ M9 Dashboard ──▶ M10 VPS adapter ──▶ v1 ✅
+M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashboard ──▶ M10 VPS adapter ──▶ v1 ✅
             ~9-11d         ~6-8d              ~6-8d            ~4-6d
                                                                     │
                                                                     ▼
@@ -184,6 +200,7 @@ Status por **módulo** funcional do produto. Cada módulo pode estar em vários 
 | **Skills** | ✅ Completo | Rota `/skills` master-detail (5 roles seedados, tools chips por skill, agentsUsing). Hard-gate via `--allowedTools`. Edit per-agent disponível no ConfigTab do agente (M7.6 PR-B). |
 | **Costs** | ✅ Completo | M8 PR-A backend (`56da29c`): migration 0011 `cost_events` + tracking por turn + pricing opus/sonnet/haiku + soft-stop daily/per-issue + 4 IPCs. M8 PR-B UI (`4c943fe`): rota `/costs` com 3 gráficos recharts (lazy) + filtros + tabela. Dashboard widget "Custos hoje". Settings Budgets. ModelDropdown $/$$/$$$. StatsTab real. |
 | **Goals + CEO Planning** | ✅ Completo | M8.5 PR-A backend (`1a7a48a`): migration 0012 `goals`/`goal_plans` + Zod schema com DAG validation + 7 MCP tools (`list_goals`/`get_goal`/`update_goal_status`/`record_subgoal`/`list_role_templates`/`get_cost_baseline`/`submit_goal_plan`) + CEO system prompt block + executor atomic com topo sort (hires + issues) + recovery scan + 7 IPCs. M8.5 PR-B UI (`69bde4e`): 3 rotas lazy `/goals`+`/goals/new`+`/goals/:id`, GoalsTree recursivo (`buildGoalTree` helper), GoalDetailHeader, GoalPlanReview com include/exclude checkboxes + estimates recomputadas + validação inline, 2 modals (RequestChanges + Reject), GoalPlanHistory expansível, 3 inbox kinds (`goal_proposed`/`executing`/`error`) com migration 0013 + write backend + render link no Inbox, goalsStore Zustand, i18n PT/EN ~150 keys com parity test. |
+| **Live Execution & Kanban Collab** | ✅ Completo | M8.6 PR-A backend: migration 0014 (`goals.execution_state_json` + `issues.depends_on_json`), executor dispatcher (atomic preserved + narrated branch), `executePlanNarrated` enqueues CEO turn, 4 MCP tools (`comment_on_issue`, `hire_agent_for_plan`, `create_issue_for_plan`, `finalize_goal_execution`), topological activation hook on `issues:update` status=done (waves de notifyAssignee), boot recovery scan (`scanStuckNarrated`), narrated-resume/rollback IPCs, Settings.executorMode atomic/narrated, 3 new activity actions. M8.6 PR-B UI (`d557055`): Settings radio block, GoalPlanReview narrated checkbox + token comparison hint, IssueCommentsList sender badges via SenderBadge component, IssueDetailModal real-time refresh on `issues:changed` comment-added, Inbox narrated_halted CTAs (Resume/Rollback), i18n PT/EN +30 keys + parity extended. |
 | **Settings** | ✅ Completo | OAuth token (manual + auto-detect M2), language, theme, default model. Defaults de mode/always_on **NÃO** UI ainda — M9. |
 
 ---
@@ -668,44 +685,39 @@ M11 (Agent Memory & Learning Loop — inspirado Hermes) ─── v1.1
 
 ---
 
-### 🆕 M8.6 — Live Execution & Kanban Collab — **camada viva sobre M8.5**
+### ✅ M8.6 — Live Execution & Kanban Collab — MERGEADO 2026-05-14
 
-**Origem:** decisão de brainstorming 2026-05-12. M8.5 entrega Goals + planning + executor **atômico** (1 trans, hire+create silencioso). M8.6 troca a camada de execução por **modo narrated + sequenced** e transforma o kanban em surface colaborativa real.
+**Camada viva sobre M8.5.** PR-A backend + PR-B UI fechados em master no mesmo dia. **Default = atomic, narrated opt-in** (decisão revisada do brainstorming: tokens não podem inflar 2-3×; narrated é capacidade adicional, não mudança default).
 
-**Por que separado de M8.5:** atomic-first ship M8.5 testável end-to-end (~10 dias), valida UX de planning antes de investir em loop LLM. Narrated tem custo LLM N× maior por approve (cada hire/create vira turn) — feature flag opcional pra modo atômico vs narrated. Cada peça M8.6 é independente (comment_on_issue isolado, executor refactor isolado, topo sort isolado). Não-bloqueante pra M9.
+**O que entregou:**
+- ✅ **Executor dispatcher** — `executePlan` em `apps/main/src/goals/executor.ts` routa entre atomic (M8.5 preservado, renomeado `executePlanAtomic`) e narrated (novo `executePlanNarrated` em `executor-narrated.ts`). Settings `executorMode` + override per-approve via `mode` param do IPC.
+- ✅ **Narrated loop** — `executePlanNarrated` transiciona goal pra `approved`, persiste `goals.execution_state_json`, enqueue CEO turn com `[GOAL_EXECUTE_REQUEST]` (via novo `orchestrator.enqueueExecuteRequest`). CEO loopa 4 MCP tools até `finalize_goal_execution`.
+- ✅ **4 MCP tools novos:**
+  - `comment_on_issue` (qualquer agente, sanitizer M5, em `tools-issues.ts` novo)
+  - `hire_agent_for_plan({planIndex})` idempotente, valida reportsTo chain
+  - `create_issue_for_plan({planIndex})` resolve assignee + deps via state, popula `goal_id` + `depends_on_json`
+  - `finalize_goal_execution({goalId, abort?})` valida complete OR rollback transacional (terminate agents + delete issues)
+- ✅ **Topological sequenced activation** — hook em `issues-handlers.ts` `ISSUES_UPDATE` quando `status→done` → `computeUnlockedDependents` via `findDependentsOf` (LIKE + JSON parse) → notifyAssignee waves + activity `issue.unlocked_by_deps`. Plan-driven issues (com `depends_on_json` non-null) respeitam waves; user-created continuam wake imediato.
+- ✅ **`IssueCommentsList` sender badges** — CEO (brand-bg), agente (surface-soft com nome), user (brand). Real-time via `IssueDetailModal` subscrevendo `issues:changed` `comment-added`.
+- ✅ **Settings radio + GoalPlanReview narrated toggle** — checkbox per-goal com hint de tokens base vs ~2.5× narrado.
+- ✅ **Boot recovery** — `scanStuckNarrated` detecta `goals.status='approved' AND execution_state_json IS NOT NULL` → inbox `goal_error` com `step='narrated_halted'`. UI mostra 2 botões "Retomar narrado" / "Cancelar e reverter".
+- ✅ **Activity events novos:** `issue.commented`, `issue.unlocked_by_deps`, `goal.narrated_step`. Activity render usa pattern `activity.action.<action>` — sem mudança no `activityRender.ts`, só i18n.
+- ✅ **i18n PT/EN +30 keys** com parity test extendido (4/4).
 
-**O que entrega:**
-- [ ] **Executor narrated mode** — refactor do `executePlan` (M8.5) pra opcional modo "loop": ao invés de trans atômica, CEO entra num turn dedicado e chama MCP `hire_agent` → `create_issue` → `comment_on_issue(rationale)` em loop, streamando cada step. Atomic mode permanece como fallback rápido.
-- [ ] **`comment_on_issue` MCP tool** — CEO (e qualquer agente assinado na issue) pode comentar. Usa `issue_comments` table existente + activity event `issue.commented` novo. Sanitizer §8.3 aplicado.
-- [ ] **Topological sequenced activation** — ao criar issues com `depends_on`, em vez de `notifyAssignee` acordar **todos** imediatamente (comportamento M5+M8.5), acorda só os assignees de issues **sem deps pendentes**. Conforme issue vira `done`, dependentes ficam unlocked → próximo wave de wake-ups.
-- [ ] **Kanban card detail expandido** — issue detail modal mostra thread completo com sender diferenciado (badges CEO/agent/user, cor por papel). Real-time updates via IPC broadcasts existentes (M3+M5).
-- [ ] **Activity events novos:** `issue.commented`, `issue.unlocked_by_deps`, `goal.narrated_step` (sub-events do `goal.plan_approved`)
-- [ ] **i18n PT/EN** + 1 inbox kind novo `issue_comment_mention` (se @-mention v1 — defer pra v2 caso seja escopo grande)
+**Pré-reqs cumpridos:**
+- ✅ M8.5 (executor atomic + planning UI), ✅ M6 (issue_comments), ✅ M5 (notifyAssignee + sanitizer), ✅ M7.7 (activity recorder)
 
-**Decisão arquitetural:**
-- **Feature flag `executor.mode = 'atomic' | 'narrated'`** em settings (default `'narrated'` quando M8.6 ship). User pode escolher atomic pra goals pequenos onde narrativa não agrega.
-- **Sem reescrever o `issue_comments` schema** — table já existe (M6). Adiciona MCP tool + activity events.
-- **`notifyAssignee` (issues-handlers.ts:43) ganha modo `deferred`** que registra mas não enfileira até deps clear.
+**Não-regressão:**
+- ✅ Atomic mode (default) inalterado — `executePlanAtomic` é o código M8.5 só renomeado
+- ✅ Issue assignment manual (não-goal): `depends_on_json` NULL → wake imediato preservado
+- ✅ CommentComposer UI continua funcionando como user-side
+- ✅ M8.5 inbox kinds (`goal_proposed`/`executing`/`error`) reusados (sem novos)
 
-#### Pré-reqs
-- ✅ M8.5 (executor atomic + planning UI fundação)
-- ✅ M6 (issue_comments table)
-- ✅ M5 (notifyAssignee wake-up mechanism — refactorar pra modo deferred)
-- ✅ M7.7 (activity stream — adicionar 3 actions)
+**Spec:** [docs/superpowers/specs/2026-05-14-m8.6-live-execution-design.md](docs/superpowers/specs/2026-05-14-m8.6-live-execution-design.md)
+**Plans:** [pr-a backend](docs/superpowers/plans/2026-05-14-m8.6-pr-a-narrated-backend.md) · [pr-b ui](docs/superpowers/plans/2026-05-14-m8.6-pr-b-narrated-ui.md)
+**Memory:** [project_m8_6_lessons](../d--Projetos-pessoais-DashboardAgent/memory/project_m8_6_lessons.md)
 
-#### Não-regressão
-- [ ] M8.5 atomic mode continua funcionando (sem mudança de comportamento default em quem não ativou narrated flag)
-- [ ] Issue wake-up de assignment manual (não-goal) continua imediato — só plan-driven issues respeitam deps sequencing
-- [ ] CommentComposer UI existente segue funcionando pro user
-
-**Custos:** 6-8 dias estimados.
-- Executor refactor pra modo narrated: 2 dias
-- `comment_on_issue` MCP tool + activity event: 1 dia
-- Topological deps_unlocked watcher: 1.5 dias
-- Kanban card detail UI (sender badges, real-time): 1.5 dias
-- Tests + i18n + polish: 1-2 dias
-
-**Spec de implementação:** _a escrever após M8.5 fechar_ (brainstorm dedicado seguindo padrão M8.5 → spec → 2 PRs).
+**Pendente:** smoke manual (user vai rodar depois de V2 estar pronta).
 
 ---
 
