@@ -10,6 +10,8 @@ const ipcMock = {
   approvePlan: vi.fn(),
   requestChanges: vi.fn(),
   rejectPlan: vi.fn(),
+  narratedResume: vi.fn(),
+  narratedRollback: vi.fn(),
 };
 
 const mkGoal = (overrides: Partial<Goal> = {}): Goal => ({
@@ -179,5 +181,35 @@ describe("useGoalsStore", () => {
     useGoalsStore.getState().remove("g_x");
     expect(useGoalsStore.getState().goals).toHaveLength(0);
     expect(useGoalsStore.getState().detail).toBeNull();
+  });
+
+  it("approvePlan forwards mode='narrated' when provided", async () => {
+    ipcMock.approvePlan.mockResolvedValue({
+      ok: true,
+      hiredAgentIds: [],
+      createdIssueIds: [],
+    });
+    await useGoalsStore.getState().approvePlan("p_1", { mode: "narrated" });
+    expect(ipcMock.approvePlan).toHaveBeenCalledWith({ planId: "p_1", mode: "narrated" });
+  });
+
+  it("narratedResume forwards goalId and refetches detail when shown", async () => {
+    const detail: GoalWithPlan = {
+      ...mkGoal({ id: "g_n" }),
+      currentPlan: null,
+      history: [],
+    };
+    useGoalsStore.setState({ detail });
+    ipcMock.narratedResume.mockResolvedValue({ ok: true });
+    ipcMock.get.mockResolvedValue({ ...detail, status: "approved" });
+    await useGoalsStore.getState().narratedResume("g_n");
+    expect(ipcMock.narratedResume).toHaveBeenCalledWith({ goalId: "g_n" });
+    expect(ipcMock.get).toHaveBeenCalledWith({ id: "g_n" });
+  });
+
+  it("narratedRollback forwards goalId", async () => {
+    ipcMock.narratedRollback.mockResolvedValue({ aborted: true });
+    await useGoalsStore.getState().narratedRollback("g_x");
+    expect(ipcMock.narratedRollback).toHaveBeenCalledWith({ goalId: "g_x" });
   });
 });

@@ -19,10 +19,16 @@ type State = {
   requestPlan: (goalId: string) => Promise<void>;
   approvePlan: (
     planId: string,
-    opts?: { includeAgentIndexes?: number[]; includeIssueIndexes?: number[] },
+    opts?: {
+      includeAgentIndexes?: number[];
+      includeIssueIndexes?: number[];
+      mode?: "atomic" | "narrated";
+    },
   ) => Promise<ExecutePlanResult>;
   requestChanges: (planId: string, feedback: string) => Promise<void>;
   rejectPlan: (planId: string, reason?: string) => Promise<void>;
+  narratedResume: (goalId: string) => Promise<void>;
+  narratedRollback: (goalId: string) => Promise<void>;
   upsert: (goal: Goal) => void;
   remove: (id: string) => void;
 };
@@ -65,11 +71,13 @@ export const useGoalsStore = create<State>((set, get) => ({
       planId: string;
       includeAgentIndexes?: number[];
       includeIssueIndexes?: number[];
+      mode?: "atomic" | "narrated";
     } = { planId };
     if (opts?.includeAgentIndexes !== undefined)
       args.includeAgentIndexes = opts.includeAgentIndexes;
     if (opts?.includeIssueIndexes !== undefined)
       args.includeIssueIndexes = opts.includeIssueIndexes;
+    if (opts?.mode !== undefined) args.mode = opts.mode;
     const result = await window.dashboardAgent.goals.approvePlan(args);
     const detail = get().detail;
     if (result.ok && detail?.currentPlan?.id === planId) {
@@ -94,6 +102,16 @@ export const useGoalsStore = create<State>((set, get) => ({
     if (detail?.currentPlan?.id === planId) {
       await get().loadDetail(detail.id);
     }
+  },
+
+  narratedResume: async (goalId) => {
+    await window.dashboardAgent.goals.narratedResume({ goalId });
+    if (get().detail?.id === goalId) await get().loadDetail(goalId);
+  },
+
+  narratedRollback: async (goalId) => {
+    await window.dashboardAgent.goals.narratedRollback({ goalId });
+    if (get().detail?.id === goalId) await get().loadDetail(goalId);
   },
 
   upsert: (goal) =>
