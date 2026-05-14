@@ -9,6 +9,7 @@ import type {
 } from "@dashboard-agent/shared";
 import { useGoalsStore } from "../stores/goals.js";
 import { useBudgetsStore } from "../stores/budgets.js";
+import { useSettingsStore } from "../stores/settings.js";
 import {
   computeFilteredEstimates,
   validatePlanSelection,
@@ -182,6 +183,7 @@ export const GoalPlanReview: FC<{ plan: GoalPlan; goal: Goal }> = ({ plan, goal 
   const budgets = useBudgetsStore((s) => s.budgets);
   const loadBudgets = useBudgetsStore((s) => s.load);
   const budgetsLoaded = useBudgetsStore((s) => s.loaded);
+  const executorMode = useSettingsStore((s) => s.settings.executorMode);
 
   useEffect(() => {
     if (!budgetsLoaded) {
@@ -198,6 +200,11 @@ export const GoalPlanReview: FC<{ plan: GoalPlan; goal: Goal }> = ({ plan, goal 
   const [showChanges, setShowChanges] = useState(false);
   const [showReject, setShowReject] = useState(false);
   const [risksExpanded, setRisksExpanded] = useState(false);
+  const [narratedOverride, setNarratedOverride] = useState(executorMode === "narrated");
+
+  useEffect(() => {
+    setNarratedOverride(executorMode === "narrated");
+  }, [executorMode]);
 
   const agentsByIndex = useMemo(
     () => new Map(plan.agentsToHire.map((a) => [a.index, a])),
@@ -236,6 +243,7 @@ export const GoalPlanReview: FC<{ plan: GoalPlan; goal: Goal }> = ({ plan, goal 
       const opts: {
         includeAgentIndexes?: number[];
         includeIssueIndexes?: number[];
+        mode?: "atomic" | "narrated";
       } = {};
       const agentsAll = plan.agentsToHire.length;
       const issuesAll = plan.issuesToCreate.length;
@@ -245,6 +253,7 @@ export const GoalPlanReview: FC<{ plan: GoalPlan; goal: Goal }> = ({ plan, goal 
       if (included.includedIssueIndexes.size < issuesAll) {
         opts.includeIssueIndexes = [...included.includedIssueIndexes];
       }
+      opts.mode = narratedOverride ? "narrated" : "atomic";
       const result = await approvePlan(plan.id, opts);
       if (!result.ok) {
         setError(`${result.failedAtStep}: ${result.error}`);
@@ -390,6 +399,29 @@ export const GoalPlanReview: FC<{ plan: GoalPlan; goal: Goal }> = ({ plan, goal 
             ))}
           </ul>
         </section>
+      )}
+
+      {editable && (
+        <div className="px-4 pt-3 pb-1 text-xs text-ink-muted flex items-center gap-2 flex-wrap">
+          <input
+            type="checkbox"
+            id="narrated-toggle"
+            checked={narratedOverride}
+            onChange={(e) => setNarratedOverride(e.target.checked)}
+            className="w-3.5 h-3.5"
+          />
+          <label htmlFor="narrated-toggle" className="cursor-pointer">
+            {t("goals.plan.actions.narratedToggle")}
+          </label>
+          {narratedOverride && estimates.totalTokens > 0 && (
+            <span className="ml-2 text-ink-soft">
+              {t("goals.plan.actions.narratedTokenHint", {
+                base: formatTokens(estimates.totalTokens),
+                narrated: formatTokens(Math.round(estimates.totalTokens * 2.5)),
+              })}
+            </span>
+          )}
+        </div>
       )}
 
       {editable && (
