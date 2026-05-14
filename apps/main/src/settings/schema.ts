@@ -12,6 +12,7 @@ export const AppSettingsSchema = z.object({
   workspaceCwd: z.string().nullable().default(null),
   defaultModelForNewAgents: z.string().regex(MODEL_ID_REGEX).default(DEFAULT_CLAUDE_MODEL),
   executorMode: z.enum(["atomic", "narrated"]).default("atomic"),
+  activeCompanyId: z.string().nullable().default(null),
 });
 
 const PartialAppSettingsSchema = AppSettingsSchema.partial();
@@ -28,6 +29,9 @@ export const parseSettings = (raw: unknown): AppSettings => {
   }
   if (result.data.executorMode !== undefined) {
     merged.executorMode = result.data.executorMode;
+  }
+  if (result.data.activeCompanyId !== undefined) {
+    merged.activeCompanyId = result.data.activeCompanyId;
   }
   return merged;
 };

@@ -25,6 +25,7 @@ export type AppSettings = {
   workspaceCwd: string | null;
   defaultModelForNewAgents: string;
   executorMode: ExecutorMode;
+  activeCompanyId: string | null;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -33,4 +34,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   workspaceCwd: null,
   defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
   executorMode: "atomic",
+  activeCompanyId: null,
 };

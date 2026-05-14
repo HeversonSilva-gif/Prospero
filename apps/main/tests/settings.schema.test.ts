@@ -24,6 +24,7 @@ describe("settings schema", () => {
       workspaceCwd: null,
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
       executorMode: "atomic",
+      activeCompanyId: null,
     });
   });
 
@@ -34,6 +35,7 @@ describe("settings schema", () => {
       workspaceCwd: null,
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
       executorMode: "atomic",
+      activeCompanyId: null,
     });
   });
 
@@ -44,6 +46,7 @@ describe("settings schema", () => {
       workspaceCwd: null,
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
       executorMode: "atomic",
+      activeCompanyId: null,
     });
   });
 

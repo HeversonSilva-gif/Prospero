@@ -19,6 +19,7 @@ describe("settings repository", () => {
       workspaceCwd: null,
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
       executorMode: "atomic",
+      activeCompanyId: null,
     });
   });
 
@@ -31,6 +32,7 @@ describe("settings repository", () => {
       workspaceCwd: null,
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
       executorMode: "atomic",
+      activeCompanyId: null,
     });
   });
 
@@ -43,6 +45,7 @@ describe("settings repository", () => {
       workspaceCwd: null,
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
       executorMode: "atomic",
+      activeCompanyId: null,
     });
   });
 

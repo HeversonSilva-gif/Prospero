@@ -23,6 +23,7 @@ export const useSettingsStore = create<State>((set) => ({
     workspaceCwd: null,
     defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
     executorMode: "atomic",
+    activeCompanyId: null,
   },
   loaded: false,
 
