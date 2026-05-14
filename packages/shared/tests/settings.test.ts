@@ -29,6 +29,8 @@ describe("settings types and channels", () => {
       executorMode: "atomic",
       activeCompanyId: null,
       authMode: "oauth",
+      defaultAgentMode: "supervised",
+      defaultAlwaysOn: false,
     };
     expect(s.language).toBe("pt-BR");
     expect(s.theme).toBe("light");

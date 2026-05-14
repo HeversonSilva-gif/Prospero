@@ -31,3 +31,27 @@ describe("parseSettings authMode", () => {
     expect(parseSettings({ authMode: "bogus" }).authMode).toBe("oauth");
   });
 });
+
+describe("parseSettings defaultAgentMode", () => {
+  it("defaults to supervised when absent", () => {
+    expect(parseSettings({}).defaultAgentMode).toBe("supervised");
+  });
+
+  it("preserves 'auto' value", () => {
+    expect(parseSettings({ defaultAgentMode: "auto" }).defaultAgentMode).toBe("auto");
+  });
+
+  it("rejects bogus mode → falls back to supervised", () => {
+    expect(parseSettings({ defaultAgentMode: "bogus" }).defaultAgentMode).toBe("supervised");
+  });
+});
+
+describe("parseSettings defaultAlwaysOn", () => {
+  it("defaults to false when absent", () => {
+    expect(parseSettings({}).defaultAlwaysOn).toBe(false);
+  });
+
+  it("preserves true", () => {
+    expect(parseSettings({ defaultAlwaysOn: true }).defaultAlwaysOn).toBe(true);
+  });
+});

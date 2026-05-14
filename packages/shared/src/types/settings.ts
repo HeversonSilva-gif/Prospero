@@ -1,3 +1,5 @@
+import type { AgentMode } from "./agent.js";
+
 export type Language = "pt-BR" | "en-US";
 export type Theme = "light" | "dark";
 
@@ -29,6 +31,8 @@ export type AppSettings = {
   executorMode: ExecutorMode;
   activeCompanyId: string | null;
   authMode: AuthMode;
+  defaultAgentMode: AgentMode;
+  defaultAlwaysOn: boolean;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -39,4 +43,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   executorMode: "atomic",
   activeCompanyId: null,
   authMode: "oauth",
+  defaultAgentMode: "supervised",
+  defaultAlwaysOn: false,
 };

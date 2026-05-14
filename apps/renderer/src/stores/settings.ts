@@ -26,6 +26,8 @@ export const useSettingsStore = create<State>((set) => ({
     executorMode: "atomic",
     activeCompanyId: null,
     authMode: "oauth",
+    defaultAgentMode: "supervised",
+    defaultAlwaysOn: false,
   },
   loaded: false,
 

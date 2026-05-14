@@ -26,6 +26,8 @@ describe("settings schema", () => {
       executorMode: "atomic",
       activeCompanyId: null,
       authMode: "oauth",
+      defaultAgentMode: "supervised",
+      defaultAlwaysOn: false,
     });
   });
 
@@ -38,6 +40,8 @@ describe("settings schema", () => {
       executorMode: "atomic",
       activeCompanyId: null,
       authMode: "oauth",
+      defaultAgentMode: "supervised",
+      defaultAlwaysOn: false,
     });
   });
 
@@ -50,6 +54,8 @@ describe("settings schema", () => {
       executorMode: "atomic",
       activeCompanyId: null,
       authMode: "oauth",
+      defaultAgentMode: "supervised",
+      defaultAlwaysOn: false,
     });
   });
 

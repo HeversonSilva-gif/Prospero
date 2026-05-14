@@ -14,6 +14,8 @@ export const AppSettingsSchema = z.object({
   executorMode: z.enum(["atomic", "narrated"]).default("atomic"),
   activeCompanyId: z.string().nullable().default(null),
   authMode: z.enum(["oauth", "api-key"]).default("oauth"),
+  defaultAgentMode: z.enum(["supervised", "auto"]).default("supervised"),
+  defaultAlwaysOn: z.boolean().default(false),
 });
 
 const PartialAppSettingsSchema = AppSettingsSchema.partial();
@@ -36,6 +38,12 @@ export const parseSettings = (raw: unknown): AppSettings => {
   }
   if (result.data.authMode !== undefined) {
     merged.authMode = result.data.authMode;
+  }
+  if (result.data.defaultAgentMode !== undefined) {
+    merged.defaultAgentMode = result.data.defaultAgentMode;
+  }
+  if (result.data.defaultAlwaysOn !== undefined) {
+    merged.defaultAlwaysOn = result.data.defaultAlwaysOn;
   }
   return merged;
 };
