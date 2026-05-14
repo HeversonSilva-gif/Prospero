@@ -1081,7 +1081,7 @@
         <button class="theme-toggle" onclick="toggleTheme()">theme</button>
         <div class="meta-row">
           <div class="left">
-            <span>v1 · 12 / 14</span>
+            <span>v1 · 13 / 14</span>
             <span>last-update 2026-05-14</span>
             <span>branch · master</span>
           </div>
@@ -1099,19 +1099,19 @@
         <div class="stats">
           <div class="stat">
             <div class="label">Milestones</div>
-            <div class="value">12 <span class="unit">/ 14 fechados</span></div>
+            <div class="value">13 <span class="unit">/ 14 fechados</span></div>
           </div>
           <div class="stat">
             <div class="label">Testes</div>
-            <div class="value">647 <span class="unit">passing</span></div>
+            <div class="value">711 <span class="unit">passing</span></div>
           </div>
           <div class="stat">
             <div class="label">Commits</div>
-            <div class="value">~215 <span class="unit">no master</span></div>
+            <div class="value">~245 <span class="unit">no master</span></div>
           </div>
           <div class="stat">
             <div class="label">LoC apps + packages</div>
-            <div class="value">~17k <span class="unit">TS/TSX</span></div>
+            <div class="value">~18k <span class="unit">TS/TSX</span></div>
           </div>
         </div>
       </header>
@@ -1232,6 +1232,39 @@
           </div>
 
           <div class="layperson-card new-tag">
+            <div class="cat">
+              🎬 Execução narrada (Kanban vivo)<span class="new-badge">novo</span>
+            </div>
+            <ul>
+              <li>
+                Settings → <strong>Modo Atômico</strong> (default, rápido e silencioso) ou
+                <strong>Narrado</strong> (CEO comenta cada passo)
+              </li>
+              <li>
+                No GoalPlanReview, checkbox <strong>"Aprovar em modo narrado"</strong> override
+                per-goal — mostra comparação de tokens (base vs ~2.5× narrado)
+              </li>
+              <li>
+                Modo narrado: CEO entra num loop streamado e emite MCP calls (hire → create →
+                comment) uma a uma — você vê o kanban "ganhando vida" em tempo real
+              </li>
+              <li>
+                Comentários do CEO no modo narrado aparecem inline no IssueDetailModal com
+                <strong>badge</strong> diferenciando CEO / agente / você
+              </li>
+              <li>
+                <strong>Topological wake-up</strong>: quando você marca uma issue como done, issues
+                que dependiam dela acordam automaticamente em wave (em vez de todos os agentes
+                acordarem ao mesmo tempo no approve)
+              </li>
+              <li>
+                Boot recovery: se o app crasha mid-loop, próximo restart cria um item no Inbox com
+                botões <strong>"Retomar narrado"</strong> ou <strong>"Cancelar e reverter"</strong>
+              </li>
+            </ul>
+          </div>
+
+          <div class="layperson-card new-tag">
             <div class="cat">🎯 Goals & CEO Planning<span class="new-badge">novo</span></div>
             <ul>
               <li>
@@ -1341,12 +1374,6 @@
           <div class="heading">🚧 O que ainda NÃO funciona (próximas releases)</div>
           <ul>
             <li>
-              🎬 <strong>Kanban "vivo" com execução narrada</strong> — depois de aprovar o plano,
-              CEO cria as issues uma a uma com comentários de contexto, acorda agentes na ordem das
-              dependências (não tudo de uma vez), e conversa nas issues do kanban junto com você e
-              os agentes → M8.6 (próximo)
-            </li>
-            <li>
               📈 <strong>Dashboard inicial com widgets dinâmicos</strong> — Agentes ativos / Issues
               em andamento / Inbox / Custos hoje → M9
             </li>
@@ -1445,6 +1472,10 @@
               <div class="dot"></div>
               <div class="label">M8.5</div>
             </div>
+            <div class="progress-step" data-status="done">
+              <div class="dot"></div>
+              <div class="label">M8.6</div>
+            </div>
             <div class="progress-step" data-status="planned">
               <div class="dot"></div>
               <div class="label">M9</div>
@@ -1456,13 +1487,14 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M8.5 fechado (<code>69bde4e</code>) — PR-A backend + PR-B UI
-              mergeados. Migration 0012/0013, 7 MCP tools (incl. <code>list_role_templates</code> +
-              <code>submit_goal_plan</code> com DAG validation), executor atomic com topo sort, 3
-              rotas <code>/goals*</code> lazy, GoalPlanReview com include/exclude + estimates
-              recomputadas, 3 inbox kinds <code>goal_*</code>, i18n PT/EN ~150 keys.
-              <strong>12/14 milestones</strong>. Próximo: <strong>M8.6 Live Execution</strong>
-              (kanban vivo + execução narrada).
+              <strong>Estágio:</strong> M8.6 fechado em 2026-05-14 — PR-A backend + PR-B UI
+              mergeados. Migration 0014 (<code>execution_state_json</code> +
+              <code>depends_on_json</code>), executor dispatcher (atomic/narrated), 4 MCP tools
+              (<code>comment_on_issue</code>, <code>hire/create/finalize_for_plan</code>),
+              topological issue activation, boot recovery scan, narrated resume/rollback IPCs,
+              Settings radio + GoalPlanReview checkbox + IssueCommentsList sender badges + Inbox
+              recovery CTAs, i18n PT/EN +30 keys. <strong>13/14 milestones</strong>. Próximo:
+              <strong>M9 Dashboard polish</strong>.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -1541,7 +1573,8 @@
             <div class="kicker">horizonte</div>
             <div class="title">v1 ✅ → V2 ✦</div>
             <div class="flow">
-              M8 ✅ ──▶ M8.5 ──▶ M8.6 ──▶ M9 ──▶ M10 ──▶ v1 ✅ ──▶ <strong>M11 (V2 anchor)</strong>
+              M8 ✅ ──▶ M8.5 ✅ ──▶ M8.6 ✅ ──▶ M9 ──▶ M10 ──▶ v1 ✅ ──▶
+              <strong>M11 (V2 anchor)</strong>
               ──▶ V2 Tier 1
             </div>
             <ul class="bullets" style="margin-top: 12px">

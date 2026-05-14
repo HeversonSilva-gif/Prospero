@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-14 — **M8.5 ✅ MERGEADO COMPLETO** em master (PR-A backend + PR-B UI, HEAD `69bde4e`). PR-B adicionou: 3 rotas lazy (`/goals`, `/goals/new`, `/goals/:id`), GoalsTree recursivo, GoalDetailHeader, GoalPlanReview (checkboxes include/exclude + estimates recomputadas client-side + validação de deps), 2 modals (RequestChanges + Reject), GoalPlanHistory, 3 inbox kinds (`goal_proposed`/`executing`/`error`) com write backend + render link, migration 0013 inbox CHECK, MCP tool `list_role_templates`, goalsStore Zustand, i18n PT/EN ~150 keys + parity test. **647 testes** (513 main + 33 shared + 101 renderer; +35 vs PR-A). **11/14 milestones fechados** (v1 = M10); V2 anchor = M11 Agent Memory (ver "Visão V2" abaixo).
+> **Última atualização:** 2026-05-14 — **M8.6 ✅ MERGEADO COMPLETO** (PR-A backend + PR-B UI). PR-A: migration 0014 (`execution_state_json` + `depends_on_json`), executor dispatcher (atomic/narrated), 4 MCP tools (`comment_on_issue`, `hire_agent_for_plan`, `create_issue_for_plan`, `finalize_goal_execution`), topological issue activation on done, boot recovery scan, narrated resume/rollback IPCs, 3 activity actions, Settings executorMode atomic/narrated. PR-B: Settings radio toggle, GoalPlanReview narrated checkbox + token comparison, IssueCommentsList sender badges (CEO/agent/user), IssueDetailModal real-time refresh on comment-added, Inbox narrated_halted recovery CTAs, i18n PT/EN +30 keys. **711 testes** (570 main + 33 shared + 108 renderer; +64 vs M8.5). **13/14 milestones fechados** (v1 = M10).
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 >
@@ -155,14 +155,14 @@ M8 ✅ ──▶ M8.5 Goals ──▶ M8.6 Live Exec ──▶ M9 Dashboard ─�
 
 | Métrica | Valor |
 |---|---|
-| Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5** (12/14 do v1) |
-| Em curso | _Nenhum_. M8.5 fechado em `69bde4e` (PR-A `1a7a48a` + PR-B). Próximo: M8.6 Live Execution ou M9 Dashboard polish. |
-| Testes | **647 passing** (513 main + 33 shared + 101 renderer), 0 lint/typecheck errors |
-| Commits no master | ~215 |
-| LoC (apps + packages) | ~17k TS/TSX |
+| Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6** (13/14 do v1) |
+| Em curso | _Nenhum_. M8.6 fechado em 2026-05-14 (PR-A backend + PR-B UI). Próximo: M9 Dashboard polish ou M10 VPS adapter. |
+| Testes | **711 passing** (570 main + 33 shared + 108 renderer), 0 lint/typecheck errors |
+| Commits no master | ~245 |
+| LoC (apps + packages) | ~18k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
-| Restante pra v1 | M8.6 · M9 · M10 (~20-28 dias). **M8.5 fechado em 2026-05-14.** |
+| Restante pra v1 | M9 · M10 (~10-18 dias). **M8.6 fechado em 2026-05-14.** |
 | V2 anchor | M11 Agent Memory & Learning Loop (~10-14 dias, **âncora V2** — 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). Tese V2: 1-person business via delegação de outcomes + memory que compounda) |
 
 ---
