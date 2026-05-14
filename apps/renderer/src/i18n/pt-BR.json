@@ -204,8 +204,44 @@
     }
   },
   "dashboard": {
+    "title": "Dashboard",
     "placeholder": "Dashboard ainda é stub. Widgets (Recent Activity, Active Agents, métricas) chegam em M9 — Custos hoje já funciona via M8.",
+    "emptyCompany": "Crie ou selecione uma empresa pra ver o dashboard.",
+    "noAgentsHint": "Sem agentes ainda. Crie uma empresa de demonstração pra testar.",
     "createDemoCompany": "Criar empresa de demonstração",
+    "activeAgents": {
+      "title": "Agentes ativos",
+      "empty": "Nenhum agente em ação agora."
+    },
+    "activeIssues": {
+      "title": "Issues em andamento",
+      "subtitle": "Doing + Review",
+      "viewAll": "Ver todas",
+      "empty": "Sem issues em andamento.",
+      "noProject": "Sem project"
+    },
+    "inboxUnread": {
+      "title": "Inbox",
+      "subtitle": "não lidos",
+      "viewAll": "Abrir inbox",
+      "empty": "Inbox limpa ✓",
+      "latestLabel": "Último"
+    },
+    "activePanel": {
+      "title": "Painel de agentes ativos",
+      "empty": "Ninguém em ação."
+    },
+    "goals": {
+      "title": "Objetivos em andamento",
+      "viewAll": "Ver todos",
+      "empty": "Nenhum objetivo em andamento."
+    },
+    "recentActivity": {
+      "title": "Atividade recente",
+      "viewAll": "Ver tudo",
+      "empty": "Sem atividade recente.",
+      "loading": "Carregando…"
+    },
     "costsToday": {
       "title": "Custos hoje",
       "viewDetails": "Ver detalhes →",

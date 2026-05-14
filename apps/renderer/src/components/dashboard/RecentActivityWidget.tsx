@@ -42,8 +42,8 @@ export const RecentActivityWidget: FC<Props> = ({ companyId }) => {
   const lookups: Lookups = useMemo(
     () => ({
       agentsById: new Map(agents.map((a) => [a.id, a.name])),
-      currentUserName: t("activity.user.you"),
-      systemName: t("activity.system.name"),
+      currentUserName: t("activity.you"),
+      systemName: t("activity.system"),
     }),
     [agents, t],
   );

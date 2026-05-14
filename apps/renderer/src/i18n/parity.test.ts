@@ -47,6 +47,30 @@ describe("i18n parity", () => {
     }
   });
 
+  it("includes the M9 PR-B dashboard widget keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "dashboard.title",
+      "dashboard.emptyCompany",
+      "dashboard.activeAgents.title",
+      "dashboard.activeAgents.empty",
+      "dashboard.activeIssues.title",
+      "dashboard.activeIssues.viewAll",
+      "dashboard.inboxUnread.title",
+      "dashboard.inboxUnread.empty",
+      "dashboard.activePanel.title",
+      "dashboard.activePanel.empty",
+      "dashboard.goals.title",
+      "dashboard.goals.viewAll",
+      "dashboard.recentActivity.title",
+      "dashboard.recentActivity.empty",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
+
   it("includes the M9 PR-D api-key keys in both locales", () => {
     const ptKeys = flatten(ptBR);
     const enKeys = flatten(enUS);

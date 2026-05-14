@@ -204,8 +204,44 @@
     }
   },
   "dashboard": {
+    "title": "Dashboard",
     "placeholder": "Dashboard is a stub. Widgets (Recent Activity, Active Agents, metrics) land in M9 — Costs today already works via M8.",
+    "emptyCompany": "Create or select a company to see the dashboard.",
+    "noAgentsHint": "No agents yet. Create a demo company to try it out.",
     "createDemoCompany": "Create demo company",
+    "activeAgents": {
+      "title": "Active agents",
+      "empty": "No agents in action."
+    },
+    "activeIssues": {
+      "title": "Active issues",
+      "subtitle": "Doing + Review",
+      "viewAll": "View all",
+      "empty": "No active issues.",
+      "noProject": "No project"
+    },
+    "inboxUnread": {
+      "title": "Inbox",
+      "subtitle": "unread",
+      "viewAll": "Open inbox",
+      "empty": "Inbox clear ✓",
+      "latestLabel": "Latest"
+    },
+    "activePanel": {
+      "title": "Active agents panel",
+      "empty": "Nobody in action."
+    },
+    "goals": {
+      "title": "Goals in progress",
+      "viewAll": "View all",
+      "empty": "No goals in progress."
+    },
+    "recentActivity": {
+      "title": "Recent activity",
+      "viewAll": "View all",
+      "empty": "No recent activity.",
+      "loading": "Loading…"
+    },
     "costsToday": {
       "title": "Today's costs",
       "viewDetails": "View details →",
