@@ -2,16 +2,20 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.js";
+import { useSettingsStore } from "../stores/settings.js";
 
-type Step = "choose" | "manual" | "auto";
+type Step = "authSource" | "choose" | "manual" | "auto" | "apiKey";
 
 export const SetupWizard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const setToken = useAuthStore((s) => s.setToken);
+  const setApiKey = useAuthStore((s) => s.setApiKey);
   const importDetected = useAuthStore((s) => s.importDetected);
-  const [step, setStep] = useState<Step>("choose");
+  const setAuthMode = useSettingsStore((s) => s.setAuthMode);
+  const [step, setStep] = useState<Step>("authSource");
   const [tokenInput, setTokenInput] = useState("");
+  const [apiKeyInput, setApiKeyInput] = useState("");
   // We only ever hold the masked prefix in renderer state — never the raw token.
   // The actual import is done main-side via importDetected (re-runs detection + saves).
   const [autoPrefix, setAutoPrefix] = useState<string | null>(null);
@@ -51,6 +55,41 @@ export const SetupWizard = () => {
       <div className="max-w-xl w-full bg-surface-card border border-surface-border rounded-xl p-8 shadow-sm">
         <h1 className="text-2xl font-bold text-brand-dark mb-2">{t("wizard.title")}</h1>
         <p className="text-sm text-ink-muted mb-6">{t("wizard.subtitle")}</p>
+
+        {step === "authSource" && (
+          <div className="space-y-3">
+            <p className="text-sm text-ink font-medium">{t("wizard.authSource.title")}</p>
+            <p className="text-xs text-ink-muted">{t("wizard.authSource.subtitle")}</p>
+            <button
+              onClick={() =>
+                void setAuthMode("oauth").then(() => {
+                  setStep("choose");
+                })
+              }
+              className="w-full text-left p-4 border border-surface-border rounded hover:border-brand transition-colors"
+              type="button"
+            >
+              <div className="text-sm font-semibold text-ink">
+                {t("wizard.authSource.oauthTitle")}
+              </div>
+              <div className="text-xs text-ink-muted mt-1">{t("wizard.authSource.oauthDesc")}</div>
+            </button>
+            <button
+              onClick={() =>
+                void setAuthMode("api-key").then(() => {
+                  setStep("apiKey");
+                })
+              }
+              className="w-full text-left p-4 border border-surface-border rounded hover:border-brand transition-colors"
+              type="button"
+            >
+              <div className="text-sm font-semibold text-ink">
+                {t("wizard.authSource.apiKeyTitle")}
+              </div>
+              <div className="text-xs text-ink-muted mt-1">{t("wizard.authSource.apiKeyDesc")}</div>
+            </button>
+          </div>
+        )}
 
         {step === "choose" && (
           <div className="space-y-3">
@@ -102,7 +141,7 @@ export const SetupWizard = () => {
             {error && <p className="text-xs text-semantic-danger">{error}</p>}
             <div className="flex gap-2 pt-2">
               <button
-                onClick={() => setStep("choose")}
+                onClick={() => setStep("authSource")}
                 className="px-4 py-2 text-sm text-ink hover:bg-surface-soft rounded"
                 type="button"
               >
@@ -137,7 +176,7 @@ export const SetupWizard = () => {
             {error && <p className="text-xs text-semantic-danger">{error}</p>}
             <div className="flex gap-2 pt-2">
               <button
-                onClick={() => setStep("choose")}
+                onClick={() => setStep("authSource")}
                 className="px-4 py-2 text-sm text-ink hover:bg-surface-soft rounded"
                 type="button"
               >
@@ -152,6 +191,48 @@ export const SetupWizard = () => {
                   {t("wizard.autoConfirm")}
                 </button>
               )}
+            </div>
+          </div>
+        )}
+
+        {step === "apiKey" && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-brand-dark">{t("wizard.apiKey.title")}</h3>
+            <p className="text-xs text-ink-muted">{t("wizard.apiKey.subtitle")}</p>
+            <input
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              placeholder={t("wizard.apiKey.placeholder")}
+              className="w-full px-3 py-2 bg-surface-soft border border-surface-border rounded text-sm font-mono mt-3"
+            />
+            {error !== null && <p className="text-xs text-semantic-danger">{error}</p>}
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setStep("authSource")}
+                className="px-4 py-2 text-sm text-ink hover:bg-surface-soft rounded"
+                type="button"
+              >
+                {t("wizard.back")}
+              </button>
+              <button
+                onClick={async () => {
+                  setError(null);
+                  try {
+                    await setApiKey(apiKeyInput);
+                    navigate("/dashboard");
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : t("settings.auth.tokenInvalid"));
+                  }
+                }}
+                disabled={apiKeyInput.length === 0}
+                className="px-4 py-2 bg-brand text-brand-fg text-sm font-semibold rounded disabled:opacity-50"
+                type="button"
+              >
+                {t("wizard.apiKey.save")}
+              </button>
             </div>
           </div>
         )}
