@@ -27,6 +27,9 @@ export const Projects: FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState<Project | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+
+  const visible = showArchived ? projects : projects.filter((p) => p.archivedAt === null);
 
   useEffect(() => {
     void (async () => {
@@ -67,7 +70,7 @@ export const Projects: FC = () => {
             <p className="text-xs text-ink-muted px-2">{t("projects.empty")}</p>
           ) : (
             <div className="space-y-1">
-              {projects.map((p) => (
+              {visible.map((p) => (
                 <ProjectListItem
                   key={p.id}
                   project={p}
@@ -79,6 +82,14 @@ export const Projects: FC = () => {
             </div>
           )}
         </div>
+        <label className="flex items-center gap-1 text-xs text-ink-muted mt-2 px-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+          />
+          {t("projects.list.showArchived")}
+        </label>
         <button
           type="button"
           onClick={() => {

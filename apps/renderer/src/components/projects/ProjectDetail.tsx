@@ -2,6 +2,7 @@ import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 import type { Project, Agent, Issue, ProjectPathStatus } from "@dashboard-agent/shared";
 import { AgentAccessSection } from "./AgentAccessSection.js";
+import { useProjectsStore } from "../../stores/projects.js";
 
 type Props = {
   project: Project;
@@ -84,6 +85,23 @@ export const ProjectDetail: FC<Props> = ({
         >
           {t("projects.detail.edit")}
         </button>
+        {project.archivedAt !== null ? (
+          <button
+            type="button"
+            onClick={() => void useProjectsStore.getState().unarchive(project.id)}
+            className="text-xs px-3 py-1 bg-surface-soft text-ink-muted rounded"
+          >
+            {t("projects.detail.unarchive")}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void useProjectsStore.getState().archive(project.id)}
+            className="text-xs px-3 py-1 bg-surface-soft text-ink-muted rounded"
+          >
+            {t("projects.detail.archive")}
+          </button>
+        )}
         <button
           type="button"
           onClick={onDelete}
