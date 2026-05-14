@@ -55,6 +55,13 @@ export const ActivityPayloads = {
     commentId: stringId,
     preview: z.string().optional(),
   }),
+  "issue.commented": z.object({
+    commentId: stringId,
+    length: z.number().int().nonnegative(),
+  }),
+  "issue.unlocked_by_deps": z.object({
+    unlockedBy: stringId,
+  }),
 
   // Approval (3)
   "approval.requested": z.object({
@@ -93,7 +100,7 @@ export const ActivityPayloads = {
     version: z.number().int().positive(),
     hiredAgentIds: z.array(stringId),
     createdIssueIds: z.array(stringId),
-    approvedBy: z.enum(["user", "system"]),
+    approvedBy: z.enum(["user", "system", "ceo-narrated"]),
   }),
   "goal.plan_rejected": z.object({
     planId: stringId,
@@ -109,6 +116,12 @@ export const ActivityPayloads = {
   "goal.subgoal_recorded": z.object({
     childGoalId: stringId,
     recordedByAgentId: stringId,
+  }),
+  "goal.narrated_step": z.object({
+    step: z.enum(["hire", "issue", "comment"]),
+    planIndex: z.number().int().nonnegative(),
+    agentId: stringId.optional(),
+    issueId: stringId.optional(),
   }),
 
   // Session / Cost (3)
