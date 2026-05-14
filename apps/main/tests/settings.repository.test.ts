@@ -18,6 +18,7 @@ describe("settings repository", () => {
       theme: "light",
       workspaceCwd: null,
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+      executorMode: "atomic",
     });
   });
 
@@ -29,6 +30,7 @@ describe("settings repository", () => {
       theme: "dark",
       workspaceCwd: null,
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+      executorMode: "atomic",
     });
   });
 
@@ -40,6 +42,7 @@ describe("settings repository", () => {
       theme: "dark",
       workspaceCwd: null,
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+      executorMode: "atomic",
     });
   });
 
@@ -54,5 +57,23 @@ describe("settings repository", () => {
     repo.write({ language: "en-US" });
     const repo2 = createSettingsRepository(db);
     expect(repo2.read().language).toBe("en-US");
+  });
+
+  describe("executorMode", () => {
+    it("defaults to 'atomic' when unset", () => {
+      const { repo } = setup();
+      expect(repo.getExecutorMode()).toBe("atomic");
+    });
+
+    it("persists narrated and reads back", () => {
+      const { repo } = setup();
+      repo.setExecutorMode("narrated");
+      expect(repo.getExecutorMode()).toBe("narrated");
+    });
+
+    it("rejects invalid mode strings", () => {
+      const { repo } = setup();
+      expect(() => repo.setExecutorMode("invalid" as never)).toThrow(/invalid/i);
+    });
   });
 });

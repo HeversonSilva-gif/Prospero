@@ -17,11 +17,14 @@ export const CLAUDE_MODEL_PRESETS = [
 // the id is shell-spawned with --model. claude.com model ids match this shape.
 export const MODEL_ID_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
 
+export type ExecutorMode = "atomic" | "narrated";
+
 export type AppSettings = {
   language: Language;
   theme: Theme;
   workspaceCwd: string | null;
   defaultModelForNewAgents: string;
+  executorMode: ExecutorMode;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -29,4 +32,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: "light",
   workspaceCwd: null,
   defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+  executorMode: "atomic",
 };

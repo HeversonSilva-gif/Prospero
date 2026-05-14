@@ -23,6 +23,7 @@ describe("settings schema", () => {
       theme: "light",
       workspaceCwd: null,
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+      executorMode: "atomic",
     });
   });
 
@@ -32,6 +33,7 @@ describe("settings schema", () => {
       theme: "dark",
       workspaceCwd: null,
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+      executorMode: "atomic",
     });
   });
 
@@ -41,6 +43,7 @@ describe("settings schema", () => {
       theme: "light",
       workspaceCwd: null,
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
+      executorMode: "atomic",
     });
   });
 

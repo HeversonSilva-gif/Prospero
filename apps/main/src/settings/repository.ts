@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import { DEFAULT_SETTINGS, type AppSettings } from "@dashboard-agent/shared";
+import { DEFAULT_SETTINGS, type AppSettings, type ExecutorMode } from "@dashboard-agent/shared";
 import { AppSettingsSchema } from "./schema.js";
 
 const KEY = "app-settings";
@@ -7,6 +7,8 @@ const KEY = "app-settings";
 export type SettingsRepository = {
   read(): AppSettings;
   write(patch: Partial<AppSettings>): void;
+  getExecutorMode(): ExecutorMode;
+  setExecutorMode(mode: ExecutorMode): void;
 };
 
 export const createSettingsRepository = (db: Database.Database): SettingsRepository => {
@@ -35,5 +37,14 @@ export const createSettingsRepository = (db: Database.Database): SettingsReposit
     upsertStmt.run(KEY, JSON.stringify(value));
   };
 
-  return { read, write };
+  const getExecutorMode = (): ExecutorMode => read().executorMode;
+
+  const setExecutorMode = (mode: ExecutorMode): void => {
+    if (mode !== "atomic" && mode !== "narrated") {
+      throw new Error(`invalid executor mode: ${String(mode)}`);
+    }
+    write({ executorMode: mode });
+  };
+
+  return { read, write, getExecutorMode, setExecutorMode };
 };

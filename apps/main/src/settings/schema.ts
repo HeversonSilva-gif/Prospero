@@ -11,6 +11,7 @@ export const AppSettingsSchema = z.object({
   theme: z.enum(["light", "dark"]),
   workspaceCwd: z.string().nullable().default(null),
   defaultModelForNewAgents: z.string().regex(MODEL_ID_REGEX).default(DEFAULT_CLAUDE_MODEL),
+  executorMode: z.enum(["atomic", "narrated"]).default("atomic"),
 });
 
 const PartialAppSettingsSchema = AppSettingsSchema.partial();
@@ -24,6 +25,9 @@ export const parseSettings = (raw: unknown): AppSettings => {
   if (result.data.workspaceCwd !== undefined) merged.workspaceCwd = result.data.workspaceCwd;
   if (result.data.defaultModelForNewAgents !== undefined) {
     merged.defaultModelForNewAgents = result.data.defaultModelForNewAgents;
+  }
+  if (result.data.executorMode !== undefined) {
+    merged.executorMode = result.data.executorMode;
   }
   return merged;
 };
