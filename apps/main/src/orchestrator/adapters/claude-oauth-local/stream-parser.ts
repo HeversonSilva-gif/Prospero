@@ -176,8 +176,17 @@ export const parseStreamLine = (line: string): ParsedEvent | null => {
     return null;
   }
 
-  // ignore rate_limit_event, etc.
-  if (data["type"] === "rate_limit_event") return null;
+  if (data["type"] === "rate_limit_event") {
+    const retryAfter =
+      typeof data["retry_after"] === "number" && Number.isFinite(data["retry_after"])
+        ? Math.floor(data["retry_after"])
+        : null;
+    const msg =
+      typeof data["message"] === "string"
+        ? data["message"]
+        : "Rate limit reached. Pausing the agent.";
+    return { kind: "rate-limited", retryAfterSec: retryAfter, message: msg };
+  }
 
   return { kind: "unknown", raw: data };
 };

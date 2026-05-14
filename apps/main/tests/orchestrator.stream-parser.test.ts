@@ -90,8 +90,9 @@ describe("parseStreamLine", () => {
     expect(parsed?.kind).toBe("turn-complete");
   });
 
-  it("ignores rate_limit_event", () => {
-    expect(parseStreamLine(JSON.stringify({ type: "rate_limit_event" }))).toBeNull();
+  it("surfaces rate_limit_event as rate-limited", () => {
+    const ev = parseStreamLine(JSON.stringify({ type: "rate_limit_event" }));
+    expect(ev?.kind).toBe("rate-limited");
   });
 
   it("returns null on malformed JSON", () => {

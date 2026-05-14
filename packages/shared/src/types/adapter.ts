@@ -33,6 +33,7 @@ export type ParsedEvent =
   | { kind: "tool-result"; toolUseId: string; content: string; isError: boolean }
   | { kind: "turn-complete"; usage?: UsageEstimate; model?: string }
   | { kind: "api-retry"; attempt: number; error: string }
+  | { kind: "rate-limited"; retryAfterSec: number | null; message: string }
   | { kind: "unknown"; raw: unknown };
 
 export type UsageEstimate = {
