@@ -7,6 +7,8 @@ import { useAuthStore } from "./stores/auth.js";
 import { useAgentsStore } from "./stores/agents.js";
 import { useMessagesStore } from "./stores/messages.js";
 import { useInboxStore } from "./stores/inbox.js";
+import { useCompaniesStore } from "./stores/companies.js";
+import { CompanySwitcher } from "./components/CompanySwitcher.js";
 import { Dashboard } from "./routes/Dashboard.js";
 import { Settings } from "./routes/Settings.js";
 import { SetupWizard } from "./routes/SetupWizard.js";
@@ -45,6 +47,9 @@ const Sidebar = () => {
   return (
     <aside className="w-56 bg-surface border-r border-surface-border flex flex-col p-3">
       <h1 className="px-2 mb-4 text-sm font-bold text-brand-dark">{t("app.title")}</h1>
+      <div className="px-2 mb-3">
+        <CompanySwitcher />
+      </div>
       <nav className="flex flex-col gap-1 text-sm text-ink-muted">
         <NavLink
           to="/dashboard"
@@ -213,35 +218,32 @@ export const App = () => {
     void loadAuth();
   }, [loadSettings, loadAuth]);
 
-  // After token is configured, ensure first company's agents and inbox are loaded.
-  // Initial load only — subscription is registered separately below so it survives
-  // late-arriving companies (e.g. user created demo company after first mount).
+  const loadCompanies = useCompaniesStore((s) => s.load);
+  const activeCompanyId = useCompaniesStore((s) => s.activeId);
+
+  // Initial companies load once auth is ready.
   useEffect(() => {
     if (!hasToken) return;
-    void (async () => {
-      const companies = await window.dashboardAgent.companies.list();
-      if (companies.length > 0) {
-        const cid = companies[0]!.id;
-        await loadAgents(cid);
-        await loadInbox(cid);
-        await useProjectsStore.getState().load(cid);
-        await useIssuesStore.getState().load(cid);
-      }
-    })();
-  }, [hasToken, loadAgents, loadInbox]);
+    void loadCompanies();
+  }, [hasToken, loadCompanies]);
 
-  // Permanent inbox-update subscription. On every broadcast, re-resolve the current
-  // company (via fresh companies.list()) and reload its inbox. This works whether or
-  // not a company existed at App mount time.
+  // React to active company changes — reload per-company stores.
+  useEffect(() => {
+    if (!hasToken || activeCompanyId === null) return;
+    void (async () => {
+      await loadAgents(activeCompanyId);
+      await loadInbox(activeCompanyId);
+      await useProjectsStore.getState().load(activeCompanyId);
+      await useIssuesStore.getState().load(activeCompanyId);
+    })();
+  }, [hasToken, activeCompanyId, loadAgents, loadInbox]);
+
+  // Permanent inbox-update subscription. Reloads only when active company matches.
   useEffect(() => {
     if (!hasToken) return;
     const off = window.dashboardAgent.inbox.onUpdate(() => {
-      void (async () => {
-        const companies = await window.dashboardAgent.companies.list();
-        if (companies.length > 0) {
-          await loadInbox(companies[0]!.id);
-        }
-      })();
+      const cid = useCompaniesStore.getState().activeId;
+      if (cid !== null) void loadInbox(cid);
     });
     return off;
   }, [hasToken, loadInbox]);
@@ -265,9 +267,11 @@ export const App = () => {
         case "session-id-changed":
           applySessionId(ev.agentId, ev.sessionId);
           break;
-        case "roster-changed":
-          void loadAgents(ev.companyId);
+        case "roster-changed": {
+          const activeId = useCompaniesStore.getState().activeId;
+          if (activeId === ev.companyId) void loadAgents(ev.companyId);
           break;
+        }
         case "tool-call":
         case "error":
           break;
