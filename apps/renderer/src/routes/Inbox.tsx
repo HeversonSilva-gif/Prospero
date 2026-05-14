@@ -25,6 +25,7 @@ const KIND_BORDER: Record<InboxKind, string> = {
   goal_proposed: "border-l-4 border-l-brand",
   goal_executing: "border-l-4 border-l-semantic-success",
   goal_error: "border-l-4 border-l-semantic-danger",
+  agent_unresponsive: "border-l-4 border-l-semantic-danger",
 };
 
 type FilterKey = "all" | InboxKind;

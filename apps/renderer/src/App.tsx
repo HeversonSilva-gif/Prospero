@@ -23,6 +23,9 @@ import { Org } from "./routes/Org.js";
 import { AgentNew } from "./routes/AgentNew.js";
 import { SidebarFooter } from "./components/SidebarFooter.js";
 import { TitleBar } from "./components/TitleBar.js";
+import { AuthErrorBanner } from "./components/banners/AuthErrorBanner.js";
+import { OAuthExpiryBanner } from "./components/banners/OAuthExpiryBanner.js";
+import { RateLimitBanner } from "./components/banners/RateLimitBanner.js";
 
 const Activity = lazy(() => import("./routes/Activity.js").then((m) => ({ default: m.Activity })));
 const Costs = lazy(() => import("./routes/Costs.js"));
@@ -198,6 +201,9 @@ const Sidebar = () => {
 const Shell = ({ children }: { children: React.ReactNode }) => (
   <div className="flex flex-col h-screen overflow-hidden bg-surface">
     <TitleBar />
+    <AuthErrorBanner />
+    <OAuthExpiryBanner />
+    <RateLimitBanner />
     <div className="flex-1 min-h-0 flex">{children}</div>
   </div>
 );
