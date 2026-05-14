@@ -3,7 +3,9 @@ import { createGoalsRepository } from "./repository.js";
 import { createGoalPlansRepository } from "./plans-repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
+import { createSettingsRepository } from "../settings/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
+import { executePlanNarrated } from "./executor-narrated.js";
 import type { AgentToHire, IssueToCreate, ExecutePlanResult } from "@dashboard-agent/shared";
 
 export type ExecuteOptions = {
@@ -50,7 +52,7 @@ const topoSortIssues = (issues: IssueToCreate[]): IssueToCreate[] => {
 const filterByIndex = <T extends { index: number }>(items: T[], include?: Set<number>): T[] =>
   include === undefined ? items : items.filter((i) => include.has(i.index));
 
-export const executePlan = (
+export const executePlanAtomic = (
   db: Database.Database,
   planId: string,
   options: ExecuteOptions = {},
@@ -188,4 +190,36 @@ export const executePlan = (
     const err = e as Error & { step?: string };
     return { ok: false, error: err.message, failedAtStep: err.step ?? "unknown" };
   }
+};
+
+// M8.6 — Dispatcher. Routes to atomic (M8.5, default) or narrated (M8.6, opt-in)
+// based on opts.mode + Settings.executorMode. Narrated branch requires the
+// orchestrator dep (enqueue CEO turn).
+export type DispatchOptions = ExecuteOptions & {
+  mode?: "atomic" | "narrated";
+  narrated?: {
+    orchestrator: {
+      enqueueExecuteRequest: (ceoId: string, prompt: string) => { threadId: string };
+    };
+  };
+};
+
+export const executePlan = (
+  db: Database.Database,
+  planId: string,
+  options: DispatchOptions = {},
+): ExecuteResult => {
+  // Resolve mode: explicit override > settings default > "atomic".
+  const mode = options.mode ?? createSettingsRepository(db).getExecutorMode();
+  if (mode === "narrated") {
+    if (options.narrated === undefined) {
+      return {
+        ok: false,
+        error: "narrated mode requires options.narrated.orchestrator",
+        failedAtStep: "dispatch",
+      };
+    }
+    return executePlanNarrated(db, planId, options, options.narrated);
+  }
+  return executePlanAtomic(db, planId, options);
 };
