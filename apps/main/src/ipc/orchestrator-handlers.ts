@@ -29,7 +29,9 @@ import { databasePath } from "../db/path.js";
 import { getPermissionsDir } from "../security/permissions-dir.js";
 import { getEventsDir } from "../orchestrator/events-dir.js";
 import { registerGoalsHandlers } from "./goals-handlers.js";
+import { registerNarratedHandlers } from "./goals-narrated-handlers.js";
 import { scanPlanningWithoutPlan, scanStuckNarrated } from "../goals/recovery.js";
+import { createSettingsRepository } from "../settings/repository.js";
 import {
   startEventsWatcher,
   type AgentEvent as AgentSideEvent,
@@ -738,6 +740,20 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   registerGoalsHandlers({
     db,
     orchestrator: { deliverSystemMessage, enqueueExecuteRequest },
+  });
+
+  // M8.6 — Narrated resume/rollback handlers + settings executor mode IPCs.
+  registerNarratedHandlers({
+    db,
+    orchestrator: { deliverSystemMessage, enqueueExecuteRequest },
+  });
+
+  ipcMain.handle(IPC.SETTINGS_GET_EXECUTOR_MODE, () =>
+    createSettingsRepository(db).getExecutorMode(),
+  );
+  ipcMain.handle(IPC.SETTINGS_SET_EXECUTOR_MODE, (_e, mode: "atomic" | "narrated") => {
+    createSettingsRepository(db).setExecutorMode(mode);
+    return { ok: true };
   });
 
   // Boot recovery — re-enqueue [GOAL_PLAN_REQUEST] for goals stuck in 'planning'
