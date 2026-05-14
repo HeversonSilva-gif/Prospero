@@ -128,4 +128,58 @@ describe("renderDescription", () => {
     expect(out).toContain("actor=System");
     expect(out).toContain("target=sess_1");
   });
+
+  it("issue.commented uses translation key + actor + commentId payload", () => {
+    const out = renderDescription(
+      baseRow({
+        actorKind: "agent",
+        actorId: "ag_1",
+        action: "issue.commented",
+        entityKind: "issue",
+        entityId: "iss_42",
+        payload: { commentId: "cmt_99", length: 42 },
+      }),
+      t,
+      lookups,
+    );
+    expect(out).toContain("activity.action.issue.commented|");
+    expect(out).toContain("actor=BackendEng");
+    expect(out).toContain("commentId=cmt_99");
+  });
+
+  it("issue.unlocked_by_deps uses translation key + unlockedBy payload", () => {
+    const out = renderDescription(
+      baseRow({
+        actorKind: "system",
+        actorId: null,
+        action: "issue.unlocked_by_deps",
+        entityKind: "issue",
+        entityId: "iss_b",
+        payload: { unlockedBy: "iss_a" },
+      }),
+      t,
+      lookups,
+    );
+    expect(out).toContain("activity.action.issue.unlocked_by_deps|");
+    expect(out).toContain("unlockedBy=iss_a");
+  });
+
+  it("goal.narrated_step uses translation key + step + planIndex payload", () => {
+    const out = renderDescription(
+      baseRow({
+        actorKind: "agent",
+        actorId: "ag_2",
+        action: "goal.narrated_step",
+        entityKind: "goal",
+        entityId: "goal_1",
+        payload: { step: "hire", planIndex: 0, agentId: "ag_new" },
+      }),
+      t,
+      lookups,
+    );
+    expect(out).toContain("activity.action.goal.narrated_step|");
+    expect(out).toContain("actor=CEO");
+    expect(out).toContain("step=hire");
+    expect(out).toContain("planIndex=0");
+  });
 });
