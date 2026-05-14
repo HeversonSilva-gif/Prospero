@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../stores/auth.js";
@@ -29,9 +29,18 @@ export const Settings = () => {
   const [modelSaved, setModelSaved] = useState(false);
 
   const activeCompanyId = useCompaniesStore((s) => s.activeId);
+  const reloadCompanies = useCompaniesStore((s) => s.load);
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportSavedAt, setExportSavedAt] = useState<string | null>(null);
+  const [importBusy, setImportBusy] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSummary, setImportSummary] = useState<{
+    name: string;
+    counts: Record<string, number>;
+    warnings: string[];
+  } | null>(null);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     void loadSettings();
@@ -68,6 +77,30 @@ export const Settings = () => {
     await setModel(next);
     setModelSaved(true);
     window.setTimeout(() => setModelSaved(false), 2000);
+  };
+
+  const onImportFile = async (file: File): Promise<void> => {
+    setImportBusy(true);
+    setImportError(null);
+    setImportSummary(null);
+    try {
+      const text = await file.text();
+      const parsed: unknown = JSON.parse(text);
+      const result = await window.dashboardAgent.companies.importSnapshot(parsed);
+      setImportSummary({
+        name: result.newCompanyName,
+        counts: result.counts,
+        warnings: result.warnings,
+      });
+      await reloadCompanies();
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setImportBusy(false);
+      if (importInputRef.current !== null) {
+        importInputRef.current.value = "";
+      }
+    }
   };
 
   const onExportCompany = async () => {
@@ -349,6 +382,62 @@ export const Settings = () => {
           <p className="mt-2 text-xs text-semantic-success">
             {t("settings.companyExport.savedAt", { path: exportSavedAt })}
           </p>
+        )}
+      </section>
+
+      <section className="bg-surface-card border border-surface-border rounded-lg p-5 mb-4">
+        <h2 className="text-base font-semibold text-brand-dark mb-2">
+          {t("settings.companyImport.title")}
+        </h2>
+        <p className="text-xs text-ink-muted mb-3">{t("settings.companyImport.subtitle")}</p>
+        <input
+          ref={importInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file !== undefined) void onImportFile(file);
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => importInputRef.current?.click()}
+          disabled={importBusy}
+          className="px-3 py-1.5 text-sm font-semibold bg-brand text-brand-fg rounded disabled:opacity-50"
+        >
+          {importBusy ? t("settings.companyImport.importing") : t("settings.companyImport.action")}
+        </button>
+        {importError !== null && <p className="mt-2 text-xs text-semantic-danger">{importError}</p>}
+        {importSummary !== null && (
+          <div className="mt-3 text-xs space-y-1">
+            <p className="text-semantic-success">
+              {t("settings.companyImport.success", { name: importSummary.name })}
+            </p>
+            <ul className="text-ink-muted pl-3 list-disc">
+              {Object.entries(importSummary.counts)
+                .filter(([, n]) => n > 0)
+                .map(([entity, n]) => (
+                  <li key={entity}>
+                    {entity}: {n}
+                  </li>
+                ))}
+            </ul>
+            {importSummary.warnings.length > 0 && (
+              <details className="text-ink-muted">
+                <summary className="cursor-pointer">
+                  {t("settings.companyImport.warningsCount", {
+                    count: importSummary.warnings.length,
+                  })}
+                </summary>
+                <ul className="pl-3 list-disc mt-1">
+                  {importSummary.warnings.slice(0, 20).map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
         )}
       </section>
 
