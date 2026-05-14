@@ -219,4 +219,76 @@ describe("issues repository", () => {
     });
     expect(issues.resolveProjectByNameOrId(companyId, "Ghost")).toEqual({ id: "", matches: 0 });
   });
+
+  describe("findDependentsOf", () => {
+    const seedTwo = () => {
+      const env = setup();
+      const a = env.issues.create({
+        companyId: env.companyId,
+        projectId: null,
+        title: "A",
+        description: null,
+        assigneeId: null,
+        priority: "medium",
+        parentId: null,
+        createdBy: null,
+      });
+      const b = env.issues.create({
+        companyId: env.companyId,
+        projectId: null,
+        title: "B",
+        description: null,
+        assigneeId: null,
+        priority: "medium",
+        parentId: null,
+        createdBy: null,
+      });
+      return { ...env, a, b };
+    };
+
+    it("returns issues whose depends_on_json contains the target id", () => {
+      const env = seedTwo();
+      env.db
+        .prepare("UPDATE issues SET depends_on_json = ? WHERE id = ?")
+        .run(JSON.stringify([env.a.id]), env.b.id);
+      const deps = env.issues.findDependentsOf(env.a.id, env.companyId);
+      expect(deps.map((i) => i.id)).toEqual([env.b.id]);
+    });
+
+    it("returns empty when no dependents exist", () => {
+      const env = seedTwo();
+      expect(env.issues.findDependentsOf(env.a.id, env.companyId)).toEqual([]);
+    });
+
+    it("scopes by company id", () => {
+      const env = seedTwo();
+      const co2 = createCompaniesRepository(env.db).create({ name: "Other" });
+      const otherIssue = env.issues.create({
+        companyId: co2.id,
+        projectId: null,
+        title: "Other",
+        description: null,
+        assigneeId: null,
+        priority: "medium",
+        parentId: null,
+        createdBy: null,
+      });
+      env.db
+        .prepare("UPDATE issues SET depends_on_json = ? WHERE id = ?")
+        .run(JSON.stringify([env.a.id]), otherIssue.id);
+      // company 1 should not see the other-company dependent
+      expect(env.issues.findDependentsOf(env.a.id, env.companyId)).toEqual([]);
+    });
+
+    it("filters LIKE false-positives via JSON parse", () => {
+      const env = seedTwo();
+      // depends_on_json that contains env.a.id as substring of a different id
+      const fakeRef = env.a.id + "ZZ";
+      env.db
+        .prepare("UPDATE issues SET depends_on_json = ? WHERE id = ?")
+        .run(JSON.stringify([fakeRef]), env.b.id);
+      // LIKE matches but JSON.parse + includes check rejects
+      expect(env.issues.findDependentsOf(env.a.id, env.companyId)).toEqual([]);
+    });
+  });
 });

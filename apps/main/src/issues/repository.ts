@@ -88,6 +88,8 @@ export type IssuesRepository = {
   update(id: string, patch: UpdateIssueInput, actor: ActorContext): Issue | null;
   delete(id: string): void;
   resolveProjectByNameOrId(companyId: string, query: string): { id: string; matches: number };
+  // M8.6 — topological unlock support
+  findDependentsOf(issueId: string, companyId: string): Issue[];
 };
 
 const writeEvent = (
@@ -402,6 +404,29 @@ export const createIssuesRepository = (
         .all(companyId, query) as { id: string }[];
       if (byName.length === 1) return { id: byName[0]!.id, matches: 1 };
       return { id: "", matches: byName.length };
+    },
+    findDependentsOf(issueId, companyId) {
+      const rows = db
+        .prepare(
+          `SELECT * FROM issues
+           WHERE company_id = ?
+             AND depends_on_json IS NOT NULL
+             AND depends_on_json LIKE '%' || ? || '%'`,
+        )
+        .all(companyId, issueId) as (IssueRow & { depends_on_json: string | null })[];
+      // LIKE may catch substring false-positives (e.g., similar-prefix ids);
+      // parse JSON and filter.
+      return rows
+        .filter((r) => {
+          if (r.depends_on_json === null) return false;
+          try {
+            const arr = JSON.parse(r.depends_on_json) as unknown;
+            return Array.isArray(arr) && arr.includes(issueId);
+          } catch {
+            return false;
+          }
+        })
+        .map(rowToIssue);
     },
   };
   return repo;
