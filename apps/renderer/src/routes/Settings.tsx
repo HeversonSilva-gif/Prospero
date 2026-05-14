@@ -17,6 +17,7 @@ export const Settings = () => {
   const settings = useSettingsStore((s) => s.settings);
   const loadSettings = useSettingsStore((s) => s.load);
   const setModel = useSettingsStore((s) => s.setModel);
+  const saveExecutorMode = useSettingsStore((s) => s.saveExecutorMode);
   const [modelSaved, setModelSaved] = useState(false);
 
   useEffect(() => {
@@ -107,6 +108,43 @@ export const Settings = () => {
       </section>
 
       <BudgetsForm />
+
+      <section className="bg-surface-card border border-surface-border rounded-lg p-5 mb-4">
+        <h2 className="text-base font-semibold text-brand-dark mb-2">
+          {t("settings.executor.title")}
+        </h2>
+        <p className="text-xs text-ink-muted mb-3">{t("settings.executor.subtitle")}</p>
+        <div className="space-y-2">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="executorMode"
+              value="atomic"
+              checked={settings.executorMode === "atomic"}
+              onChange={() => void saveExecutorMode("atomic")}
+              className="mt-1"
+            />
+            <div>
+              <div className="text-sm font-medium text-ink">{t("settings.executor.atomic")}</div>
+              <div className="text-xs text-ink-muted">{t("settings.executor.atomicDesc")}</div>
+            </div>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="executorMode"
+              value="narrated"
+              checked={settings.executorMode === "narrated"}
+              onChange={() => void saveExecutorMode("narrated")}
+              className="mt-1"
+            />
+            <div>
+              <div className="text-sm font-medium text-ink">{t("settings.executor.narrated")}</div>
+              <div className="text-xs text-ink-muted">{t("settings.executor.narratedDesc")}</div>
+            </div>
+          </label>
+        </div>
+      </section>
 
       <section className="mb-6">
         <h2 className="text-sm font-semibold text-brand-dark mb-2">
