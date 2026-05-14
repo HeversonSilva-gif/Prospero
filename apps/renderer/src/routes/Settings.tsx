@@ -18,6 +18,13 @@ export const Settings = () => {
   const loadSettings = useSettingsStore((s) => s.load);
   const setModel = useSettingsStore((s) => s.setModel);
   const saveExecutorMode = useSettingsStore((s) => s.saveExecutorMode);
+  const setAuthMode = useSettingsStore((s) => s.setAuthMode);
+  const apiKeyStatus = useAuthStore((s) => s.apiKeyStatus);
+  const setApiKey = useAuthStore((s) => s.setApiKey);
+  const clearApiKey = useAuthStore((s) => s.clearApiKey);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+  const [apiKeyBusy, setApiKeyBusy] = useState(false);
   const [modelSaved, setModelSaved] = useState(false);
 
   useEffect(() => {
@@ -36,6 +43,19 @@ export const Settings = () => {
 
   const onClear = async () => {
     await clearToken();
+  };
+
+  const saveApiKey = async () => {
+    setApiKeyBusy(true);
+    setApiKeyError(null);
+    try {
+      await setApiKey(apiKeyInput);
+      setApiKeyInput("");
+    } catch (err) {
+      setApiKeyError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setApiKeyBusy(false);
+    }
   };
 
   const saveModel = async (next: string) => {
@@ -89,6 +109,86 @@ export const Settings = () => {
             >
               {t("settings.auth.actionSet")}
             </button>
+          </div>
+        )}
+      </section>
+
+      <section className="bg-surface-card border border-surface-border rounded-lg p-5 mb-4">
+        <h2 className="text-base font-semibold text-brand-dark mb-2">
+          {t("settings.authMode.title")}
+        </h2>
+        <p className="text-xs text-ink-muted mb-3">{t("settings.authMode.subtitle")}</p>
+        <div className="space-y-2">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="authMode"
+              value="oauth"
+              checked={settings.authMode === "oauth"}
+              onChange={() => void setAuthMode("oauth")}
+              className="mt-1"
+            />
+            <div>
+              <div className="text-sm font-medium text-ink">{t("settings.authMode.oauth")}</div>
+              <div className="text-xs text-ink-muted">{t("settings.authMode.oauthDesc")}</div>
+            </div>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="authMode"
+              value="api-key"
+              checked={settings.authMode === "api-key"}
+              onChange={() => void setAuthMode("api-key")}
+              className="mt-1"
+            />
+            <div>
+              <div className="text-sm font-medium text-ink">{t("settings.authMode.apiKey")}</div>
+              <div className="text-xs text-ink-muted">{t("settings.authMode.apiKeyDesc")}</div>
+            </div>
+          </label>
+        </div>
+
+        {settings.authMode === "api-key" && (
+          <div className="mt-4 pl-6 border-l-2 border-surface-border">
+            {apiKeyStatus.hasKey ? (
+              <div className="space-y-2">
+                <code className="block text-xs bg-surface-soft p-2 rounded text-ink-muted">
+                  {apiKeyStatus.maskedPrefix}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => void clearApiKey()}
+                  className="text-xs text-semantic-danger hover:underline"
+                >
+                  {t("settings.apiKey.clear")}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="password"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder={t("settings.apiKey.placeholder")}
+                  disabled={apiKeyBusy}
+                  className="w-full px-3 py-2 text-xs font-mono bg-surface-soft border border-surface-border rounded"
+                />
+                {apiKeyError !== null && (
+                  <p className="text-xs text-semantic-danger">{apiKeyError}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void saveApiKey()}
+                  disabled={apiKeyBusy || apiKeyInput.length === 0}
+                  className="px-3 py-1 text-xs font-semibold bg-brand text-brand-fg rounded disabled:opacity-50"
+                >
+                  {apiKeyBusy ? t("settings.apiKey.saving") : t("settings.apiKey.save")}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </section>
