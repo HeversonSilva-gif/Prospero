@@ -31,6 +31,16 @@ export const IssueDetailModal: FC<Props> = ({ issueId, onClose }) => {
     return () => clearDetail();
   }, [issueId, loadDetail, clearDetail]);
 
+  // M8.6: refetch detail when a comment is added live (CEO narrated comments).
+  useEffect(() => {
+    const off = window.dashboardAgent.issues.onChanged((event) => {
+      if (event.kind === "comment-added" && event.issueId === issueId) {
+        void loadDetail(issueId);
+      }
+    });
+    return off;
+  }, [issueId, loadDetail]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
