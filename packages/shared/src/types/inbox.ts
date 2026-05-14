@@ -6,7 +6,8 @@ export type InboxKind =
   | "security_alert"
   | "goal_proposed"
   | "goal_executing"
-  | "goal_error";
+  | "goal_error"
+  | "agent_unresponsive";
 
 export type InboxItem = {
   id: string;

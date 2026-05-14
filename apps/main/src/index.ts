@@ -17,11 +17,13 @@ import { createInboxRepository } from "./inbox/repository.js";
 import { createAgentsRepository } from "./agents/repository.js";
 import { createProjectsRepository } from "./projects/repository.js";
 import { getRecorder } from "./activity/index.js";
+import { startHeartbeat } from "./orchestrator/heartbeat.js";
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let db: Database.Database | null = null;
 let stopPermissionWatcher: (() => Promise<void>) | null = null;
+let stopHeartbeat: (() => void) | null = null;
 
 const getWindow = (): BrowserWindow | null => mainWindow;
 
@@ -100,6 +102,14 @@ void app.whenReady().then(() => {
   mainWindow = createMainWindow();
   registerWindowHandlers(mainWindow);
   tray = createTray(getWindow);
+
+  stopHeartbeat = startHeartbeat({
+    db,
+    agents: agentsRepo,
+    inbox: inboxRepo,
+    broadcastInbox: broadcastInboxUpdate,
+    thresholdMs: 5 * 60_000,
+  });
 });
 
 app.on("window-all-closed", () => {
@@ -113,6 +123,8 @@ app.on("activate", () => {
 });
 
 app.on("before-quit", () => {
+  stopHeartbeat?.();
+  stopHeartbeat = null;
   void stopPermissionWatcher?.();
   stopPermissionWatcher = null;
   tray?.destroy();
