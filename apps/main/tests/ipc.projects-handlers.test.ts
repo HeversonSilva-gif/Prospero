@@ -13,7 +13,7 @@ beforeEach(() => {
 });
 
 describe("projects handlers — channel registration", () => {
-  it("registers the 7 project channels", async () => {
+  it("registers the 10 project channels", async () => {
     const { ipcMain } = await import("electron");
     const { registerProjectsHandlers } = await import("../src/ipc/projects-handlers.js");
     const db = new Database(":memory:");
@@ -30,6 +30,9 @@ describe("projects handlers — channel registration", () => {
       "projects:open-folder",
       "projects:check-paths",
       "projects:set-slug",
+      "projects:set-icon",
+      "projects:archive",
+      "projects:unarchive",
     ]);
   });
 
