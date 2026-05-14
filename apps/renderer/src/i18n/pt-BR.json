@@ -525,6 +525,13 @@
       "apiKey": "API key",
       "apiKeyDesc": "Cobra por token · sem limite de 4 agentes"
     },
+    "agentDefaults": {
+      "title": "Defaults pra novos agentes",
+      "subtitle": "Configurações usadas quando você cria um novo agente. Você pode override durante a criação.",
+      "modeLabel": "Modo padrão",
+      "alwaysOnLabel": "Always-on por padrão",
+      "alwaysOnDesc": "Agente fica pronto pra receber tarefas sempre — útil pra workflows automáticos."
+    },
     "apiKey": {
       "placeholder": "sk-ant-api03-…",
       "save": "Salvar",
@@ -611,6 +618,19 @@
     "close": "Fechar",
     "confirm": "Confirmar",
     "delete": "Excluir"
+  },
+  "agents": {
+    "list": {
+      "title": "Agentes",
+      "new": "Novo agente",
+      "empty": "Nenhum agente ainda. Clique em \"Novo agente\" pra começar."
+    },
+    "gallery": {
+      "title": "Escolher template",
+      "subtitle": "Cada template traz persona, skills e modelo padrão. Você pode editar depois.",
+      "empty": "Nenhum template disponível.",
+      "agentsCount": "agente(s)"
+    }
   },
   "projects": {
     "title": "Projetos",

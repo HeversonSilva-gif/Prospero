@@ -525,6 +525,13 @@
       "apiKey": "API key",
       "apiKeyDesc": "Per-token billing · no 4-agent cap"
     },
+    "agentDefaults": {
+      "title": "Defaults for new agents",
+      "subtitle": "Used when you create a new agent. You can override during creation.",
+      "modeLabel": "Default mode",
+      "alwaysOnLabel": "Always-on by default",
+      "alwaysOnDesc": "Agent stays ready to receive tasks — useful for automated workflows."
+    },
     "apiKey": {
       "placeholder": "sk-ant-api03-…",
       "save": "Save",
@@ -611,6 +618,19 @@
     "close": "Close",
     "confirm": "Confirm",
     "delete": "Delete"
+  },
+  "agents": {
+    "list": {
+      "title": "Agents",
+      "new": "New agent",
+      "empty": "No agents yet. Click \"New agent\" to start."
+    },
+    "gallery": {
+      "title": "Pick a template",
+      "subtitle": "Each template brings persona, skills, and default model. You can edit after.",
+      "empty": "No templates available.",
+      "agentsCount": "agent(s)"
+    }
   },
   "projects": {
     "title": "Projects",

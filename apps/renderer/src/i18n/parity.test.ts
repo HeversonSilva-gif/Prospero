@@ -47,6 +47,26 @@ describe("i18n parity", () => {
     }
   });
 
+  it("includes the M9 PR-C agents-list + settings defaults keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "agents.list.title",
+      "agents.list.new",
+      "agents.list.empty",
+      "agents.gallery.title",
+      "agents.gallery.subtitle",
+      "agents.gallery.empty",
+      "agents.gallery.agentsCount",
+      "settings.agentDefaults.title",
+      "settings.agentDefaults.modeLabel",
+      "settings.agentDefaults.alwaysOnLabel",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
+
   it("includes the M9 PR-B dashboard widget keys in both locales", () => {
     const ptKeys = flatten(ptBR);
     const enKeys = flatten(enUS);
