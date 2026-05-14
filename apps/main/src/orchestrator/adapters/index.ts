@@ -5,6 +5,7 @@ import type {
   SpawnContext,
 } from "@dashboard-agent/shared";
 import { ClaudeOAuthLocalAdapter } from "./claude-oauth-local/adapter.js";
+import { ClaudeApiKeyLocalAdapter } from "./claude-api-key-local/adapter.js";
 
 const claudeOAuthLocalFactory: AgentAdapterFactory = {
   name: "claude-oauth-local",
@@ -13,9 +14,16 @@ const claudeOAuthLocalFactory: AgentAdapterFactory = {
   },
 };
 
+const claudeApiKeyLocalFactory: AgentAdapterFactory = {
+  name: "claude-api-key-local",
+  create(ctx: SpawnContext): AgentAdapter {
+    return new ClaudeApiKeyLocalAdapter(ctx);
+  },
+};
+
 export const adapterRegistry: Record<AdapterName, AgentAdapterFactory | undefined> = {
   "claude-oauth-local": claudeOAuthLocalFactory,
-  "claude-api-key-local": undefined, // M9
+  "claude-api-key-local": claudeApiKeyLocalFactory,
   "claude-oauth-remote-docker": undefined, // M10
 };
 
