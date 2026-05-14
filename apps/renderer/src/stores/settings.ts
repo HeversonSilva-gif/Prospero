@@ -24,6 +24,7 @@ export const useSettingsStore = create<State>((set) => ({
     defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
     executorMode: "atomic",
     activeCompanyId: null,
+    authMode: "oauth",
   },
   loaded: false,
 

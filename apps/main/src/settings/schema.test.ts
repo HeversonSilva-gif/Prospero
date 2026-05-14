@@ -17,3 +17,17 @@ describe("parseSettings activeCompanyId", () => {
     expect(parsed.activeCompanyId).toBeNull();
   });
 });
+
+describe("parseSettings authMode", () => {
+  it("defaults to oauth when absent", () => {
+    expect(parseSettings({}).authMode).toBe("oauth");
+  });
+
+  it("preserves 'api-key' value", () => {
+    expect(parseSettings({ authMode: "api-key" }).authMode).toBe("api-key");
+  });
+
+  it("rejects invalid string → defaults restored", () => {
+    expect(parseSettings({ authMode: "bogus" }).authMode).toBe("oauth");
+  });
+});

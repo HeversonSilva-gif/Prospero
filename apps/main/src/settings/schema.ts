@@ -13,6 +13,7 @@ export const AppSettingsSchema = z.object({
   defaultModelForNewAgents: z.string().regex(MODEL_ID_REGEX).default(DEFAULT_CLAUDE_MODEL),
   executorMode: z.enum(["atomic", "narrated"]).default("atomic"),
   activeCompanyId: z.string().nullable().default(null),
+  authMode: z.enum(["oauth", "api-key"]).default("oauth"),
 });
 
 const PartialAppSettingsSchema = AppSettingsSchema.partial();
@@ -32,6 +33,9 @@ export const parseSettings = (raw: unknown): AppSettings => {
   }
   if (result.data.activeCompanyId !== undefined) {
     merged.activeCompanyId = result.data.activeCompanyId;
+  }
+  if (result.data.authMode !== undefined) {
+    merged.authMode = result.data.authMode;
   }
   return merged;
 };

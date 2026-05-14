@@ -25,6 +25,7 @@ describe("settings schema", () => {
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
       executorMode: "atomic",
       activeCompanyId: null,
+      authMode: "oauth",
     });
   });
 
@@ -36,6 +37,7 @@ describe("settings schema", () => {
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
       executorMode: "atomic",
       activeCompanyId: null,
+      authMode: "oauth",
     });
   });
 
@@ -47,6 +49,7 @@ describe("settings schema", () => {
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
       executorMode: "atomic",
       activeCompanyId: null,
+      authMode: "oauth",
     });
   });
 

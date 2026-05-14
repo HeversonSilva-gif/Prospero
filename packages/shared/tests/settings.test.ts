@@ -28,6 +28,7 @@ describe("settings types and channels", () => {
       defaultModelForNewAgents: DEFAULT_CLAUDE_MODEL,
       executorMode: "atomic",
       activeCompanyId: null,
+      authMode: "oauth",
     };
     expect(s.language).toBe("pt-BR");
     expect(s.theme).toBe("light");
