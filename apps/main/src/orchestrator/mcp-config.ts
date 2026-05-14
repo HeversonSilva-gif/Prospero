@@ -1,7 +1,7 @@
 import { writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { SpawnEnv } from "./env.js";
+import type { AnySpawnEnv } from "./env.js";
 
 // In Electron's main process, `process.execPath` points to electron.exe, not node.
 // Spawning that to run a plain JS file launches a GUI app shell and hangs the MCP
@@ -10,7 +10,7 @@ import type { SpawnEnv } from "./env.js";
 // regular Node runtime for that child process, which is the documented workaround.
 const isElectronBinary = /electron(\.exe)?$/i.test(process.execPath);
 
-export const writeMcpConfigFile = (mcpServerJsPath: string, env: SpawnEnv): string => {
+export const writeMcpConfigFile = (mcpServerJsPath: string, env: AnySpawnEnv): string => {
   const dir = mkdtempSync(join(tmpdir(), "da-mcp-"));
   const configPath = join(dir, "mcp.json");
   const childEnv: Record<string, string> = {

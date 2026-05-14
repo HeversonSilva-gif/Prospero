@@ -1,12 +1,20 @@
 import type { Agent } from "@dashboard-agent/shared";
 
-export type SpawnEnv = {
-  CLAUDE_CODE_OAUTH_TOKEN: string;
+export type SpawnEnvBase = {
   AGENT_ID: string;
   COMPANY_ID: string;
   DB_PATH: string;
   PERMISSIONS_DIR: string;
   EVENTS_DIR: string;
+};
+
+export type SpawnEnv = SpawnEnvBase & {
+  CLAUDE_CODE_OAUTH_TOKEN: string;
+};
+
+export type AnySpawnEnv = SpawnEnvBase & {
+  CLAUDE_CODE_OAUTH_TOKEN?: string;
+  ANTHROPIC_API_KEY?: string;
 };
 
 export const buildSpawnEnv = (
@@ -24,13 +32,8 @@ export const buildSpawnEnv = (
   EVENTS_DIR: eventsDir,
 });
 
-export type SpawnEnvApiKey = {
+export type SpawnEnvApiKey = SpawnEnvBase & {
   ANTHROPIC_API_KEY: string;
-  AGENT_ID: string;
-  COMPANY_ID: string;
-  DB_PATH: string;
-  PERMISSIONS_DIR: string;
-  EVENTS_DIR: string;
 };
 
 export const buildSpawnEnvApiKey = (

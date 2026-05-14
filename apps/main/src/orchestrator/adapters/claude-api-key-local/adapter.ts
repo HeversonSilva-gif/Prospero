@@ -12,19 +12,17 @@ import type {
   SpawnContext,
   UsageEstimate,
 } from "@dashboard-agent/shared";
-import { buildClaudeArgs } from "./build-args.js";
-import { findClaudeExe } from "./resolve-binary.js";
-import { prepareSandbox, seedSandboxCredentials, writeSandboxSettings } from "./prepare-sandbox.js";
-import { parseStreamLine } from "./stream-parser.js";
-import { FakeClaude, isFakeClaudeEnabled } from "./fake-claude.js";
-import { buildSpawnEnv } from "../../env.js";
+import { buildClaudeArgs } from "../claude-oauth-local/build-args.js";
+import { findClaudeExe } from "../claude-oauth-local/resolve-binary.js";
+import { prepareSandbox, writeSandboxSettings } from "../claude-oauth-local/prepare-sandbox.js";
+import { parseStreamLine } from "../claude-oauth-local/stream-parser.js";
+import { FakeClaude, isFakeClaudeEnabled } from "../claude-oauth-local/fake-claude.js";
+import { buildSpawnEnvApiKey } from "../../env.js";
 import { setupMcpHandshake } from "../../mcp-handshake.js";
 import { mergeSpawnEnv } from "../../util/env-merge.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Diagnostic file log — writes to dist/orchestrator.log so we can see what claude
-// emits even when stderr/stdout from the Electron main process is hidden.
 const logFile = resolve(__dirname, "../../orchestrator.log");
 const dlog = (msg: string): void => {
   try {
@@ -36,8 +34,8 @@ const dlog = (msg: string): void => {
   }
 };
 
-export class ClaudeOAuthLocalAdapter implements AgentAdapter {
-  readonly name: AdapterName = "claude-oauth-local";
+export class ClaudeApiKeyLocalAdapter implements AgentAdapter {
+  readonly name: AdapterName = "claude-api-key-local";
   readonly agentId: string;
 
   private readonly ctx: SpawnContext;
@@ -58,13 +56,13 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
     if (this.child !== null) {
       throw new Error("Adapter already started; create a new instance to respawn");
     }
-
-    if (this.ctx.oauthToken === undefined) {
-      throw new Error("claude-oauth-local requires oauthToken in SpawnContext");
+    if (this.ctx.apiKey === undefined) {
+      throw new Error("claude-api-key-local requires apiKey in SpawnContext");
     }
-    const env = buildSpawnEnv(
+
+    const env = buildSpawnEnvApiKey(
       this.ctx.agent,
-      this.ctx.oauthToken,
+      this.ctx.apiKey,
       this.ctx.dbPath,
       this.ctx.permissionsDir,
       this.ctx.eventsDir,
@@ -80,22 +78,19 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
       this.ctx.userDataDir,
     );
 
-    seedSandboxCredentials(agentConfigDir);
+    // No seedSandboxCredentials — the key flows via env ANTHROPIC_API_KEY.
     writeSandboxSettings(agentConfigDir);
 
     const spawnCwd = this.ctx.cwd ?? agentSandboxCwd;
     const spawnEnv = mergeSpawnEnv(env, agentConfigDir);
 
-    dlog(`spawn claude for agent=${this.ctx.agent.id} cwd=${spawnCwd}`);
-    dlog(`configDir=${agentConfigDir} ephemeral=${String(isEphemeralConfigDir)}`);
-    dlog(`args: ${JSON.stringify(args)}`);
+    dlog(`spawn claude (api-key) for agent=${this.ctx.agent.id} cwd=${spawnCwd}`);
 
     if (isFakeClaudeEnabled()) {
       dlog(`spawn strategy: FakeClaude stub (E2E mode)`);
       this.child = new FakeClaude() as unknown as ChildProcess;
     } else {
       const claudeExe = findClaudeExe();
-      dlog(`spawn strategy: ${claudeExe !== null ? `direct exe (${claudeExe})` : "cross-spawn"}`);
       this.child =
         claudeExe !== null
           ? nodeSpawn(claudeExe, args, {
@@ -111,16 +106,9 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
             });
     }
 
-    dlog(`spawned pid=${String(this.child.pid ?? "unknown")}`);
-    this.child.on("spawn", () => {
-      dlog(`spawn event fired pid=${String(this.child?.pid ?? "unknown")}`);
-    });
-
     if (this.child.stdout !== null) {
       const rl = createInterface({ input: this.child.stdout, crlfDelay: Infinity });
       rl.on("line", (line) => {
-        const preview = line.length > 300 ? line.slice(0, 300) + "..." : line;
-        dlog(`stdout: ${preview}`);
         const parsed = parseStreamLine(line);
         if (parsed !== null) this.handleParsedEvent(parsed);
       });
@@ -130,26 +118,14 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
       this.child.stderr.setEncoding("utf8");
       this.child.stderr.on("data", (chunk: string) => {
         for (const line of chunk.split("\n")) {
-          if (line.trim() !== "") {
-            dlog(`stderr: ${line}`);
-            this.emitStderr(line);
-          }
+          if (line.trim() !== "") this.emitStderr(line);
         }
       });
     }
 
-    this.child.on("exit", (code, signal) => {
-      dlog(`exit code=${String(code)} signal=${String(signal)}`);
-      this.emitExit(code);
-    });
+    this.child.on("exit", (code) => this.emitExit(code));
+    this.child.on("error", (err) => this.emitStderr(`adapter-error: ${err.message}`));
 
-    this.child.on("error", (err) => {
-      dlog(`error: ${err.message}`);
-      this.emitStderr(`adapter-error: ${err.message}`);
-    });
-
-    // Cleanup: remove the per-spawn MCP config tmpdir on kill/exit. The persistent
-    // per-agent CLAUDE_CONFIG_DIR stays — it holds session history for --resume.
     this.cleanupFn = (): void => {
       const dirsToRemove = [dirname(handshake.mcpConfigPath)];
       if (isEphemeralConfigDir) {
@@ -164,7 +140,6 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
         }
       }
     };
-
     this.child.on("exit", () => {
       if (this.cleanupFn !== null) {
         this.cleanupFn();
@@ -176,9 +151,7 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
   }
 
   sendInput(text: string): void {
-    if (this.child === null || this.child.stdin === null || !this.child.stdin.writable) {
-      return;
-    }
+    if (this.child === null || this.child.stdin === null || !this.child.stdin.writable) return;
     const payload = JSON.stringify({
       type: "user",
       message: { role: "user", content: [{ type: "text", text }] },
@@ -192,14 +165,12 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
       this.eventListeners.delete(cb);
     };
   }
-
   onStderr(cb: AdapterEventListener<string>): () => void {
     this.stderrListeners.add(cb);
     return (): void => {
       this.stderrListeners.delete(cb);
     };
   }
-
   onExit(cb: AdapterEventListener<number | null>): () => void {
     this.exitListeners.add(cb);
     return (): void => {
@@ -208,9 +179,7 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
   }
 
   kill(): void {
-    if (this.child !== null && !this.child.killed) {
-      this.child.kill();
-    }
+    if (this.child !== null && !this.child.killed) this.child.kill();
     if (this.cleanupFn !== null) {
       this.cleanupFn();
       this.cleanupFn = null;
@@ -225,7 +194,6 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
   getUsage(): UsageEstimate {
     return { ...this.usage };
   }
-
   getCurrentAction(): string | null {
     return this.currentAction;
   }
@@ -237,17 +205,11 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
       this.usage.cache_creation += event.usage.cache_creation;
       this.usage.cache_read += event.usage.cache_read;
     }
-    this.emitEvent(event);
-  }
-
-  private emitEvent(event: ParsedEvent): void {
     for (const cb of this.eventListeners) cb(event);
   }
-
   private emitStderr(line: string): void {
     for (const cb of this.stderrListeners) cb(line);
   }
-
   private emitExit(code: number | null): void {
     for (const cb of this.exitListeners) cb(code);
   }

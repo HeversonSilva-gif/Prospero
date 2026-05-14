@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { writeMcpConfigFile } from "./mcp-config.js";
-import type { SpawnEnv } from "./env.js";
+import type { AnySpawnEnv } from "./env.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -20,7 +20,7 @@ export const resolveMcpServerPath = (override?: string): string =>
 // Returns both paths so the adapter can pass mcpConfigPath to claude args and use
 // mcpServerJsPath for logging/debugging.
 export const setupMcpHandshake = (
-  env: SpawnEnv,
+  env: AnySpawnEnv,
   mcpServerJsPathOverride?: string,
 ): HandshakeResult => {
   const mcpServerJsPath = resolveMcpServerPath(mcpServerJsPathOverride);

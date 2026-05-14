@@ -9,7 +9,8 @@ export const DEFAULT_ADAPTER_NAME: AdapterName = "claude-oauth-local";
 
 export type SpawnContext = {
   agent: Agent;
-  oauthToken: string;
+  oauthToken?: string;
+  apiKey?: string;
   dbPath: string;
   permissionsDir: string;
   eventsDir: string;
