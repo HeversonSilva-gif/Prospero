@@ -1,7 +1,6 @@
 import type { AgentAdapter, AdapterName, ParsedEvent, SpawnContext } from "@dashboard-agent/shared";
 import { DEFAULT_ADAPTER_NAME } from "@dashboard-agent/shared";
 import { createAdapter } from "./adapters/index.js";
-import { getActiveAuthMode } from "../auth/auth-mode.js";
 
 // Re-exports for callers that gradually migrate to direct imports.
 export { buildClaudeArgs } from "./adapters/claude-oauth-local/build-args.js";
@@ -49,18 +48,11 @@ export const ensureAdapter = async (
     );
   }
 
-  // Defense-in-depth: if the agent row somehow has an empty adapterName (e.g.
-  // a future migration loses the DEFAULT), pick from the active auth mode
-  // rather than crashing. Migration 0004 already defaults to claude-oauth-local
-  // so this is belt-and-braces.
-  const adapterFromAgent = (opts.agent.adapterName as AdapterName | undefined) ?? "";
+  // agent.adapterName is set at creation time (see agents.create + hire pipeline).
+  // Migration 0004 defaults the column to 'claude-oauth-local', so even legacy
+  // rows pre-PR-D land on OAuth.
   const name: AdapterName =
-    adapterFromAgent !== ""
-      ? adapterFromAgent
-      : getActiveAuthMode() === "oauth"
-        ? "claude-oauth-local"
-        : "claude-api-key-local";
-  void DEFAULT_ADAPTER_NAME; // kept for re-export consumers; selection now via getActiveAuthMode
+    (opts.agent.adapterName as AdapterName | undefined) ?? DEFAULT_ADAPTER_NAME;
   const adapter = createAdapter(name, opts);
   adapter.onEvent(callbacks.onEvent);
   if (callbacks.onStderr !== undefined) adapter.onStderr(callbacks.onStderr);
