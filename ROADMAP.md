@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-12 — **M8 fechado (PR-A + PR-B mergeados em master via `4c943fe`)**. Cost tracking + soft-stop + `/costs` route + Dashboard widget + Settings Budgets + ModelDropdown hints + StatsTab real. **11/14 milestones fechados**. Próximo: **M8.5 Goals** (CEO planning automático).
+> **Última atualização:** 2026-05-14 — **M8.5 PR-A backend ✅ MERGEADO** em master (16 tasks, 65 testes novos, HEAD `6925a5c`). Schema + repos + Zod + 6 MCP tools + CEO system prompt + executor atomic + recovery + 7 IPCs + integration tests. Próximo: **M8.5 PR-B UI** (`/goals` rota + PR-review UI). **11/14 milestones fechados** (v1 = M10); V2 anchor = M11 Agent Memory (ver "Visão V2" abaixo).
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 >
@@ -566,6 +566,8 @@ M11 (Agent Memory & Learning Loop — inspirado Hermes) ─── v1.1
 ---
 
 ### 🆕 M8.5 — Goals + CEO Planning — **feature além do Paperclip**
+
+> **Status (2026-05-14):** **PR-A backend ✅ MERGEADO** (16 tasks, 65 testes novos, master HEAD `6925a5c`). Schema (migration 0012), goals/plans repos, Zod GoalPlanPayloadSchema com DAG validation, 6 MCP tools (list/get/update_status/record_subgoal/get_cost_baseline/submit_goal_plan), CEO system prompt block, executor atomic (topo-sorted hires + issues + goal_id linking), recovery scan, 7 IPC handlers + preload, integration tests. **PR-B UI ainda não iniciado** — rota `/goals` tree + `/goals/:id` PR-review UI.
 
 **Origem:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md §2](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md). User cria Goal → clica "Ask CEO to plan" → CEO lê e propõe **plano estruturado** (agents a contratar, issues a criar, estimates de tempo/tokens/custo, riscos) → user aprova em **PR-review UI** → executor atômico cria agents+issues.
 
