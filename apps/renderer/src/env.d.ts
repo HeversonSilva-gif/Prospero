@@ -63,6 +63,12 @@ declare global {
         create: (name: string) => Promise<Company>;
         delete: (id: string) => Promise<{ ok: true }>;
         exportSnapshot: (id: string) => Promise<unknown>;
+        importSnapshot: (snapshot: unknown) => Promise<{
+          newCompanyId: string;
+          newCompanyName: string;
+          counts: Record<string, number>;
+          warnings: string[];
+        }>;
       };
       agents: {
         list: (companyId: string) => Promise<Agent[]>;

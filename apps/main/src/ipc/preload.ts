@@ -69,6 +69,13 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
     delete: (id: string) => ipcRenderer.invoke(IPC.COMPANY_DELETE, { id }) as Promise<{ ok: true }>,
     exportSnapshot: (id: string) =>
       ipcRenderer.invoke(IPC.COMPANY_EXPORT, { id }) as Promise<unknown>,
+    importSnapshot: (snapshot: unknown) =>
+      ipcRenderer.invoke(IPC.COMPANY_IMPORT, { snapshot }) as Promise<{
+        newCompanyId: string;
+        newCompanyName: string;
+        counts: Record<string, number>;
+        warnings: string[];
+      }>,
   },
   agents: {
     list: (companyId: string) =>

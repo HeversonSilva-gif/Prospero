@@ -4,6 +4,8 @@ import { IPC, type Company } from "@dashboard-agent/shared";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createDemoCompany } from "../companies/seed.js";
 import { exportCompany, type CompanyExportV1 } from "../companies/export.js";
+import { importCompany } from "../companies/import.js";
+import type { ImportSummary } from "../companies/import-schema.js";
 
 export const registerCompaniesHandlers = (db: Database.Database): void => {
   const repo = createCompaniesRepository(db);
@@ -33,5 +35,12 @@ export const registerCompaniesHandlers = (db: Database.Database): void => {
       throw new Error("[company:export] id is required");
     }
     return exportCompany(db, payload.id);
+  });
+
+  ipcMain.handle(IPC.COMPANY_IMPORT, (_e, payload: { snapshot: unknown }): ImportSummary => {
+    if (payload === null || typeof payload !== "object" || !("snapshot" in payload)) {
+      throw new Error("[company:import] snapshot payload is required");
+    }
+    return importCompany(db, payload.snapshot);
   });
 };

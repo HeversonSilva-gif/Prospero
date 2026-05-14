@@ -37,6 +37,7 @@ export const IPC = {
   PROJECTS_ARCHIVE: "projects:archive",
   PROJECTS_UNARCHIVE: "projects:unarchive",
   COMPANY_EXPORT: "company:export",
+  COMPANY_IMPORT: "company:import",
   ARTIFACTS_LIST_BY_ISSUE: "artifacts:list-by-issue",
   AGENTS_SET_ALLOWED_PROJECTS: "agents:set-allowed-projects",
   ISSUES_LIST: "issues:list",
