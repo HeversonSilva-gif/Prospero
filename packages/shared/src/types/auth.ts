@@ -10,3 +10,7 @@ export type TokenStatus =
     };
 
 export type DetectResult = { found: false } | { found: true; maskedPrefix: string };
+
+export type ApiKeyStatus =
+  | { hasKey: false }
+  | { hasKey: true; maskedPrefix: string; configuredAt: number };
