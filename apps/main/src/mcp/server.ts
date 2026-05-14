@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { toolDefinitions, type ToolContext } from "./tools.js";
 import { goalsToolDefinitions } from "./tools-goals.js";
+import { issuesToolDefinitions } from "./tools-issues.js";
 
 const agentId = process.env["AGENT_ID"];
 const companyId = process.env["COMPANY_ID"];
@@ -73,7 +74,7 @@ type RegisterTool = (
 
 const register = (server.registerTool as unknown as RegisterTool).bind(server);
 
-const allToolDefinitions = [...toolDefinitions, ...goalsToolDefinitions];
+const allToolDefinitions = [...toolDefinitions, ...goalsToolDefinitions, ...issuesToolDefinitions];
 
 for (const def of allToolDefinitions) {
   register(
