@@ -1,11 +1,13 @@
 import type { WireCredentials } from "@prospero/shared";
 import type { ClaudeProcess } from "./claude-process.js";
 import type { AgentSandbox } from "./sandbox.js";
+import type { McpListener } from "./mcp-mux.js";
 
 /** A spawned agent the runner is managing. */
 export type RunningAgent = {
   readonly child: ClaudeProcess;
   readonly sandbox: AgentSandbox;
+  readonly mcp: McpListener;
 };
 
 /** Mutable state shared across the runner's wire handlers. */
