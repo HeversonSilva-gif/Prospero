@@ -10,7 +10,7 @@
   A seção /00 existe pra leigos entenderem o que dá pra fazer hoje sem ler jargão técnico.
   Mantém em sincronia com ROADMAP.md "Em linguagem simples".
 -->
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR" data-theme="dark" class="no-js">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -548,7 +548,7 @@
         background: var(--bg-elev);
         border-left: 3px solid var(--accent);
         padding: 18px 24px;
-        margin-bottom: 28px;
+        margin-bottom: 32px;
         font-size: 14px;
         color: var(--ink-2);
         line-height: 1.6;
@@ -556,29 +556,113 @@
       .layperson-intro strong {
         color: var(--ink);
       }
+      .lp-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .lp-summary-pill {
+        font-size: 11px;
+        color: var(--ink-2);
+        padding: 5px 10px;
+        background: var(--bg);
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        letter-spacing: 0.02em;
+      }
+      .lp-summary-pill strong {
+        color: var(--accent);
+        font-weight: 700;
+        margin-right: 4px;
+      }
       .layperson-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 0;
-        border-top: 1px solid var(--rule);
-        border-left: 1px solid var(--rule);
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 14px;
       }
       .layperson-card {
-        border-right: 1px solid var(--rule);
-        border-bottom: 1px solid var(--rule);
-        padding: 22px 24px;
+        position: relative;
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        padding: 20px 22px 22px;
         background: var(--bg-elev);
-        transition: background 180ms ease;
+        transition:
+          transform 220ms cubic-bezier(0.2, 0.7, 0.3, 1),
+          border-color 220ms ease,
+          box-shadow 220ms ease,
+          background 220ms ease;
+        overflow: hidden;
+      }
+      .layperson-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 3px;
+        background: linear-gradient(180deg, var(--accent), transparent);
+        opacity: 0;
+        transition: opacity 220ms ease;
       }
       .layperson-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+        box-shadow:
+          0 8px 24px -12px var(--accent-dim),
+          0 1px 0 0 var(--rule);
         background: var(--bg-card);
       }
-      .layperson-card .cat {
-        font-size: 14px;
+      .layperson-card:hover::before {
+        opacity: 1;
+      }
+      .lp-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+        border-bottom: 1px dashed var(--rule);
+      }
+      .lp-icon {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        font-size: 20px;
+        background: var(--bg);
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        flex-shrink: 0;
+        transition:
+          transform 280ms cubic-bezier(0.2, 0.7, 0.3, 1),
+          border-color 220ms ease;
+        line-height: 1;
+      }
+      .layperson-card:hover .lp-icon {
+        transform: rotate(-6deg) scale(1.06);
+        border-color: var(--accent);
+      }
+      .lp-title {
+        flex: 1;
+        min-width: 0;
+        font-size: 13.5px;
         font-weight: 700;
         color: var(--ink);
-        margin-bottom: 14px;
         letter-spacing: -0.01em;
+        line-height: 1.25;
+      }
+      .lp-count {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--accent);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        flex-shrink: 0;
+        background: var(--accent-dim);
+        padding: 3px 7px;
+        border-radius: 3px;
       }
       .layperson-card ul {
         list-style: none;
@@ -589,18 +673,44 @@
         font-size: 12.5px;
         color: var(--ink-2);
         line-height: 1.55;
-        padding: 6px 0 6px 16px;
+        padding: 5px 0 5px 22px;
         position: relative;
       }
       .layperson-card li::before {
-        content: "▸";
+        content: "✓";
         position: absolute;
         left: 0;
-        color: var(--accent);
+        top: 5px;
+        width: 14px;
+        height: 14px;
+        display: grid;
+        place-items: center;
+        color: var(--done);
         font-size: 10px;
+        font-weight: 700;
+        line-height: 1;
+        background: color-mix(in srgb, var(--done) 14%, transparent);
+        border-radius: 50%;
       }
       .layperson-card li strong {
         color: var(--ink);
+      }
+      .layperson-card li[data-new] {
+        position: relative;
+      }
+      .layperson-card li[data-new]::after {
+        content: "NEW";
+        display: inline-block;
+        margin-left: 6px;
+        font-size: 8.5px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        color: var(--bg);
+        background: var(--accent);
+        padding: 1px 5px;
+        border-radius: 2px;
+        vertical-align: 2px;
+        animation: pulse-new 2.4s ease-in-out infinite;
       }
       .layperson-card.new-tag {
         border-left: 3px solid var(--accent);
@@ -616,6 +726,7 @@
         padding: 2px 6px;
         margin-left: 8px;
         vertical-align: middle;
+        animation: pulse-new 2.4s ease-in-out infinite;
       }
       .layperson-future {
         background: var(--bg-elev);
@@ -652,6 +763,108 @@
       }
       .layperson-future li strong {
         color: var(--ink);
+      }
+
+      /* ─── scroll-in animations + interactive accents ─── */
+      @keyframes pulse-new {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 var(--accent-dim);
+        }
+        50% {
+          box-shadow: 0 0 0 4px transparent;
+        }
+      }
+      @keyframes fade-up {
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes shimmer {
+        from {
+          background-position: -200% 0;
+        }
+        to {
+          background-position: 200% 0;
+        }
+      }
+
+      .reveal {
+        opacity: 1;
+        transform: none;
+      }
+      html.js .reveal {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      html.js .reveal.in-view {
+        animation: fade-up 600ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+      }
+      .reveal[data-delay="1"].in-view {
+        animation-delay: 60ms;
+      }
+      .reveal[data-delay="2"].in-view {
+        animation-delay: 120ms;
+      }
+      .reveal[data-delay="3"].in-view {
+        animation-delay: 180ms;
+      }
+      .reveal[data-delay="4"].in-view {
+        animation-delay: 240ms;
+      }
+      .reveal[data-delay="5"].in-view {
+        animation-delay: 300ms;
+      }
+      .reveal[data-delay="6"].in-view {
+        animation-delay: 360ms;
+      }
+      .reveal[data-delay="7"].in-view {
+        animation-delay: 420ms;
+      }
+      .reveal[data-delay="8"].in-view {
+        animation-delay: 480ms;
+      }
+
+      /* progress bar pulse — subtle highlight on the active segment */
+      .progress-bar .bar-done {
+        position: relative;
+        overflow: hidden;
+      }
+      .progress-bar .bar-done::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          color-mix(in srgb, var(--bg) 28%, transparent) 50%,
+          transparent 100%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 4.5s linear infinite;
+        pointer-events: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .reveal,
+        .reveal.in-view {
+          opacity: 1;
+          transform: none;
+          animation: none;
+        }
+        .layperson-card li[data-new]::after,
+        .layperson-card .new-badge,
+        .progress-bar .bar-done::after {
+          animation: none;
+        }
+        .layperson-card:hover {
+          transform: none;
+        }
       }
 
       /* ─── filter bar ─── */
@@ -1099,19 +1312,27 @@
         <div class="stats">
           <div class="stat">
             <div class="label">Milestones</div>
-            <div class="value">13 <span class="unit">/ 14 fechados</span></div>
+            <div class="value">
+              <span data-target="13">0</span> <span class="unit">/ 14 fechados</span>
+            </div>
           </div>
           <div class="stat">
             <div class="label">Testes</div>
-            <div class="value">711 <span class="unit">passing</span></div>
+            <div class="value">
+              <span data-target="819">0</span> <span class="unit">passing</span>
+            </div>
           </div>
           <div class="stat">
             <div class="label">Commits</div>
-            <div class="value">~245 <span class="unit">no master</span></div>
+            <div class="value">
+              ~<span data-target="512">0</span> <span class="unit">no master</span>
+            </div>
           </div>
           <div class="stat">
             <div class="label">LoC apps + packages</div>
-            <div class="value">~18k <span class="unit">TS/TSX</span></div>
+            <div class="value">
+              ~<span data-target="23" data-suffix="k">0</span> <span class="unit">TS/TSX</span>
+            </div>
           </div>
         </div>
       </header>
@@ -1124,15 +1345,24 @@
           <span class="note">pra leigos · o que o app faz hoje, sem jargão</span>
         </div>
 
-        <div class="layperson-intro">
+        <div class="layperson-intro reveal">
           <strong>Não é técnico?</strong> Aqui está, sem jargão, tudo que dá pra fazer no
           DashboardAgent neste momento. Tudo nesta lista <strong>já funciona</strong> — você
           instala, loga com sua conta Claude Max, e usa.
+          <div class="lp-summary">
+            <span class="lp-summary-pill"><strong>12</strong> categorias</span>
+            <span class="lp-summary-pill"><strong>57</strong> funcionalidades prontas</span>
+            <span class="lp-summary-pill"><strong>3</strong> entregas novas em 2026-05-14</span>
+          </div>
         </div>
 
         <div class="layperson-grid">
-          <div class="layperson-card">
-            <div class="cat">🏢 Organização</div>
+          <div class="layperson-card reveal">
+            <div class="lp-head">
+              <div class="lp-icon">🏢</div>
+              <div class="lp-title">Organização</div>
+              <div class="lp-count">6 / 6</div>
+            </div>
             <ul>
               <li>
                 Criar uma "empresa" virtual e adicionar <strong>projetos</strong> (pastas de código
@@ -1155,7 +1385,7 @@
                 como empresa nova com IDs frescos. Se já existir uma com o mesmo nome, vira
                 "(imported)"
               </li>
-              <li>
+              <li data-new>
                 <strong>Descrever o time num <code>AGENTS.md</code></strong> (Settings → Importar de
                 AGENTS.md) — YAML com <code>company</code> + <code>projects</code> +
                 <code>agents</code>. "Hire all" cria tudo de uma vez; conflito de nome → modal
@@ -1164,8 +1394,12 @@
             </ul>
           </div>
 
-          <div class="layperson-card">
-            <div class="cat">👥 Time de agentes Claude</div>
+          <div class="layperson-card reveal" data-delay="1">
+            <div class="lp-head">
+              <div class="lp-icon">👥</div>
+              <div class="lp-title">Time de agentes Claude</div>
+              <div class="lp-count">5 / 5</div>
+            </div>
             <ul>
               <li>
                 "Contratar" agentes Claude — cada um vira tipo um <strong>funcionário</strong> com
@@ -1189,8 +1423,12 @@
             </ul>
           </div>
 
-          <div class="layperson-card">
-            <div class="cat">💬 Comunicação</div>
+          <div class="layperson-card reveal" data-delay="2">
+            <div class="lp-head">
+              <div class="lp-icon">💬</div>
+              <div class="lp-title">Comunicação</div>
+              <div class="lp-count">4 / 4</div>
+            </div>
             <ul>
               <li>
                 Conversar com cada agente em <strong>chat 1-1</strong> (como mensagear no
@@ -1208,8 +1446,12 @@
             </ul>
           </div>
 
-          <div class="layperson-card">
-            <div class="cat">📋 Tarefas (Issues)</div>
+          <div class="layperson-card reveal" data-delay="3">
+            <div class="lp-head">
+              <div class="lp-icon">📋</div>
+              <div class="lp-title">Tarefas (Issues)</div>
+              <div class="lp-count">4 / 4</div>
+            </div>
             <ul>
               <li>Criar tickets com título, descrição, prioridade, responsável</li>
               <li>
@@ -1221,8 +1463,12 @@
             </ul>
           </div>
 
-          <div class="layperson-card">
-            <div class="cat">📥 Inbox de aprovações</div>
+          <div class="layperson-card reveal" data-delay="4">
+            <div class="lp-head">
+              <div class="lp-icon">📥</div>
+              <div class="lp-title">Inbox de aprovações</div>
+              <div class="lp-count">4 / 4</div>
+            </div>
             <ul>
               <li>
                 Quando agente quer fazer algo arriscado (rodar comando shell, editar arquivo
@@ -1234,8 +1480,12 @@
             </ul>
           </div>
 
-          <div class="layperson-card">
-            <div class="cat">🎯 Configuração de agente (Agent Studio)</div>
+          <div class="layperson-card reveal" data-delay="5">
+            <div class="lp-head">
+              <div class="lp-icon">🎛️</div>
+              <div class="lp-title">Agent Studio</div>
+              <div class="lp-count">5 / 5</div>
+            </div>
             <ul>
               <li>Editar <strong>persona</strong> (instruções) — modal com expand fullscreen</li>
               <li>
@@ -1253,9 +1503,13 @@
             </ul>
           </div>
 
-          <div class="layperson-card new-tag">
-            <div class="cat">
-              🎬 Execução narrada (Kanban vivo)<span class="new-badge">novo</span>
+          <div class="layperson-card new-tag reveal" data-delay="6">
+            <div class="lp-head">
+              <div class="lp-icon">🎬</div>
+              <div class="lp-title">
+                Execução narrada (Kanban vivo)<span class="new-badge">novo</span>
+              </div>
+              <div class="lp-count">6 / 6</div>
             </div>
             <ul>
               <li>
@@ -1286,8 +1540,12 @@
             </ul>
           </div>
 
-          <div class="layperson-card new-tag">
-            <div class="cat">🎯 Goals & CEO Planning<span class="new-badge">novo</span></div>
+          <div class="layperson-card new-tag reveal" data-delay="7">
+            <div class="lp-head">
+              <div class="lp-icon">🎯</div>
+              <div class="lp-title">Goals & CEO Planning<span class="new-badge">novo</span></div>
+              <div class="lp-count">7 / 7</div>
+            </div>
             <ul>
               <li>
                 Você cria um <strong>objetivo</strong> (título, nível, prazo, critérios) e clica
@@ -1318,8 +1576,12 @@
             </ul>
           </div>
 
-          <div class="layperson-card new-tag">
-            <div class="cat">💰 Custos<span class="new-badge">novo</span></div>
+          <div class="layperson-card new-tag reveal" data-delay="8">
+            <div class="lp-head">
+              <div class="lp-icon">💰</div>
+              <div class="lp-title">Custos<span class="new-badge">novo</span></div>
+              <div class="lp-count">9 / 9</div>
+            </div>
             <ul>
               <li>
                 <strong>Tracking automático de tokens</strong> consumidos por turn (entrada, saída,
@@ -1352,8 +1614,12 @@
             </ul>
           </div>
 
-          <div class="layperson-card">
-            <div class="cat">🔒 Segurança</div>
+          <div class="layperson-card reveal">
+            <div class="lp-head">
+              <div class="lp-icon">🔒</div>
+              <div class="lp-title">Segurança</div>
+              <div class="lp-count">5 / 5</div>
+            </div>
             <ul>
               <li>Token Claude Max <strong>criptografado at-rest</strong> com DPAPI (Windows)</li>
               <li>Cada agente só mexe nos <strong>projetos que você liberou</strong></li>
@@ -1371,8 +1637,12 @@
             </ul>
           </div>
 
-          <div class="layperson-card">
-            <div class="cat">🌍 Personalização</div>
+          <div class="layperson-card reveal" data-delay="1">
+            <div class="lp-head">
+              <div class="lp-icon">🌍</div>
+              <div class="lp-title">Personalização</div>
+              <div class="lp-count">4 / 4</div>
+            </div>
             <ul>
               <li><strong>Tema</strong> claro ou escuro (paleta monocromática)</li>
               <li><strong>Idioma</strong> português (BR) ou inglês (US) — sem mistura na tela</li>
@@ -1384,8 +1654,12 @@
             </ul>
           </div>
 
-          <div class="layperson-card">
-            <div class="cat">⚙️ Por baixo do capô</div>
+          <div class="layperson-card reveal" data-delay="2">
+            <div class="lp-head">
+              <div class="lp-icon">⚙️</div>
+              <div class="lp-title">Por baixo do capô</div>
+              <div class="lp-count">4 / 4</div>
+            </div>
             <ul>
               <li>Tudo roda <strong>no seu computador</strong> — single-user, offline-first</li>
               <li>
@@ -3847,6 +4121,12 @@
     </main>
 
     <script>
+      // ─── progressive enhancement flag ─────────────────────────
+      // Replaces .no-js with .js so CSS rules guarded by html.js
+      // activate (e.g. reveal animations start opacity 0).
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+
       // ─── theme toggle ─────────────────────────────────────────
       function toggleTheme() {
         const root = document.documentElement;
@@ -3895,6 +4175,85 @@
           }
         });
       });
+
+      // ─── scroll-in reveals via IntersectionObserver ───────────
+      // Marks any element with class .reveal as .in-view once it enters
+      // the viewport. CSS animates opacity + translateY. Respects
+      // prefers-reduced-motion (CSS overrides keyframe).
+      (function () {
+        const targets = document.querySelectorAll(".reveal");
+        if (targets.length === 0) return;
+        if (!("IntersectionObserver" in window)) {
+          targets.forEach((el) => el.classList.add("in-view"));
+          return;
+        }
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("in-view");
+                io.unobserve(entry.target);
+              }
+            });
+          },
+          { rootMargin: "0px 0px -60px 0px", threshold: 0.08 },
+        );
+        targets.forEach((el) => io.observe(el));
+      })();
+
+      // ─── stat counter: tick from 0 to data-target on first view ───
+      // Honors data-suffix for "k" / "%" etc. and supports decimals
+      // ("13.5") and slash counts ("13/14" → animates the first number).
+      (function () {
+        const stats = document.querySelectorAll("[data-target]");
+        if (stats.length === 0) return;
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        const tick = (el) => {
+          const raw = el.getAttribute("data-target");
+          const suffix = el.getAttribute("data-suffix") || "";
+          const slashIdx = raw.indexOf("/");
+          const targetStr = slashIdx >= 0 ? raw.slice(0, slashIdx) : raw;
+          const tail = slashIdx >= 0 ? raw.slice(slashIdx) : "";
+          const target = parseFloat(targetStr);
+          if (Number.isNaN(target)) {
+            el.textContent = raw + suffix;
+            return;
+          }
+          if (reduceMotion) {
+            el.textContent = targetStr + tail + suffix;
+            return;
+          }
+          const duration = 1100;
+          const start = performance.now();
+          const decimals = (targetStr.split(".")[1] || "").length;
+          const step = (now) => {
+            const t = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - t, 3);
+            const value = (target * eased).toFixed(decimals);
+            el.textContent = value + tail + suffix;
+            if (t < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        };
+
+        if (!("IntersectionObserver" in window)) {
+          stats.forEach(tick);
+          return;
+        }
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                tick(entry.target);
+                io.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.4 },
+        );
+        stats.forEach((el) => io.observe(el));
+      })();
     </script>
   </body>
 </html>
