@@ -92,18 +92,41 @@ locus.
   creation) until terminated and respawned. Both OAuth and API key blobs
   coexist in `safeStorage` — switching modes does not delete the other.
 
-### `claude-oauth-remote-docker` (M10 future)
+### `claude-oauth-remote-docker` (M10, 2026-05-15 ✅)
 
-- **Locus:** different machine — a hardened VPS running the agent runner inside
-  a non-root Docker container.
-- **Credentials:** OAuth token is sent over the wire-protocol channel (mutual
-  TLS over WSS, see `docs/m10-adapter-wire-protocol.md`) and held only in the
-  container's memory.
+- **Locus:** the `claude` process runs inside a Docker container — local Docker
+  for the validation path, or a VPS via SSH. Everything stateful (SQLite, MCP
+  server, permission handshake, the chokidar watcher) stays on the host: the
+  container runs only `claude` plus a "dumb" agent-runner that proxies stdio.
+- **Transport:** a single SSH stdio channel (`docker run -i` locally; `ssh …
+  -- docker run -i` for a VPS). SSH supplies auth, encryption, and the pipe —
+  there is no open port, no WSS, and no X.509 certificate lifecycle. WSS+mTLS
+  was considered and rejected (M10 design §2, §11).
+- **Credentials:** the OAuth token travels once, in the wire-protocol
+  `handshake` message, encrypted by the SSH transport (loopback only for local
+  Docker). The runner injects it as the `CLAUDE_CODE_OAUTH_TOKEN` environment
+  variable of the spawned `claude` child — never written to disk in the
+  container, never logged (the runner redacts tokens in stderr before
+  forwarding via `redactSecrets`).
 - **Primary threats:** in-flight credential interception, Docker escape, host
   network egress from a compromised container.
-- **Mitigations:** mutual TLS with pinned cert, container runs as a non-root
-  user behind `tini`, host iptables policy denies outbound except to the
-  Anthropic API endpoint, container has no mounted host paths.
+- **Mitigations:** SSH provides transport auth + encryption; the SSH host key
+  is pinned (`StrictHostKeyChecking=yes`, `BatchMode=yes` — a forged host fails
+  the connection, no interactive trust prompt). The container runs as a
+  non-root user behind `tini` as PID 1, with `--strict-mcp-config` (the
+  generated `mcp.json` only references the loopback MCP bridge) and no mounted
+  host paths. The container work directory is ephemeral — removed when the
+  `--rm` container exits.
+- **MCP / DB isolation:** the SQLite database never leaves the host. The MCP
+  server (`mcp/server.js`) is spawned on the host by an `McpRelay`; the
+  container reaches it only through the tunnelled wire-protocol channel. The
+  `gate.ts` command blocklist therefore still runs host-side on every MCP
+  call — Docker isolation **plus** the command gate is defense-in-depth, not a
+  replacement (see "Blocklist `gate.ts §8.3` persists across adapters" above).
+- **Concurrency cap:** counts against the 4-agent OAuth cap in `lifecycle.ts`,
+  same as `claude-oauth-local` — `isOauth` covers both adapter names.
+- **Setup:** see `docs/m10-vps-setup-runbook.md` for VPS provisioning and the
+  local-Docker smoke checklist.
 
 ## Approvals and artifacts storage (foundation)
 
