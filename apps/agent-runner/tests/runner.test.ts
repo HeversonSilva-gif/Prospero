@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { decodeWireMessage, encodeWireMessage } from "@prospero/shared";
 import { createRunner } from "../src/runner.js";
 import { createMemoryTransportPair } from "./memory-transport.js";
+import { FakeClaude } from "./fake-claude.js";
 
 const handshakeRequest = encodeWireMessage({
   type: "request",
@@ -47,5 +48,27 @@ describe("createRunner", () => {
     pair.b.send(handshakeRequest);
     await Promise.resolve();
     expect(runner.state.credentials).toEqual({ kind: "oauth", oauthToken: "secret-tok" });
+  });
+
+  it("spawns an agent through the wire and tracks it", async () => {
+    const pair = createMemoryTransportPair();
+    const fake = new FakeClaude();
+    const runner = createRunner(pair.a, {
+      spawnClaude: () => fake,
+      prepareSandbox: (agentId) => ({ configDir: `/c/${agentId}`, workDir: `/w/${agentId}` }),
+    });
+    const responses: unknown[] = [];
+    pair.b.onData((chunk) => responses.push(decodeWireMessage(chunk)));
+    pair.b.send(
+      encodeWireMessage({
+        type: "request",
+        id: "msg_9",
+        method: "spawn",
+        params: { agentId: "agent_1", args: [] },
+      }),
+    );
+    await Promise.resolve();
+    expect(responses[0]).toMatchObject({ type: "response", id: "msg_9", result: { pid: 4242 } });
+    expect(runner.state.agents.has("agent_1")).toBe(true);
   });
 });
