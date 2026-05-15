@@ -7,6 +7,7 @@ import { useSettingsStore } from "../stores/settings.js";
 import { BudgetsForm } from "../components/costs/BudgetsForm.js";
 import { useCompaniesStore } from "../stores/companies.js";
 import { AgentsMdImportSection } from "../components/settings/AgentsMdImportSection.js";
+import { RemoteExecutionSection } from "../components/settings/RemoteExecutionSection.js";
 
 export const Settings = () => {
   const { t } = useTranslation();
@@ -311,6 +312,8 @@ export const Settings = () => {
           </label>
         </div>
       </section>
+
+      <RemoteExecutionSection />
 
       <section className="bg-surface-card border border-surface-border rounded-lg p-5 mb-4">
         <h2 className="text-base font-semibold text-brand-dark mb-2">

@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import type { AppSettings, AuthMode, ExecutorMode, Language, Theme } from "@prospero/shared";
+import type {
+  AppSettings,
+  AuthMode,
+  ExecutorMode,
+  Language,
+  RemoteExecutionSettings,
+  Theme,
+} from "@prospero/shared";
 import { DEFAULT_CLAUDE_MODEL } from "@prospero/shared";
 import { setLanguage } from "../i18n/index.js";
 import { applyTheme } from "../theme/ThemeProvider.js";
@@ -14,10 +21,11 @@ type State = {
   setModel: (model: string) => Promise<void>;
   saveExecutorMode: (mode: ExecutorMode) => Promise<void>;
   setAuthMode: (mode: AuthMode) => Promise<void>;
+  setRemoteExecution: (patch: Partial<RemoteExecutionSettings>) => Promise<void>;
   pickAndSetWorkspace: () => Promise<void>;
 };
 
-export const useSettingsStore = create<State>((set) => ({
+export const useSettingsStore = create<State>((set, get) => ({
   settings: {
     language: "pt-BR",
     theme: "light",
@@ -81,6 +89,12 @@ export const useSettingsStore = create<State>((set) => ({
 
   setAuthMode: async (mode) => {
     const next = await window.prospero.settings.update({ authMode: mode });
+    set({ settings: next });
+  },
+
+  setRemoteExecution: async (patch) => {
+    const merged = { ...get().settings.remoteExecution, ...patch };
+    const next = await window.prospero.settings.update({ remoteExecution: merged });
     set({ settings: next });
   },
 }));
