@@ -267,7 +267,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
         {categorizedCapabilities.required.length > 0 && (
           <div className="mb-2">
             <p className="text-[10px] uppercase tracking-wide text-ink-soft mb-1">
-              {t("agent.config.skillsEdit.required")}
+              {t("agent.config.capabilitiesEdit.required")}
             </p>
             {categorizedCapabilities.required.map((s) => (
               <label key={s.id} className="flex items-center gap-1 text-xs">
@@ -281,7 +281,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
         {categorizedCapabilities.optional.length > 0 && (
           <div className="mb-2">
             <p className="text-[10px] uppercase tracking-wide text-ink-soft mb-1">
-              {t("agent.config.skillsEdit.optional")}
+              {t("agent.config.capabilitiesEdit.optional")}
             </p>
             {categorizedCapabilities.optional.map((s) => (
               <label key={s.id} className="flex items-center gap-1 text-xs cursor-pointer">
@@ -311,7 +311,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
             }}
             className="text-xs px-2 py-1 border border-surface-border rounded bg-surface w-full mt-1"
           >
-            <option value="">{t("agent.config.skillsEdit.addLabel")}</option>
+            <option value="">{t("agent.config.capabilitiesEdit.addLabel")}</option>
             {categorizedCapabilities.available.map((id) => (
               <option key={id} value={id}>
                 {id}

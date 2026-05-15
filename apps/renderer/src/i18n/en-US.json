@@ -10,7 +10,7 @@
     "projects": "Projects",
     "issues": "Issues",
     "goals": "Goals",
-    "skills": "Skills",
+    "roles": "Roles",
     "orgChart": "Org Chart",
     "activity": "Activity",
     "costs": "Costs"
@@ -138,7 +138,7 @@
       },
       "agentFields": {
         "persona": "Persona",
-        "skills": "Skills",
+        "capabilities": "Capabilities",
         "reportsTo": "Reports to",
         "rationale": "Rationale"
       },
@@ -330,7 +330,7 @@
         "label": "Role",
         "change": "Change...",
         "modalTitle": "Change agent role",
-        "modalWarning": "Changing the role restarts the agent. Skills and model are updated per template.",
+        "modalWarning": "Changing the role restarts the agent. Capabilities and model are updated per template.",
         "selectLabel": "New role",
         "preserveModel": "Keep current model (don't use role default)"
       },
@@ -339,10 +339,10 @@
         "custom": "Custom...",
         "invalid": "Invalid model id"
       },
-      "skills": {
-        "label": "Skills",
-        "empty": "No skills assigned.",
-        "hint": "Skills are determined by role. Change the role to update."
+      "capabilities": {
+        "label": "Capabilities",
+        "empty": "No capabilities assigned.",
+        "hint": "Capabilities are determined by role. Change the role to update."
       },
       "persona": {
         "label": "Persona",
@@ -372,10 +372,10 @@
         "wakeUp": "Run now",
         "wakeUpHint": "Force a turn with a system message."
       },
-      "skillsEdit": {
+      "capabilitiesEdit": {
         "required": "Required",
         "optional": "Optional",
-        "addLabel": "Add skill…"
+        "addLabel": "Add capability…"
       }
     },
     "issues": {
@@ -442,7 +442,7 @@
         "model": "Model",
         "mode": "Mode",
         "persona": "Persona",
-        "skills": "Skills",
+        "capabilities": "Capabilities",
         "projects": "Projects"
       },
       "submit": "Hire",
@@ -700,7 +700,7 @@
     },
     "gallery": {
       "title": "Pick a template",
-      "subtitle": "Each template brings persona, skills, and default model. You can edit after.",
+      "subtitle": "Each template brings persona, capabilities, and default model. You can edit after.",
       "empty": "No templates available.",
       "agentsCount": "agent(s)"
     }
@@ -803,9 +803,9 @@
       "diffNew": "Proposed"
     }
   },
-  "skills": {
-    "title": "Skills (Roles)",
-    "subtitle": "Roles available for hiring. Each role bundles a set of skills and a default Claude model.",
+  "roles": {
+    "title": "Roles",
+    "subtitle": "Roles available for hiring. Each role bundles a set of capabilities and a default Claude model.",
     "empty": "No roles available.",
     "agentsCount_zero": "{{count}} agents",
     "agentsCount_one": "{{count}} agent",
@@ -814,7 +814,7 @@
     "detail.defaultModel": "Default model",
     "detail.agentsUsing": "Agents using this role",
     "detail.noAgents": "No agents currently use this role.",
-    "detail.skillsGroup": "Skill: {{skill}}"
+    "detail.capabilityGroup": "Capability: {{capability}}"
   },
   "activity": {
     "title": "Activity",
@@ -860,7 +860,7 @@
         "role_changed": "{{actor}} changed {{target}}'s role from {{from}} to {{to}}",
         "model_changed": "{{actor}} changed {{target}}'s model from {{from}} to {{to}}",
         "persona_edited": "{{actor}} edited {{target}}'s persona",
-        "skills_changed": "{{actor}} updated {{target}}'s skills",
+        "capabilities_changed": "{{actor}} updated {{target}}'s capabilities",
         "reports_to_changed": "{{actor}} changed {{target}}'s reporting line",
         "allowed_projects_changed": "{{actor}} updated {{target}}'s project access",
         "paused": "{{actor}} paused {{target}}",

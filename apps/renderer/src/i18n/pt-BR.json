@@ -10,7 +10,7 @@
     "projects": "Projetos",
     "issues": "Issues",
     "goals": "Objetivos",
-    "skills": "Habilidades",
+    "roles": "Funções",
     "orgChart": "Organograma",
     "activity": "Atividade",
     "costs": "Custos"
@@ -138,7 +138,7 @@
       },
       "agentFields": {
         "persona": "Persona",
-        "skills": "Habilidades",
+        "capabilities": "Capacidades",
         "reportsTo": "Reporta para",
         "rationale": "Justificativa"
       },
@@ -330,7 +330,7 @@
         "label": "Papel",
         "change": "Mudar...",
         "modalTitle": "Mudar papel do agente",
-        "modalWarning": "Trocar o papel reinicia o agente. Skills e modelo serão atualizados conforme o template.",
+        "modalWarning": "Trocar o papel reinicia o agente. Capacidades e modelo serão atualizados conforme o template.",
         "selectLabel": "Novo papel",
         "preserveModel": "Manter o modelo atual (não usar default do papel)"
       },
@@ -339,10 +339,10 @@
         "custom": "Customizado...",
         "invalid": "Model id inválido"
       },
-      "skills": {
-        "label": "Skills",
-        "empty": "Nenhuma skill atribuída.",
-        "hint": "Skills são definidas pelo papel. Mude o papel para atualizar."
+      "capabilities": {
+        "label": "Capacidades",
+        "empty": "Nenhuma capacidade atribuída.",
+        "hint": "Capacidades são definidas pelo cargo. Mude o cargo para atualizar."
       },
       "persona": {
         "label": "Persona",
@@ -372,10 +372,10 @@
         "wakeUp": "Rodar agora",
         "wakeUpHint": "Força um turn com mensagem de sistema."
       },
-      "skillsEdit": {
+      "capabilitiesEdit": {
         "required": "Obrigatórias",
         "optional": "Opcionais",
-        "addLabel": "Adicionar skill…"
+        "addLabel": "Adicionar capacidade…"
       }
     },
     "issues": {
@@ -442,7 +442,7 @@
         "model": "Modelo",
         "mode": "Modo",
         "persona": "Persona",
-        "skills": "Skills",
+        "capabilities": "Capacidades",
         "projects": "Projetos"
       },
       "submit": "Contratar",
@@ -700,7 +700,7 @@
     },
     "gallery": {
       "title": "Escolher template",
-      "subtitle": "Cada template traz persona, skills e modelo padrão. Você pode editar depois.",
+      "subtitle": "Cada template traz persona, capacidades e modelo padrão. Você pode editar depois.",
       "empty": "Nenhum template disponível.",
       "agentsCount": "agente(s)"
     }
@@ -803,9 +803,9 @@
       "diffNew": "Proposto"
     }
   },
-  "skills": {
-    "title": "Habilidades (Cargos)",
-    "subtitle": "Cargos disponíveis para contratação. Cada cargo agrupa um conjunto de habilidades e um modelo Claude padrão.",
+  "roles": {
+    "title": "Funções",
+    "subtitle": "Cargos disponíveis para contratação. Cada cargo agrupa um conjunto de capacidades e um modelo Claude padrão.",
     "empty": "Nenhum cargo disponível.",
     "agentsCount_zero": "{{count}} agentes",
     "agentsCount_one": "{{count}} agente",
@@ -814,7 +814,7 @@
     "detail.defaultModel": "Modelo padrão",
     "detail.agentsUsing": "Agentes usando este cargo",
     "detail.noAgents": "Nenhum agente usa este cargo no momento.",
-    "detail.skillsGroup": "Habilidade: {{skill}}"
+    "detail.capabilityGroup": "Capacidade: {{capability}}"
   },
   "activity": {
     "title": "Atividade",
@@ -860,7 +860,7 @@
         "role_changed": "{{actor}} mudou o papel de {{target}} de {{from}} para {{to}}",
         "model_changed": "{{actor}} mudou o modelo de {{target}} de {{from}} para {{to}}",
         "persona_edited": "{{actor}} editou a persona de {{target}}",
-        "skills_changed": "{{actor}} atualizou as skills de {{target}}",
+        "capabilities_changed": "{{actor}} atualizou as capacidades de {{target}}",
         "reports_to_changed": "{{actor}} mudou a linha de reporte de {{target}}",
         "allowed_projects_changed": "{{actor}} atualizou o acesso a projetos de {{target}}",
         "paused": "{{actor}} pausou {{target}}",

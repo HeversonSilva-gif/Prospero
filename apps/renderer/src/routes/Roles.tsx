@@ -21,14 +21,14 @@ export const Roles: FC = () => {
     <div className="flex h-full">
       <aside className="w-60 border-r border-surface-border bg-surface-card flex flex-col">
         <header className="px-4 py-3 border-b border-surface-border">
-          <h1 className="text-sm font-bold text-brand-dark">{t("skills.title")}</h1>
-          <p className="text-[11px] text-ink-muted mt-1">{t("skills.subtitle")}</p>
+          <h1 className="text-sm font-bold text-brand-dark">{t("roles.title")}</h1>
+          <p className="text-[11px] text-ink-muted mt-1">{t("roles.subtitle")}</p>
         </header>
         <nav className="flex-1 overflow-y-auto p-2 space-y-1">
           {!loaded ? (
             <p className="text-xs text-ink-muted p-2">…</p>
           ) : roles.length === 0 ? (
-            <p className="text-xs text-ink-muted p-2">{t("skills.empty")}</p>
+            <p className="text-xs text-ink-muted p-2">{t("roles.empty")}</p>
           ) : (
             roles.map((r) => (
               <RoleListItem

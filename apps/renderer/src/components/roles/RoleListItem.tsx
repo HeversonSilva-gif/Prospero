@@ -25,7 +25,7 @@ export const RoleListItem: FC<Props> = ({ role, selected, onSelect }) => {
         <span className="font-semibold text-sm">{role.name}</span>
       </div>
       <div className="text-[11px] text-ink-muted mt-0.5">
-        {t("skills.agentsCount", { count: role.agentCount })}
+        {t("roles.agentsCount", { count: role.agentCount })}
       </div>
     </button>
   );
