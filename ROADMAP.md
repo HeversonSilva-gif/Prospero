@@ -801,105 +801,23 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
 
 ---
 
-### 🆕 M10 — VPS Docker Remote Adapter — **fecha v1 com hybrid distribution**
+### ✅ M10 — VPS Docker Remote Adapter — **MERGEADO · fechou v1 (2026-05-15)**
 
-**Origem:** decisão de 2026-05-11 — distribuição hybrid. Implementa o terceiro adapter `claude-oauth-remote-docker` (e variante `claude-api-key-remote-docker`) usando a foundation do M7.5. Usuário escolhe per-agent: "Run on: local | VPS-default | custom-vps-N".
+**Origem:** decisão de 2026-05-11 — distribuição hybrid. Terceiro adapter `claude-oauth-remote-docker` sobre a foundation do M7.5. O processo `claude` roda num container Docker — local ou numa VPS via SSH. Usuário escolhe a localização per-agente (na contratação ou no Agent Studio).
 
-**Por que existe:** isolamento real de processo (rm -rf no container não afeta seu host), agente sempre-ligado mesmo com PC desligado, acesso 24/7 com lifecycle previsível. Mantém Electron como UI principal (não vira web app — Out-of-scope discutido).
+**Arquitetura (decisão 2026-05-15):** SSH stdio, **não** WSS+mTLS — SSH já entrega auth + criptografia + pipe, sem porta aberta e sem ciclo de cert X.509. Host-authoritative: só o `claude` roda remoto; SQLite, MCP server e o permission handshake ficam no host, e as ferramentas MCP do agente remoto chegam ao host por um túnel sobre o wire protocol. Defense-in-depth: o blocklist do `gate.ts` roda host-side mesmo com isolamento Docker.
 
-**Modelo de threat reforçado:** mantém blocklist do `gate.ts` mesmo após isolamento. Defense-in-depth (lição comparison §8).
+**5 PRs (A–E), mergeados em `main`:**
 
-#### Backend (apps/main)
+- **PR-A — Wire protocol** — `packages/shared/src/wire/` (tipos, codec, framing, `WireClient`/`WireServer`, transporte). Doc `docs/m10-adapter-wire-protocol.md`.
+- **PR-B — Agent runner + imagem** — app novo `apps/agent-runner/` (wire server, spawn de `claude`, sandbox container-side, `mcp-bridge`) + Dockerfile multi-stage real (`node:22-slim`, não-root, `tini` PID 1).
+- **PR-C — Host adapter + MCP relay** — `ClaudeRemoteDockerAdapter` + connection manager (1 conexão por host) + transport launcher (`docker run` local / `ssh … -- docker run`) + `McpRelay` per-agente.
+- **PR-D — Settings + UX** — `AppSettings.remoteExecution` + seção "Execução remota" no Settings + seletor de localização per-agente + IPCs `agents:set-adapter` e `remote:test-connection`.
+- **PR-E — Docs** — `SECURITY.md` (threat model do adapter remoto refinado), `docs/m10-vps-setup-runbook.md` (setup VPS + checklist de smoke), roadmap em 3 lugares.
 
-- [ ] **Novo adapter impl** `claude-oauth-remote-docker` em `apps/main/src/orchestrator/adapters/remote-docker.ts`:
-  - Implementa `AgentAdapter` interface (M7.5)
-  - Substitui `spawn` local por chamada HTTPS+WSS ao agent-runner remoto
-  - Wire protocol: definido em M7.5 (`docs/m10-adapter-wire-protocol.md`)
-  - Streams stdout/stderr via WSS frames
-  - Reconnect automático em conexão caída (com backoff exponencial)
-- [ ] **Settings UI: gerenciador de VPS** — `/settings/vps`:
-  - Lista VPS configuradas com health check
-  - Add VPS: form com host, port, label, chave SSH/JWT, TLS cert fingerprint
-  - Test connection: ping + valida cert + verifica versão do agent-runner remoto
-  - Remove VPS (warning se houver agentes ativos)
-- [ ] **Per-agent dropdown "Run on"**: local | vps-1 | vps-2 | … (chip no `/agents/:id` right panel)
-- [ ] **Agent-side state**: nova coluna `agents.adapter_name TEXT NOT NULL DEFAULT 'claude-oauth-local'`. Migration 0008.
-- [ ] **Audit log centralizado**: tabela `vps_audit_events (id, vps_label, agent_id, kind, payload, occurred_at)`. Toda chamada a tool no remoto é loggada.
+**Sem migração nova** — `agents.adapter_name` já existia (migration 0004) e o union `AdapterName` já incluía `claude-oauth-remote-docker`. Config da VPS mora no blob JSON `app-settings`.
 
-#### VPS side (infra/)
-
-- [ ] **`infra/docker/agent-runner/Dockerfile`** — preencher o stub do M7.5:
-  - Base: `node:22-alpine`
-  - Install: `claude-code` CLI + nosso bridge MCP server
-  - Multi-stage build (build small, runtime smaller)
-  - Healthcheck endpoint `/health`
-  - User não-root (UID 1000)
-- [ ] **`infra/docker/agent-runner/entrypoint.sh`**:
-  - Valida JWT recebido via env
-  - Inicia bridge server (WSS) em port configurável
-  - Por turn: spawna claude CLI subprocess (mesmo pattern do local)
-- [ ] **`infra/docker/compose.yml`** — orquestração completa:
-  - N réplicas do agent-runner (default 4, alinhado com ToS OAuth Max)
-  - Reverse proxy (Caddy auto-TLS via Let's Encrypt)
-  - Volume mounts: `/workspace` (project paths) + `/agent-config` (CLAUDE_CONFIG_DIR isolado per-replica)
-  - Network: só HTTPS bind exterior + Anthropic API outbound (allowlist)
-  - Sem outras saídas de rede
-- [ ] **`infra/deploy/`** — scripts de provisioning:
-  - `provision-hetzner.sh` (provider neutro pode evoluir)
-  - `provision-digitalocean.sh`
-  - Variáveis: domain, email Let's Encrypt, JWT secret, port range
-- [ ] **`infra/docker/mcp-bridge/`** — server bridge que conecta agent-runner remoto ao nosso main:
-  - Recebe WSS do main
-  - Encaminha pra claude CLI local no container
-  - Reencaminha tool calls MCP back pra main via WSS (não diretamente — main mantém DB)
-
-#### Security
-
-- [ ] **TLS obrigatório** — cert validation, sem fallback HTTP. Cert fingerprint pinning.
-- [ ] **JWT signed pelo main pra cada turn** (short TTL, replay-protected via nonce)
-- [ ] **Auth da VPS**: SSH key pra deploy; JWT pra runtime
-- [ ] **Allowlist de IPs** no agent-runner: só IPs configurados podem conectar (paranoia layer)
-- [ ] **Container ephemeral entre runs sensitive**: workspace persiste por design (git worktree), mas CLAUDE_CONFIG_DIR é limpo a cada `spawn` (igual padrão local do M3 lesson)
-- [ ] **safeStorage guarda chave SSH e cert fingerprint** (lição M4 SEC-01 — nunca exposto ao renderer)
-- [ ] **Audit log per turn**: cada tool call no remoto → `vps_audit_events`. Surfaces em `/agents/:id` "Activity Log" panel.
-- [ ] **Rate limit per VPS**: max N requests/sec, prevent burst attacks
-- [ ] **`docs/security/vps-threat-model.md`**: documento formal — o que mudou com adapter remoto, ameaças mitigadas, ameaças residuais
-
-#### UX
-
-- [ ] **Dashboard widget**: "VPS health" (latência, agentes ativos, CPU/RAM da VPS via /health)
-- [ ] **Per-agent indicator**: ícone "remote on vps-1" vs "local" no sidebar + agent page
-- [ ] **Onboarding flow**: "Connect to VPS" wizard (5 passos):
-  1. Você já tem uma VPS provisionada? (sim/não — se não, link pra docs/vps-deployment.md)
-  2. Cole hostname e porta
-  3. Cole chave SSH (test connect)
-  4. Trust cert fingerprint (mostra hash, user confirma)
-  5. Done — primeira health check + spawn de agente teste
-- [ ] **Indicador de connection state** no header: 🟢 connected | 🟡 degraded | 🔴 disconnected
-
-#### Documentação
-
-- [ ] **`docs/vps-deployment.md`** — guia completo (provider neutro):
-  - Pré-requisitos (VPS Linux, Docker, domínio)
-  - Steps: clone infra/, edit .env, run provision script, point DNS, run compose up
-  - Operations: backup, update, monitor logs
-- [ ] **`docs/security/vps-threat-model.md`** — o que mudou com adapter remoto
-- [ ] **`SECURITY.md`** atualizado (foundation já em M7.5; M10 completa)
-
-#### Tests
-
-- [ ] **E2E cycle local + remote** mistos numa só company:
-  - 4 agentes: 2 local, 2 remote
-  - Mensagens cross-adapter funcionam
-  - Permission gate trigger correto no local + remote
-- [ ] **Connection drop test**: kill agent-runner mid-turn, valida reconnect + recovery
-- [ ] **Security test**: JWT replay tentativa falha; cert MITM falha; outbound network forbidden funciona
-
-#### Não-regressão
-
-- [ ] Tudo dos M1-M9 continua funcionando (local default)
-- [ ] Memory `project_prospero` atualizar premissa local-only (agora é "default local, opcional remote")
-- [ ] Memory `feedback_security_priority` reforça: blocklist mantida mesmo com isolamento de container
+**Smoke Docker local:** checklist manual em `docs/m10-vps-setup-runbook.md` §C — exige Docker instalado, rodado pelo usuário.
 
 ---
 
