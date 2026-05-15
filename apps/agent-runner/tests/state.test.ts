@@ -17,4 +17,9 @@ describe("createRunnerState", () => {
     const state = createRunnerState();
     expect(state.startedAt).toBeGreaterThanOrEqual(before);
   });
+
+  it("starts with an empty agents registry", () => {
+    const state = createRunnerState();
+    expect(state.agents.size).toBe(0);
+  });
 });
