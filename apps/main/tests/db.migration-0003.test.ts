@@ -44,7 +44,7 @@ describe("migration 0003 — roles & model", () => {
     applyMigrations(db);
     db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1', 'X', 0)").run();
     db.prepare(
-      `INSERT INTO agents (id, company_id, name, role, system_prompt, skills_json, allowed_projects_json, mode, always_on, status, current_action, created_at, updated_at)
+      `INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json, mode, always_on, status, current_action, created_at, updated_at)
        VALUES ('a1', 'c1', 'X', 'x', '', '[]', '[]', 'supervised', 0, 'idle', NULL, 0, 0)`,
     ).run();
     const row = db.prepare("SELECT model FROM agents WHERE id = 'a1'").get() as { model: string };

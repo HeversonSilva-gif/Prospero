@@ -6,7 +6,7 @@ type Row = {
   name: string;
   description: string;
   default_system_prompt: string;
-  default_skills_json: string;
+  default_capabilities_json: string;
   default_model: string;
   icon: string | null;
 };
@@ -16,7 +16,7 @@ const rowToRole = (r: Row): RoleTemplate => ({
   name: r.name,
   description: r.description,
   defaultSystemPrompt: r.default_system_prompt,
-  defaultSkills: JSON.parse(r.default_skills_json) as string[],
+  defaultSkills: JSON.parse(r.default_capabilities_json) as string[],
   defaultModel: r.default_model,
   icon: r.icon,
 });
@@ -29,10 +29,10 @@ export type RoleTemplatesRepository = {
 
 export const createRoleTemplatesRepository = (db: Database.Database): RoleTemplatesRepository => {
   const listStmt = db.prepare(
-    "SELECT id, name, description, default_system_prompt, default_skills_json, default_model, icon FROM role_templates ORDER BY id",
+    "SELECT id, name, description, default_system_prompt, default_capabilities_json, default_model, icon FROM role_templates ORDER BY id",
   );
   const byIdStmt = db.prepare(
-    "SELECT id, name, description, default_system_prompt, default_skills_json, default_model, icon FROM role_templates WHERE id = ?",
+    "SELECT id, name, description, default_system_prompt, default_capabilities_json, default_model, icon FROM role_templates WHERE id = ?",
   );
   const agentsStmt = db.prepare(
     "SELECT id, name FROM agents WHERE template_id = ? ORDER BY created_at",

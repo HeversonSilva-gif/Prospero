@@ -41,11 +41,11 @@ describe("RoleTemplatesRepository", () => {
   it("agentsUsing returns agents matching template_id", () => {
     const { db, repo } = setup();
     db.prepare(
-      `INSERT INTO agents (id, company_id, name, role, template_id, system_prompt, skills_json, allowed_projects_json, mode, always_on, status, created_at, updated_at)
+      `INSERT INTO agents (id, company_id, name, role, template_id, system_prompt, capabilities_json, allowed_projects_json, mode, always_on, status, created_at, updated_at)
        VALUES ('a1', 'c1', 'Alice', 'Engineer', 'role-engineer', 'sp', '[]', '[]', 'supervised', 0, 'idle', 0, 0)`,
     ).run();
     db.prepare(
-      `INSERT INTO agents (id, company_id, name, role, template_id, system_prompt, skills_json, allowed_projects_json, mode, always_on, status, created_at, updated_at)
+      `INSERT INTO agents (id, company_id, name, role, template_id, system_prompt, capabilities_json, allowed_projects_json, mode, always_on, status, created_at, updated_at)
        VALUES ('a2', 'c1', 'Bob', 'Engineer', 'role-engineer', 'sp', '[]', '[]', 'supervised', 0, 'idle', 0, 0)`,
     ).run();
     const list = repo.agentsUsing("role-engineer");

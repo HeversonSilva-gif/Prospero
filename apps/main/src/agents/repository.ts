@@ -16,7 +16,7 @@ type Row = {
   role: string;
   template_id: string | null;
   system_prompt: string;
-  skills_json: string;
+  capabilities_json: string;
   allowed_projects_json: string;
   mode: string;
   always_on: number;
@@ -46,7 +46,7 @@ const rowToAgent = (r: Row): Agent => ({
   currentAction: r.current_action,
   allowedProjects: JSON.parse(r.allowed_projects_json) as string[],
   model: r.model,
-  skills: JSON.parse(r.skills_json) as string[],
+  skills: JSON.parse(r.capabilities_json) as string[],
   templateId: r.template_id,
   reportsTo: r.reports_to,
   adapterName: r.adapter_name,
@@ -100,7 +100,7 @@ export const createAgentsRepository = (
   recorder?: Recorder,
 ): AgentsRepository => {
   const insert = db.prepare(`
-    INSERT INTO agents (id, company_id, name, role, system_prompt, skills_json, allowed_projects_json, mode, always_on, status, current_action, model, template_id, adapter_name, created_at, updated_at)
+    INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json, mode, always_on, status, current_action, model, template_id, adapter_name, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, '[]', ?, ?, 'idle', NULL, ?, ?, ?, ?, ?)
   `);
   const byId = db.prepare("SELECT * FROM agents WHERE id = ?");
@@ -319,12 +319,12 @@ export const createAgentsRepository = (
     setSkills(id, skills) {
       const row = byId.get(id) as Row | undefined;
       if (row === undefined) return;
-      const previous = JSON.parse(row.skills_json) as string[];
+      const previous = JSON.parse(row.capabilities_json) as string[];
       const prevSet = new Set(previous);
       const nextSet = new Set(skills);
       const added = skills.filter((s) => !prevSet.has(s));
       const removed = previous.filter((s) => !nextSet.has(s));
-      db.prepare("UPDATE agents SET skills_json = ?, updated_at = ? WHERE id = ?").run(
+      db.prepare("UPDATE agents SET capabilities_json = ?, updated_at = ? WHERE id = ?").run(
         JSON.stringify(skills),
         Date.now(),
         id,
@@ -391,20 +391,22 @@ export const createAgentsRepository = (
     },
     setRole(id, roleTemplateId, opts) {
       const role = db
-        .prepare("SELECT default_skills_json, default_model FROM role_templates WHERE id = ?")
-        .get(roleTemplateId) as { default_skills_json: string; default_model: string } | undefined;
+        .prepare("SELECT default_capabilities_json, default_model FROM role_templates WHERE id = ?")
+        .get(roleTemplateId) as
+        | { default_capabilities_json: string; default_model: string }
+        | undefined;
       if (role === undefined) throw new Error(`Role template not found: ${roleTemplateId}`);
       const previous = byId.get(id) as Row | undefined;
       const now = Date.now();
       const txn = db.transaction(() => {
         if (opts?.preserveModel === true) {
           db.prepare(
-            "UPDATE agents SET template_id = ?, skills_json = ?, updated_at = ? WHERE id = ?",
-          ).run(roleTemplateId, role.default_skills_json, now, id);
+            "UPDATE agents SET template_id = ?, capabilities_json = ?, updated_at = ? WHERE id = ?",
+          ).run(roleTemplateId, role.default_capabilities_json, now, id);
         } else {
           db.prepare(
-            "UPDATE agents SET template_id = ?, skills_json = ?, model = ?, updated_at = ? WHERE id = ?",
-          ).run(roleTemplateId, role.default_skills_json, role.default_model, now, id);
+            "UPDATE agents SET template_id = ?, capabilities_json = ?, model = ?, updated_at = ? WHERE id = ?",
+          ).run(roleTemplateId, role.default_capabilities_json, role.default_model, now, id);
         }
       });
       txn();

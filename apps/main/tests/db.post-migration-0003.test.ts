@@ -6,7 +6,7 @@ import { runPostMigration0003 } from "../src/db/post-migrations/0003.js";
 const seedAgent = (db: Database.Database, id: string, sessionId: string | null) => {
   db.prepare(
     `INSERT INTO agents (
-      id, company_id, name, role, system_prompt, skills_json, allowed_projects_json,
+      id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json,
       mode, always_on, status, current_action, claude_session_id, created_at, updated_at
     ) VALUES (?, 'c1', 'X', 'x', '', '[]', '[]', 'supervised', 0, 'idle', NULL, ?, 0, 0)`,
   ).run(id, sessionId);

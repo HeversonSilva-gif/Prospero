@@ -67,7 +67,7 @@ describe("setSystemPrompt", () => {
 
 const seedRole = (db: Database.Database, id: string, model: string, skills: string[]): void => {
   db.prepare(
-    `INSERT OR REPLACE INTO role_templates (id, name, description, default_system_prompt, default_skills_json, default_model, icon)
+    `INSERT OR REPLACE INTO role_templates (id, name, description, default_system_prompt, default_capabilities_json, default_model, icon)
      VALUES (?, ?, '', 'p', ?, ?, NULL)`,
   ).run(id, id, JSON.stringify(skills), model);
 };

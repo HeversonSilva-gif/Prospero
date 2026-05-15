@@ -28,12 +28,12 @@ describe("mcp tools (M3 mocks)", () => {
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c2','Other',1)`).run();
     ctx.db
       .prepare(
-        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a1','c','Alice','FE','sp','[]','[]','supervised',0,'idle',1,1)`,
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a1','c','Alice','FE','sp','[]','[]','supervised',0,'idle',1,1)`,
       )
       .run();
     ctx.db
       .prepare(
-        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a2','c2','Bob','BE','sp','[]','[]','supervised',0,'idle',1,1)`,
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a2','c2','Bob','BE','sp','[]','[]','supervised',0,'idle',1,1)`,
       )
       .run();
 
@@ -112,7 +112,7 @@ describe("mcp tools (M3 mocks)", () => {
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
     ctx.db
       .prepare(
-        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
       )
       .run();
 
@@ -156,7 +156,7 @@ describe("mcp tools (M3 mocks)", () => {
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
     ctx.db
       .prepare(
-        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('victim','c','x','y','sp','[]','[]','supervised',0,'idle',1,1)`,
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('victim','c','x','y','sp','[]','[]','supervised',0,'idle',1,1)`,
       )
       .run();
 
@@ -177,12 +177,12 @@ describe("mcp tools (M3 mocks)", () => {
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
     ctx.db
       .prepare(
-        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
       )
       .run();
     ctx.db
       .prepare(
-        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('alice','c','Alice','FE','sp','[]','[]','supervised',0,'idle',1,1)`,
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('alice','c','Alice','FE','sp','[]','[]','supervised',0,'idle',1,1)`,
       )
       .run();
 
@@ -208,7 +208,7 @@ describe("mcp tools (M3 mocks)", () => {
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
     ctx.db
       .prepare(
-        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
       )
       .run();
 
@@ -223,7 +223,7 @@ describe("mcp tools (M3 mocks)", () => {
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
     ctx.db
       .prepare(
-        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
       )
       .run();
 
@@ -245,7 +245,7 @@ describe("mcp tools (M3 mocks)", () => {
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
     ctx.db
       .prepare(
-        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','CEO','sp','[]','[]','supervised',0,'idle',1,1)`,
       )
       .run();
 
@@ -297,7 +297,7 @@ describe("mcp tools (M3 mocks)", () => {
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
     ctx.db
       .prepare(
-        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','Caller','C','sp','[]','[]','supervised',0,'idle',1,1)`,
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','Caller','C','sp','[]','[]','supervised',0,'idle',1,1)`,
       )
       .run();
 
@@ -325,7 +325,7 @@ describe("mcp tools (M3 mocks)", () => {
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
     ctx.db
       .prepare(
-        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','Caller','C','sp','[]','[]','supervised',0,'idle',1,1)`,
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','Caller','C','sp','[]','[]','supervised',0,'idle',1,1)`,
       )
       .run();
     const { runPostMigration0004 } = await import("../src/db/post-migrations/0004.js");
@@ -353,7 +353,7 @@ describe("mcp tools (M3 mocks)", () => {
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
     ctx.db
       .prepare(
-        `INSERT INTO agents(id,company_id,name,role,system_prompt,skills_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','Caller','C','sp','[]','[]','supervised',0,'idle',1,1)`,
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','Caller','C','sp','[]','[]','supervised',0,'idle',1,1)`,
       )
       .run();
     const { runPostMigration0004 } = await import("../src/db/post-migrations/0004.js");

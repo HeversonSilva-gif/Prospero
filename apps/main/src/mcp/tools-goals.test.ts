@@ -130,7 +130,7 @@ describe("goalsToolDefinitions — read tools", () => {
   it("list_role_templates returns canonical templates with id, name, model, skills", async () => {
     env.ctx.db
       .prepare(
-        `INSERT INTO role_templates (id, name, description, default_system_prompt, default_skills_json, default_model, icon)
+        `INSERT INTO role_templates (id, name, description, default_system_prompt, default_capabilities_json, default_model, icon)
          VALUES ('role-ceo', 'CEO', 'Receives requests from the user.', 'You are CEO.', '["delegation","chat"]', 'claude-opus-4-7', '📋'),
                 ('role-engineer', 'Engineer', 'Writes code.', 'You are an engineer.', '["shell","fs-write"]', 'claude-sonnet-4-6', '👨‍💻')`,
       )
@@ -156,7 +156,7 @@ describe("goalsToolDefinitions — read tools", () => {
   it("list_role_templates omits internal fields (defaultSystemPrompt, icon)", async () => {
     env.ctx.db
       .prepare(
-        `INSERT INTO role_templates (id, name, description, default_system_prompt, default_skills_json, default_model, icon)
+        `INSERT INTO role_templates (id, name, description, default_system_prompt, default_capabilities_json, default_model, icon)
          VALUES ('role-qa', 'QA', 'Tests features.', 'You are QA.', '["shell"]', 'claude-sonnet-4-6', '🧪')`,
       )
       .run();

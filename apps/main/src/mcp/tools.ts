@@ -155,12 +155,14 @@ export const toolDefinitions = [
       let templateId: string | null = null;
       if (input.role_template_id !== undefined) {
         const row = ctx.db
-          .prepare("SELECT default_skills_json, default_model FROM role_templates WHERE id = ?")
+          .prepare(
+            "SELECT default_capabilities_json, default_model FROM role_templates WHERE id = ?",
+          )
           .get(input.role_template_id) as
-          | { default_skills_json: string; default_model: string }
+          | { default_capabilities_json: string; default_model: string }
           | undefined;
         if (row !== undefined) {
-          roleSkills = JSON.parse(row.default_skills_json) as string[];
+          roleSkills = JSON.parse(row.default_capabilities_json) as string[];
           roleModel = row.default_model;
           templateId = input.role_template_id;
         }

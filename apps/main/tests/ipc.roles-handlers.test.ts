@@ -32,7 +32,7 @@ describe("roles IPC handlers", () => {
     db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1', 'A', 0)").run();
     runPostMigration0004(db);
     db.prepare(
-      `INSERT INTO agents (id, company_id, name, role, template_id, system_prompt, skills_json, allowed_projects_json, mode, always_on, status, created_at, updated_at)
+      `INSERT INTO agents (id, company_id, name, role, template_id, system_prompt, capabilities_json, allowed_projects_json, mode, always_on, status, created_at, updated_at)
        VALUES ('a1', 'c1', 'X', 'r', 'role-engineer', 'sp', '[]', '[]', 'supervised', 0, 'idle', 0, 0)`,
     ).run();
 
@@ -51,7 +51,7 @@ describe("roles IPC handlers", () => {
     db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1', 'A', 0)").run();
     runPostMigration0004(db);
     db.prepare(
-      `INSERT INTO agents (id, company_id, name, role, template_id, system_prompt, skills_json, allowed_projects_json, mode, always_on, status, created_at, updated_at)
+      `INSERT INTO agents (id, company_id, name, role, template_id, system_prompt, capabilities_json, allowed_projects_json, mode, always_on, status, created_at, updated_at)
        VALUES ('a1', 'c1', 'Alice', 'r', 'role-engineer', 'sp', '[]', '[]', 'supervised', 0, 'idle', 0, 0)`,
     ).run();
     registerRolesHandlers(db);

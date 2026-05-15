@@ -41,7 +41,7 @@ export const seedDb = async (dbPath: string, opts: SeedOptions = {}): Promise<vo
       db.prepare(
         `INSERT OR IGNORE INTO agents (
           id, company_id, name, role, system_prompt, mode, always_on,
-          status, model, skills_json, template_id, reports_to, adapter_name,
+          status, model, capabilities_json, template_id, reports_to, adapter_name,
           allowed_projects_json, created_at
         ) VALUES (?, ?, 'CEO', 'Chief Executive Officer', 'You are CEO.', 'supervised', 0,
           'idle', 'claude-sonnet-4-6', '[]', 'role_ceo', NULL, 'claude-oauth-local',

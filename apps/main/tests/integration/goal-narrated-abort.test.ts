@@ -15,7 +15,7 @@ describe("integration: goal narrated abort path", () => {
     const db = new Database(":memory:");
     applyMigrations(db);
     db.prepare(
-      `INSERT INTO role_templates (id, name, description, default_system_prompt, default_skills_json, default_model, icon)
+      `INSERT INTO role_templates (id, name, description, default_system_prompt, default_capabilities_json, default_model, icon)
        VALUES ('role-engineer', 'Eng', 'x', 'x', '["shell"]', 'claude-sonnet-4-6', null)`,
     ).run();
     const co = createCompaniesRepository(db).create({ name: "Acme" });
