@@ -169,6 +169,25 @@ describe("i18n parity", () => {
     }
   });
 
+  it("includes the M9 PR-F.2.2 agents.md import/export keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "settings.agentsMd.title",
+      "settings.agentsMd.subtitle",
+      "settings.agentsMd.actionImport",
+      "settings.agentsMd.actionExport",
+      "settings.agentsMd.hire",
+      "settings.agentsMd.previewTitle",
+      "settings.agentsMd.conflictHeader",
+      "settings.agentsMd.conflictSkip",
+      "settings.agentsMd.conflictReplace",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
+
   it("includes the M9 PR-F.1 projects polish + company export keys in both locales", () => {
     const ptKeys = flatten(ptBR);
     const enKeys = flatten(enUS);

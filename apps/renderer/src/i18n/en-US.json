@@ -555,6 +555,27 @@
       "warningsCount_zero": "{{count}} warning",
       "warningsCount_one": "{{count}} warning",
       "warningsCount_other": "{{count}} warnings"
+    },
+    "agentsMd": {
+      "title": "Import from AGENTS.md",
+      "subtitle": "Define the whole team in a YAML file and create everything at once.",
+      "actionImport": "Choose AGENTS.md…",
+      "parsing": "Validating…",
+      "parseError": "Validation failed: {{error}}",
+      "previewTitle": "Preview",
+      "previewSubtitle": "{{projects}} project(s) + {{agents}} agent(s) detected",
+      "conflictHeader": "An agent with this name already exists",
+      "conflictSkip": "Skip",
+      "conflictReplace": "Replace",
+      "hire": "Hire all",
+      "hiring": "Hiring…",
+      "summarySuccess": "Done. Created: {{projects}} project(s), {{agents}} agent(s).",
+      "warningsCount": "{{count}} warning(s)",
+      "actionExport": "Export AGENTS.md",
+      "exporting": "Exporting…",
+      "exportSaved": "Saved to {{path}}",
+      "exportNoCompany": "Pick a company before exporting.",
+      "exportError": "Export failed: {{error}}"
     }
   },
   "wizard": {

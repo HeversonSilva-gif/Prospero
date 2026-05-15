@@ -555,6 +555,27 @@
       "warningsCount_zero": "{{count}} aviso",
       "warningsCount_one": "{{count}} aviso",
       "warningsCount_other": "{{count}} avisos"
+    },
+    "agentsMd": {
+      "title": "Importar de AGENTS.md",
+      "subtitle": "Defina o time inteiro em um arquivo YAML e crie tudo de uma vez.",
+      "actionImport": "Escolher AGENTS.md…",
+      "parsing": "Validando…",
+      "parseError": "Falha ao validar: {{error}}",
+      "previewTitle": "Pré-visualização",
+      "previewSubtitle": "{{projects}} projeto(s) + {{agents}} agente(s) detectados",
+      "conflictHeader": "Já existe um agente com este nome",
+      "conflictSkip": "Pular",
+      "conflictReplace": "Substituir",
+      "hire": "Contratar todos",
+      "hiring": "Contratando…",
+      "summarySuccess": "Pronto. Criados: {{projects}} projeto(s), {{agents}} agente(s).",
+      "warningsCount": "{{count}} aviso(s)",
+      "actionExport": "Exportar AGENTS.md",
+      "exporting": "Exportando…",
+      "exportSaved": "Salvo em {{path}}",
+      "exportNoCompany": "Selecione uma empresa antes de exportar.",
+      "exportError": "Falha ao exportar: {{error}}"
     }
   },
   "wizard": {
