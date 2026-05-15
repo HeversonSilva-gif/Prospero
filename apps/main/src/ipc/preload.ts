@@ -77,6 +77,41 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
         warnings: string[];
       }>,
   },
+  agentsMd: {
+    parse: (raw: string) =>
+      ipcRenderer.invoke(IPC.AGENTS_MD_PARSE, { raw }) as Promise<
+        | {
+            ok: true;
+            data: {
+              company: string;
+              projects: { name: string; path: string }[];
+              agents: {
+                name: string;
+                role: string;
+                model?: string;
+                skills?: string[];
+                reports_to?: string;
+                projects?: string[];
+              }[];
+            };
+          }
+        | { ok: false; error: string }
+      >,
+    hire: (
+      companyId: string,
+      payload: unknown,
+      conflictModes: Record<string, "skip" | "replace">,
+    ) =>
+      ipcRenderer.invoke(IPC.AGENTS_MD_HIRE, { companyId, payload, conflictModes }) as Promise<{
+        companyId: string;
+        created: { projects: number; agents: number };
+        skipped: { projects: string[]; agents: string[] };
+        replaced: { agents: string[] };
+        warnings: string[];
+      }>,
+    export: (companyId: string) =>
+      ipcRenderer.invoke(IPC.AGENTS_MD_EXPORT, { companyId }) as Promise<{ text: string }>,
+  },
   agents: {
     list: (companyId: string) =>
       ipcRenderer.invoke(IPC.AGENT_LIST, { companyId }) as Promise<Agent[]>,

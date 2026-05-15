@@ -70,6 +70,38 @@ declare global {
           warnings: string[];
         }>;
       };
+      agentsMd: {
+        parse: (raw: string) => Promise<
+          | {
+              ok: true;
+              data: {
+                company: string;
+                projects: { name: string; path: string }[];
+                agents: {
+                  name: string;
+                  role: string;
+                  model?: string;
+                  skills?: string[];
+                  reports_to?: string;
+                  projects?: string[];
+                }[];
+              };
+            }
+          | { ok: false; error: string }
+        >;
+        hire: (
+          companyId: string,
+          payload: unknown,
+          conflictModes: Record<string, "skip" | "replace">,
+        ) => Promise<{
+          companyId: string;
+          created: { projects: number; agents: number };
+          skipped: { projects: string[]; agents: string[] };
+          replaced: { agents: string[] };
+          warnings: string[];
+        }>;
+        export: (companyId: string) => Promise<{ text: string }>;
+      };
       agents: {
         list: (companyId: string) => Promise<Agent[]>;
         sendMessage: (agentId: string, content: string) => Promise<Message>;

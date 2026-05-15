@@ -13,6 +13,7 @@ import { registerIssuesHandlers } from "./issues-handlers.js";
 import { registerRolesHandlers } from "./roles-handlers.js";
 import { registerActivityHandlers } from "./activity-handlers.js";
 import { registerCostsHandlers } from "./costs-handlers.js";
+import { registerAgentsMdHandlers } from "./agents-md-handlers.js";
 import { initRecorder } from "../activity/index.js";
 
 export const registerIpcHandlers = (db: Database.Database): void => {
@@ -30,4 +31,5 @@ export const registerIpcHandlers = (db: Database.Database): void => {
   registerRolesHandlers(db);
   registerActivityHandlers(db);
   registerCostsHandlers(db);
+  registerAgentsMdHandlers(db);
 };
