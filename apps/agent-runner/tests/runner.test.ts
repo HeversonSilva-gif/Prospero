@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { decodeWireMessage, encodeWireMessage } from "@prospero/shared";
-import { createRunner } from "../src/runner.js";
+import { createRunner, type RunnerDeps } from "../src/runner.js";
+import type { McpListener } from "../src/mcp-mux.js";
 import { createMemoryTransportPair } from "./memory-transport.js";
 import { FakeClaude } from "./fake-claude.js";
 
@@ -15,6 +19,28 @@ const handshakeRequest = encodeWireMessage({
     credentials: { kind: "oauth", oauthToken: "secret-tok" },
   },
 });
+
+// Spawn deps with a real (writable) sandbox dir and an in-memory MCP listener —
+// handleSpawn is async and writes mcp.json into configDir.
+const spawnDeps = (fake: FakeClaude, written: string[] = []): RunnerDeps => ({
+  spawnClaude: () => fake,
+  prepareSandbox: () => {
+    const root = mkdtempSync(join(tmpdir(), "prospero-runner-"));
+    return { configDir: root, workDir: root };
+  },
+  createMcpListener: (): Promise<McpListener> =>
+    Promise.resolve({ port: 50000, writeToBridge: (line) => written.push(line), close: () => {} }),
+  mcpBridgePath: "/app/mcp-bridge.js",
+});
+
+// The spawn handler is async — poll until the wire response arrives.
+const waitForResponse = async (responses: unknown[]): Promise<void> => {
+  for (let i = 0; i < 100; i += 1) {
+    if (responses.length > 0) return;
+    await new Promise((resolve) => setTimeout(resolve, 2));
+  }
+  throw new Error("waitForResponse: timed out");
+};
 
 describe("createRunner", () => {
   it("answers a handshake request over the transport", async () => {
@@ -53,10 +79,7 @@ describe("createRunner", () => {
   it("spawns an agent through the wire and tracks it", async () => {
     const pair = createMemoryTransportPair();
     const fake = new FakeClaude();
-    const runner = createRunner(pair.a, {
-      spawnClaude: () => fake,
-      prepareSandbox: (agentId) => ({ configDir: `/c/${agentId}`, workDir: `/w/${agentId}` }),
-    });
+    const runner = createRunner(pair.a, spawnDeps(fake));
     const responses: unknown[] = [];
     pair.b.onData((chunk) => responses.push(decodeWireMessage(chunk)));
     pair.b.send(
@@ -67,8 +90,35 @@ describe("createRunner", () => {
         params: { agentId: "agent_1", args: [] },
       }),
     );
-    await Promise.resolve();
+    await waitForResponse(responses);
     expect(responses[0]).toMatchObject({ type: "response", id: "msg_9", result: { pid: 4242 } });
+    expect(runner.state.agents.has("agent_1")).toBe(true);
+  });
+
+  it("routes an inbound mcp-data notification to the agent's bridge", async () => {
+    const pair = createMemoryTransportPair();
+    const fake = new FakeClaude();
+    const written: string[] = [];
+    const runner = createRunner(pair.a, spawnDeps(fake, written));
+    const responses: unknown[] = [];
+    pair.b.onData((chunk) => responses.push(decodeWireMessage(chunk)));
+    pair.b.send(
+      encodeWireMessage({
+        type: "request",
+        id: "msg_s",
+        method: "spawn",
+        params: { agentId: "agent_1", args: [] },
+      }),
+    );
+    await waitForResponse(responses);
+    pair.b.send(
+      encodeWireMessage({
+        type: "notification",
+        method: "mcp-data",
+        params: { agentId: "agent_1", line: '{"jsonrpc":"2.0"}\n' },
+      }),
+    );
+    expect(written).toEqual(['{"jsonrpc":"2.0"}\n']);
     expect(runner.state.agents.has("agent_1")).toBe(true);
   });
 });
