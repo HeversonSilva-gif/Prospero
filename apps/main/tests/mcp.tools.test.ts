@@ -320,7 +320,7 @@ describe("mcp tools (M3 mocks)", () => {
     expect(created?.model).toBe("claude-opus-4-7");
   });
 
-  it("hire_agent applies skills + model from role_template_id when provided", async () => {
+  it("hire_agent applies capabilities + model from role_template_id when provided", async () => {
     const ctx = makeCtx();
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
     ctx.db
@@ -344,11 +344,17 @@ describe("mcp tools (M3 mocks)", () => {
     const parsed = JSON.parse(result) as { id: string };
     const created = createAgentsRepository(ctx.db).getById(parsed.id);
     expect(created?.templateId).toBe("role-engineer");
-    expect(created?.skills.sort()).toEqual(["chat", "fs-read", "fs-write", "issues", "shell"]);
+    expect(created?.capabilities.sort()).toEqual([
+      "chat",
+      "fs-read",
+      "fs-write",
+      "issues",
+      "shell",
+    ]);
     expect(created?.model).toBe("claude-sonnet-4-6");
   });
 
-  it("hire_agent without role_template_id falls back to settings default (no skills)", async () => {
+  it("hire_agent without role_template_id falls back to settings default (no capabilities)", async () => {
     const ctx = makeCtx();
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
     ctx.db
@@ -371,7 +377,7 @@ describe("mcp tools (M3 mocks)", () => {
     const parsed = JSON.parse(result) as { id: string };
     const created = createAgentsRepository(ctx.db).getById(parsed.id);
     expect(created?.templateId).toBeNull();
-    expect(created?.skills).toEqual([]);
+    expect(created?.capabilities).toEqual([]);
     expect(created?.model).toBe("claude-sonnet-4-6");
   });
 });

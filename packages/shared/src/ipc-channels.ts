@@ -60,7 +60,7 @@ export const IPC = {
   AGENTS_STATS: "agents:stats",
   AGENTS_SET_MODE: "agents:set-mode",
   AGENTS_SET_ALWAYS_ON: "agents:set-always-on",
-  AGENTS_SET_SKILLS: "agents:set-skills",
+  AGENTS_SET_CAPABILITIES: "agents:set-capabilities",
   AGENTS_PAUSE: "agents:pause",
   AGENTS_RESUME: "agents:resume",
   AGENTS_TERMINATE: "agents:terminate",

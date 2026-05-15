@@ -25,7 +25,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
   const setReportsTo = useAgentsStore((s) => s.setReportsTo);
   const setMode = useAgentsStore((s) => s.setMode);
   const setAlwaysOn = useAgentsStore((s) => s.setAlwaysOn);
-  const setSkills = useAgentsStore((s) => s.setSkills);
+  const setCapabilities = useAgentsStore((s) => s.setCapabilities);
   const wakeUp = useAgentsStore((s) => s.wakeUp);
   const setAdapter = useAgentsStore((s) => s.setAdapter);
   const allAgents = useAgentsStore((s) => s.agents);
@@ -73,11 +73,11 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
   const categorizedSkills = useMemo(
     () =>
       categorizeSkills({
-        agentSkills: agent.skills,
-        roleDefaultSkills: currentRole?.defaultSkills ?? [],
+        agentSkills: agent.capabilities,
+        roleDefaultSkills: currentRole?.defaultCapabilities ?? [],
         allSkills: allSkillIds,
       }),
-    [agent.skills, currentRole?.defaultSkills, allSkillIds],
+    [agent.capabilities, currentRole?.defaultCapabilities, allSkillIds],
   );
 
   const onModelPresetChange = async (v: string): Promise<void> => {
@@ -262,7 +262,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
 
       <section>
         <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
-          {t("agent.config.skills.label")}
+          {t("agent.config.capabilities.label")}
         </h3>
         {categorizedSkills.required.length > 0 && (
           <div className="mb-2">
@@ -290,9 +290,9 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
                   checked={s.enabled}
                   onChange={(e) => {
                     const next = e.target.checked
-                      ? [...agent.skills, s.id]
-                      : agent.skills.filter((id) => id !== s.id);
-                    void setSkills(agent.id, next);
+                      ? [...agent.capabilities, s.id]
+                      : agent.capabilities.filter((id) => id !== s.id);
+                    void setCapabilities(agent.id, next);
                   }}
                 />
                 <span>{s.id}</span>
@@ -307,7 +307,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
             onChange={(e) => {
               const v = e.target.value;
               if (v === "") return;
-              void setSkills(agent.id, [...agent.skills, v]);
+              void setCapabilities(agent.id, [...agent.capabilities, v]);
             }}
             className="text-xs px-2 py-1 border border-surface-border rounded bg-surface w-full mt-1"
           >

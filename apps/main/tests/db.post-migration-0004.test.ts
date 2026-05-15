@@ -45,7 +45,7 @@ describe("postMigration 0004 — seed roles + backfill", () => {
     ]);
   });
 
-  it("seeded CEO role has Opus model and delegation+issues+inbox+chat+fs-read skills", () => {
+  it("seeded CEO role has Opus model and delegation+issues+inbox+chat+fs-read capabilities", () => {
     const db = new Database(":memory:");
     applyMigrations(db);
     runPostMigration0004(db);

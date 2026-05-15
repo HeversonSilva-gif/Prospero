@@ -20,7 +20,7 @@ const agent = (over: Partial<Agent> = {}): Agent => ({
   currentAction: null,
   allowedProjects: [],
   model: "claude-sonnet-4-6",
-  skills: [],
+  capabilities: [],
   templateId: null,
   reportsTo: null,
   adapterName: "claude-oauth-local",

@@ -10,16 +10,16 @@ type Props = {
 export const RoleDetail: FC<Props> = ({ detail }) => {
   const { t } = useTranslation();
 
-  // Group resolvedTools back by skill so the UI shows "shell → Bash" etc.
-  // The defaultSkills array tells us which skills are active; chat is auto-added
+  // Group resolvedTools back by capability so the UI shows "shell → Bash" etc.
+  // The defaultCapabilities array tells us which capabilities are active; chat is auto-added
   // by the resolver, so include it explicitly.
   const grouped = useMemo(() => {
-    const effective = [...detail.defaultSkills];
+    const effective = [...detail.defaultCapabilities];
     if (!effective.includes("chat")) effective.push("chat");
     return effective
       .map((id) => CAPABILITY_CATALOG[id as keyof typeof CAPABILITY_CATALOG])
       .filter((s) => s !== undefined);
-  }, [detail.defaultSkills]);
+  }, [detail.defaultCapabilities]);
 
   return (
     <div className="p-6 max-w-3xl">

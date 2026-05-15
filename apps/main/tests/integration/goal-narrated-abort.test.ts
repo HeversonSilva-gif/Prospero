@@ -45,7 +45,7 @@ describe("integration: goal narrated abort path", () => {
           roleTemplateId: "role-engineer",
           model: "claude-sonnet-4-6",
           personaSummary: "lead",
-          skills: ["shell"],
+          capabilities: ["shell"],
           reportsToIndex: "CEO",
           rationale: "x",
         },

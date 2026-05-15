@@ -117,7 +117,7 @@ export const executePlanAtomic = (
           mode: "supervised",
           alwaysOn: false,
           model: a.model,
-          skills: a.skills,
+          capabilities: a.capabilities,
           templateId: a.roleTemplateId,
         });
         if (reportsToId !== null) {

@@ -12,7 +12,7 @@ export const AgentsMdAgentSchema = z.object({
   name: z.string().min(1),
   role: z.string().min(1),
   model: z.string().optional(),
-  skills: z.array(z.string()).optional(),
+  capabilities: z.array(z.string()).optional(),
   reports_to: z.string().optional(),
   projects: z.array(z.string()).optional(),
 });

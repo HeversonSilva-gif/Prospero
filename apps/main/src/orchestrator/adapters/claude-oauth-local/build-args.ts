@@ -16,14 +16,14 @@ export const buildClaudeArgs = (
   mcpConfigPath: string | null,
   opts: { narratedActive?: boolean } = {},
 ): string[] => {
-  const allowedTools = resolveCapabilityTools(agent.skills);
+  const allowedTools = resolveCapabilityTools(agent.capabilities);
   const isCeo = agent.role === "ceo" || agent.role === "CEO";
   const narratedBlock = opts.narratedActive === true ? buildNarratedBlock() : undefined;
   const args = [
     "--system-prompt",
     composeSystemPrompt({
       agentPersona: agent.systemPrompt,
-      skills: agent.skills,
+      capabilities: agent.capabilities,
       ...(isCeo ? { goalsBlock: goalsSystemPromptBlock } : {}),
       ...(narratedBlock !== undefined ? { narratedBlock } : {}),
     }),

@@ -20,7 +20,8 @@ export const serializeAgentsMd = (payload: AgentsMdPayload): string => {
   data.agents = payload.agents.map((a) => {
     const out: Record<string, unknown> = { name: a.name, role: a.role };
     if (a.model !== undefined) out.model = a.model;
-    if (a.skills !== undefined && a.skills.length > 0) out.skills = a.skills;
+    if (a.capabilities !== undefined && a.capabilities.length > 0)
+      out.capabilities = a.capabilities;
     if (a.reports_to !== undefined) out.reports_to = a.reports_to;
     if (a.projects !== undefined && a.projects.length > 0) out.projects = a.projects;
     return out;

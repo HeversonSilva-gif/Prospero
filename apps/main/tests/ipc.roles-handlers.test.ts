@@ -58,13 +58,13 @@ describe("roles IPC handlers", () => {
 
     const detail = (await invoke("roles:get", { id: "role-engineer" })) as {
       id: string;
-      defaultSkills: string[];
+      defaultCapabilities: string[];
       resolvedTools: string[];
       agentsUsing: Array<{ id: string; name: string }>;
     } | null;
 
     expect(detail).not.toBeNull();
-    expect(detail!.defaultSkills).toContain("shell");
+    expect(detail!.defaultCapabilities).toContain("shell");
     expect(detail!.resolvedTools).toContain("Bash");
     expect(detail!.resolvedTools).toContain("mcp__dashboard__request_permission");
     expect(detail!.agentsUsing).toEqual([{ id: "a1", name: "Alice" }]);

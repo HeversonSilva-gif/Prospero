@@ -46,7 +46,7 @@ const rowToAgent = (r: Row): Agent => ({
   currentAction: r.current_action,
   allowedProjects: JSON.parse(r.allowed_projects_json) as string[],
   model: r.model,
-  skills: JSON.parse(r.capabilities_json) as string[],
+  capabilities: JSON.parse(r.capabilities_json) as string[],
   templateId: r.template_id,
   reportsTo: r.reports_to,
   adapterName: r.adapter_name,
@@ -63,7 +63,7 @@ export type CreateAgentInput = {
   mode: AgentMode;
   alwaysOn: boolean;
   model?: string;
-  skills?: string[];
+  capabilities?: string[];
   templateId?: string | null;
   adapterName?: string;
   // Activity actor for the resulting agent.hired event. Defaults to { kind: 'user' }
@@ -86,7 +86,7 @@ export type AgentsRepository = {
   setReportsTo(id: string, newParentId: string | null): void;
   setMode(id: string, mode: AgentMode): void;
   setAlwaysOn(id: string, alwaysOn: boolean): void;
-  setSkills(id: string, skills: string[]): void;
+  setCapabilities(id: string, capabilities: string[]): void;
   pause(id: string, reason?: string): void;
   resume(id: string): void;
   terminate(id: string, reason?: string): void;
@@ -127,7 +127,7 @@ export const createAgentsRepository = (
         input.name,
         input.role,
         input.systemPrompt,
-        JSON.stringify(input.skills ?? []),
+        JSON.stringify(input.capabilities ?? []),
         input.mode,
         input.alwaysOn ? 1 : 0,
         finalModel,
@@ -316,16 +316,16 @@ export const createAgentsRepository = (
         payload: { from: row.always_on === 1, to: alwaysOn },
       });
     },
-    setSkills(id, skills) {
+    setCapabilities(id, capabilities) {
       const row = byId.get(id) as Row | undefined;
       if (row === undefined) return;
       const previous = JSON.parse(row.capabilities_json) as string[];
       const prevSet = new Set(previous);
-      const nextSet = new Set(skills);
-      const added = skills.filter((s) => !prevSet.has(s));
+      const nextSet = new Set(capabilities);
+      const added = capabilities.filter((s) => !prevSet.has(s));
       const removed = previous.filter((s) => !nextSet.has(s));
       db.prepare("UPDATE agents SET capabilities_json = ?, updated_at = ? WHERE id = ?").run(
-        JSON.stringify(skills),
+        JSON.stringify(capabilities),
         Date.now(),
         id,
       );

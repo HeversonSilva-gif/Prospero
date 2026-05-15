@@ -138,7 +138,7 @@ const recordSubgoal: Tool = {
 const listRoleTemplates: Tool = {
   name: "list_role_templates",
   description:
-    "List available role templates (canonical agent blueprints with default model, skills, and system prompt). Used by the CEO during goal planning to pick agent types for new hires.",
+    "List available role templates (canonical agent blueprints with default model, capabilities, and system prompt). Used by the CEO during goal planning to pick agent types for new hires.",
   inputSchema: z.object({}),
   // eslint-disable-next-line @typescript-eslint/require-await
   run: async (_input, ctx) => {
@@ -148,7 +148,7 @@ const listRoleTemplates: Tool = {
       name: t.name,
       description: t.description,
       defaultModel: t.defaultModel,
-      defaultSkills: t.defaultSkills,
+      defaultCapabilities: t.defaultCapabilities,
     }));
     return JSON.stringify({ templates });
   },
@@ -317,7 +317,7 @@ const hireAgentForPlan: Tool = {
       mode: "supervised",
       alwaysOn: false,
       model: agentSpec.model,
-      skills: agentSpec.skills,
+      capabilities: agentSpec.capabilities,
       templateId: agentSpec.roleTemplateId,
     });
     agentsRepo.setReportsTo(created.id, reportsToId);

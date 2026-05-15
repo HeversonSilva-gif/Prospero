@@ -630,15 +630,18 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   );
 
   ipcMain.handle(
-    IPC.AGENTS_SET_SKILLS,
-    (_e, payload: { agentId: string; skills: string[] }): { ok: true } => {
-      if (!Array.isArray(payload.skills) || payload.skills.some((s) => typeof s !== "string")) {
-        throw new Error("skills must be string[]");
+    IPC.AGENTS_SET_CAPABILITIES,
+    (_e, payload: { agentId: string; capabilities: string[] }): { ok: true } => {
+      if (
+        !Array.isArray(payload.capabilities) ||
+        payload.capabilities.some((s) => typeof s !== "string")
+      ) {
+        throw new Error("capabilities must be string[]");
       }
       const agent = agents.getById(payload.agentId);
       if (agent === null) throw new Error("Agent not found");
-      agents.setSkills(payload.agentId, payload.skills);
-      // skills afeta --allowedTools no spawn → exige re-spawn.
+      agents.setCapabilities(payload.agentId, payload.capabilities);
+      // capabilities afeta --allowedTools no spawn → exige re-spawn.
       restartIfRunning(payload.agentId, agent.companyId);
       return { ok: true };
     },

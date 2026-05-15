@@ -15,7 +15,7 @@ const sampleAgent = (over: Partial<Agent> = {}): Agent => ({
   currentAction: null,
   allowedProjects: [],
   model: "claude-sonnet-4-6",
-  skills: [],
+  capabilities: [],
   templateId: null,
   reportsTo: null,
   adapterName: "claude-oauth-local",
@@ -30,7 +30,7 @@ const setupWindow = (overrides: Record<string, unknown> = {}) => {
     list: vi.fn(() => Promise.resolve([sampleAgent()])),
     setMode: vi.fn(() => Promise.resolve({ ok: true })),
     setAlwaysOn: vi.fn(() => Promise.resolve({ ok: true })),
-    setSkills: vi.fn(() => Promise.resolve({ ok: true })),
+    setCapabilities: vi.fn(() => Promise.resolve({ ok: true })),
     pause: vi.fn(() => Promise.resolve({ ok: true })),
     resume: vi.fn(() => Promise.resolve({ ok: true, drained: 0 })),
     terminate: vi.fn(() => Promise.resolve({ ok: true })),
@@ -63,12 +63,12 @@ describe("agents store — lifecycle actions", () => {
     expect(a.alwaysOn).toBe(true);
   });
 
-  it("setSkills patches local state with new array", async () => {
+  it("setCapabilities patches local state with new array", async () => {
     const api = setupWindow();
-    await useAgentsStore.getState().setSkills("agent_1", ["read_code", "git_ops"]);
-    expect(api.setSkills).toHaveBeenCalledWith("agent_1", ["read_code", "git_ops"]);
+    await useAgentsStore.getState().setCapabilities("agent_1", ["read_code", "git_ops"]);
+    expect(api.setCapabilities).toHaveBeenCalledWith("agent_1", ["read_code", "git_ops"]);
     const a = useAgentsStore.getState().agents[0]!;
-    expect(a.skills).toEqual(["read_code", "git_ops"]);
+    expect(a.capabilities).toEqual(["read_code", "git_ops"]);
   });
 
   it("pause sets status='paused' locally + records pauseReason", async () => {

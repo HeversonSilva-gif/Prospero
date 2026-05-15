@@ -43,7 +43,7 @@ export interface AgentToHire {
   roleTemplateId: string;
   model: string;
   personaSummary: string;
-  skills: string[];
+  capabilities: string[];
   reportsToIndex: number | "CEO";
   rationale: string;
 }

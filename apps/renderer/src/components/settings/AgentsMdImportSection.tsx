@@ -11,7 +11,7 @@ type Parsed = {
     name: string;
     role: string;
     model?: string;
-    skills?: string[];
+    capabilities?: string[];
     reports_to?: string;
     projects?: string[];
   }[];

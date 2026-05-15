@@ -23,7 +23,7 @@ const AgentToHireSchema = z.object({
   roleTemplateId: z.string().min(1),
   model: z.enum(MODEL_PRESETS),
   personaSummary: z.string().min(10).max(500),
-  skills: z.array(z.string()).max(20),
+  capabilities: z.array(z.string()).max(20),
   reportsToIndex: indexRef,
   rationale: z.string().min(1).max(500),
 });

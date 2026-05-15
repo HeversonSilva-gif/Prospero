@@ -66,7 +66,7 @@ describe("integration: goal flow happy path", () => {
           roleTemplateId: "swe",
           model: "sonnet-4",
           personaSummary: "Senior backend engineer focused on OAuth flows.",
-          skills: ["file_ops"],
+          capabilities: ["file_ops"],
           reportsToIndex: "CEO",
           rationale: "Needs OAuth expertise",
         },

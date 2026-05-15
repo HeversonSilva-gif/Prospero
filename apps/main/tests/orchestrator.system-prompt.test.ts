@@ -5,18 +5,18 @@ describe("composeSystemPrompt", () => {
   it("uses preambleOverride when provided (no fs read)", () => {
     const result = composeSystemPrompt({
       agentPersona: "I am a test agent.",
-      skills: [],
+      capabilities: [],
       preambleOverride: "# Custom preamble\n\n",
     });
     expect(result).toContain("# Custom preamble");
     expect(result).toContain("I am a test agent.");
-    expect(result).toContain("# Your skills and available tools");
+    expect(result).toContain("# Your capabilities and available tools");
   });
 
   it("emits a role block when role is provided", () => {
     const result = composeSystemPrompt({
       agentPersona: "Persona text.",
-      skills: ["chat"],
+      capabilities: ["chat"],
       role: { name: "Engineer", description: "Builds things." },
       preambleOverride: "PREAMBLE\n",
     });
@@ -27,7 +27,7 @@ describe("composeSystemPrompt", () => {
   it("omits the role block when role is null", () => {
     const result = composeSystemPrompt({
       agentPersona: "P",
-      skills: [],
+      capabilities: [],
       role: null,
       preambleOverride: "PRE\n",
     });
@@ -37,20 +37,20 @@ describe("composeSystemPrompt", () => {
   it("ensures chat skill is in the list even if not explicitly provided", () => {
     const result = composeSystemPrompt({
       agentPersona: "P",
-      skills: ["coding"],
+      capabilities: ["coding"],
       preambleOverride: "PRE\n",
     });
     expect(result).toContain("chat");
   });
 
-  it("buildAgentSystemPrompt wrapper produces equivalent output for skills+persona", () => {
+  it("buildAgentSystemPrompt wrapper produces equivalent output for capabilities+persona", () => {
     const wrapper = buildAgentSystemPrompt("Persona text", ["chat"]);
-    const direct = composeSystemPrompt({ agentPersona: "Persona text", skills: ["chat"] });
+    const direct = composeSystemPrompt({ agentPersona: "Persona text", capabilities: ["chat"] });
     expect(wrapper).toBe(direct);
   });
 
   it("loads the bundled preamble.md from disk when no override given", () => {
-    const result = composeSystemPrompt({ agentPersona: "X", skills: [] });
+    const result = composeSystemPrompt({ agentPersona: "X", capabilities: [] });
     expect(result).toContain("Runtime environment");
   });
 });

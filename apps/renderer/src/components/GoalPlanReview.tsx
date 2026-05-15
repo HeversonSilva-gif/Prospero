@@ -74,9 +74,9 @@ const AgentRow: FC<{
           </p>
           <p>
             <span className="font-semibold text-ink-soft uppercase tracking-wide">
-              {t("goals.plan.agentFields.skills")}:
+              {t("goals.plan.agentFields.capabilities")}:
             </span>{" "}
-            {agent.skills.join(", ")}
+            {agent.capabilities.join(", ")}
           </p>
           <p>
             <span className="font-semibold text-ink-soft uppercase tracking-wide">

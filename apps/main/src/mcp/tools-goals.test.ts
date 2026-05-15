@@ -127,7 +127,7 @@ describe("goalsToolDefinitions — read tools", () => {
     );
   });
 
-  it("list_role_templates returns canonical templates with id, name, model, skills", async () => {
+  it("list_role_templates returns canonical templates with id, name, model, capabilities", async () => {
     env.ctx.db
       .prepare(
         `INSERT INTO role_templates (id, name, description, default_system_prompt, default_capabilities_json, default_model, icon)
@@ -143,14 +143,14 @@ describe("goalsToolDefinitions — read tools", () => {
         name: string;
         description: string;
         defaultModel: string;
-        defaultSkills: string[];
+        defaultCapabilities: string[];
       }>;
     };
     expect(result.templates).toHaveLength(2);
     const ceo = result.templates.find((t) => t.id === "role-ceo");
     expect(ceo).toBeDefined();
     expect(ceo?.defaultModel).toBe("claude-opus-4-7");
-    expect(ceo?.defaultSkills).toEqual(["delegation", "chat"]);
+    expect(ceo?.defaultCapabilities).toEqual(["delegation", "chat"]);
   });
 
   it("list_role_templates omits internal fields (defaultSystemPrompt, icon)", async () => {

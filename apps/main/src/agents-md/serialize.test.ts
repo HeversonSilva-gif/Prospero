@@ -7,7 +7,7 @@ const PAYLOAD: AgentsMdPayload = {
   company: "Acme",
   projects: [{ name: "backend", path: "D:/code/backend" }],
   agents: [
-    { name: "Alice", role: "engineer", skills: ["shell", "fs-read"] },
+    { name: "Alice", role: "engineer", capabilities: ["shell", "fs-read"] },
     { name: "Bob", role: "qa", reports_to: "Alice" },
   ],
 };

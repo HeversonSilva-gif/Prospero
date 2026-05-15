@@ -7,7 +7,7 @@ const validAgent = {
   roleTemplateId: "swe",
   model: "sonnet-4",
   personaSummary: "Senior backend engineer focused on APIs.",
-  skills: ["file_ops", "git"],
+  capabilities: ["file_ops", "git"],
   reportsToIndex: "CEO" as const,
   rationale: "Needs API expertise for the planned endpoints.",
 };

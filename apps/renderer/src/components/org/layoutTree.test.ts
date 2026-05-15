@@ -15,7 +15,7 @@ const mkAgent = (id: string, reportsTo: string | null): Agent => ({
   currentAction: null,
   allowedProjects: [],
   model: "claude-sonnet-4-6",
-  skills: [],
+  capabilities: [],
   templateId: null,
   reportsTo,
   adapterName: "claude-oauth-local",

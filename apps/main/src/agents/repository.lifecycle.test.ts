@@ -50,12 +50,12 @@ describe("repository lifecycle methods", () => {
     expect(events[0]!.payload).toEqual({ from: false, to: true });
   });
 
-  it("setSkills records added/removed deltas in payload", () => {
+  it("setCapabilities records added/removed deltas in payload", () => {
     const { repo, activityRepo, agent } = setup();
-    repo.setSkills(agent.id, ["read_code", "run_tests"]);
-    repo.setSkills(agent.id, ["read_code", "git_ops"]);
+    repo.setCapabilities(agent.id, ["read_code", "run_tests"]);
+    repo.setCapabilities(agent.id, ["read_code", "git_ops"]);
     const fresh = repo.getById(agent.id)!;
-    expect(fresh.skills).toEqual(["read_code", "git_ops"]);
+    expect(fresh.capabilities).toEqual(["read_code", "git_ops"]);
     const events = activityRepo.query({
       companyId: "co_1",
       filters: { action: "agent.capabilities_changed" },

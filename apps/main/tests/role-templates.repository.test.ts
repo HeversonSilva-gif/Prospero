@@ -25,10 +25,10 @@ describe("RoleTemplatesRepository", () => {
     ]);
   });
 
-  it("each role has parsed skills + default_model + icon", () => {
+  it("each role has parsed capabilities + default_model + icon", () => {
     const { repo } = setup();
     const eng = repo.listAll().find((r) => r.id === "role-engineer")!;
-    expect(eng.defaultSkills).toContain("shell");
+    expect(eng.defaultCapabilities).toContain("shell");
     expect(eng.defaultModel).toBe("claude-sonnet-4-6");
     expect(eng.icon).toBe("👨‍💻");
   });

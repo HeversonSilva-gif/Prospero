@@ -19,7 +19,7 @@ export type HireOptions = {
 const findRoleId = (
   db: Database.Database,
   roleHint: string,
-): { id: string; defaultModel: string; defaultSkills: string[] } | null => {
+): { id: string; defaultModel: string; defaultCapabilities: string[] } | null => {
   const roles = createRoleTemplatesRepository(db).listAll();
   const lower = roleHint.toLowerCase();
   const match =
@@ -27,7 +27,11 @@ const findRoleId = (
     roles.find((r) => r.name.toLowerCase() === lower) ??
     roles.find((r) => r.id.toLowerCase() === `role-${lower}`);
   if (match === undefined) return null;
-  return { id: match.id, defaultModel: match.defaultModel, defaultSkills: match.defaultSkills };
+  return {
+    id: match.id,
+    defaultModel: match.defaultModel,
+    defaultCapabilities: match.defaultCapabilities,
+  };
 };
 
 export const hireFromAgentsMd = (
@@ -96,7 +100,7 @@ export const hireFromAgentsMd = (
       alwaysOn: false,
       templateId: role.id,
       model: a.model ?? role.defaultModel,
-      skills: a.skills ?? role.defaultSkills,
+      capabilities: a.capabilities ?? role.defaultCapabilities,
       actor: { kind: "user" },
     });
     summary.created.agents += 1;

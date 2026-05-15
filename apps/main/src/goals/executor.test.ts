@@ -35,7 +35,7 @@ const agentInput = (overrides: Partial<AgentToHire>): AgentToHire => ({
   roleTemplateId: "swe",
   model: "sonnet-4",
   personaSummary: "Senior backend engineer focused on APIs.",
-  skills: ["file_ops"],
+  capabilities: ["file_ops"],
   reportsToIndex: "CEO",
   rationale: "API expertise",
   ...overrides,

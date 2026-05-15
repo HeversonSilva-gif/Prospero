@@ -21,7 +21,7 @@ export const registerRolesHandlers = (db: Database.Database): void => {
     if (role === null) return null;
     return {
       ...role,
-      resolvedTools: resolveCapabilityTools(role.defaultSkills),
+      resolvedTools: resolveCapabilityTools(role.defaultCapabilities),
       agentsUsing: repo.agentsUsing(role.id),
     };
   });

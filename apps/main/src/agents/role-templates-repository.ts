@@ -16,7 +16,7 @@ const rowToRole = (r: Row): RoleTemplate => ({
   name: r.name,
   description: r.description,
   defaultSystemPrompt: r.default_system_prompt,
-  defaultSkills: JSON.parse(r.default_capabilities_json) as string[],
+  defaultCapabilities: JSON.parse(r.default_capabilities_json) as string[],
   defaultModel: r.default_model,
   icon: r.icon,
 });

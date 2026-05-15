@@ -26,7 +26,7 @@ const getPreamble = (): string => {
 
 export type ComposeArgs = {
   agentPersona: string;
-  skills: string[];
+  capabilities: string[];
   role?: { name: string; description: string } | null;
   preambleOverride?: string;
   goalsBlock?: string;
@@ -35,20 +35,20 @@ export type ComposeArgs = {
 
 export const composeSystemPrompt = (args: ComposeArgs): string => {
   const preamble = args.preambleOverride ?? getPreamble();
-  const effectiveSkills = ensureChatCapability(args.skills);
-  const resolvedTools = resolveCapabilityTools(args.skills);
+  const effectiveCapabilities = ensureChatCapability(args.capabilities);
+  const resolvedTools = resolveCapabilityTools(args.capabilities);
 
   const roleBlock =
     args.role !== null && args.role !== undefined
       ? `# Your role: ${args.role.name}\n\n${args.role.description}\n\n---\n\n`
       : "";
 
-  const skillsBlock = `
+  const capabilitiesBlock = `
 ---
 
-# Your skills and available tools
+# Your capabilities and available tools
 
-You have the following skills: ${effectiveSkills.join(", ")}.
+You have the following capabilities: ${effectiveCapabilities.join(", ")}.
 
 The host has filtered your visible Claude tools to: ${resolvedTools.join(", ")}.
 
@@ -58,11 +58,11 @@ your role.
 `;
   const goalsBlock = args.goalsBlock ?? "";
   const narratedBlock = args.narratedBlock ?? "";
-  return preamble + roleBlock + args.agentPersona + skillsBlock + goalsBlock + narratedBlock;
+  return preamble + roleBlock + args.agentPersona + capabilitiesBlock + goalsBlock + narratedBlock;
 };
 
 // Backwards-compatible wrapper used by build-args.ts. Keeps the existing
 // 2-arg signature alive so callers don't all need updating at once. New code
 // should call composeSystemPrompt directly with the structured args.
-export const buildAgentSystemPrompt = (userSystemPrompt: string, skills: string[]): string =>
-  composeSystemPrompt({ agentPersona: userSystemPrompt, skills });
+export const buildAgentSystemPrompt = (userSystemPrompt: string, capabilities: string[]): string =>
+  composeSystemPrompt({ agentPersona: userSystemPrompt, capabilities });

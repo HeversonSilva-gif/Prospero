@@ -29,7 +29,7 @@ Your task is to decompose the goal into a complete executable plan. Steps:
    \`get_cost_baseline(roleTemplateId, model)\` to calibrate token estimates.
 5. Structure the plan:
    - **agentsToHire**: new agents (unique index, model from MODEL_PRESETS,
-     persona 1-2 sentences, skills from the role template, reportsToIndex
+     persona 1-2 sentences, capabilities from the role template, reportsToIndex
      defining hierarchy, short rationale).
    - **issuesToCreate**: actionable tasks (index, title, description,
      priority, assigneeIndex, estimatedTokens, dependsOnIndexes forming a DAG,

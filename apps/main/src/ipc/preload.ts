@@ -89,7 +89,7 @@ contextBridge.exposeInMainWorld("prospero", {
                 name: string;
                 role: string;
                 model?: string;
-                skills?: string[];
+                capabilities?: string[];
                 reports_to?: string;
                 projects?: string[];
               }[];
@@ -146,8 +146,10 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.AGENTS_SET_MODE, { agentId, mode }) as Promise<{ ok: true }>,
     setAlwaysOn: (agentId: string, alwaysOn: boolean) =>
       ipcRenderer.invoke(IPC.AGENTS_SET_ALWAYS_ON, { agentId, alwaysOn }) as Promise<{ ok: true }>,
-    setSkills: (agentId: string, skills: string[]) =>
-      ipcRenderer.invoke(IPC.AGENTS_SET_SKILLS, { agentId, skills }) as Promise<{ ok: true }>,
+    setCapabilities: (agentId: string, capabilities: string[]) =>
+      ipcRenderer.invoke(IPC.AGENTS_SET_CAPABILITIES, { agentId, capabilities }) as Promise<{
+        ok: true;
+      }>,
     pause: (agentId: string, reason?: string) =>
       ipcRenderer.invoke(IPC.AGENTS_PAUSE, { agentId, reason }) as Promise<{ ok: true }>,
     resume: (agentId: string) =>

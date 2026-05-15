@@ -140,7 +140,7 @@ export const toolDefinitions = [
   {
     name: "hire_agent",
     description:
-      "Hire a new agent. Optionally pass role_template_id (e.g. 'role-engineer') to seed skills + model from a role.",
+      "Hire a new agent. Optionally pass role_template_id (e.g. 'role-engineer') to seed capabilities + model from a role.",
     inputSchema: HIRE_AGENT_INPUT_SCHEMA,
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (input: HireAgentInput, ctx: ToolContext): Promise<string> => {
@@ -149,8 +149,8 @@ export const toolDefinitions = [
       const settings = createSettingsRepository(ctx.db).read();
 
       // Resolve role template if provided. Skip silently if id is unknown
-      // (defensive — agent gets empty skills + settings default model).
-      let roleSkills: string[] = [];
+      // (defensive — agent gets empty capabilities + settings default model).
+      let roleCapabilities: string[] = [];
       let roleModel: string | null = null;
       let templateId: string | null = null;
       if (input.role_template_id !== undefined) {
@@ -162,7 +162,7 @@ export const toolDefinitions = [
           | { default_capabilities_json: string; default_model: string }
           | undefined;
         if (row !== undefined) {
-          roleSkills = JSON.parse(row.default_capabilities_json) as string[];
+          roleCapabilities = JSON.parse(row.default_capabilities_json) as string[];
           roleModel = row.default_model;
           templateId = input.role_template_id;
         }
@@ -176,7 +176,7 @@ export const toolDefinitions = [
         mode: input.mode ?? "supervised",
         alwaysOn: false,
         model: roleModel ?? settings.defaultModelForNewAgents,
-        skills: roleSkills,
+        capabilities: roleCapabilities,
         templateId,
         actor: { kind: "agent", id: ctx.agentId },
       });

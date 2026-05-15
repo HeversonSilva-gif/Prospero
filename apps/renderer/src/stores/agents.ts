@@ -21,7 +21,7 @@ type State = {
   fetchStats: (agentId: string) => Promise<AgentStats>;
   setMode: (agentId: string, mode: "supervised" | "auto") => Promise<void>;
   setAlwaysOn: (agentId: string, alwaysOn: boolean) => Promise<void>;
-  setSkills: (agentId: string, skills: string[]) => Promise<void>;
+  setCapabilities: (agentId: string, capabilities: string[]) => Promise<void>;
   pause: (agentId: string, reason?: string) => Promise<void>;
   resume: (agentId: string) => Promise<{ ok: true; drained: number }>;
   terminate: (agentId: string, reason?: string) => Promise<void>;
@@ -111,10 +111,10 @@ export const useAgentsStore = create<State>((set, get) => ({
       agents: s.agents.map((a) => (a.id === agentId ? { ...a, alwaysOn } : a)),
     }));
   },
-  setSkills: async (agentId, skills) => {
-    await window.prospero.agents.setSkills(agentId, skills);
+  setCapabilities: async (agentId, capabilities) => {
+    await window.prospero.agents.setCapabilities(agentId, capabilities);
     set((s) => ({
-      agents: s.agents.map((a) => (a.id === agentId ? { ...a, skills } : a)),
+      agents: s.agents.map((a) => (a.id === agentId ? { ...a, capabilities } : a)),
     }));
   },
   pause: async (agentId, reason) => {

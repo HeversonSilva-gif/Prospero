@@ -81,7 +81,7 @@ declare global {
                   name: string;
                   role: string;
                   model?: string;
-                  skills?: string[];
+                  capabilities?: string[];
                   reports_to?: string;
                   projects?: string[];
                 }[];
@@ -119,7 +119,7 @@ declare global {
         stats: (agentId: string) => Promise<AgentStats>;
         setMode: (agentId: string, mode: "supervised" | "auto") => Promise<{ ok: true }>;
         setAlwaysOn: (agentId: string, alwaysOn: boolean) => Promise<{ ok: true }>;
-        setSkills: (agentId: string, skills: string[]) => Promise<{ ok: true }>;
+        setCapabilities: (agentId: string, capabilities: string[]) => Promise<{ ok: true }>;
         pause: (agentId: string, reason?: string) => Promise<{ ok: true }>;
         resume: (agentId: string) => Promise<{ ok: true; drained: number }>;
         terminate: (agentId: string, reason?: string) => Promise<{ ok: true }>;

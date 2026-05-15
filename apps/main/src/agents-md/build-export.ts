@@ -38,7 +38,7 @@ export const buildExportPayload = (db: Database.Database, companyId: string): Ag
       role: roleIdToName.get(a.role) ?? a.role,
     };
     if (a.model !== "") out.model = a.model;
-    if (a.skills.length > 0) out.skills = a.skills;
+    if (a.capabilities.length > 0) out.capabilities = a.capabilities;
     const parentName = a.reportsTo !== null ? idToName.get(a.reportsTo) : undefined;
     if (parentName !== undefined) out.reports_to = parentName;
     return out;

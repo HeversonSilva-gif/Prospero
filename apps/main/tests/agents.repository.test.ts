@@ -112,8 +112,8 @@ describe("AgentsRepository - model field", () => {
   });
 });
 
-describe("AgentsRepository - skills + templateId", () => {
-  it("returns empty skills + null templateId for a freshly created agent", () => {
+describe("AgentsRepository - capabilities + templateId", () => {
+  it("returns empty capabilities + null templateId for a freshly created agent", () => {
     const db = new Database(":memory:");
     applyMigrations(db);
     db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1', 'X', 0)").run();
@@ -126,11 +126,11 @@ describe("AgentsRepository - skills + templateId", () => {
       mode: "supervised",
       alwaysOn: false,
     });
-    expect(a.skills).toEqual([]);
+    expect(a.capabilities).toEqual([]);
     expect(a.templateId).toBeNull();
   });
 
-  it("create() persists skills + templateId when provided", () => {
+  it("create() persists capabilities + templateId when provided", () => {
     const db = new Database(":memory:");
     applyMigrations(db);
     db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1', 'X', 0)").run();
@@ -142,13 +142,13 @@ describe("AgentsRepository - skills + templateId", () => {
       systemPrompt: "long enough system prompt",
       mode: "supervised",
       alwaysOn: false,
-      skills: ["shell", "fs-write"],
+      capabilities: ["shell", "fs-write"],
       templateId: "role-engineer",
     });
-    expect(a.skills).toEqual(["shell", "fs-write"]);
+    expect(a.capabilities).toEqual(["shell", "fs-write"]);
     expect(a.templateId).toBe("role-engineer");
     const back = repo.getById(a.id);
-    expect(back?.skills).toEqual(["shell", "fs-write"]);
+    expect(back?.capabilities).toEqual(["shell", "fs-write"]);
     expect(back?.templateId).toBe("role-engineer");
   });
 });
