@@ -22,6 +22,7 @@ import { ensureAdapter, getAdapter, removeAdapter } from "../orchestrator/lifecy
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
 import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
 import { resolveAdapterCredentials } from "../orchestrator/adapter-credentials.js";
+import { pickAdapterForHire } from "../agents/hire-adapter.js";
 import { createRouter } from "../orchestrator/router.js";
 import type { Sender } from "../orchestrator/router.js";
 import type { ParsedEvent } from "@prospero/shared";
@@ -727,7 +728,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   ipcMain.handle(IPC.AGENTS_HIRE_FROM_UI, (_e, payload: unknown): Agent => {
     const parsed = HIRE_FROM_UI_INPUT_SCHEMA.parse(payload);
     const authMode = getActiveAuthMode(db);
-    const adapterName = authMode === "api-key" ? "claude-api-key-local" : "claude-oauth-local";
+    const adapterName = pickAdapterForHire(parsed.location, authMode);
     const created = agents.create({
       companyId: parsed.company_id,
       name: parsed.name,

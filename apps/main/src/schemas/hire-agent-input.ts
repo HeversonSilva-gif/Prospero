@@ -19,4 +19,5 @@ export const HIRE_AGENT_INPUT_SCHEMA = z.object({
 
 export const HIRE_FROM_UI_INPUT_SCHEMA = HIRE_AGENT_INPUT_SCHEMA.extend({
   company_id: z.string().min(1),
+  location: z.enum(["local", "remote"]).optional(),
 });

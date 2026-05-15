@@ -165,6 +165,7 @@ contextBridge.exposeInMainWorld("prospero", {
       mode?: "supervised" | "auto";
       reports_to?: string;
       role_template_id?: string;
+      location?: "local" | "remote";
     }) => ipcRenderer.invoke(IPC.AGENTS_HIRE_FROM_UI, payload) as Promise<Agent>,
     onEvent: (cb: (event: AgentEvent) => void) => {
       const handler = (_e: unknown, event: AgentEvent) => cb(event);

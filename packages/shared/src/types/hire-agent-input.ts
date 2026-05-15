@@ -14,4 +14,5 @@ export interface HireAgentInput {
 
 export interface HireFromUiInput extends HireAgentInput {
   company_id: string;
+  location?: "local" | "remote";
 }

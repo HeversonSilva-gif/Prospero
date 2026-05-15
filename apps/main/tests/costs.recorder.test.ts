@@ -50,6 +50,24 @@ describe("createCostRecorder.recordTurn", () => {
     expect(count.n).toBe(1);
   });
 
+  it("labels the cost row with the agent's adapter (remote docker)", () => {
+    const { recorder, companyId, agentId, db } = setup();
+    recorder.recordTurn({
+      companyId,
+      agentId,
+      projectId: null,
+      issueId: null,
+      adapterName: "claude-oauth-remote-docker",
+      model: "claude-sonnet-4-6",
+      sessionId: null,
+      usage: { input: 100, output: 50, cache_creation: 0, cache_read: 0 },
+    });
+    const row = db.prepare("SELECT adapter_name FROM cost_events").get() as {
+      adapter_name: string;
+    };
+    expect(row.adapter_name).toBe("claude-oauth-remote-docker");
+  });
+
   it("returns 0 cost when model is unknown but still persists tokens", () => {
     const { recorder, companyId, agentId, db } = setup();
     const out = recorder.recordTurn({
