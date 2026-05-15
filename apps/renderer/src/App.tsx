@@ -123,7 +123,7 @@ const Sidebar = () => {
             `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
           }
         >
-          {t("nav.capabilities")}
+          {t("nav.roles")}
         </NavLink>
         <NavLink
           to="/costs"
