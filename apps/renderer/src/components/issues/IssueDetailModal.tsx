@@ -9,6 +9,7 @@ import { SubtaskList } from "./SubtaskList.js";
 import { ToolCallHistoryAccordion } from "./ToolCallHistoryAccordion.js";
 import { ReassignDropdown } from "./ReassignDropdown.js";
 import { IssueFormModal } from "./IssueFormModal.js";
+import { IssueReviewBlock } from "./IssueReviewBlock.js";
 import { ConfirmModal } from "../ConfirmModal.js";
 
 type Props = { issueId: string; onClose: () => void };
@@ -112,6 +113,8 @@ export const IssueDetailModal: FC<Props> = ({ issueId, onClose }) => {
               : "—"}
           </div>
         </div>
+
+        {issue.status === "review" && <IssueReviewBlock issueId={issue.id} artifacts={artifacts} />}
 
         {subtasks.length > 0 && (
           <div className="mb-4">
