@@ -153,6 +153,9 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
                                                        (âncora V2)  10-14d
                                                                     │
                                                                     ▼
+                                          M12 Agent & Org Definition Layer  ~18-24d
+                                                                    │
+                                                                    ▼
                                           V2 Tier 1: Enforced Outcomes · Routines · Plays
                                                   (cada um apoia-se em M11)
 ```
@@ -1035,6 +1038,35 @@ Auto-narração via MCP tool (`memory_add`, `skill_create`) **vira fallback** �
 
 ---
 
+### 🆕 M12 — Agent & Org Definition Layer — **V2, logo após o M11**
+
+**Origem:** brainstorm 2026-05-15 — "por que os nossos agentes parecem mais burros e menos configuráveis que os do Paperclip, e como viramos uma máquina de criar 1-person business de qualquer ramo?". Doc de design completo em [docs/m12-agent-org-definition-layer.md](docs/m12-agent-org-definition-layer.md).
+
+**O problema:** os 14 milestones do v1 construíram a máquina de orquestração — mas os agentes a dirigem com um manual de um parágrafo. `role_templates` shipam com prompts de 1-2 frases; a única instrução editável por agente é uma textarea. O agente tem as tools MCP, mas não tem o playbook: nada diz quando, como e com que padrão usar cada uma.
+
+**Divisão M11 ↔ M12:** o M11 entrega a inteligência *aprendida* (memória, skills auto-derivadas, loop). O M12 entrega a inteligência *autorada* — o agente já nasce esperto no dia 1 e o usuário consegue moldá-lo a fundo, para **qualquer ramo de negócio**, não só software house. **Dependência:** a Peça 2 roda como skill bundled sobre a infra de skills do M11 — por isso o M12 vem depois.
+
+#### 4 peças
+
+1. **Autoria de papéis & organização** — estrutura universal de charter (8 seções) · `role_templates` vira biblioteca com CRUD + rota `/roles` · assistente de geração de charter (one-shot, org-aware) · **CEO arquiteto**: projeta o org chart inteiro a partir de "quero uma agência X", revisão estilo `GoalPlanReview`, contratação em massa · `AGENTS.md` carrega charters (org-as-code).
+2. **Procedimento operacional** — contrato core conciso (preamble evoluído) + Manual Operacional como skill bundled (progressive disclosure), amarrando cada ação a uma tool MCP concreta.
+3. **Instruções como dado** — bundle gerenciado multi-arquivo por agente em disco + aba **Instructions** (file-tree + editor); `composeSystemPrompt` passa a ler do disco.
+4. **Runs · Budget · Run Policy** — tabela `agent_runs` + aba Runs · budget por agente (teto de tokens universal + USD para adapters API key; enforcement reusa o soft-stop do M8) · Run Policy consolida mode/always-on + permissões (`can_hire`, `can_assign`).
+
+#### Decisões do brainstorm (2026-05-15)
+
+- Escopo **camada completa** — as 4 peças, não só conteúdo.
+- Budget = **tokens + USD** (tokens universal; USD quando o adapter é API key).
+- Autoria até o nível **"CEO monta a empresa"** (não só papel a papel); blueprints de empresa ficam como fast-follow.
+- Bundle de instruções **gerenciado, sem modo external** (apontar repo git fica backlog).
+- Instruções **autoradas por humano**; aprendizado autônomo continua nos canais do M11 (sanitizer + review) — evita auto-reescrita do charter como vetor de injection.
+
+**Faseamento:** ~6 PRs (A papéis+biblioteca · B procedimento operacional · C storage+aba Instructions · D geração+CEO-arquiteto · E Runs+Budget+Run Policy · F IA das abas+docs).
+
+**Custos:** ~18-24 dias estimados. **Pré-req:** M11 (infra de skills). **Posição:** V2, logo após o M11, antes das apostas V2 Tier 1 — agente bem-instruído fortalece Workflow Plays e Enforced Outcomes.
+
+---
+
 ## 🎯 Visão V2 — "1-Person Business"
 
 > **Tese:** V2 muda a natureza do produto. V1 entrega "um time de IA que você gerencia via chat". V2 vira "**delegação de outcomes que você só revisa**" — você abre o app uma vez por dia pra olhar o que rodou enquanto dormia, não 20× pra empurrar trabalho. **Persona-alvo: qualquer pessoa que queira criar um 1-person business** apoiada numa empresa de agentes que aprende com a experiência.
@@ -1046,6 +1078,7 @@ Auto-narração via MCP tool (`memory_add`, `skill_create`) **vira fallback** �
 | Ordem | Aposta | Custo | Pré-req | Por que aqui |
 |---|---|---|---|---|
 | **V2.0** | **M11 — Agent Memory & Learning Loop** | 10-14d | M10 | **Fundação.** 3 camadas Hermes (declarativa/procedural/episódica) × 2 níveis (individual/coletivo). Fluxo bidirecional: descendente via inheritance (`hire_agent` carrega skills + memories role-scoped), ascendente via `skill_promote` + `memory_add({applies_to_role})` + retrospectivas CEO em `goal.achieved`. Sem isso, Tier 1 vira estático. |
+| **V2.1** | **M12 — Agent & Org Definition Layer** | ~18-24d | M11 | Inteligência *autorada*: charters ricos (8 seções) + Manual Operacional + editor multi-arquivo de instruções + autoria de organização (CEO projeta a empresa de qualquer ramo). M11 entrega o agente que *aprende*; M12, o que já *nasce esperto*. Fortalece Plays e Enforced Outcomes. Ver [docs/m12-agent-org-definition-layer.md](docs/m12-agent-org-definition-layer.md). |
 | **V2 Tier 1** | **Enforced Outcomes** — `done` que significa `done` | 8-10d | M11 | Solo founder não consegue revisar 50 saídas/dia. Issue só passa pra `done` após quality gates executáveis (tests/build/lint/bench). Skills M11 carregam "como rodar gate X". Falha → vira sub-issue automática. |
 | **V2 Tier 1** | **Routines** — agentes que acordam sozinhos | 5-7d | M11 | Pra 1 pessoa, leverage assíncrono É o produto. Cron-like + smart triggers (M11 enriquece com padrões aprendidos pra disparar follow-ups inteligentes). |
 | **V2 Tier 1** | **Workflow Plays** — playbooks pré-prontos pro CEO | 6-8d | M11 + M8.5 | Mata cold-start. CEO escolhe play ("Migrar auth", "Investigar incidente prod", "Lançar feature X com tests") → spawna agentes + issues + gates pré-configurados. Evolui com retrospectivas que CEO grava em company memory. |
@@ -1065,15 +1098,16 @@ Auto-narração via MCP tool (`memory_add`, `skill_create`) **vira fallback** �
 - ❌ **MAXIMIZER MODE sozinho** — só faz sentido acoplado a Enforced Outcomes.
 - ❌ **Plugin SDK completo** — comunidade construirá via skills + MCP servers existentes; SDK próprio é big arch change pra pouco retorno.
 
-### Custo total estimado V2 (M11 + Tier 1)
+### Custo total estimado V2 (M11 + M12 + Tier 1)
 
 | Bloco | Custo |
 |---|---|
 | M11 (âncora) | 10-14d |
+| M12 (Agent & Org Definition Layer) | 18-24d |
 | Enforced Outcomes | 8-10d |
 | Routines | 5-7d |
 | Workflow Plays | 6-8d |
-| **Total V2 core** | **~30-39 dias trabalho contínuo** |
+| **Total V2 core** | **~47-63 dias trabalho contínuo** |
 
 V2 Tier 2 (AI reviewer + adapters + RAG + governance) adiciona +20-30d, mas pode shippar como v2.1/v2.2 incrementais.
 
