@@ -101,10 +101,12 @@ rascunho atual:
    stdout do `claude` (`{ "method": "stdout", "params": { agent_id, line } }`).
    O host parseia com o `stream-parser.ts` existente. Mantém o runner burro e
    evita extrair código pra um pacote compartilhado.
-3. **`spawn.params` carrega config semântica, não argv literal:** o host manda
-   `{ agent_id, model, narrated_active, ... }`; o runner monta o argv final do
-   `claude` container-side, porque `--mcp-config` e `--permission-prompt-tool`
-   apontam pra caminhos container-local.
+3. **`spawn.params.args` é o argv do `claude` montado host-side, menos o
+   tripleto MCP:** o host reusa `buildClaudeArgs` (compõe system prompt, model,
+   `allowedTools`, `--resume` etc.) mas omite `--mcp-config` /
+   `--strict-mcp-config` / `--permission-prompt-tool`. O runner anexa esse
+   tripleto com o caminho container-local do `mcp.json`. Reusar `buildClaudeArgs`
+   evita duplicar `composeSystemPrompt` no runner (sem acoplamento cross-app).
 4. **Novo canal MCP relay** (ver §6): `mcp-data` (notificação bidirecional,
    carrega uma linha de JSON-RPC do MCP), `mcp-open` / `mcp-close`.
 
@@ -170,8 +172,10 @@ container é lançado com stdio anexado, não como serviço com portas.
 O ponto-chave que faz a arquitetura fechar.
 
 1. O runner escreve um `mcp.json` container-local com
-   `command: <caminho do mcp-bridge>` e passa `--mcp-config <path>
-   --strict-mcp-config` no argv do `claude`.
+   `command: <caminho do mcp-bridge>` e anexa o tripleto MCP — `--mcp-config
+   <path>` / `--strict-mcp-config` / `--permission-prompt-tool
+   mcp__dashboard__request_permission` — ao argv do `claude` recebido em
+   `spawn.params.args`.
 2. `claude` lança o `mcp-bridge` como filho stdio quando precisa do MCP server
    `dashboard`.
 3. O `mcp-bridge` não tem lógica de MCP — só conecta no unix socket do runner
