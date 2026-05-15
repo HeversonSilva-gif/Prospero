@@ -769,6 +769,17 @@
           "output_text": "Output"
         }
       }
+    },
+    "review": {
+      "heading": "In review",
+      "empty": "No artifacts to diff — use the comment below for free-form feedback.",
+      "commentPlaceholder": "Optional to approve; required for changes or rejection.",
+      "commentRequired": "Add a comment before requesting changes or rejecting.",
+      "approve": "Approve & merge",
+      "requestChanges": "Request changes",
+      "reject": "Reject",
+      "diffOld": "Before",
+      "diffNew": "Proposed"
     }
   },
   "skills": {

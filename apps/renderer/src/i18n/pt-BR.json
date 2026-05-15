@@ -769,6 +769,17 @@
           "output_text": "Saída"
         }
       }
+    },
+    "review": {
+      "heading": "Em revisão",
+      "empty": "Sem artefatos para revisar — use o comentário abaixo para dar feedback livre.",
+      "commentPlaceholder": "Opcional para aprovar; obrigatório para mudanças ou rejeição.",
+      "commentRequired": "Adicione um comentário antes de pedir mudanças ou rejeitar.",
+      "approve": "Aprovar e concluir",
+      "requestChanges": "Pedir mudanças",
+      "reject": "Rejeitar",
+      "diffOld": "Anterior",
+      "diffNew": "Proposto"
     }
   },
   "skills": {
