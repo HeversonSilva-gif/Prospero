@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { RemoteConnectionManager, type RemoteAgentCallbacks } from "./connection-manager.js";
+import {
+  RemoteConnectionManager,
+  resolveRemoteExecutionConfig,
+  setRemoteExecutionConfigResolver,
+  type RemoteAgentCallbacks,
+} from "./connection-manager.js";
+import { DEFAULT_LOCAL_DOCKER_CONFIG, type RemoteExecutionConfig } from "./config.js";
 import { createMemoryTransportPair } from "./memory-transport.js";
 import { FakeRunner } from "./fake-runner.js";
 
@@ -143,5 +149,23 @@ describe("RemoteConnectionManager", () => {
     await spawn(manager, "agent_1", makeCallbacks());
     const health = await manager.health();
     expect(health.ok).toBe(true);
+  });
+});
+
+describe("remote-execution config resolver", () => {
+  it("defaults to local Docker before any resolver is installed", () => {
+    expect(resolveRemoteExecutionConfig()).toEqual(DEFAULT_LOCAL_DOCKER_CONFIG);
+  });
+
+  it("returns the installed resolver's config", () => {
+    const cfg: RemoteExecutionConfig = {
+      mode: "remote-vps",
+      image: "x",
+      sshHost: "h",
+      sshUser: "u",
+      sshKeyPath: "k",
+    };
+    setRemoteExecutionConfigResolver(() => cfg);
+    expect(resolveRemoteExecutionConfig()).toBe(cfg);
   });
 });

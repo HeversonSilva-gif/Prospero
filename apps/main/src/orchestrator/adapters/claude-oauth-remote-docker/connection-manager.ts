@@ -9,7 +9,7 @@ import {
 } from "@prospero/shared";
 import { buildTransportCommand } from "./transport-command.js";
 import { ChildProcessWireTransport } from "./child-transport.js";
-import { DEFAULT_LOCAL_DOCKER_CONFIG } from "./config.js";
+import { DEFAULT_LOCAL_DOCKER_CONFIG, type RemoteExecutionConfig } from "./config.js";
 
 /** Per-agent sinks the connection manager fans inbound notifications into. */
 export type RemoteAgentCallbacks = {
@@ -179,11 +179,25 @@ export class RemoteConnectionManager {
   }
 }
 
+let configResolver: (() => RemoteExecutionConfig) | null = null;
+
+/**
+ * Installs the resolver that supplies the live remote-execution config (read
+ * from Settings) to createProductionTransport. Called once at orchestrator boot.
+ */
+export const setRemoteExecutionConfigResolver = (fn: () => RemoteExecutionConfig): void => {
+  configResolver = fn;
+};
+
+/** The config the next production transport will use. Defaults to local Docker. */
+export const resolveRemoteExecutionConfig = (): RemoteExecutionConfig =>
+  configResolver?.() ?? DEFAULT_LOCAL_DOCKER_CONFIG;
+
 // Spawns the docker/ssh child whose stdio carries the wire protocol. stderr is
 // inherited so docker/ssh launch failures surface in the Electron main log.
 // Not unit-tested (no Docker on the build machine) — verified by the PR-E smoke.
 const createProductionTransport = (): WireTransport => {
-  const { command, args } = buildTransportCommand(DEFAULT_LOCAL_DOCKER_CONFIG);
+  const { command, args } = buildTransportCommand(resolveRemoteExecutionConfig());
   const child = spawn(command, args, { stdio: ["pipe", "pipe", "inherit"] });
   return new ChildProcessWireTransport(child);
 };

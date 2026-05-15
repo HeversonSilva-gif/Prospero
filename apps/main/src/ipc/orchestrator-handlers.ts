@@ -19,6 +19,8 @@ import { loadDecryptedToken } from "../auth/token-storage.js";
 import { loadDecryptedApiKey } from "../auth/api-key-storage.js";
 import { getActiveAuthMode } from "../auth/auth-mode.js";
 import { ensureAdapter, getAdapter, removeAdapter } from "../orchestrator/lifecycle.js";
+import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
+import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
 import { createRouter } from "../orchestrator/router.js";
 import type { Sender } from "../orchestrator/router.js";
 import type { ParsedEvent } from "@prospero/shared";
@@ -60,6 +62,12 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   const inbox = createInboxRepository(db);
   const costsRepo = createCostsRepository(db);
   const budgetsRepo = createBudgetsRepository(db);
+  const settingsRepo = createSettingsRepository(db);
+
+  // Remote execution config flows from Settings → the remote-docker transport.
+  setRemoteExecutionConfigResolver(() =>
+    toRemoteExecutionConfig(settingsRepo.read().remoteExecution),
+  );
 
   // Debounced broadcast: aggregate costs:new deltas over 1s windows so the
   // renderer isn't bombarded after fast-firing turns.
