@@ -240,6 +240,44 @@ const memorySearch: Tool = {
   },
 };
 
+const sessionSearch: Tool = {
+  name: "session_search",
+  description:
+    "Full-text search your past conversation history by keyword. Use this to recall an earlier discussion without re-reading whole threads.",
+  inputSchema: z.object({
+    query: z.string().min(1).max(200),
+    limit: z.number().int().min(1).max(50).optional(),
+  }),
+  // eslint-disable-next-line @typescript-eslint/require-await
+  run: async (input, ctx) => {
+    const { query, limit } = sessionSearch.inputSchema.parse(input) as {
+      query: string;
+      limit?: number;
+    };
+    const rows = ctx.db
+      .prepare(
+        `SELECT m.id AS message_id, m.content AS content, m.created_at AS created_at
+           FROM messages_fts f
+           JOIN messages m ON m.id = f.message_id
+          WHERE messages_fts MATCH ?
+          ORDER BY rank
+          LIMIT ?`,
+      )
+      .all(query, limit ?? 50) as Array<{
+      message_id: string;
+      content: string;
+      created_at: number;
+    }>;
+    return JSON.stringify({
+      results: rows.map((r) => ({
+        messageId: r.message_id,
+        content: r.content,
+        createdAt: r.created_at,
+      })),
+    });
+  },
+};
+
 export const memoryToolDefinitions: Tool[] = [
   skillSearch,
   skillRead,
@@ -249,4 +287,5 @@ export const memoryToolDefinitions: Tool[] = [
   memoryAdd,
   memoryRemove,
   memorySearch,
+  sessionSearch,
 ];

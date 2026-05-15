@@ -138,3 +138,28 @@ describe("memory tools", () => {
     expect(list.memories).toHaveLength(0);
   });
 });
+
+describe("session_search tool", () => {
+  it("finds past messages by keyword", async () => {
+    const ctx = newCtx();
+    ctx.db
+      .prepare(
+        "INSERT INTO threads (id, company_id, participants_json, created_at) VALUES ('t1','c1','user|a1',0)",
+      )
+      .run();
+    ctx.db
+      .prepare(
+        "INSERT INTO messages (id, thread_id, sender_kind, sender_id, content, kind, tool_calls_json, created_at) VALUES ('m1','t1','user',NULL,'investigate the redis outage','message',NULL,0)",
+      )
+      .run();
+    ctx.db
+      .prepare(
+        "INSERT INTO messages_fts (message_id, content) VALUES ('m1','investigate the redis outage')",
+      )
+      .run();
+    const hits = JSON.parse(await tool("session_search").run({ query: "redis" }, ctx)) as {
+      results: Array<{ messageId: string; content: string }>;
+    };
+    expect(hits.results.map((r) => r.messageId)).toEqual(["m1"]);
+  });
+});
