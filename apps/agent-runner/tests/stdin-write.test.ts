@@ -11,6 +11,7 @@ describe("handleStdinWrite", () => {
     state.agents.set("agent_1", {
       child: fake,
       sandbox: { configDir: "/c", workDir: "/w" },
+      mcp: { port: 0, writeToBridge: () => {}, close: () => {} },
     });
     handleStdinWrite({ agentId: "agent_1", line: '{"type":"user"}\n' }, state);
     expect(fake.stdinWrites).toEqual(['{"type":"user"}\n']);

@@ -18,6 +18,7 @@ describe("handleHealth", () => {
     state.agents.set("a1", {
       child: { pid: 1, stdin: null, stdout: null, stderr: null, kill: () => {}, on: () => {} },
       sandbox: { configDir: "/c", workDir: "/w" },
+      mcp: { port: 0, writeToBridge: () => {}, close: () => {} },
     });
     expect(handleHealth(state, 0).activeAgents).toBe(1);
   });

@@ -8,7 +8,11 @@ describe("handleKill", () => {
   it("kills the agent's child process", () => {
     const state = createRunnerState();
     const fake = new FakeClaude();
-    state.agents.set("agent_1", { child: fake, sandbox: { configDir: "/c", workDir: "/w" } });
+    state.agents.set("agent_1", {
+      child: fake,
+      sandbox: { configDir: "/c", workDir: "/w" },
+      mcp: { port: 0, writeToBridge: () => {}, close: () => {} },
+    });
     handleKill({ agentId: "agent_1" }, state);
     expect(fake.killed).toBe(true);
   });
