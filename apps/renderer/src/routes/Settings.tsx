@@ -6,6 +6,7 @@ import { ModelDropdown } from "../components/ModelDropdown.js";
 import { useSettingsStore } from "../stores/settings.js";
 import { BudgetsForm } from "../components/costs/BudgetsForm.js";
 import { useCompaniesStore } from "../stores/companies.js";
+import { AgentsMdImportSection } from "../components/settings/AgentsMdImportSection.js";
 
 export const Settings = () => {
   const { t } = useTranslation();
@@ -384,6 +385,8 @@ export const Settings = () => {
           </p>
         )}
       </section>
+
+      <AgentsMdImportSection />
 
       <section className="bg-surface-card border border-surface-border rounded-lg p-5 mb-4">
         <h2 className="text-base font-semibold text-brand-dark mb-2">
