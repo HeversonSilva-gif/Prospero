@@ -451,6 +451,12 @@
         "nameRequired": "Nome obrigatório",
         "personaTooShort": "Persona precisa ter pelo menos 20 caracteres"
       }
+    },
+    "location": {
+      "label": "Localização",
+      "local": "Local",
+      "remote": "Remoto (Docker)",
+      "hint": "Onde o processo do agente roda. Remoto exige execução remota habilitada nas Configurações."
     }
   },
   "org": {
@@ -516,6 +522,21 @@
       "atomicDesc": "Aprovar = uma transação SQLite instantânea. Padrão.",
       "narrated": "Narrado (CEO comenta cada passo)",
       "narratedDesc": "Aprovar = CEO entra em loop streamado emitindo MCP calls. ~2-3× tokens."
+    },
+    "remoteExecution": {
+      "title": "Execução remota",
+      "subtitle": "Roda os agentes dentro de um container Docker — local, ou numa VPS via SSH.",
+      "enable": "Habilitar execução remota",
+      "modeLabel": "Destino",
+      "modeLocal": "Docker local",
+      "modeRemote": "VPS remota",
+      "vpsHost": "Host da VPS",
+      "vpsUser": "Usuário SSH",
+      "vpsKeyPath": "Caminho da chave SSH",
+      "test": "Testar conexão",
+      "testing": "Testando…",
+      "testOk": "Conexão OK — {{message}}",
+      "testFail": "Falha — {{message}}"
     },
     "authMode": {
       "title": "Modo de autenticação",

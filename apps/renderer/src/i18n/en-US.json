@@ -451,6 +451,12 @@
         "nameRequired": "Name is required",
         "personaTooShort": "Persona must be at least 20 characters"
       }
+    },
+    "location": {
+      "label": "Location",
+      "local": "Local",
+      "remote": "Remote (Docker)",
+      "hint": "Where the agent process runs. Remote requires remote execution enabled in Settings."
     }
   },
   "org": {
@@ -516,6 +522,21 @@
       "atomicDesc": "Approve = one instant SQLite transaction. Default.",
       "narrated": "Narrated (CEO comments each step)",
       "narratedDesc": "Approve = CEO enters a streamed loop emitting MCP calls. ~2-3x tokens."
+    },
+    "remoteExecution": {
+      "title": "Remote execution",
+      "subtitle": "Runs agents inside a Docker container — local, or on a VPS over SSH.",
+      "enable": "Enable remote execution",
+      "modeLabel": "Target",
+      "modeLocal": "Local Docker",
+      "modeRemote": "Remote VPS",
+      "vpsHost": "VPS host",
+      "vpsUser": "SSH user",
+      "vpsKeyPath": "SSH key path",
+      "test": "Test connection",
+      "testing": "Testing…",
+      "testOk": "Connection OK — {{message}}",
+      "testFail": "Failed — {{message}}"
     },
     "authMode": {
       "title": "Authentication mode",

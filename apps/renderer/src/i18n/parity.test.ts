@@ -206,6 +206,26 @@ describe("i18n parity", () => {
     }
   });
 
+  it("includes the M10 PR-D remote execution keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "settings.remoteExecution.title",
+      "settings.remoteExecution.enable",
+      "settings.remoteExecution.modeLocal",
+      "settings.remoteExecution.modeRemote",
+      "settings.remoteExecution.vpsHost",
+      "settings.remoteExecution.test",
+      "agent.location.label",
+      "agent.location.local",
+      "agent.location.remote",
+      "agent.location.hint",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
+
   it("includes the M8.6 PR-B narrated keys in both locales", () => {
     const ptKeys = flatten(ptBR);
     const enKeys = flatten(enUS);
