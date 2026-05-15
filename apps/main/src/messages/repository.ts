@@ -71,6 +71,9 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
   const insertMessage = db.prepare(
     "INSERT INTO messages (id, thread_id, sender_kind, sender_id, content, kind, tool_calls_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
   );
+  const insertMessageFts = db.prepare(
+    "INSERT INTO messages_fts (message_id, content) VALUES (?, ?)",
+  );
   const listByThread = db.prepare(
     "SELECT * FROM messages WHERE thread_id = ? ORDER BY created_at ASC, id ASC",
   );
@@ -95,16 +98,20 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
         input.toolCalls === null || input.toolCalls === undefined
           ? null
           : JSON.stringify(input.toolCalls);
-      insertMessage.run(
-        id,
-        thread.id,
-        input.senderKind,
-        input.senderId,
-        input.content,
-        kind,
-        toolCallsJson,
-        now,
-      );
+      const writeTx = db.transaction(() => {
+        insertMessage.run(
+          id,
+          thread.id,
+          input.senderKind,
+          input.senderId,
+          input.content,
+          kind,
+          toolCallsJson,
+          now,
+        );
+        insertMessageFts.run(id, input.content);
+      });
+      writeTx();
       return {
         id,
         threadId: thread.id,
@@ -124,16 +131,20 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
         input.toolCalls === null || input.toolCalls === undefined
           ? null
           : JSON.stringify(input.toolCalls);
-      insertMessage.run(
-        id,
-        input.threadId,
-        input.senderKind,
-        input.senderId,
-        input.content,
-        kind,
-        toolCallsJson,
-        now,
-      );
+      const writeTx = db.transaction(() => {
+        insertMessage.run(
+          id,
+          input.threadId,
+          input.senderKind,
+          input.senderId,
+          input.content,
+          kind,
+          toolCallsJson,
+          now,
+        );
+        insertMessageFts.run(id, input.content);
+      });
+      writeTx();
       return {
         id,
         threadId: input.threadId,
