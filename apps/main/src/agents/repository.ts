@@ -80,6 +80,7 @@ export type AgentsRepository = {
   clearSessionId(id: string): void;
   setAllowedProjects(id: string, projectIds: string[]): void;
   setModel(id: string, model: string): void;
+  setAdapterName(id: string, adapterName: string): void;
   setSystemPrompt(id: string, systemPrompt: string): void;
   setRole(id: string, roleTemplateId: string, opts?: { preserveModel?: boolean }): void;
   setReportsTo(id: string, newParentId: string | null): void;
@@ -201,6 +202,15 @@ export const createAgentsRepository = (
           payload: { from: row.model, to: model },
         });
       }
+    },
+    setAdapterName(id, adapterName) {
+      // Plain column UPDATE — the next spawn reads the new adapter_name
+      // (design §7.3). No activity record: that would need a new ActivityAction.
+      db.prepare("UPDATE agents SET adapter_name = ?, updated_at = ? WHERE id = ?").run(
+        adapterName,
+        Date.now(),
+        id,
+      );
     },
     setSystemPrompt(id, systemPrompt) {
       const row = byId.get(id) as Row | undefined;

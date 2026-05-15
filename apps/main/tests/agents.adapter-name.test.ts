@@ -41,3 +41,26 @@ describe("agents.adapterName surfaced through repo (M7.5 PR-A)", () => {
     expect(list[0]?.adapterName).toBe("claude-oauth-local");
   });
 });
+
+describe("agents.setAdapterName (M10 PR-D)", () => {
+  it("updates the adapter_name column", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    const companies = createCompaniesRepository(db);
+    const agents = createAgentsRepository(db);
+    const co = companies.create({ name: "Co" });
+    const agent = agents.create({
+      companyId: co.id,
+      name: "Mover",
+      role: "Engineer",
+      systemPrompt: "",
+      mode: "supervised",
+      alwaysOn: false,
+    });
+    expect(agent.adapterName).toBe("claude-oauth-local");
+
+    agents.setAdapterName(agent.id, "claude-oauth-remote-docker");
+
+    expect(agents.getById(agent.id)?.adapterName).toBe("claude-oauth-remote-docker");
+  });
+});

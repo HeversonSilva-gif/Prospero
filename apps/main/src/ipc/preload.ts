@@ -136,6 +136,10 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.AGENTS_SET_REPORTS_TO, { agentId, reportsTo }) as Promise<{
         ok: true;
       }>,
+    setAdapter: (agentId: string, adapterName: string) =>
+      ipcRenderer.invoke(IPC.AGENTS_SET_ADAPTER, { agentId, adapterName }) as Promise<{
+        ok: true;
+      }>,
     stats: (agentId: string) =>
       ipcRenderer.invoke(IPC.AGENTS_STATS, { agentId }) as Promise<AgentStats>,
     setMode: (agentId: string, mode: "supervised" | "auto") =>

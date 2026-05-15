@@ -115,6 +115,7 @@ declare global {
         ) => Promise<{ ok: true }>;
         setSystemPrompt: (agentId: string, systemPrompt: string) => Promise<{ ok: true }>;
         setReportsTo: (agentId: string, reportsTo: string | null) => Promise<{ ok: true }>;
+        setAdapter: (agentId: string, adapterName: string) => Promise<{ ok: true }>;
         stats: (agentId: string) => Promise<AgentStats>;
         setMode: (agentId: string, mode: "supervised" | "auto") => Promise<{ ok: true }>;
         setAlwaysOn: (agentId: string, alwaysOn: boolean) => Promise<{ ok: true }>;

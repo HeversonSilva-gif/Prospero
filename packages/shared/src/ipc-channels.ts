@@ -56,6 +56,7 @@ export const IPC = {
   AGENTS_SET_ROLE: "agents:set-role",
   AGENTS_SET_SYSTEM_PROMPT: "agents:set-system-prompt",
   AGENTS_SET_REPORTS_TO: "agents:set-reports-to",
+  AGENTS_SET_ADAPTER: "agents:set-adapter",
   AGENTS_STATS: "agents:stats",
   AGENTS_SET_MODE: "agents:set-mode",
   AGENTS_SET_ALWAYS_ON: "agents:set-always-on",

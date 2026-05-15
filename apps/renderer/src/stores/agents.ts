@@ -17,6 +17,7 @@ type State = {
   ) => Promise<void>;
   setSystemPrompt: (agentId: string, systemPrompt: string) => Promise<void>;
   setReportsTo: (agentId: string, reportsTo: string | null) => Promise<void>;
+  setAdapter: (agentId: string, adapterName: string) => Promise<void>;
   fetchStats: (agentId: string) => Promise<AgentStats>;
   setMode: (agentId: string, mode: "supervised" | "auto") => Promise<void>;
   setAlwaysOn: (agentId: string, alwaysOn: boolean) => Promise<void>;
@@ -90,6 +91,12 @@ export const useAgentsStore = create<State>((set, get) => ({
     await window.prospero.agents.setReportsTo(agentId, reportsTo);
     const agent = get().agents.find((a) => a.id === agentId);
     if (agent !== undefined) await reloadAgentsForCompany(set, agent.companyId);
+  },
+  setAdapter: async (agentId, adapterName) => {
+    await window.prospero.agents.setAdapter(agentId, adapterName);
+    set((s) => ({
+      agents: s.agents.map((a) => (a.id === agentId ? { ...a, adapterName } : a)),
+    }));
   },
   fetchStats: async (agentId) => window.prospero.agents.stats(agentId),
   setMode: async (agentId, mode) => {

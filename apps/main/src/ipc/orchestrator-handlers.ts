@@ -586,6 +586,20 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   );
 
   ipcMain.handle(
+    IPC.AGENTS_SET_ADAPTER,
+    (_e, payload: { agentId: string; adapterName: string }): { ok: true } => {
+      const valid = ["claude-oauth-local", "claude-api-key-local", "claude-oauth-remote-docker"];
+      if (!valid.includes(payload.adapterName)) throw new Error("Invalid adapter");
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      agents.setAdapterName(payload.agentId, payload.adapterName);
+      // No restart: the next spawn reads the new adapter_name (design §7.3).
+      broadcast({ kind: "roster-changed", companyId: agent.companyId });
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
     IPC.AGENTS_SET_MODE,
     (_e, payload: { agentId: string; mode: AgentMode }): { ok: true } => {
       if (payload.mode !== "supervised" && payload.mode !== "auto") {
