@@ -15,6 +15,9 @@ import { redactString } from "../auth/token-redact.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { createMessagesRepository } from "../messages/repository.js";
+import { createSkillsRepository } from "../memory/skills-repository.js";
+import { createMemoriesRepository } from "../memory/memories-repository.js";
+import { buildMemoryBlock } from "../orchestrator/system-prompt-memory.js";
 import { loadDecryptedToken } from "../auth/token-storage.js";
 import { loadDecryptedApiKey } from "../auth/api-key-storage.js";
 import { getActiveAuthMode } from "../auth/auth-mode.js";
@@ -279,6 +282,16 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       broadcast({ kind: "current-action-changed", agentId: agent.id, action: null });
     };
 
+    // M11: assemble the memory & skills system-prompt block host-side (DB +
+    // userData access live here, not in build-args) and thread it through.
+    const memoryBlock = buildMemoryBlock({
+      memoriesRepo: createMemoriesRepository(db),
+      skillsRepo: createSkillsRepository(db),
+      userDataDir: app.getPath("userData"),
+      companyId: agent.companyId,
+      agentId: agent.id,
+    });
+
     void ensureAdapter(
       {
         agent,
@@ -288,6 +301,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         dbPath: databasePath(),
         permissionsDir: getPermissionsDir(app.getPath("userData")),
         eventsDir,
+        ...(memoryBlock !== undefined ? { memoryBlock } : {}),
       },
       {
         onEvent: (ev: ParsedEvent) => {
