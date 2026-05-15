@@ -58,7 +58,7 @@ describe("repository lifecycle methods", () => {
     expect(fresh.skills).toEqual(["read_code", "git_ops"]);
     const events = activityRepo.query({
       companyId: "co_1",
-      filters: { action: "agent.skills_changed" },
+      filters: { action: "agent.capabilities_changed" },
     });
     expect(events).toHaveLength(2);
     // Two same-ms inserts: ordering is by id DESC (UUID random) — assert set.

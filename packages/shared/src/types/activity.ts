@@ -24,7 +24,7 @@ export const ACTIVITY_ACTIONS = [
   "agent.mode_changed",
   "agent.always_on_changed",
   "agent.persona_edited",
-  "agent.skills_changed",
+  "agent.capabilities_changed",
   "agent.reports_to_changed",
   "agent.allowed_projects_changed",
   "agent.paused",

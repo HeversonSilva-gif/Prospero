@@ -332,7 +332,7 @@ export const createAgentsRepository = (
       recorder?.recordActivity({
         companyId: row.company_id,
         actor: { kind: "user" },
-        action: "agent.skills_changed",
+        action: "agent.capabilities_changed",
         entityKind: "agent",
         entityId: id,
         agentId: id,

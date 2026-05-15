@@ -26,7 +26,7 @@ export const ActivityPayloads = {
     to: z.boolean(),
   }),
   "agent.persona_edited": z.object({ summary: z.string().optional() }),
-  "agent.skills_changed": z.object({
+  "agent.capabilities_changed": z.object({
     added: z.array(z.string()),
     removed: z.array(z.string()),
   }),
