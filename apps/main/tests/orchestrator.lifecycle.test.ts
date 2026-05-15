@@ -111,7 +111,7 @@ describe("buildClaudeArgs", () => {
     expect(tools).not.toContain("Write");
   });
 
-  it("auto-injects chat skill when missing from agent.capabilities", () => {
+  it("auto-injects chat capability when missing from agent.capabilities", () => {
     const args = buildClaudeArgs({ ...baseAgent, capabilities: ["shell"] }, "/tmp/mcp.json");
     const idx = args.indexOf("--allowedTools");
     const tools = args[idx + 1]!.split(",");

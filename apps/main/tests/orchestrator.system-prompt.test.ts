@@ -34,7 +34,7 @@ describe("composeSystemPrompt", () => {
     expect(result).not.toContain("# Your role:");
   });
 
-  it("ensures chat skill is in the list even if not explicitly provided", () => {
+  it("ensures chat capability is in the list even if not explicitly provided", () => {
     const result = composeSystemPrompt({
       agentPersona: "P",
       capabilities: ["coding"],
