@@ -1,217 +1,148 @@
 # M10 Adapter Wire Protocol
 
-> **Status:** design draft, not implemented. Lands with M10 (Docker remote
-> adapter `claude-oauth-remote-docker`).
+> **Status:** implemented incrementally by M10. The transport and message types
+> land in M10 PR-A; the agent-runner that serves it lands in PR-B; the host
+> adapter that drives it lands in PR-C.
 
-This document defines the JSON-RPC schema that the orchestrator (Electron main
-process) and the remote agent runner (Docker container on a VPS) speak. The
-same protocol works over two transports — stdio for local-subprocess testing
-and WSS for the production remote case — so the orchestrator's adapter code is
-identical except for the transport bootstrap.
+This document defines the protocol that the orchestrator (Electron main
+process) and the remote agent runner (a Docker container — local, or on a VPS)
+speak. It is transport-agnostic: it runs over any bidirectional byte channel as
+newline-delimited JSON, one message per line.
+
+## Transport
+
+The orchestrator launches the runner as a child process and speaks the protocol
+over that child's stdin/stdout; the child's stderr carries diagnostic logs.
+There is no framing beyond `\n`.
+
+The child process is one of:
+
+- **Local Docker** (validation): `docker run -i dashboard-agent/agent-runner`
+- **Remote VPS**: `ssh <user>@<host> -- docker run -i dashboard-agent/agent-runner`
+
+SSH supplies authentication, encryption, and the pipe — no port is exposed and
+no TLS certificate is managed. The two cases differ only by the `ssh` prefix, so
+the adapter code is identical.
 
 ## Versioning
 
-A single integer `protocol_version` field is sent in the handshake; the current
-version is **1**. Breaking changes bump the integer; non-breaking additions
-(new optional fields, new notification kinds the receiver may ignore) keep it.
-
-## Transports
-
-### `stdio` (local testing)
-
-The orchestrator launches the runner as a child process, communicates over the
-child's stdin/stdout (line-delimited JSON, one message per line), and reads
-diagnostic logs from stderr. No framing beyond `\n`.
-
-### `wss` (production)
-
-The orchestrator opens a WebSocket Secure connection to
-`wss://<vps-host>:9700/v1/agent`. Both peers present X.509 certificates
-(mutual TLS). The orchestrator pins the runner's certificate fingerprint from
-settings. Each message is one WebSocket text frame containing one JSON object.
+A single integer `protocolVersion` is sent in the handshake; the current
+version is **1**. Breaking changes bump it; non-breaking additions (new optional
+fields, new notification kinds a receiver may ignore) keep it.
 
 ## Message envelope
 
-Every message has at minimum:
+Every message is one line of JSON. Object keys are camelCase.
 
 ```json
-{
-  "type": "request" | "response" | "notification",
-  "id": "msg_<uuid>",
-  "method": "<name>",
-  "params": { ... }
-}
+{ "type": "request" | "response" | "notification",
+  "id": "msg_<n>", "method": "<name>", "params": { } }
 ```
 
-`response` objects mirror the `id` of the original request and add either
-`result` or `error`. `notification` objects omit `id`.
+`response` objects mirror their request's `id` and carry either `result` or
+`error`. `notification` objects omit `id`. `id` is any string unique within one
+connection — the client uses a monotonic `msg_<n>` counter.
 
-## Methods
+## Requests (host → runner)
 
-### `handshake` (request → response)
+### handshake
 
-First message. Negotiates protocol version and credentials.
+First message. Negotiates protocol version and forwards credentials.
 
-```json
-{
-  "type": "request",
-  "id": "msg_h1",
-  "method": "handshake",
-  "params": {
-    "protocol_version": 1,
-    "client": "dashboard-agent",
-    "client_version": "0.7.5",
-    "credentials": {
-      "kind": "oauth",
-      "oauth_token": "<redacted>"
-    }
-  }
-}
-```
+- params: `{ protocolVersion, client, clientVersion, credentials: { kind: "oauth", oauthToken } }`
+- result: `{ protocolVersion, server, serverVersion, capabilities: string[] }`
 
-Response on success:
+### spawn
 
-```json
-{
-  "type": "response",
-  "id": "msg_h1",
-  "result": {
-    "protocol_version": 1,
-    "server": "agent-runner",
-    "server_version": "0.1.0",
-    "capabilities": ["spawn", "stdin", "kill", "health"]
-  }
-}
-```
+Starts a `claude` child for one agent. `args` is the `claude` argv built
+host-side by `buildClaudeArgs`, **minus the MCP triplet** — the runner appends
+`--mcp-config <container path>` / `--strict-mcp-config` /
+`--permission-prompt-tool mcp__dashboard__request_permission` itself, and
+chooses the working directory.
 
-### `spawn` (request → response)
+- params: `{ agentId, args: string[], env?: Record<string,string> }`
+- result: `{ pid }`
 
-Asks the runner to start a claude child for one agent.
+### stdin-write
 
-```json
-{
-  "type": "request",
-  "id": "msg_s1",
-  "method": "spawn",
-  "params": {
-    "agent_id": "agent_42",
-    "args": ["--model", "claude-sonnet-4-6", "--strict-mcp-config", "--mcp-config", "..."],
-    "env": { "ANTHROPIC_API_URL": "..." },
-    "cwd": "/var/lib/agent-state/agent_42"
-  }
-}
-```
+Writes one line of JSONL to a spawned child's stdin.
 
-Response:
+- params: `{ agentId, line }`
 
-```json
-{ "type": "response", "id": "msg_s1", "result": { "pid": 1234 } }
-```
+### kill
 
-### `stdin-write` (request → response)
+Terminates a spawned child.
 
-Sends one line of JSONL to the spawned child's stdin.
+- params: `{ agentId }`
 
-```json
-{
-  "type": "request",
-  "id": "msg_in1",
-  "method": "stdin-write",
-  "params": { "agent_id": "agent_42", "line": "{\"type\":\"user\",...}\n" }
-}
-```
-
-### `kill` (request → response)
-
-Terminates the spawned child.
-
-```json
-{ "type": "request", "id": "msg_k1", "method": "kill", "params": { "agent_id": "agent_42" } }
-```
-
-### `event` (notification)
-
-Runner pushes parsed events from the child's stdout to the orchestrator.
-
-```json
-{
-  "type": "notification",
-  "method": "event",
-  "params": {
-    "agent_id": "agent_42",
-    "event": { "kind": "assistant-message", "blocks": [...] }
-  }
-}
-```
-
-### `stderr` (notification)
-
-Runner forwards diagnostic stderr lines.
-
-```json
-{
-  "type": "notification",
-  "method": "stderr",
-  "params": { "agent_id": "agent_42", "line": "..." }
-}
-```
-
-### `exit` (notification)
-
-Child exited; runner reports the code.
-
-```json
-{
-  "type": "notification",
-  "method": "exit",
-  "params": { "agent_id": "agent_42", "code": 0 }
-}
-```
-
-### `health` (request → response)
+### health
 
 Liveness check.
 
-```json
-{ "type": "request", "id": "msg_hl1", "method": "health" }
-```
+- params: none
+- result: `{ ok, uptimeSeconds, activeAgents }`
 
-Response:
+## Notifications
 
-```json
-{
-  "type": "response",
-  "id": "msg_hl1",
-  "result": { "ok": true, "uptime_seconds": 120, "active_agents": 3 }
-}
-```
+### stdout (runner → host)
+
+One raw line from a child's stdout. The host parses it with `stream-parser.ts`.
+
+- params: `{ agentId, line }`
+
+### stderr (runner → host)
+
+One diagnostic stderr line, with token-shaped substrings redacted.
+
+- params: `{ agentId, line }`
+
+### exit (runner → host)
+
+A child exited.
+
+- params: `{ agentId, code: number | null }`
+
+### mcp-open (runner → host)
+
+`claude`'s MCP bridge connected; the host spawns its `mcp/server.js` subprocess
+for this agent.
+
+- params: `{ agentId }`
+
+### mcp-data (both directions)
+
+One line of MCP JSON-RPC. Runner → host carries the bridge's stdout; host →
+runner carries the host MCP server's stdout, to be written to the bridge.
+
+- params: `{ agentId, line }`
+
+### mcp-close (runner → host)
+
+The MCP bridge disconnected; the host tears down the MCP subprocess.
+
+- params: `{ agentId }`
 
 ## Error codes
 
-| code | name                      | meaning                                                      |
-| ---- | ------------------------- | ------------------------------------------------------------ |
-| 1000 | `unsupported_protocol`    | handshake `protocol_version` not understood                  |
-| 1001 | `unsupported_credentials` | runner doesn't accept the provided credential kind           |
-| 1010 | `agent_not_found`         | request references an `agent_id` the runner doesn't have    |
-| 1020 | `spawn_failed`            | claude child failed to start (binary missing, etc.)          |
-| 1030 | `protocol_mismatch`       | message doesn't match the schema for its `method`            |
-| 1040 | `unauthorised`            | TLS auth failed or token rejected by Anthropic               |
-| 1090 | `internal_error`          | unexpected runner crash                                      |
+| code | name                   | meaning                                       |
+| ---- | ---------------------- | --------------------------------------------- |
+| 1000 | unsupportedProtocol    | handshake `protocolVersion` not understood    |
+| 1001 | unsupportedCredentials | runner rejects the credential kind            |
+| 1010 | agentNotFound          | request references an unknown `agentId`       |
+| 1020 | spawnFailed            | the `claude` child failed to start            |
+| 1030 | protocolMismatch       | unknown method, or a message fails its schema |
+| 1040 | unauthorised           | credentials rejected                          |
+| 1090 | internalError          | unexpected runner failure                     |
 
 ## Security
 
-- **mutual TLS over WSS** with pinned certificate fingerprint.
-- **credentials in handshake only** — never sent again; future calls reference
-  the established session.
-- **stderr lines are redacted** by the runner before forwarding (regex strip of
-  any token shape).
-- **healthchecks expose only counts**, never agent IDs or content.
-- **rate limits** at runner edge: max 100 `stdin-write` per agent per second
-  (anti-abuse if orchestrator misbehaves).
-
-## Local-subprocess equivalence
-
-The local `claude-oauth-local` adapter does not speak this protocol; it spawns
-claude directly. The same wire-protocol is used by a future local-Docker
-adapter (`claude-oauth-local-docker`, optional, not in M10 scope) for users who
-want container isolation on their own machine.
+- **Transport security is SSH's** — authentication and encryption come from the
+  SSH connection; for local Docker the channel never leaves the host.
+- **Credentials travel once**, in the `handshake`; the runner sets them as the
+  `claude` child's environment and never writes them to disk or logs them.
+- **stderr is redacted** by the runner — token-shaped substrings are stripped
+  before forwarding.
+- **health exposes only counts**, never agent IDs or content.
+- **The host stays authoritative** — the SQLite DB, the MCP server, the events
+  watcher and the permission gate all run host-side; only `claude` runs in the
+  container.
