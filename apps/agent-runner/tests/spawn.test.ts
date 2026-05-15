@@ -5,9 +5,16 @@ import { join } from "node:path";
 import { WireHandlerError } from "@prospero/shared";
 import { handleSpawn, type SpawnContext } from "../src/handlers/spawn.js";
 import { createRunnerState } from "../src/state.js";
+import type { McpListener } from "../src/mcp-mux.js";
 import { FakeClaude } from "./fake-claude.js";
 
 type Notification = { method: string; params: unknown };
+
+const fakeMcpListener = (): McpListener => ({
+  port: 50000,
+  writeToBridge: () => {},
+  close: () => {},
+});
 
 const makeContext = (fake: FakeClaude): { ctx: SpawnContext; notifications: Notification[] } => {
   const notifications: Notification[] = [];
@@ -15,32 +22,47 @@ const makeContext = (fake: FakeClaude): { ctx: SpawnContext; notifications: Noti
     state: createRunnerState(),
     notify: (method, params) => notifications.push({ method, params }),
     spawnClaude: () => fake,
-    prepareSandbox: (agentId) => {
+    // Returns the mkdtemp root itself (an existing dir) as both config and work
+    // dir, so writeContainerMcpConfig can write mcp.json into it.
+    prepareSandbox: () => {
       const root = mkdtempSync(join(tmpdir(), "prospero-spawn-"));
-      return { configDir: join(root, agentId, "config"), workDir: join(root, agentId, "work") };
+      return { configDir: root, workDir: root };
     },
+    createMcpListener: () => Promise.resolve(fakeMcpListener()),
+    mcpBridgePath: "/app/mcp-bridge.js",
   };
   return { ctx, notifications };
 };
 
 const validParams = { agentId: "agent_1", args: ["--model", "claude-sonnet-4-6"] };
-
-// Stream `data` events are not reliably synchronous — wait one tick after
-// pushing to the fake child's stdout/stderr before asserting.
 const tick = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
 describe("handleSpawn", () => {
-  it("registers the agent and returns its pid", () => {
+  it("registers the agent and returns its pid", async () => {
     const { ctx } = makeContext(new FakeClaude());
-    const result = handleSpawn(validParams, ctx);
+    const result = await handleSpawn(validParams, ctx);
     expect(result).toEqual({ pid: 4242 });
     expect(ctx.state.agents.has("agent_1")).toBe(true);
+  });
+
+  it("appends the MCP triplet to the claude argv", async () => {
+    const fake = new FakeClaude();
+    const { ctx } = makeContext(fake);
+    let seenArgs: string[] = [];
+    ctx.spawnClaude = (opts) => {
+      seenArgs = opts.args;
+      return fake;
+    };
+    await handleSpawn(validParams, ctx);
+    expect(seenArgs).toContain("--strict-mcp-config");
+    expect(seenArgs).toContain("mcp__dashboard__request_permission");
+    expect(seenArgs.slice(0, 2)).toEqual(["--model", "claude-sonnet-4-6"]);
   });
 
   it("forwards a stdout line as a stdout notification", async () => {
     const fake = new FakeClaude();
     const { ctx, notifications } = makeContext(fake);
-    handleSpawn(validParams, ctx);
+    await handleSpawn(validParams, ctx);
     fake.emitStdout('{"type":"system"}\n');
     await tick();
     expect(notifications).toContainEqual({
@@ -49,22 +71,20 @@ describe("handleSpawn", () => {
     });
   });
 
-  it("forwards a stderr line as a stderr notification", async () => {
+  it("redacts secrets from forwarded stderr", async () => {
     const fake = new FakeClaude();
     const { ctx, notifications } = makeContext(fake);
-    handleSpawn(validParams, ctx);
-    fake.emitStderr("a warning\n");
+    await handleSpawn(validParams, ctx);
+    fake.emitStderr("auth failed for sk-ant-oat01-LeakedToken123\n");
     await tick();
-    expect(notifications).toContainEqual({
-      method: "stderr",
-      params: { agentId: "agent_1", line: "a warning" },
-    });
+    const stderr = notifications.find((n) => n.method === "stderr");
+    expect(stderr?.params).toEqual({ agentId: "agent_1", line: "auth failed for [redacted]" });
   });
 
-  it("emits an exit notification and deregisters on child exit", () => {
+  it("emits an exit notification and deregisters on child exit", async () => {
     const fake = new FakeClaude();
     const { ctx, notifications } = makeContext(fake);
-    handleSpawn(validParams, ctx);
+    await handleSpawn(validParams, ctx);
     fake.emitExit(0);
     expect(notifications).toContainEqual({
       method: "exit",
@@ -73,12 +93,12 @@ describe("handleSpawn", () => {
     expect(ctx.state.agents.has("agent_1")).toBe(false);
   });
 
-  it("throws spawnFailed (1020) when the agent is already running", () => {
+  it("throws spawnFailed (1020) when the agent is already running", async () => {
     const { ctx } = makeContext(new FakeClaude());
-    handleSpawn(validParams, ctx);
+    await handleSpawn(validParams, ctx);
     let caught: unknown;
     try {
-      handleSpawn(validParams, ctx);
+      await handleSpawn(validParams, ctx);
     } catch (e) {
       caught = e;
     }
@@ -86,11 +106,11 @@ describe("handleSpawn", () => {
     expect((caught as WireHandlerError).code).toBe(1020);
   });
 
-  it("throws protocolMismatch (1030) on malformed params", () => {
+  it("throws protocolMismatch (1030) on malformed params", async () => {
     const { ctx } = makeContext(new FakeClaude());
     let caught: unknown;
     try {
-      handleSpawn({ agentId: "agent_1" }, ctx);
+      await handleSpawn({ agentId: "agent_1" }, ctx);
     } catch (e) {
       caught = e;
     }
