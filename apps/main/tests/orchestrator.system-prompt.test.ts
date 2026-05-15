@@ -53,4 +53,23 @@ describe("composeSystemPrompt", () => {
     const result = composeSystemPrompt({ agentPersona: "X", capabilities: [] });
     expect(result).toContain("Runtime environment");
   });
+
+  it("appends the memory block when provided", () => {
+    const result = composeSystemPrompt({
+      agentPersona: "P",
+      capabilities: [],
+      preambleOverride: "PRE\n",
+      memoryBlock: "\n---\n\n# Memory & skills\n\nMEMORY-MARKER\n",
+    });
+    expect(result).toContain("MEMORY-MARKER");
+  });
+
+  it("omits the memory section when no block is given", () => {
+    const result = composeSystemPrompt({
+      agentPersona: "P",
+      capabilities: [],
+      preambleOverride: "PRE\n",
+    });
+    expect(result).not.toContain("# Memory & skills");
+  });
 });

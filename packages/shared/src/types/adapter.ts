@@ -21,6 +21,9 @@ export type SpawnContext = {
   // into the agent's system prompt. The host resolves this at spawn time by
   // checking goalsRepo.findActiveNarratedByCeo(agent.id).
   narratedActive?: boolean;
+  // M11: pre-assembled memory & skills system-prompt block. The host builds it
+  // at spawn time via buildMemoryBlock (it needs DB access build-args lacks).
+  memoryBlock?: string;
 };
 
 export type AssistantContentBlock =

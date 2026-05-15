@@ -14,7 +14,7 @@ import { buildNarratedBlock } from "../../system-prompt-narrated.js";
 export const buildClaudeArgs = (
   agent: Agent,
   mcpConfigPath: string | null,
-  opts: { narratedActive?: boolean } = {},
+  opts: { narratedActive?: boolean; memoryBlock?: string } = {},
 ): string[] => {
   const allowedTools = resolveCapabilityTools(agent.capabilities);
   const isCeo = agent.role === "ceo" || agent.role === "CEO";
@@ -26,6 +26,7 @@ export const buildClaudeArgs = (
       capabilities: agent.capabilities,
       ...(isCeo ? { goalsBlock: goalsSystemPromptBlock } : {}),
       ...(narratedBlock !== undefined ? { narratedBlock } : {}),
+      ...(opts.memoryBlock !== undefined ? { memoryBlock: opts.memoryBlock } : {}),
     }),
     "--model",
     agent.model,
