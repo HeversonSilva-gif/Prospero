@@ -9,6 +9,7 @@ import {
 } from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 import { useProjectsStore } from "../../stores/projects.js";
+import { useSettingsStore } from "../../stores/settings.js";
 import { AgentProjectsEditor } from "./AgentProjectsEditor.js";
 import { ChangeRoleModal } from "./ChangeRoleModal.js";
 import { categorizeSkills } from "./skillCategorize.js";
@@ -26,8 +27,10 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
   const setAlwaysOn = useAgentsStore((s) => s.setAlwaysOn);
   const setSkills = useAgentsStore((s) => s.setSkills);
   const wakeUp = useAgentsStore((s) => s.wakeUp);
+  const setAdapter = useAgentsStore((s) => s.setAdapter);
   const allAgents = useAgentsStore((s) => s.agents);
   const allProjects = useProjectsStore((s) => s.projects);
+  const authMode = useSettingsStore((s) => s.settings.authMode);
 
   const [roles, setRoles] = useState<RoleTemplate[]>([]);
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -177,6 +180,38 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
             </option>
           ))}
         </select>
+      </section>
+
+      <section>
+        <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
+          {t("agent.location.label")}
+        </h3>
+        <div className="flex gap-3 text-xs">
+          {(["local", "remote"] as const).map((loc) => {
+            const isRemote = agent.adapterName === "claude-oauth-remote-docker";
+            const current = isRemote ? "remote" : "local";
+            return (
+              <label key={loc} className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`location-${agent.id}`}
+                  checked={current === loc}
+                  onChange={() => {
+                    const adapterName =
+                      loc === "remote"
+                        ? "claude-oauth-remote-docker"
+                        : authMode === "api-key"
+                          ? "claude-api-key-local"
+                          : "claude-oauth-local";
+                    void setAdapter(agent.id, adapterName);
+                  }}
+                />
+                {t(`agent.location.${loc}`)}
+              </label>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-ink-soft mt-1">{t("agent.location.hint")}</p>
       </section>
 
       <section>
