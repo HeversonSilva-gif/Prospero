@@ -1,12 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
-import type {
-  GoalPlan,
-  GoalPlanStatus,
-  AgentToHire,
-  IssueToCreate,
-  Risk,
-} from "@dashboard-agent/shared";
+import type { GoalPlan, GoalPlanStatus, AgentToHire, IssueToCreate, Risk } from "@prospero/shared";
 
 export type GoalPlanInsert = {
   goalId: string;

@@ -1,5 +1,5 @@
-import type { AgentAdapter, AdapterName, ParsedEvent, SpawnContext } from "@dashboard-agent/shared";
-import { DEFAULT_ADAPTER_NAME } from "@dashboard-agent/shared";
+import type { AgentAdapter, AdapterName, ParsedEvent, SpawnContext } from "@prospero/shared";
+import { DEFAULT_ADAPTER_NAME } from "@prospero/shared";
 import { createAdapter } from "./adapters/index.js";
 
 // Re-exports for callers that gradually migrate to direct imports.

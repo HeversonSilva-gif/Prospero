@@ -1,4 +1,4 @@
-import type { WireCredentials } from "@dashboard-agent/shared";
+import type { WireCredentials } from "@prospero/shared";
 
 /** Mutable state shared across the runner's wire handlers. */
 export type RunnerState = {

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Agent, AgentStats, AgentStatus } from "@dashboard-agent/shared";
+import type { Agent, AgentStats, AgentStatus } from "@prospero/shared";
 
 type State = {
   agents: Agent[];
@@ -41,7 +41,7 @@ const reloadAgentsForCompany = async (
   set: (partial: Partial<State> | ((s: State) => Partial<State>)) => void,
   companyId: string,
 ): Promise<void> => {
-  const list = await window.dashboardAgent.agents.list(companyId);
+  const list = await window.prospero.agents.list(companyId);
   set({ agents: list });
 };
 
@@ -49,7 +49,7 @@ export const useAgentsStore = create<State>((set, get) => ({
   agents: [],
   loaded: false,
   load: async (companyId) => {
-    const list = await window.dashboardAgent.agents.list(companyId);
+    const list = await window.prospero.agents.list(companyId);
     set({ agents: list, loaded: true });
   },
   applyAgentStatus: (agentId, status) =>
@@ -65,52 +65,52 @@ export const useAgentsStore = create<State>((set, get) => ({
       agents: s.agents.map((a) => (a.id === agentId ? { ...a, claudeSessionId: sessionId } : a)),
     })),
   setAllowedProjects: async (agentId, projectIds) => {
-    await window.dashboardAgent.agents.setAllowedProjects(agentId, projectIds);
+    await window.prospero.agents.setAllowedProjects(agentId, projectIds);
     set((s) => ({
       agents: s.agents.map((a) => (a.id === agentId ? { ...a, allowedProjects: projectIds } : a)),
     }));
   },
   setModel: async (agentId, model) => {
-    await window.dashboardAgent.agents.setModel(agentId, model);
+    await window.prospero.agents.setModel(agentId, model);
     const agent = get().agents.find((a) => a.id === agentId);
     if (agent !== undefined) await reloadAgentsForCompany(set, agent.companyId);
   },
   setRole: async (agentId, roleTemplateId, opts) => {
-    await window.dashboardAgent.agents.setRole(agentId, roleTemplateId, opts);
+    await window.prospero.agents.setRole(agentId, roleTemplateId, opts);
     const agent = get().agents.find((a) => a.id === agentId);
     if (agent !== undefined) await reloadAgentsForCompany(set, agent.companyId);
   },
   setSystemPrompt: async (agentId, systemPrompt) => {
-    await window.dashboardAgent.agents.setSystemPrompt(agentId, systemPrompt);
+    await window.prospero.agents.setSystemPrompt(agentId, systemPrompt);
     set((s) => ({
       agents: s.agents.map((a) => (a.id === agentId ? { ...a, systemPrompt } : a)),
     }));
   },
   setReportsTo: async (agentId, reportsTo) => {
-    await window.dashboardAgent.agents.setReportsTo(agentId, reportsTo);
+    await window.prospero.agents.setReportsTo(agentId, reportsTo);
     const agent = get().agents.find((a) => a.id === agentId);
     if (agent !== undefined) await reloadAgentsForCompany(set, agent.companyId);
   },
-  fetchStats: async (agentId) => window.dashboardAgent.agents.stats(agentId),
+  fetchStats: async (agentId) => window.prospero.agents.stats(agentId),
   setMode: async (agentId, mode) => {
-    await window.dashboardAgent.agents.setMode(agentId, mode);
+    await window.prospero.agents.setMode(agentId, mode);
     const agent = get().agents.find((a) => a.id === agentId);
     if (agent !== undefined) await reloadAgentsForCompany(set, agent.companyId);
   },
   setAlwaysOn: async (agentId, alwaysOn) => {
-    await window.dashboardAgent.agents.setAlwaysOn(agentId, alwaysOn);
+    await window.prospero.agents.setAlwaysOn(agentId, alwaysOn);
     set((s) => ({
       agents: s.agents.map((a) => (a.id === agentId ? { ...a, alwaysOn } : a)),
     }));
   },
   setSkills: async (agentId, skills) => {
-    await window.dashboardAgent.agents.setSkills(agentId, skills);
+    await window.prospero.agents.setSkills(agentId, skills);
     set((s) => ({
       agents: s.agents.map((a) => (a.id === agentId ? { ...a, skills } : a)),
     }));
   },
   pause: async (agentId, reason) => {
-    await window.dashboardAgent.agents.pause(agentId, reason);
+    await window.prospero.agents.pause(agentId, reason);
     set((s) => ({
       agents: s.agents.map((a) =>
         a.id === agentId
@@ -120,7 +120,7 @@ export const useAgentsStore = create<State>((set, get) => ({
     }));
   },
   resume: async (agentId) => {
-    const result = await window.dashboardAgent.agents.resume(agentId);
+    const result = await window.prospero.agents.resume(agentId);
     set((s) => ({
       agents: s.agents.map((a) =>
         a.id === agentId ? { ...a, status: "idle", pausedAt: null, pauseReason: null } : a,
@@ -129,7 +129,7 @@ export const useAgentsStore = create<State>((set, get) => ({
     return result;
   },
   terminate: async (agentId, reason) => {
-    await window.dashboardAgent.agents.terminate(agentId, reason);
+    await window.prospero.agents.terminate(agentId, reason);
     set((s) => ({
       agents: s.agents.map((a) =>
         a.id === agentId ? { ...a, status: "terminated", terminatedAt: Date.now() } : a,
@@ -137,15 +137,15 @@ export const useAgentsStore = create<State>((set, get) => ({
     }));
   },
   wakeUp: async (agentId) => {
-    await window.dashboardAgent.agents.wakeUp(agentId);
+    await window.prospero.agents.wakeUp(agentId);
   },
   resetSession: async (agentId) => {
-    await window.dashboardAgent.agents.resetSession(agentId);
+    await window.prospero.agents.resetSession(agentId);
     const agent = get().agents.find((a) => a.id === agentId);
     if (agent !== undefined) await reloadAgentsForCompany(set, agent.companyId);
   },
   hireFromUi: async (payload) => {
-    const created = await window.dashboardAgent.agents.hireFromUi(payload);
+    const created = await window.prospero.agents.hireFromUi(payload);
     set((s) => ({ agents: [...s.agents, created] }));
     return created;
   },

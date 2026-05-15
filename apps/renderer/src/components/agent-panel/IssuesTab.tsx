@@ -1,6 +1,6 @@
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Issue, IssueStatus } from "@dashboard-agent/shared";
+import type { Issue, IssueStatus } from "@prospero/shared";
 
 type Props = { agentId: string; companyId: string };
 
@@ -22,15 +22,15 @@ export const IssuesTab: FC<Props> = ({ agentId, companyId }) => {
     let cancelled = false;
     setLoading(true);
     void (async () => {
-      const list = await window.dashboardAgent.issues.list({ companyId, assigneeId: agentId });
+      const list = await window.prospero.issues.list({ companyId, assigneeId: agentId });
       if (!cancelled) {
         setIssues(list);
         setLoading(false);
       }
     })();
-    const off = window.dashboardAgent.issues.onChanged(() => {
+    const off = window.prospero.issues.onChanged(() => {
       void (async () => {
-        const list = await window.dashboardAgent.issues.list({ companyId, assigneeId: agentId });
+        const list = await window.prospero.issues.list({ companyId, assigneeId: agentId });
         if (!cancelled) setIssues(list);
       })();
     });

@@ -3,7 +3,7 @@
 // so the maximize button can swap its icon (□ ↔ ❐).
 
 import { ipcMain, BrowserWindow, type BrowserWindow as BW } from "electron";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 
 const broadcastState = (win: BW): void => {
   const isMax = win.isMaximized();

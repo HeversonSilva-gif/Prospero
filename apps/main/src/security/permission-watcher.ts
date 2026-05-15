@@ -1,8 +1,8 @@
 import chokidar, { type FSWatcher } from "chokidar";
 import { readFileSync, writeFileSync, unlinkSync, existsSync, readdirSync } from "node:fs";
 import { join, basename } from "node:path";
-import type { PermissionResolution } from "@dashboard-agent/shared";
-import type { Agent, PermissionRequest } from "@dashboard-agent/shared";
+import type { PermissionResolution } from "@prospero/shared";
+import type { Agent, PermissionRequest } from "@prospero/shared";
 import { evaluatePermission } from "./gate.js";
 
 export type WatcherOptions = {

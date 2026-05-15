@@ -46,7 +46,7 @@
 
 Conforme §2.2 da spec base. Sem deltas. Arquivo: `apps/main/src/db/migrations/0012_goals.ts`.
 
-**Pontos de atenção pra implementação** (lições M8 PR-A — ver [project_m8_pr_a_lessons.md](../../../../C:/Users/hever/.claude/projects/D--Projetos-pessoais-DashboardAgent/memory/project_m8_pr_a_lessons.md)):
+**Pontos de atenção pra implementação** (lições M8 PR-A — ver [project_m8_pr_a_lessons.md](../../../../C:/Users/hever/.claude/projects/D--Projetos-pessoais-Prospero/memory/project_m8_pr_a_lessons.md)):
 
 - FK constraints **on** por default no better-sqlite3. Testes precisam de companies/agents reais — não passar IDs fake.
 - `goal_plans.agents_to_hire_json` / `issues_to_create_json` / `risks_json` armazenam JSON serializado — schema diz `TEXT NOT NULL`, mas leitura via repo desserializa em arrays tipados.

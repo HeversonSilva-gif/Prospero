@@ -1,4 +1,4 @@
-import { WireServer, type WireTransport } from "@dashboard-agent/shared";
+import { WireServer, type WireTransport } from "@prospero/shared";
 import { createRunnerState, type RunnerState } from "./state.js";
 import { handleHandshake } from "./handlers/handshake.js";
 import { handleHealth } from "./handlers/health.js";

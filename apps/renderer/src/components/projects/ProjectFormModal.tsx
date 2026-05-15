@@ -1,6 +1,6 @@
 import { useState, type FC, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import type { Project } from "@dashboard-agent/shared";
+import type { Project } from "@prospero/shared";
 
 const COLORS = [
   "#1D5DD7",
@@ -56,7 +56,7 @@ export const ProjectFormModal: FC<Props> = ({ initial, onSubmit, onClose }) => {
   const [busy, setBusy] = useState(false);
 
   const pickFolder = async () => {
-    const picked = await window.dashboardAgent.settings.pickWorkspace();
+    const picked = await window.prospero.settings.pickWorkspace();
     if (picked !== null) setPath(picked);
   };
 

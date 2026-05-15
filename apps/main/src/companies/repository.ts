@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type { Company } from "@dashboard-agent/shared";
+import type { Company } from "@prospero/shared";
 
 export type CompaniesRepository = {
   create(input: { name: string }): Company;

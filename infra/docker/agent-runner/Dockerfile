@@ -10,7 +10,7 @@ FROM node:22-alpine
 # TODO (M10): switch to non-root user, add tini as PID 1, expose
 # /healthz HTTP endpoint on $HEALTH_PORT.
 
-LABEL org.opencontainers.image.source="https://github.com/HeversonSilva-gif/DashboardAgent"
-LABEL org.opencontainers.image.description="DashboardAgent agent runner (M10 stub)"
+LABEL org.opencontainers.image.source="https://github.com/HeversonSilva-gif/Prospero"
+LABEL org.opencontainers.image.description="Prospero agent runner (M10 stub)"
 
 CMD ["echo", "M10 stub — not implemented yet"]

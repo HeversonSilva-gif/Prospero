@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type InboxItem } from "@dashboard-agent/shared";
+import { IPC, type InboxItem } from "@prospero/shared";
 import { createInboxRepository } from "../inbox/repository.js";
 
 export const broadcastInboxUpdate = (companyId: string): void => {

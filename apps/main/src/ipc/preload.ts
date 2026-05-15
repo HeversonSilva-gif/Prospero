@@ -35,9 +35,9 @@ import {
   type GoalWithPlan,
   type CreateGoalInput,
   type ExecutePlanResult,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 
-contextBridge.exposeInMainWorld("dashboardAgent", {
+contextBridge.exposeInMainWorld("prospero", {
   ping: (): Promise<string> => ipcRenderer.invoke(IPC.PING),
   settings: {
     get: () => ipcRenderer.invoke(IPC.SETTINGS_GET) as Promise<AppSettings>,

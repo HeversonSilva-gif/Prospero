@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 import { createRouter } from "../orchestrator/router.js";
 import { enqueueOrPark, drainPausedBacklog, pauseBacklog } from "./agents-pause-backlog.js";
 

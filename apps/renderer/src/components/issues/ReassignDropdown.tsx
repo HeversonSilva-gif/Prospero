@@ -1,6 +1,6 @@
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 import { useIssuesStore } from "../../stores/issues.js";
 
 type Props = { issueId: string; currentAssigneeId: string | null; agents: Agent[] };

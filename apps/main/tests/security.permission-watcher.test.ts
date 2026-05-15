@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync, rmSync, existsSync, readFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startPermissionWatcher } from "../src/security/permission-watcher.js";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 
 const agent: Agent = {
   id: "a1",

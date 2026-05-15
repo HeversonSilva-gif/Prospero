@@ -1,8 +1,8 @@
-# DashboardAgent — Roadmap
+# Prospero — Roadmap
 
 > Living doc. Atualizar a cada feature/fix mergeado em `master`.
 >
-> **Spec base:** [docs/superpowers/specs/2026-05-09-dashboard-agent-design.md](docs/superpowers/specs/2026-05-09-dashboard-agent-design.md)
+> **Spec base:** [docs/superpowers/specs/2026-05-09-prospero-design.md](docs/superpowers/specs/2026-05-09-prospero-design.md)
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
@@ -16,7 +16,7 @@
 
 ## 🟢 Em linguagem simples — o que o app faz hoje
 
-> **Não é técnico?** Aqui está, sem jargão, tudo que dá pra fazer no DashboardAgent neste momento. Tudo nesta lista **já funciona** — você instala, loga com sua conta Claude Max, e usa.
+> **Não é técnico?** Aqui está, sem jargão, tudo que dá pra fazer no Prospero neste momento. Tudo nesta lista **já funciona** — você instala, loga com sua conta Claude Max, e usa.
 
 ### 🏢 Organização
 - Criar uma "empresa" virtual e adicionar projetos (pastas de código no seu computador)
@@ -379,7 +379,7 @@ M11 (Agent Memory & Learning Loop — inspirado Hermes) ─── v1.1
 
 - [x] **Modularizar `apps/main/src/orchestrator/lifecycle.ts`** — extrair `buildClaudeArgs`, `prepareSandbox`, `resolveBinary`, `mcpHandshake` em arquivos próprios. **PR-A 🟢** (lifecycle.ts 388→72 LOC)
 - [ ] **Modularizar `apps/main/src/mcp/tools.ts`** — **adiado pra M8** (529 LOC ainda gerenciável; split sem feature nova é refactor isolado; M8.5 vai adicionar `tools/goals.ts` e aproveita pra splittar)
-- [x] **PREAMBLE em arquivo `.md`** — `apps/main/src/orchestrator/preamble.md` lido com `fs.readFileSync` + cache + override opcional `~/.dashboard-agent/preamble.md`. **PR-A 🟢**
+- [x] **PREAMBLE em arquivo `.md`** — `apps/main/src/orchestrator/preamble.md` lido com `fs.readFileSync` + cache + override opcional `~/.prospero/preamble.md`. **PR-A 🟢**
 - [x] **System prompt composable** — `composeSystemPrompt({preamble?, agentPersona, skills, role?})` builder. **PR-A 🟢**
 
 #### 🔧 Adapter pattern foundation (**critical path para M9 + M10**)
@@ -408,7 +408,7 @@ M11 (Agent Memory & Learning Loop — inspirado Hermes) ─── v1.1
 
 #### Testes
 
-- [x] **E2E foundation com Playwright + Electron** — `tests/e2e/{playwright.config, fixtures, helpers, specs}` + `fake-claude.ts` stub gated por `DASHBOARD_AGENT_E2E_FAKE_CLAUDE=1` + env-var bypass (`DASHBOARD_AGENT_USER_DATA`, `DASHBOARD_AGENT_E2E_TOKEN_PATH`). 3 specs (`01-onboarding`, `02-hire-and-message`, `03-issue-lifecycle`) **escritos mas `test.describe.skip(...)` por incompat Electron 33 + Playwright 1.60** (`--remote-debugging-port=0` rejeitado pela Electron). Unskip é one-line change quando upstream resolver. **PR-C 🟢 (infrastructure)** / **bloqueado por incompat (runs)**
+- [x] **E2E foundation com Playwright + Electron** — `tests/e2e/{playwright.config, fixtures, helpers, specs}` + `fake-claude.ts` stub gated por `PROSPERO_E2E_FAKE_CLAUDE=1` + env-var bypass (`PROSPERO_USER_DATA`, `PROSPERO_E2E_TOKEN_PATH`). 3 specs (`01-onboarding`, `02-hire-and-message`, `03-issue-lifecycle`) **escritos mas `test.describe.skip(...)` por incompat Electron 33 + Playwright 1.60** (`--remote-debugging-port=0` rejeitado pela Electron). Unskip é one-line change quando upstream resolver. **PR-C 🟢 (infrastructure)** / **bloqueado por incompat (runs)**
 - [ ] **Cobertura de orchestrator + MCP tools** — adiado: feedback de campo dirá quais fluxos faltam cobertura
 - [ ] **Snapshot tests da blocklist** — adiado pra follow-up trivial pós-M7.5
 
@@ -720,7 +720,7 @@ M11 (Agent Memory & Learning Loop — inspirado Hermes) ─── v1.1
 
 **Spec:** [docs/superpowers/specs/2026-05-14-m8.6-live-execution-design.md](docs/superpowers/specs/2026-05-14-m8.6-live-execution-design.md)
 **Plans:** [pr-a backend](docs/superpowers/plans/2026-05-14-m8.6-pr-a-narrated-backend.md) · [pr-b ui](docs/superpowers/plans/2026-05-14-m8.6-pr-b-narrated-ui.md)
-**Memory:** [project_m8_6_lessons](../d--Projetos-pessoais-DashboardAgent/memory/project_m8_6_lessons.md)
+**Memory:** [project_m8_6_lessons](../d--Projetos-pessoais-Prospero/memory/project_m8_6_lessons.md)
 
 **Pendente:** smoke manual (user vai rodar depois de V2 estar pronta).
 
@@ -898,7 +898,7 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
 #### Não-regressão
 
 - [ ] Tudo dos M1-M9 continua funcionando (local default)
-- [ ] Memory `project_dashboardagent` atualizar premissa local-only (agora é "default local, opcional remote")
+- [ ] Memory `project_prospero` atualizar premissa local-only (agora é "default local, opcional remote")
 - [ ] Memory `feedback_security_priority` reforça: blocklist mantida mesmo com isolamento de container
 
 ---
@@ -952,7 +952,7 @@ Auto-narração via MCP tool (`memory_add`, `skill_create`) **vira fallback** �
 - [ ] **`skill_candidates`** — pending suggestions de triggers automáticos: id, agent_id, source_event_id, proposed_name, proposed_body, proposed_description, status (`pending|accepted|rejected`), reviewed_by, created_at. **Sempre passa por review** — extração automática nunca skipa human-in-the-loop.
 - [ ] **Filesystem layout:**
   ```
-  ~/.dashboard-agent/
+  ~/.prospero/
   ├── user.md                          # USER.md global (1 KB cap)
   ├── companies/<id>/
   │   ├── memory.md                    # company-wide rules (1.5 KB cap)
@@ -1109,7 +1109,7 @@ Auto-narração via MCP tool (`memory_add`, `skill_create`) **vira fallback** �
 - ❌ **Identity evolution / self-model metacognition** (#10355 phase 3) — escopo muito grande
 - ❌ **Dream consolidator offline** — sem background worker, complica
 - ❌ **Skill hub remoto** (download de GitHub/NPM) — threat model (`feedback_security_priority`)
-- ❌ **Honcho/Mem0/RetainDB providers** — cloud-only, viola `project_dashboardagent`
+- ❌ **Honcho/Mem0/RetainDB providers** — cloud-only, viola `project_prospero`
 - ❌ **Multi-user memory partitioning** — single-user explícito (ToS Anthropic Max)
 - ❌ **AI memory reviewer (não-humano)** — **deferred pra V2 Tier 2.** Em M11, todo `skill_candidate` passa por review humano via inbox. Quando volume crescer (com Routines/Plays disparando muitos issues), humano vira gargalo. Próxima geração: agente revisor (Haiku, modelo barato) faz pré-filtro com confidence flag; humano só vê os duvidosos. Documentado aqui pra não esquecer.
 

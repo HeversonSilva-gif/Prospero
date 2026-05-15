@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 import { createAgentsRepository } from "./repository.js";
 
 const CEO_SYSTEM_PROMPT = `You are the CEO of a small company. Your role:

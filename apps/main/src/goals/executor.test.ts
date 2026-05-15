@@ -6,7 +6,7 @@ import { createGoalsRepository } from "./repository.js";
 import { createGoalPlansRepository } from "./plans-repository.js";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
-import type { AgentToHire, IssueToCreate } from "@dashboard-agent/shared";
+import type { AgentToHire, IssueToCreate } from "@prospero/shared";
 
 const setup = (): {
   db: Database.Database;

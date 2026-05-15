@@ -4,7 +4,7 @@
 >
 > **Fontes:** [hermes-agent](https://github.com/NousResearch/hermes-agent) (NousResearch), [docs site](https://hermes-agent.nousresearch.com/docs/), issues #346 (Structured Memory), #10355 (Living Memory), #22612 (Memory Routing), [memory-providers.md](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/memory-providers.md), [hermes-agent-claude-code adaptation](https://github.com/paphavitmooc/hermes-agent-claude-code).
 >
-> **Pergunta original:** "como o Hermes faz cada agente ter memória própria e aprender com o tempo, e como replicamos isso no DashboardAgent?"
+> **Pergunta original:** "como o Hermes faz cada agente ter memória própria e aprender com o tempo, e como replicamos isso no Prospero?"
 
 ---
 
@@ -381,17 +381,17 @@ Conceitualmente o mais sofisticado para nosso caso (single-user, multi-agent):
 
 ---
 
-## 7. Tradução pro DashboardAgent — proposta arquitetural
+## 7. Tradução pro Prospero — proposta arquitetural
 
 ### 7.1 O que copiar direto
 
-| Hermes | DashboardAgent | Justificativa |
+| Hermes | Prospero | Justificativa |
 |---|---|---|
-| `~/.hermes/profiles/<profile>/memories/MEMORY.md` | `~/.dashboard-agent/agents/<agent_id>/memory/MEMORY.md` | Cada agente é um "profile" (CEO ≠ Backend Eng) |
+| `~/.hermes/profiles/<profile>/memories/MEMORY.md` | `~/.prospero/agents/<agent_id>/memory/MEMORY.md` | Cada agente é um "profile" (CEO ≠ Backend Eng) |
 | Tool `memory {add/replace/remove}` | MCP tool `agent_memory` mesma assinatura | Padrão consolidado |
 | Indexed memory architecture (#22612) | **Default desde dia 1** — não monolito | Já sabemos limitação; pula uma migration |
 | Session search FTS5 | FTS5 sobre `messages` (já temos a tabela) | Schema mínimo — add FTS5 virtual table |
-| Skills auto-criados como markdown | `~/.dashboard-agent/agents/<id>/skills/<name>/SKILL.md` | Convergência com agentskills.io |
+| Skills auto-criados como markdown | `~/.prospero/agents/<id>/skills/<name>/SKILL.md` | Convergência com agentskills.io |
 | Progressive disclosure L0/L1/L2 | Mesmo padrão; L0 entra no system prompt, L1+L2 via `read_skill` tool | Economia de tokens crítica (memory `feedback_token_efficiency`) |
 | Nudges em compaction + complex-task triggers | Hook no nosso `turn-complete` quando `tool_use_count > 5` ou status pós-erro | Reusa stream existente |
 | Trust scoring assimétrico (+0.05 / −0.10) | User pode marcar entrada de memória "helpful/wrong" | Calibração barata |
@@ -401,7 +401,7 @@ Conceitualmente o mais sofisticado para nosso caso (single-user, multi-agent):
 | Hermes | Adaptação | Razão |
 |---|---|---|
 | Vector embeddings (Zhipu, OpenAI etc.) | **PULAR no v1.1** | Custa $ extra (não coberto por OAuth Max), embedding model local seria 100+ MB no install. Postergar pra v1.2. |
-| 8 memory providers | **Só built-in local** | Single-user, offline-first, sem cloud (`project_dashboardagent`). Holographic é referência. |
+| 8 memory providers | **Só built-in local** | Single-user, offline-first, sem cloud (`project_prospero`). Holographic é referência. |
 | Honcho dialectic | **Capturar a ideia (peer-card + session-summary)** mas inline em SQLite | Sem dependência externa. Schema próprio. |
 | Memory bulletin horário (#346) | **Trigger em open-session** + manual `agent_memory.bulletin` | Geração horária em desktop offline-first é wasteful |
 | Graph edges genéricos | **Subset:** só `Updates`, `Contradicts`, `RelatedTo` v1 | YAGNI; 6 edges é over-engineering pro nosso escopo |
@@ -412,7 +412,7 @@ Conceitualmente o mais sofisticado para nosso caso (single-user, multi-agent):
 
 | Hermes feature | Por que pular |
 |---|---|
-| Cloud providers (Honcho, Mem0 cloud, RetainDB, Supermemory) | Cloud é proibido (`project_dashboardagent`: local-only, offline-first) |
+| Cloud providers (Honcho, Mem0 cloud, RetainDB, Supermemory) | Cloud é proibido (`project_prospero`: local-only, offline-first) |
 | Skill hub download remoto | Threat model (memory `feedback_security_priority`: sem download/exec de código remoto) — mesma razão que pulamos Paperclip skill source sync |
 | Identity evolution / self-model (#10355 Phase 3) | Filosoficamente interessante mas escopo muito grande pra um milestone. Considerar v2+. |
 | Dream consolidator offline | Sem worker background (Electron); poderia rodar em idle mas complica muito |
@@ -423,7 +423,7 @@ Conceitualmente o mais sofisticado para nosso caso (single-user, multi-agent):
 **D1 — Per-agent vs. shared memory?**
 - **Decisão:** per-agent + shared "company memory" + `USER.md` global.
 - Razão: CEO precisa saber coisas diferentes de Backend Eng. Mas regra de compliance, paths bloqueados, segurança = compartilhado.
-- Implementação: 3 níveis injetados no system prompt — USER.md global (~/.dashboard-agent/user.md) → company memory (`companies/<id>/memory.md`) → agent memory.
+- Implementação: 3 níveis injetados no system prompt — USER.md global (~/.prospero/user.md) → company memory (`companies/<id>/memory.md`) → agent memory.
 
 **D2 — SQLite ou markdown files?**
 - **Decisão:** híbrido. Markdown para conteúdo (humano edita); SQLite para metadata (importance, trust, edges, FTS5 índices).
@@ -466,14 +466,14 @@ Conceitualmente o mais sofisticado para nosso caso (single-user, multi-agent):
 - `skill_manage(action, name, body?)` — CRUD de skill
 
 **D7 — Backward compat com memory `MEMORY.md` do Claude Code.**
-- Nossa memória local (`C:\Users\hever\.claude\projects\.../memory/`) é coisa **do Claude Code** (este harness), não do app DashboardAgent. Sistemas separados — não tentar unificar.
+- Nossa memória local (`C:\Users\hever\.claude\projects\.../memory/`) é coisa **do Claude Code** (este harness), não do app Prospero. Sistemas separados — não tentar unificar.
 - Mas: importar via "Settings → Import Claude Code memory as USER.md global" seria UX win opcional.
 
 ---
 
 ## 8. Comparação com o que já temos
 
-| Capability | Hoje (DashboardAgent v1) | Hermes | Gap |
+| Capability | Hoje (Prospero v1) | Hermes | Gap |
 |---|---|---|---|
 | Persona estática | ✅ `agents.system_prompt` em SQLite, editável UI | ✅ via persona/personality | Paridade |
 | System prompt composable | ✅ M7.5 PR-A (`composeSystemPrompt`) | ✅ | Paridade |

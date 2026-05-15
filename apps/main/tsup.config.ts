@@ -38,7 +38,7 @@ export default defineConfig([
     sourcemap: true,
     clean: true,
     external: ["electron", "better-sqlite3"],
-    noExternal: ["@dashboard-agent/shared"],
+    noExternal: ["@prospero/shared"],
     onSuccess: async () => {
       // Copy tray asset
       mkdirSync(resolve("dist/resources"), { recursive: true });
@@ -65,7 +65,7 @@ export default defineConfig([
     sourcemap: true,
     clean: false, // first config already cleaned the dist dir
     external: ["electron"],
-    noExternal: ["@dashboard-agent/shared"],
+    noExternal: ["@prospero/shared"],
     outExtension: () => ({ js: ".cjs" }),
   },
   {
@@ -77,6 +77,6 @@ export default defineConfig([
     sourcemap: true,
     clean: false,
     external: ["better-sqlite3"],
-    noExternal: ["@dashboard-agent/shared", "@modelcontextprotocol/sdk"],
+    noExternal: ["@prospero/shared", "@modelcontextprotocol/sdk"],
   },
 ]);

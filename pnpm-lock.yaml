@@ -53,7 +53,7 @@ importers:
 
   apps/agent-runner:
     dependencies:
-      '@dashboard-agent/shared':
+      '@prospero/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       zod:
@@ -75,12 +75,12 @@ importers:
 
   apps/main:
     dependencies:
-      '@dashboard-agent/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.29.0(zod@3.25.76)
+      '@prospero/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       better-sqlite3:
         specifier: ^11.3.0
         version: 11.10.0
@@ -127,9 +127,6 @@ importers:
 
   apps/renderer:
     dependencies:
-      '@dashboard-agent/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -142,6 +139,9 @@ importers:
       '@fontsource/poppins':
         specifier: ^5.2.7
         version: 5.2.7
+      '@prospero/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       i18next:
         specifier: ^23.15.1
         version: 23.16.8

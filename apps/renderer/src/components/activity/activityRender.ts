@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import type { ActivityEventRow, EntityKind } from "@dashboard-agent/shared";
+import type { ActivityEventRow, EntityKind } from "@prospero/shared";
 
 export interface Lookups {
   agentsById: Map<string, string>;

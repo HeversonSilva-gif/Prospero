@@ -1,6 +1,6 @@
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type Company } from "@dashboard-agent/shared";
+import { IPC, type Company } from "@prospero/shared";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createDemoCompany } from "../companies/seed.js";
 import { exportCompany, type CompanyExportV1 } from "../companies/export.js";

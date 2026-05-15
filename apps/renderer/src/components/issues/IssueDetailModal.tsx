@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { IssueArtifact } from "@dashboard-agent/shared";
+import type { IssueArtifact } from "@prospero/shared";
 import { useIssuesStore } from "../../stores/issues.js";
 import { useAgentsStore } from "../../stores/agents.js";
 import { IssueCommentsList } from "./IssueCommentsList.js";
@@ -28,13 +28,13 @@ export const IssueDetailModal: FC<Props> = ({ issueId, onClose }) => {
 
   useEffect(() => {
     void loadDetail(issueId);
-    void window.dashboardAgent.issues.listArtifacts(issueId).then(setArtifacts);
+    void window.prospero.issues.listArtifacts(issueId).then(setArtifacts);
     return () => clearDetail();
   }, [issueId, loadDetail, clearDetail]);
 
   // M8.6: refetch detail when a comment is added live (CEO narrated comments).
   useEffect(() => {
-    const off = window.dashboardAgent.issues.onChanged((event) => {
+    const off = window.prospero.issues.onChanged((event) => {
       if (event.kind === "comment-added" && event.issueId === issueId) {
         void loadDetail(issueId);
       }

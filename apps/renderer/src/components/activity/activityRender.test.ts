@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ActivityEventRow } from "@dashboard-agent/shared";
+import type { ActivityEventRow } from "@prospero/shared";
 import { renderDescription, type Lookups } from "./activityRender.js";
 
 const baseRow = (over: Partial<ActivityEventRow>): ActivityEventRow => ({

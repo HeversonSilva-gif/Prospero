@@ -12,7 +12,7 @@
 - Org Chart: SVG handcrafted, NÃO React Flow / D3 / dagre.
 - Skills: continuam tag-based (`agents.skills_json`), sem source sync.
 - AllowlistEditor extraído? Não — componente atual `AgentAccessSection` é project-centric. Criamos `AgentProjectsEditor` agent-centric (simétrico) sem refatorar o original. Mais limpo.
-- `agents:listIssues` (spec original): **omitido**, renderer chama `window.dashboardAgent.issues.list({companyId, assigneeId})` existente.
+- `agents:listIssues` (spec original): **omitido**, renderer chama `window.prospero.issues.list({companyId, assigneeId})` existente.
 - `agents:stats` (spec original): mantido como handler dedicado (agrega turns + lastActivity server-side).
 
 ---
@@ -131,7 +131,7 @@ describe("M7 PR-C channels", () => {
 - [ ] **Step 4: Run tests**
 
 ```bash
-pnpm --filter @dashboard-agent/shared test
+pnpm --filter @prospero/shared test
 ```
 
 Expected: PASS, todos os tests do shared verdes.
@@ -219,7 +219,7 @@ describe("setSystemPrompt", () => {
 - [ ] **Step 2: Rodar tests pra confirmar que falham**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- repository.test.ts
+pnpm --filter @prospero/main test -- repository.test.ts
 ```
 
 Expected: FAIL — `repo.setModel is not a function`.
@@ -255,7 +255,7 @@ E ao return de `createAgentsRepository`:
 - [ ] **Step 4: Rodar tests, confirmar PASS**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- repository.test.ts
+pnpm --filter @prospero/main test -- repository.test.ts
 ```
 
 Expected: PASS.
@@ -333,7 +333,7 @@ describe("setRole", () => {
 - [ ] **Step 2: Rodar tests pra confirmar que falham**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- repository.test.ts
+pnpm --filter @prospero/main test -- repository.test.ts
 ```
 
 Expected: FAIL — `setRole is not a function`.
@@ -376,7 +376,7 @@ E ao return:
 - [ ] **Step 4: Rodar tests, confirmar PASS**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- repository.test.ts
+pnpm --filter @prospero/main test -- repository.test.ts
 ```
 
 Expected: PASS.
@@ -466,7 +466,7 @@ describe("setReportsTo", () => {
 - [ ] **Step 2: Rodar tests pra confirmar que falham**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- repository.test.ts
+pnpm --filter @prospero/main test -- repository.test.ts
 ```
 
 Expected: FAIL — `setReportsTo is not a function`.
@@ -513,7 +513,7 @@ E ao return:
 - [ ] **Step 4: Rodar tests, confirmar PASS**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- repository.test.ts
+pnpm --filter @prospero/main test -- repository.test.ts
 ```
 
 Expected: PASS.
@@ -560,7 +560,7 @@ Em `apps/main/src/ipc/orchestrator-handlers.ts`, dentro da função `registerOrc
 - [ ] **Step 2: Build verifica que helper compila**
 
 ```bash
-pnpm --filter @dashboard-agent/main build
+pnpm --filter @prospero/main build
 ```
 
 Expected: build OK (helper definido mas não usado ainda — typescript não reclama de unused locals em escopo de função).
@@ -595,7 +595,7 @@ Em `apps/main/src/ipc/orchestrator-handlers.ts`, **antes** do `};` final que fec
     (_e, payload: { agentId: string; model: string }): { ok: true } => {
       // Defense-in-depth: re-validate model id even though renderer also validates.
       // Prevents command injection via --model arg if a malicious renderer bypasses UI.
-      const { MODEL_ID_REGEX } = require("@dashboard-agent/shared") as {
+      const { MODEL_ID_REGEX } = require("@prospero/shared") as {
         MODEL_ID_REGEX: RegExp;
       };
       if (!MODEL_ID_REGEX.test(payload.model)) throw new Error("Invalid model id");
@@ -645,7 +645,7 @@ Em `apps/main/src/ipc/orchestrator-handlers.ts`, **antes** do `};` final que fec
 
   ipcMain.handle(
     IPC.AGENTS_STATS,
-    (_e, payload: { agentId: string }): import("@dashboard-agent/shared").AgentStats => {
+    (_e, payload: { agentId: string }): import("@prospero/shared").AgentStats => {
       const turnsRow = db
         .prepare(
           `SELECT COUNT(*) as n, MAX(created_at) as last
@@ -665,7 +665,7 @@ Em `apps/main/src/ipc/orchestrator-handlers.ts`, **antes** do `};` final que fec
 Trocar o `const { MODEL_ID_REGEX } = require(...)` por import top-of-file (mais limpo). No topo:
 
 ```typescript
-import { IPC, MODEL_ID_REGEX, ... } from "@dashboard-agent/shared";
+import { IPC, MODEL_ID_REGEX, ... } from "@prospero/shared";
 ```
 
 (remove o `require` inline).
@@ -673,7 +673,7 @@ import { IPC, MODEL_ID_REGEX, ... } from "@dashboard-agent/shared";
 - [ ] **Step 3: Build verifica que compila**
 
 ```bash
-pnpm --filter @dashboard-agent/main build
+pnpm --filter @prospero/main build
 ```
 
 Expected: OK. Se houver erros de tipo, ajustar.
@@ -687,7 +687,7 @@ pnpm dev
 Manualmente no DevTools do renderer:
 
 ```javascript
-await window.dashboardAgent
+await window.prospero
 // Deve mostrar os channels novos não expostos ainda (próximo task)
 ```
 
@@ -710,7 +710,7 @@ git commit -m "feat(m7c): ipc handlers — setModel/setRole/setSystemPrompt/setR
 
 - [ ] **Step 1: Adicionar ao preload.ts**
 
-Em `apps/main/src/ipc/preload.ts`, no `contextBridge.exposeInMainWorld("dashboardAgent", { ... })`, dentro do objeto `agents:` (logo após `setAllowedProjects`), adicionar:
+Em `apps/main/src/ipc/preload.ts`, no `contextBridge.exposeInMainWorld("prospero", { ... })`, dentro do objeto `agents:` (logo após `setAllowedProjects`), adicionar:
 
 ```typescript
     setModel: (agentId: string, model: string) =>
@@ -731,7 +731,7 @@ Em `apps/main/src/ipc/preload.ts`, no `contextBridge.exposeInMainWorld("dashboar
       }>,
     stats: (agentId: string) =>
       ipcRenderer.invoke(IPC.AGENTS_STATS, { agentId }) as Promise<
-        import("@dashboard-agent/shared").AgentStats
+        import("@prospero/shared").AgentStats
       >,
 ```
 
@@ -744,10 +744,10 @@ import {
   IPC,
   // ... existing
   type AgentStats,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 ```
 
-E trocar `import("@dashboard-agent/shared").AgentStats` pela referência direta `AgentStats`.
+E trocar `import("@prospero/shared").AgentStats` pela referência direta `AgentStats`.
 
 - [ ] **Step 3: Atualizar env.d.ts**
 
@@ -757,7 +757,7 @@ Em `apps/renderer/src/env.d.ts`, no import block, adicionar `AgentStats`:
 import type {
   // ... existing
   AgentStats,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 ```
 
 E no shape de `agents:`, depois de `setAllowedProjects`:
@@ -777,8 +777,8 @@ E no shape de `agents:`, depois de `setAllowedProjects`:
 - [ ] **Step 4: Typecheck**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
-pnpm --filter @dashboard-agent/main typecheck
+pnpm --filter @prospero/renderer typecheck
+pnpm --filter @prospero/main typecheck
 ```
 
 Expected: PASS.
@@ -803,7 +803,7 @@ Substituir o conteúdo de `apps/renderer/src/stores/agents.ts`:
 
 ```typescript
 import { create } from "zustand";
-import type { Agent, AgentStats, AgentStatus } from "@dashboard-agent/shared";
+import type { Agent, AgentStats, AgentStatus } from "@prospero/shared";
 
 type State = {
   agents: Agent[];
@@ -826,7 +826,7 @@ const reloadAgentsForCompany = async (
   set: (partial: Partial<State> | ((s: State) => Partial<State>)) => void,
   companyId: string,
 ): Promise<void> => {
-  const list = await window.dashboardAgent.agents.list(companyId);
+  const list = await window.prospero.agents.list(companyId);
   set({ agents: list });
 };
 
@@ -834,7 +834,7 @@ export const useAgentsStore = create<State>((set, get) => ({
   agents: [],
   loaded: false,
   load: async (companyId) => {
-    const list = await window.dashboardAgent.agents.list(companyId);
+    const list = await window.prospero.agents.list(companyId);
     set({ agents: list, loaded: true });
   },
   applyStatus: (agentId, status, currentAction) =>
@@ -842,41 +842,41 @@ export const useAgentsStore = create<State>((set, get) => ({
       agents: s.agents.map((a) => (a.id === agentId ? { ...a, status, currentAction } : a)),
     })),
   setAllowedProjects: async (agentId, projectIds) => {
-    await window.dashboardAgent.agents.setAllowedProjects(agentId, projectIds);
+    await window.prospero.agents.setAllowedProjects(agentId, projectIds);
     set((s) => ({
       agents: s.agents.map((a) => (a.id === agentId ? { ...a, allowedProjects: projectIds } : a)),
     }));
   },
   setModel: async (agentId, model) => {
-    await window.dashboardAgent.agents.setModel(agentId, model);
+    await window.prospero.agents.setModel(agentId, model);
     // Re-fetch agent canonical row (model + status may have changed).
     const agent = get().agents.find((a) => a.id === agentId);
     if (agent !== undefined) await reloadAgentsForCompany(set, agent.companyId);
   },
   setRole: async (agentId, roleTemplateId, opts) => {
-    await window.dashboardAgent.agents.setRole(agentId, roleTemplateId, opts);
+    await window.prospero.agents.setRole(agentId, roleTemplateId, opts);
     const agent = get().agents.find((a) => a.id === agentId);
     if (agent !== undefined) await reloadAgentsForCompany(set, agent.companyId);
   },
   setSystemPrompt: async (agentId, systemPrompt) => {
-    await window.dashboardAgent.agents.setSystemPrompt(agentId, systemPrompt);
+    await window.prospero.agents.setSystemPrompt(agentId, systemPrompt);
     set((s) => ({
       agents: s.agents.map((a) => (a.id === agentId ? { ...a, systemPrompt } : a)),
     }));
   },
   setReportsTo: async (agentId, reportsTo) => {
-    await window.dashboardAgent.agents.setReportsTo(agentId, reportsTo);
+    await window.prospero.agents.setReportsTo(agentId, reportsTo);
     const agent = get().agents.find((a) => a.id === agentId);
     if (agent !== undefined) await reloadAgentsForCompany(set, agent.companyId);
   },
-  fetchStats: async (agentId) => window.dashboardAgent.agents.stats(agentId),
+  fetchStats: async (agentId) => window.prospero.agents.stats(agentId),
 }));
 ```
 
 - [ ] **Step 2: Typecheck**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 ```
 
 Expected: PASS.
@@ -902,7 +902,7 @@ Componente agent-centric: mostra chips de projetos com toggle (granted/not). Sim
 ```tsx
 import { useEffect, useRef, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import { NO_ACCESS_SENTINEL, type Agent, type Project } from "@dashboard-agent/shared";
+import { NO_ACCESS_SENTINEL, type Agent, type Project } from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 
 type Props = {
@@ -1004,7 +1004,7 @@ export const AgentProjectsEditor: FC<Props> = ({ agent, allProjects }) => {
 - [ ] **Step 2: Typecheck**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 ```
 
 Expected: PASS (i18n keys ainda não existem — vão ser adicionadas em Task 16, mas typecheck não valida keys de i18n).
@@ -1033,7 +1033,7 @@ git commit -m "feat(m7c): AgentProjectsEditor — agent-centric allowlist chips"
 ```tsx
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { RoleTemplate } from "@dashboard-agent/shared";
+import type { RoleTemplate } from "@prospero/shared";
 
 type Props = {
   currentRoleId: string | null;
@@ -1050,7 +1050,7 @@ export const ChangeRoleModal: FC<Props> = ({ currentRoleId, onConfirm, onCancel 
 
   useEffect(() => {
     void (async () => {
-      const list = await window.dashboardAgent.roles.list();
+      const list = await window.prospero.roles.list();
       setRoles(list);
     })();
   }, []);
@@ -1129,7 +1129,7 @@ import {
   MODEL_ID_REGEX,
   type Agent,
   type RoleTemplate,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 import { useProjectsStore } from "../../stores/projects.js";
 import { AgentProjectsEditor } from "./AgentProjectsEditor.js";
@@ -1154,7 +1154,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
 
   useEffect(() => {
     void (async () => {
-      const list = await window.dashboardAgent.roles.list();
+      const list = await window.prospero.roles.list();
       setRoles(list);
     })();
   }, []);
@@ -1320,7 +1320,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
 - [ ] **Step 3: Typecheck**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 ```
 
 Expected: PASS.
@@ -1345,7 +1345,7 @@ git commit -m "feat(m7c): ConfigTab + ChangeRoleModal — role/model/persona/pro
 ```tsx
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Issue, IssueStatus } from "@dashboard-agent/shared";
+import type { Issue, IssueStatus } from "@prospero/shared";
 
 type Props = { agentId: string; companyId: string };
 
@@ -1365,13 +1365,13 @@ export const IssuesTab: FC<Props> = ({ agentId, companyId }) => {
   useEffect(() => {
     setLoading(true);
     void (async () => {
-      const list = await window.dashboardAgent.issues.list({ companyId, assigneeId: agentId });
+      const list = await window.prospero.issues.list({ companyId, assigneeId: agentId });
       setIssues(list);
       setLoading(false);
     })();
-    const off = window.dashboardAgent.issues.onChanged(() => {
+    const off = window.prospero.issues.onChanged(() => {
       void (async () => {
-        const list = await window.dashboardAgent.issues.list({ companyId, assigneeId: agentId });
+        const list = await window.prospero.issues.list({ companyId, assigneeId: agentId });
         setIssues(list);
       })();
     });
@@ -1408,7 +1408,7 @@ export const IssuesTab: FC<Props> = ({ agentId, companyId }) => {
 ```tsx
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { AgentStats } from "@dashboard-agent/shared";
+import type { AgentStats } from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 
 type Props = { agentId: string };
@@ -1473,7 +1473,7 @@ export const StatsTab: FC<Props> = ({ agentId }) => {
 - [ ] **Step 3: Typecheck**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 ```
 
 Expected: PASS.
@@ -1498,7 +1498,7 @@ git commit -m "feat(m7c): IssuesTab + StatsTab — assignee list + turn count"
 ```tsx
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 import { ConfigTab } from "./ConfigTab.js";
 import { IssuesTab } from "./IssuesTab.js";
 import { StatsTab } from "./StatsTab.js";
@@ -1648,7 +1648,7 @@ Algoritmo: dado array de agents, retorna `{ nodes: PositionedNode[], width, heig
 ```typescript
 import { describe, expect, it } from "vitest";
 import { layoutTree, type PositionedNode } from "./layoutTree.js";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 
 const mkAgent = (id: string, reportsTo: string | null): Agent => ({
   id,
@@ -1736,7 +1736,7 @@ const rowToAgent = (r: Row): Agent => ({
 - [ ] **Step 3: Rodar tests pra confirmar que falham**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer test -- layoutTree
+pnpm --filter @prospero/renderer test -- layoutTree
 ```
 
 Expected: FAIL — `layoutTree is not defined`.
@@ -1744,7 +1744,7 @@ Expected: FAIL — `layoutTree is not defined`.
 - [ ] **Step 4: Implementar `layoutTree.ts`**
 
 ```typescript
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 
 export type PositionedNode = {
   id: string;
@@ -1856,7 +1856,7 @@ export const NODE_DIMENSIONS = {
 - [ ] **Step 5: Rodar tests, confirmar PASS**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer test -- layoutTree
+pnpm --filter @prospero/renderer test -- layoutTree
 ```
 
 Expected: PASS.
@@ -2512,7 +2512,7 @@ E `nav.orgChart`: `"Org Chart"`.
 - [ ] **Step 4: Validar i18n parity test**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer test -- i18n
+pnpm --filter @prospero/renderer test -- i18n
 ```
 
 Expected: PASS — se o suite tem um test que checa as keys são as mesmas em PT-BR e EN-US, ele vai pegar inconsistências. Se falhar, alinhar as keys.
@@ -2520,7 +2520,7 @@ Expected: PASS — se o suite tem um test que checa as keys são as mesmas em PT
 Se não houver i18n test, esse passo só verifica typecheck:
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 ```
 
 - [ ] **Step 5: Smoke test full pass**
@@ -2630,7 +2630,7 @@ git commit -m "docs(roadmap): m7 pr-c mergeado — org chart + right panel done"
 
 - [ ] **Step 3: Atualizar memory `project_m7_progress.md`**
 
-Editar `C:\Users\hever\.claude\projects\d--Projetos-pessoais-DashboardAgent\memory\project_m7_progress.md`:
+Editar `C:\Users\hever\.claude\projects\d--Projetos-pessoais-Prospero\memory\project_m7_progress.md`:
 
 - Header: "M7 completo (PR-A + PR-B + PR-C mergeados)"
 - Adicionar PR-C ao **Status**:

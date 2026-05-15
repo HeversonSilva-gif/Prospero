@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { CostBucket } from "@dashboard-agent/shared";
+import type { CostBucket } from "@prospero/shared";
 import { fillMissingDays } from "./bucketByDay.js";
 
 const bucket = (start: number, tokens: number): CostBucket => ({

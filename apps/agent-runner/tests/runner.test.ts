@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeWireMessage, encodeWireMessage } from "@dashboard-agent/shared";
+import { decodeWireMessage, encodeWireMessage } from "@prospero/shared";
 import { createRunner } from "../src/runner.js";
 import { createMemoryTransportPair } from "./memory-transport.js";
 

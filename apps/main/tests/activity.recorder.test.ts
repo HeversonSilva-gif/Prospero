@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import Database from "better-sqlite3";
-import type { ActivityEventRow } from "@dashboard-agent/shared";
+import type { ActivityEventRow } from "@prospero/shared";
 import { applyMigrations } from "../src/db/migrations.js";
 import { createCompaniesRepository } from "../src/companies/repository.js";
 import { createRecorder } from "../src/activity/recorder.js";

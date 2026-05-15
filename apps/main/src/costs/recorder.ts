@@ -2,7 +2,7 @@
 // recordTurn validates non-zero usage, computes cost cents via the pricing
 // table, persists, and broadcasts a small delta for live UI updates.
 
-import type { UsageEstimate } from "@dashboard-agent/shared";
+import type { UsageEstimate } from "@prospero/shared";
 import { estimateCostCents } from "./pricing.js";
 import type { CostsRepository } from "./repository.js";
 

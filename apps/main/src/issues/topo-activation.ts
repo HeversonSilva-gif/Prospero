@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { Issue } from "@dashboard-agent/shared";
+import type { Issue } from "@prospero/shared";
 import { createIssuesRepository } from "./repository.js";
 
 // Returns issues that:

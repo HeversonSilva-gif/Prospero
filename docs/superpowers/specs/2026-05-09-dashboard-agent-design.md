@@ -1,4 +1,4 @@
-# Dashboard Agent — Design Doc
+# Prospero — Design Doc
 
 **Data:** 2026-05-09
 **Autor:** Heverson
@@ -492,7 +492,7 @@ Não opcionais — fazem parte do gate de release:
 ## 11. Estrutura de pastas (proposta)
 
 ```
-DashboardAgent/
+Prospero/
 ├── apps/
 │   ├── main/                 # Electron main process
 │   │   ├── src/

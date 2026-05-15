@@ -6,7 +6,7 @@ version: "3.9"
 
 services:
   agent-runner:
-    image: dashboard-agent/agent-runner:dev
+    image: prospero/agent-runner:dev
     build:
       context: ./agent-runner
     environment:

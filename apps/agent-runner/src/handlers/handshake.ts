@@ -4,7 +4,7 @@ import {
   WireErrorCode,
   WireHandlerError,
   type HandshakeResult,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import type { RunnerState } from "../state.js";
 
 const RUNNER_SERVER_NAME = "agent-runner";

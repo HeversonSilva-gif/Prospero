@@ -8,7 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export const createTray = (getWindow: () => BrowserWindow | null): Tray => {
   const iconPath = resolve(__dirname, "../resources/tray-icon.png");
   const tray = new Tray(iconPath);
-  tray.setToolTip("Dashboard Agent");
+  tray.setToolTip("Prospero");
 
   const menu = Menu.buildFromTemplate([
     {

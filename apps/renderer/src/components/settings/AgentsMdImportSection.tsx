@@ -48,7 +48,7 @@ export const AgentsMdImportSection = () => {
     setSummary(null);
     try {
       const raw = await file.text();
-      const result = await window.dashboardAgent.agentsMd.parse(raw);
+      const result = await window.prospero.agentsMd.parse(raw);
       if (!result.ok) {
         setParseError(t("settings.agentsMd.parseError", { error: result.error }));
         return;
@@ -64,11 +64,7 @@ export const AgentsMdImportSection = () => {
     if (parsed === null || activeCompanyId === null) return;
     setBusy(true);
     try {
-      const result = await window.dashboardAgent.agentsMd.hire(
-        activeCompanyId,
-        parsed,
-        conflictModes,
-      );
+      const result = await window.prospero.agentsMd.hire(activeCompanyId, parsed, conflictModes);
       setSummary({
         projects: result.created.projects,
         agents: result.created.agents,
@@ -90,7 +86,7 @@ export const AgentsMdImportSection = () => {
     setExportError(null);
     setExportSaved(null);
     try {
-      const { text } = await window.dashboardAgent.agentsMd.export(activeCompanyId);
+      const { text } = await window.prospero.agentsMd.export(activeCompanyId);
       const blob = new Blob([text], { type: "text/markdown" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

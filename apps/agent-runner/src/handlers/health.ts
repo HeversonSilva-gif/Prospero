@@ -1,4 +1,4 @@
-import type { HealthResult } from "@dashboard-agent/shared";
+import type { HealthResult } from "@prospero/shared";
 import type { RunnerState } from "../state.js";
 
 /**

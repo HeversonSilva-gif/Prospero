@@ -2,15 +2,15 @@ import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve, join } from "node:path";
 import { homedir } from "node:os";
-import { ensureChatSkill, resolveSkillTools } from "@dashboard-agent/shared";
+import { ensureChatSkill, resolveSkillTools } from "@prospero/shared";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Try user override first (~/.dashboard-agent/preamble.md), then fall back to
+// Try user override first (~/.prospero/preamble.md), then fall back to
 // the bundled preamble.md adjacent to this module. tsup copies preamble.md to
 // dist/orchestrator/ so __dirname resolution works both in dev (src/) and prod (dist/).
 const loadPreamble = (): string => {
-  const userOverride = join(homedir(), ".dashboard-agent", "preamble.md");
+  const userOverride = join(homedir(), ".prospero", "preamble.md");
   if (existsSync(userOverride)) {
     return readFileSync(userOverride, "utf8");
   }

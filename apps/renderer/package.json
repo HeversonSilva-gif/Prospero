@@ -1,5 +1,5 @@
 {
-  "name": "@dashboard-agent/renderer",
+  "name": "@prospero/renderer",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@dashboard-agent/shared": "workspace:*",
+    "@prospero/shared": "workspace:*",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { adapterRegistry, createAdapter } from "../src/orchestrator/adapters/index.js";
 import { ClaudeOAuthLocalAdapter } from "../src/orchestrator/adapters/claude-oauth-local/adapter.js";
-import type { Agent, SpawnContext } from "@dashboard-agent/shared";
+import type { Agent, SpawnContext } from "@prospero/shared";
 
 const baseAgent: Agent = {
   id: "a1",

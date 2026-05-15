@@ -6,7 +6,7 @@ import { useEffect } from "react";
 
 export const useCostsStream = (callback: () => void): void => {
   useEffect(() => {
-    const off = window.dashboardAgent.costs.onNew(() => {
+    const off = window.prospero.costs.onNew(() => {
       callback();
     });
     return off;

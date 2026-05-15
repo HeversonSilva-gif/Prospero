@@ -10,7 +10,7 @@ export const RateLimitBanner: FC = () => {
   const [state, setState] = useState<State>(initial);
 
   useEffect(() => {
-    const off = window.dashboardAgent.agents.onEvent((ev) => {
+    const off = window.prospero.agents.onEvent((ev) => {
       if (ev.kind !== "rate-limited") return;
       const retryAt =
         ev.retryAfterSec !== null && ev.retryAfterSec > 0

@@ -5,7 +5,7 @@
 // Kept in a tiny standalone module so the parking helper can be imported by
 // both orchestrator-handlers (production path) and unit tests (no IPC bootstrap).
 
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 import type { Router, Sender } from "../orchestrator/router.js";
 
 export const pauseBacklog = new Map<

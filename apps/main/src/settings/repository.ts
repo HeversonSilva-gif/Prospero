@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import { DEFAULT_SETTINGS, type AppSettings, type ExecutorMode } from "@dashboard-agent/shared";
+import { DEFAULT_SETTINGS, type AppSettings, type ExecutorMode } from "@prospero/shared";
 import { AppSettingsSchema } from "./schema.js";
 
 const KEY = "app-settings";

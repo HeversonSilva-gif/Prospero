@@ -1,7 +1,7 @@
 import { useEffect, useState, type FC } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { GoalLevel } from "@dashboard-agent/shared";
+import type { GoalLevel } from "@prospero/shared";
 import { useGoalsStore } from "../stores/goals.js";
 import { useAgentsStore } from "../stores/agents.js";
 
@@ -11,7 +11,7 @@ const useCompanyId = (): string | null => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   useEffect(() => {
     void (async () => {
-      const companies = await window.dashboardAgent.companies.list();
+      const companies = await window.prospero.companies.list();
       if (companies.length > 0) setCompanyId(companies[0]!.id);
     })();
   }, []);

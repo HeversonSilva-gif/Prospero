@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type { IssueArtifact, IssueArtifactKind } from "@dashboard-agent/shared";
+import type { IssueArtifact, IssueArtifactKind } from "@prospero/shared";
 
 type Row = {
   id: string;

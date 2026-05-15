@@ -1,6 +1,6 @@
 import { ipcMain, dialog, BrowserWindow } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type AppSettings } from "@dashboard-agent/shared";
+import { IPC, type AppSettings } from "@prospero/shared";
 import { createSettingsRepository } from "../settings/repository.js";
 
 export const registerSettingsHandlers = (db: Database.Database): void => {

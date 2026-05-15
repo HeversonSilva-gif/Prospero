@@ -12,7 +12,7 @@ import {
   type IssueComment,
   type IssueStatus,
   type IssuePriority,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { createIssuesRepository } from "../issues/repository.js";
 import { createIssueCommentsRepository } from "../issues/comments-repository.js";
 import { createArtifactsRepository } from "../artifacts/repository.js";

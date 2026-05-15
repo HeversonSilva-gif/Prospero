@@ -8,7 +8,7 @@ import { createGoalPlansRepository } from "../goals/plans-repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
 import { goalsToolDefinitions } from "./tools-goals.js";
 import type { ToolContext } from "./tools.js";
-import type { ExecutionState } from "@dashboard-agent/shared";
+import type { ExecutionState } from "@prospero/shared";
 
 const setup = () => {
   const db = new Database(":memory:");

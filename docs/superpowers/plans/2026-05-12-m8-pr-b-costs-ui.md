@@ -4,7 +4,7 @@
 
 **Goal:** Visualize cost data captured by PR-A. Ship `/costs` route with charts + filters, Dashboard "Custos hoje" widget, real StatsTab tokens, Settings Budgets section, and ModelDropdown cost hints — all wired to the 4 IPCs PR-A registered.
 
-**Architecture:** Renderer-only changes plus 2 lines in preload + env.d.ts (expose 4 IPCs + 1 broadcast on `window.dashboardAgent.costs`). New `/costs` route is `React.lazy` so recharts (~50 kB gzip) lives in a separate chunk and doesn't inflate the main bundle. Pure-fn helpers (`bucketByDay`, `formatCents`, `categorizeCostTier`) get vitest coverage; components are smoke-tested via existing M7.7 pure-fn pattern (no RTL/jsdom — that infrastructure was deferred in M7.7 lessons).
+**Architecture:** Renderer-only changes plus 2 lines in preload + env.d.ts (expose 4 IPCs + 1 broadcast on `window.prospero.costs`). New `/costs` route is `React.lazy` so recharts (~50 kB gzip) lives in a separate chunk and doesn't inflate the main bundle. Pure-fn helpers (`bucketByDay`, `formatCents`, `categorizeCostTier`) get vitest coverage; components are smoke-tested via existing M7.7 pure-fn pattern (no RTL/jsdom — that infrastructure was deferred in M7.7 lessons).
 
 **Tech Stack:** React 18, react-router-dom 6, zustand, react-i18next, recharts (new dep), vitest. Spec: [docs/superpowers/specs/2026-05-12-m8-costs-design.md](../specs/2026-05-12-m8-costs-design.md) §8.
 
@@ -38,7 +38,7 @@
 
 **Modify:**
 - `apps/main/src/ipc/preload.ts` — expose `costs` namespace (4 invokes + 1 broadcast listener)
-- `apps/renderer/src/env.d.ts` — add `costs` to `window.dashboardAgent` type + import new shared types
+- `apps/renderer/src/env.d.ts` — add `costs` to `window.prospero` type + import new shared types
 - `apps/renderer/package.json` — `pnpm add recharts`
 - `apps/renderer/src/App.tsx` — add `/costs` lazy route + NavLink between Skills and Activity
 - `apps/renderer/src/routes/Dashboard.tsx` — render `<CostsTodayWidget />`
@@ -66,7 +66,7 @@
 ```ts
 // apps/renderer/src/lib/costs/bucketByDay.test.ts
 import { describe, expect, it } from "vitest";
-import type { CostBucket } from "@dashboard-agent/shared";
+import type { CostBucket } from "@prospero/shared";
 import { fillMissingDays } from "./bucketByDay.js";
 
 const bucket = (start: number, tokens: number): CostBucket => ({
@@ -129,7 +129,7 @@ describe("fillMissingDays", () => {
 
 - [ ] **Step 2: Run test — expect failure**
 
-Run: `pnpm --filter @dashboard-agent/renderer test bucketByDay`
+Run: `pnpm --filter @prospero/renderer test bucketByDay`
 Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implement the helper**
@@ -140,7 +140,7 @@ Expected: FAIL — module not found.
 // continuous line instead of skipping gaps. Input must already be daily-
 // bucketed (bucketStart == UTC midnight). Range is [from, to) — half-open.
 
-import type { CostBucket } from "@dashboard-agent/shared";
+import type { CostBucket } from "@prospero/shared";
 
 const DAY_MS = 86_400_000;
 
@@ -170,7 +170,7 @@ export const fillMissingDays = (
 
 - [ ] **Step 4: Run test — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/renderer test bucketByDay`
+Run: `pnpm --filter @prospero/renderer test bucketByDay`
 Expected: 4 PASS.
 
 - [ ] **Step 5: Commit**
@@ -239,7 +239,7 @@ describe("formatTokens", () => {
 
 - [ ] **Step 2: Run test — expect failure**
 
-Run: `pnpm --filter @dashboard-agent/renderer test formatCents`
+Run: `pnpm --filter @prospero/renderer test formatCents`
 Expected: FAIL.
 
 - [ ] **Step 3: Implement the helpers**
@@ -269,7 +269,7 @@ export const formatTokens = (tokens: number): string => {
 
 - [ ] **Step 4: Run test — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/renderer test formatCents`
+Run: `pnpm --filter @prospero/renderer test formatCents`
 Expected: 8 PASS.
 
 - [ ] **Step 5: Commit**
@@ -329,7 +329,7 @@ describe("categorizeCostTier", () => {
 
 - [ ] **Step 2: Run test — expect failure**
 
-Run: `pnpm --filter @dashboard-agent/renderer test categorizeCostTier`
+Run: `pnpm --filter @prospero/renderer test categorizeCostTier`
 Expected: FAIL.
 
 - [ ] **Step 3: Implement**
@@ -368,7 +368,7 @@ export const categorizeCostTier = (model: string): CostTierInfo => {
 
 - [ ] **Step 4: Run test — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/renderer test categorizeCostTier`
+Run: `pnpm --filter @prospero/renderer test categorizeCostTier`
 Expected: 7 PASS.
 
 - [ ] **Step 5: Commit**
@@ -397,10 +397,10 @@ In `apps/main/src/ipc/preload.ts`, first extend the type imports at the top (aro
   type CostsQueryResult,
   type CostsAggregateTodayResult,
   type CostBudgets,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 ```
 
-Then, inside the `contextBridge.exposeInMainWorld("dashboardAgent", {...})` object, find the `activity:` namespace and add a sibling `costs:` namespace right after it:
+Then, inside the `contextBridge.exposeInMainWorld("prospero", {...})` object, find the `activity:` namespace and add a sibling `costs:` namespace right after it:
 
 ```ts
   costs: {
@@ -447,10 +447,10 @@ In `apps/renderer/src/env.d.ts`, extend the imports at top:
   CostsQueryResult,
   CostsAggregateTodayResult,
   CostBudgets,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 ```
 
-Add a `costs` namespace inside the `dashboardAgent` interface (right after `activity`):
+Add a `costs` namespace inside the `prospero` interface (right after `activity`):
 
 ```ts
       costs: {
@@ -473,7 +473,7 @@ Expected: PASS across main + renderer + shared.
 
 ```bash
 git add apps/main/src/ipc/preload.ts apps/renderer/src/env.d.ts
-git commit -m "feat(m8-ui): expose costs namespace on window.dashboardAgent"
+git commit -m "feat(m8-ui): expose costs namespace on window.prospero"
 ```
 
 ---
@@ -500,10 +500,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   (
     globalThis as unknown as {
-      window: { dashboardAgent: { costs: typeof ipcMock } };
+      window: { prospero: { costs: typeof ipcMock } };
     }
   ).window = {
-    dashboardAgent: { costs: ipcMock },
+    prospero: { costs: ipcMock },
   };
   useBudgetsStore.setState({
     budgets: {
@@ -552,7 +552,7 @@ describe("useBudgetsStore", () => {
 
 - [ ] **Step 2: Run test — expect failure**
 
-Run: `pnpm --filter @dashboard-agent/renderer test stores/budgets`
+Run: `pnpm --filter @prospero/renderer test stores/budgets`
 Expected: FAIL.
 
 - [ ] **Step 3: Implement the store**
@@ -560,7 +560,7 @@ Expected: FAIL.
 ```ts
 // apps/renderer/src/stores/budgets.ts
 import { create } from "zustand";
-import type { CostBudgets } from "@dashboard-agent/shared";
+import type { CostBudgets } from "@prospero/shared";
 
 const DEFAULTS: CostBudgets = {
   maxTokensPerDayPerAgent: 2_000_000,
@@ -580,11 +580,11 @@ export const useBudgetsStore = create<State>((set) => ({
   budgets: DEFAULTS,
   loaded: false,
   load: async () => {
-    const b = await window.dashboardAgent.costs.getBudgets();
+    const b = await window.prospero.costs.getBudgets();
     set({ budgets: b, loaded: true });
   },
   save: async (patch) => {
-    const next = await window.dashboardAgent.costs.setBudgets(patch);
+    const next = await window.prospero.costs.setBudgets(patch);
     set({ budgets: next });
   },
 }));
@@ -592,7 +592,7 @@ export const useBudgetsStore = create<State>((set) => ({
 
 - [ ] **Step 4: Run test — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/renderer test stores/budgets`
+Run: `pnpm --filter @prospero/renderer test stores/budgets`
 Expected: 3 PASS.
 
 - [ ] **Step 5: Commit**
@@ -656,7 +656,7 @@ describe("deriveAgentFilter", () => {
 
 - [ ] **Step 2: Run test — expect failure**
 
-Run: `pnpm --filter @dashboard-agent/renderer test useCostsQuery`
+Run: `pnpm --filter @prospero/renderer test useCostsQuery`
 Expected: FAIL.
 
 - [ ] **Step 3: Implement the hook**
@@ -672,7 +672,7 @@ import type {
   CostsQueryInput,
   CostsQueryResult,
   CostsQueryScope,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 
 export type DateRange = "1d" | "7d" | "30d";
 
@@ -728,7 +728,7 @@ export const useCostsQuery = (
         ...(agentFilter.refId !== undefined ? { refId: agentFilter.refId } : {}),
         ...(filters.adapterName !== "" ? { adapterName: filters.adapterName } : {}),
       };
-      const r = await window.dashboardAgent.costs.query(input);
+      const r = await window.prospero.costs.query(input);
       setResult(r);
     } finally {
       setLoading(false);
@@ -745,7 +745,7 @@ export const useCostsQuery = (
 
 - [ ] **Step 4: Run test — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/renderer test useCostsQuery`
+Run: `pnpm --filter @prospero/renderer test useCostsQuery`
 Expected: 6 PASS.
 
 - [ ] **Step 5: Commit**
@@ -772,7 +772,7 @@ git commit -m "feat(m8-ui): useCostsQuery hook + pure-fn helpers"
 // widget stays fresh without polling.
 
 import { useCallback, useEffect, useState } from "react";
-import type { CostsAggregateTodayResult } from "@dashboard-agent/shared";
+import type { CostsAggregateTodayResult } from "@prospero/shared";
 
 const empty: CostsAggregateTodayResult = {
   totalCents: 0,
@@ -791,7 +791,7 @@ export const useCostsToday = (
     if (companyId === null) return;
     setLoading(true);
     try {
-      const r = await window.dashboardAgent.costs.aggregateToday({ companyId });
+      const r = await window.prospero.costs.aggregateToday({ companyId });
       setData(r);
     } finally {
       setLoading(false);
@@ -804,7 +804,7 @@ export const useCostsToday = (
 
   useEffect(() => {
     if (companyId === null) return;
-    const off = window.dashboardAgent.costs.onNew(() => {
+    const off = window.prospero.costs.onNew(() => {
       void refresh();
     });
     return off;
@@ -826,7 +826,7 @@ import { useEffect } from "react";
 
 export const useCostsStream = (callback: () => void): void => {
   useEffect(() => {
-    const off = window.dashboardAgent.costs.onNew(() => {
+    const off = window.prospero.costs.onNew(() => {
       callback();
     });
     return off;
@@ -854,7 +854,7 @@ git commit -m "feat(m8-ui): useCostsToday + useCostsStream hooks"
 
 - [ ] **Step 1: Install recharts in the renderer workspace**
 
-Run: `pnpm --filter @dashboard-agent/renderer add recharts`
+Run: `pnpm --filter @prospero/renderer add recharts`
 Expected: lockfile updated, `recharts` listed in `apps/renderer/package.json` dependencies.
 
 - [ ] **Step 2: Verify it's in package.json**
@@ -1086,7 +1086,7 @@ Same structure with English translations:
 
 - [ ] **Step 3: Verify JSON parses**
 
-Run: `pnpm --filter @dashboard-agent/renderer typecheck` (TS will fail-fast if JSON is invalid; also vite parses on dev)
+Run: `pnpm --filter @prospero/renderer typecheck` (TS will fail-fast if JSON is invalid; also vite parses on dev)
 
 Or: `node -e "require('./apps/renderer/src/i18n/pt-BR.json'); require('./apps/renderer/src/i18n/en-US.json'); console.log('ok')"`
 
@@ -1114,7 +1114,7 @@ git commit -m "feat(m8-ui): i18n keys for costs, budgets, dashboard widget, stat
 
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { CostsAggregateTodayResult, CostsQueryResult } from "@dashboard-agent/shared";
+import type { CostsAggregateTodayResult, CostsQueryResult } from "@prospero/shared";
 import { formatCents, formatTokens } from "../../lib/costs/formatCents.js";
 
 type Props = {
@@ -1201,7 +1201,7 @@ git commit -m "feat(m8-ui): CostsHeader with today total + range total + %Max ba
 
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Agent, Project, CostsQueryScope } from "@dashboard-agent/shared";
+import type { Agent, Project, CostsQueryScope } from "@prospero/shared";
 import type { DateRange, CostsQueryFilters } from "../../hooks/useCostsQuery.js";
 
 type Props = {
@@ -1354,7 +1354,7 @@ import {
   Legend,
   CartesianGrid,
 } from "recharts";
-import type { CostBucket } from "@dashboard-agent/shared";
+import type { CostBucket } from "@prospero/shared";
 import { formatTokens } from "../../lib/costs/formatCents.js";
 
 type Props = { buckets: CostBucket[] };
@@ -1468,7 +1468,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import type { CostAgentTotal } from "@dashboard-agent/shared";
+import type { CostAgentTotal } from "@prospero/shared";
 import { formatTokens } from "../../lib/costs/formatCents.js";
 
 type Props = { rows: CostAgentTotal[] };
@@ -1528,7 +1528,7 @@ git commit -m "feat(m8-ui): CostsChartByAgent (horizontal bar)"
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
-import type { CostProjectTotal } from "@dashboard-agent/shared";
+import type { CostProjectTotal } from "@prospero/shared";
 import { formatTokens } from "../../lib/costs/formatCents.js";
 
 type Props = { rows: CostProjectTotal[] };
@@ -1598,7 +1598,7 @@ git commit -m "feat(m8-ui): CostsChartByProject (donut)"
 
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { CostAgentTotal } from "@dashboard-agent/shared";
+import type { CostAgentTotal } from "@prospero/shared";
 import { formatCents, formatTokens } from "../../lib/costs/formatCents.js";
 
 type Props = { rows: CostAgentTotal[] };
@@ -1682,7 +1682,7 @@ const useCompanyId = (): string | null => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   useEffect(() => {
     void (async () => {
-      const companies = await window.dashboardAgent.companies.list();
+      const companies = await window.prospero.companies.list();
       if (companies.length > 0) setCompanyId(companies[0]!.id);
     })();
   }, []);
@@ -1944,13 +1944,13 @@ export const Dashboard = () => {
 
   useEffect(() => {
     void (async () => {
-      const companies = await window.dashboardAgent.companies.list();
+      const companies = await window.prospero.companies.list();
       if (companies.length > 0) setCompanyId(companies[0]!.id);
     })();
   }, []);
 
   const onCreateDemo = async () => {
-    const company = await window.dashboardAgent.companies.createDemo();
+    const company = await window.prospero.companies.createDemo();
     await loadAgents(company.id);
     const updated = useAgentsStore.getState().agents;
     if (updated.length > 0) navigate(`/agents/${updated[0]!.id}`);
@@ -2159,7 +2159,7 @@ Replace the contents of `apps/renderer/src/components/ModelDropdown.tsx` with:
 ```tsx
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import { CLAUDE_MODEL_PRESETS, MODEL_ID_REGEX } from "@dashboard-agent/shared";
+import { CLAUDE_MODEL_PRESETS, MODEL_ID_REGEX } from "@prospero/shared";
 import { categorizeCostTier, type CostTier } from "../lib/costs/categorizeCostTier.js";
 
 type Props = {
@@ -2283,7 +2283,7 @@ Rewrite `apps/renderer/src/components/agent-panel/StatsTab.tsx`:
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import type { AgentStats } from "@dashboard-agent/shared";
+import type { AgentStats } from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 import { useCostsQuery } from "../../hooks/useCostsQuery.js";
 import { formatCents, formatTokens } from "../../lib/costs/formatCents.js";
@@ -2299,7 +2299,7 @@ const useCompanyId = (): string | null => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   useEffect(() => {
     void (async () => {
-      const companies = await window.dashboardAgent.companies.list();
+      const companies = await window.prospero.companies.list();
       if (companies.length > 0) setCompanyId(companies[0]!.id);
     })();
   }, []);
@@ -2426,7 +2426,7 @@ Expected: 443 main + ~50+ renderer (was 43, added ~10 from pure-fn + store). All
 
 - [ ] **Step 3: Build renderer and check bundle**
 
-Run: `pnpm --filter @dashboard-agent/renderer build`
+Run: `pnpm --filter @prospero/renderer build`
 Expected: build success. Vite output reports chunk sizes. Main bundle should be near 397 kB (M7.6 baseline). The `/costs` route + recharts go in a separate lazy chunk; its size will be ~150–200 kB (recharts) + small wiring.
 
 If main bundle delta > +30 kB uncompressed, investigate (likely a static import leaked recharts into main).

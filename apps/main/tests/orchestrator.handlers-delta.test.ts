@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import type { AgentEvent } from "@dashboard-agent/shared";
+import type { AgentEvent } from "@prospero/shared";
 import { createCurrentActionDebouncer } from "../src/orchestrator/event-throttle.js";
 import { mapToolUseToAction } from "../src/orchestrator/current-action-mapper.js";
 

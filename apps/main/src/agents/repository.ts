@@ -6,7 +6,7 @@ import {
   type AgentMode,
   type AgentStatus,
   type Actor,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import type { Recorder } from "../activity/recorder.js";
 
 type Row = {

@@ -223,8 +223,8 @@ describe("archive / unarchive", () => {
 - [ ] **Step 2.5: Run + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- projects
-pnpm --filter @dashboard-agent/main typecheck
+pnpm --filter @prospero/main test -- projects
+pnpm --filter @prospero/main typecheck
 git add apps/main/src/projects/repository.ts apps/main/src/projects/repository.test.ts
 git commit -m "feat(m9): projects repo — setIcon + archive + unarchive"
 ```
@@ -339,19 +339,19 @@ Inside the factory:
 
 ```typescript
 setIcon: async (id, icon) => {
-  await window.dashboardAgent.projects.setIcon(id, icon);
+  await window.prospero.projects.setIcon(id, icon);
   set((s) => ({
     projects: s.projects.map((p) => (p.id === id ? { ...p, icon } : p)),
   }));
 },
 archive: async (id) => {
-  await window.dashboardAgent.projects.archive(id);
+  await window.prospero.projects.archive(id);
   set((s) => ({
     projects: s.projects.map((p) => (p.id === id ? { ...p, archivedAt: Date.now() } : p)),
   }));
 },
 unarchive: async (id) => {
-  await window.dashboardAgent.projects.unarchive(id);
+  await window.prospero.projects.unarchive(id);
   set((s) => ({
     projects: s.projects.map((p) => (p.id === id ? { ...p, archivedAt: null } : p)),
   }));
@@ -361,7 +361,7 @@ unarchive: async (id) => {
 - [ ] **Step 4.2: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/stores/projects.ts
 git commit -m "feat(m9): renderer projects store — setIcon + archive + unarchive actions"
 ```
@@ -380,7 +380,7 @@ Replace `apps/renderer/src/components/projects/ProjectFormModal.tsx`:
 ```tsx
 import { useState, type FC, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import type { Project } from "@dashboard-agent/shared";
+import type { Project } from "@prospero/shared";
 
 const COLORS = [
   "#1D5DD7",
@@ -431,7 +431,7 @@ export const ProjectFormModal: FC<Props> = ({ initial, onSubmit, onClose }) => {
   const [busy, setBusy] = useState(false);
 
   const pickFolder = async () => {
-    const picked = await window.dashboardAgent.settings.pickWorkspace();
+    const picked = await window.prospero.settings.pickWorkspace();
     if (picked !== null) setPath(picked);
   };
 
@@ -569,12 +569,12 @@ onSubmit={async ({ name, path, color, icon }) => {
 }}
 ```
 
-Note: `createProj` from the store currently returns the new project. Verify the signature: open the store file and confirm `create` returns `Promise<Project>`. If it doesn't, fall back to using `await window.dashboardAgent.projects.create(...)` directly.
+Note: `createProj` from the store currently returns the new project. Verify the signature: open the store file and confirm `create` returns `Promise<Project>`. If it doesn't, fall back to using `await window.prospero.projects.create(...)` directly.
 
 - [ ] **Step 5.3: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/components/projects/ProjectFormModal.tsx apps/renderer/src/routes/Projects.tsx
 git commit -m "feat(m9): project form — emoji icon picker"
 ```
@@ -664,7 +664,7 @@ Add a toggle above the new-button:
 - [ ] **Step 6.4: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/components/projects apps/renderer/src/routes/Projects.tsx
 git commit -m "feat(m9): projects list — icon + archived greying + show-archived toggle"
 ```
@@ -860,7 +860,7 @@ describe("exportCompany", () => {
 - [ ] **Step 7.4: Run + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- export
+pnpm --filter @prospero/main test -- export
 git add apps/main/src/companies/export.ts apps/main/src/companies/export.test.ts
 git commit -m "feat(m9): company export serializer (JSON snapshot, schemaVersion 1)"
 ```
@@ -955,13 +955,13 @@ const onExportCompany = async () => {
   setExportError(null);
   setExportSavedAt(null);
   try {
-    const snapshot = await window.dashboardAgent.companies.exportSnapshot(activeCompanyId);
+    const snapshot = await window.prospero.companies.exportSnapshot(activeCompanyId);
     const json = JSON.stringify(snapshot, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `dashboard-agent-company-${activeCompanyId}.json`;
+    a.download = `prospero-company-${activeCompanyId}.json`;
     a.click();
     URL.revokeObjectURL(url);
     setExportSavedAt(a.download);
@@ -1084,7 +1084,7 @@ it("includes the M9 PR-F.1 keys in both locales", () => {
 });
 ```
 
-Run: `pnpm --filter @dashboard-agent/renderer test -- parity`. Expected PASS.
+Run: `pnpm --filter @prospero/renderer test -- parity`. Expected PASS.
 
 - [ ] **Step 9.4: Commit**
 
@@ -1153,9 +1153,9 @@ git commit -m "docs(m9): close pr-f.1 projects polish + company export in roadma
 ## Task 12: Memory + handoff
 
 **Files:**
-- Create: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\project_m9_pr_f1_lessons.md`
-- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\MEMORY.md`
-- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\project_session_handoff.md`
+- Create: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\project_m9_pr_f1_lessons.md`
+- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\MEMORY.md`
+- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\project_session_handoff.md`
 
 - [ ] **Step 12.1: Lessons memory**
 

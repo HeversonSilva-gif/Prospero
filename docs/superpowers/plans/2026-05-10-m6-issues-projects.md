@@ -215,7 +215,7 @@ describe("migration 0002", () => {
 - [ ] **Step 2: Run the test — confirm it fails**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test db.migration-0002
+pnpm --filter @prospero/main test db.migration-0002
 ```
 
 Expected: 5 failures (table 'issue_comments' / 'issue_events' missing, user_version still 1).
@@ -256,7 +256,7 @@ CREATE INDEX IF NOT EXISTS idx_issue_events_issue
 - [ ] **Step 4: Run the test — confirm it passes**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test db.migration-0002
+pnpm --filter @prospero/main test db.migration-0002
 ```
 
 Expected: 5 passing.
@@ -356,7 +356,7 @@ describe("postMigration 0002", () => {
 - [ ] **Step 2: Run — confirm fail**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test db.post-migration-0002
+pnpm --filter @prospero/main test db.post-migration-0002
 ```
 
 Expected: import error (`runPostMigration0002` not defined).
@@ -447,7 +447,7 @@ export const openDatabase = (filePath: string): Database.Database => {
 - [ ] **Step 6: Run tests — confirm post-migration passes**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test db.post-migration-0002
+pnpm --filter @prospero/main test db.post-migration-0002
 ```
 
 Expected: 4 passing.
@@ -455,7 +455,7 @@ Expected: 4 passing.
 - [ ] **Step 7: Run full suite — confirm no regressions**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 ```
 
 Expected: all green (147 + 5 from Task 2 + 4 from this task = 156).
@@ -569,7 +569,7 @@ describe("projects repository", () => {
 - [ ] **Step 4: Run — confirm fail**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test projects.repository
+pnpm --filter @prospero/main test projects.repository
 ```
 
 Expected: import errors.
@@ -582,7 +582,7 @@ Create `apps/main/src/projects/repository.ts`:
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import type { Project, ProjectPathStatus } from "@dashboard-agent/shared";
+import type { Project, ProjectPathStatus } from "@prospero/shared";
 
 type Row = {
   id: string;
@@ -679,7 +679,7 @@ export const createProjectsRepository = (db: Database.Database): ProjectsReposit
 - [ ] **Step 6: Run — confirm pass**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test projects.repository
+pnpm --filter @prospero/main test projects.repository
 ```
 
 Expected: 5 passing.
@@ -780,7 +780,7 @@ describe("projects handlers — channel registration", () => {
 - [ ] **Step 3: Run — confirm fail**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test ipc.projects-handlers
+pnpm --filter @prospero/main test ipc.projects-handlers
 ```
 
 Expected: import error.
@@ -792,7 +792,7 @@ Create `apps/main/src/ipc/projects-handlers.ts`:
 ```ts
 import { ipcMain, shell } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type Project, type ProjectPathStatus } from "@dashboard-agent/shared";
+import { IPC, type Project, type ProjectPathStatus } from "@prospero/shared";
 import { createProjectsRepository } from "../projects/repository.js";
 
 export const registerProjectsHandlers = (db: Database.Database): void => {
@@ -863,7 +863,7 @@ And inside `registerIpcHandlers`:
 
 - [ ] **Step 6: Expose to renderer via preload**
 
-Modify `apps/main/src/ipc/preload.ts`. Add `Project, ProjectPathStatus` to imports from `@dashboard-agent/shared`, then add inside the `contextBridge.exposeInMainWorld(...)` object (alongside `inbox`):
+Modify `apps/main/src/ipc/preload.ts`. Add `Project, ProjectPathStatus` to imports from `@prospero/shared`, then add inside the `contextBridge.exposeInMainWorld(...)` object (alongside `inbox`):
 
 ```ts
   projects: {
@@ -884,21 +884,21 @@ Modify `apps/main/src/ipc/preload.ts`. Add `Project, ProjectPathStatus` to impor
   },
 ```
 
-- [ ] **Step 7: Update DashboardAgent type if it exists**
+- [ ] **Step 7: Update Prospero type if it exists**
 
 Check for a global `Window` declaration in renderer:
 
 ```powershell
-Select-String -Path "apps\renderer\src\**\*.ts","apps\renderer\src\**\*.tsx" -Pattern "interface Window|dashboardAgent:"
+Select-String -Path "apps\renderer\src\**\*.ts","apps\renderer\src\**\*.tsx" -Pattern "interface Window|prospero:"
 ```
 
-If a typed `Window.dashboardAgent` declaration exists (e.g., `apps/renderer/src/types/dashboard-agent.d.ts`), extend it with the same `projects` shape from Step 6. If not, the preload's contextBridge object is reflected via TypeScript inference and no extra step is needed.
+If a typed `Window.prospero` declaration exists (e.g., `apps/renderer/src/types/prospero.d.ts`), extend it with the same `projects` shape from Step 6. If not, the preload's contextBridge object is reflected via TypeScript inference and no extra step is needed.
 
 - [ ] **Step 8: Run tests**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test ipc.projects-handlers
-pnpm --filter @dashboard-agent/main typecheck
+pnpm --filter @prospero/main test ipc.projects-handlers
+pnpm --filter @prospero/main typecheck
 ```
 
 Expected: 2 passing, 0 type errors.
@@ -930,7 +930,7 @@ Create `apps/renderer/src/stores/projects.ts`:
 
 ```ts
 import { create } from "zustand";
-import type { Project, ProjectPathStatus } from "@dashboard-agent/shared";
+import type { Project, ProjectPathStatus } from "@prospero/shared";
 
 type State = {
   projects: Project[];
@@ -951,8 +951,8 @@ export const useProjectsStore = create<State>((set, get) => ({
   selectedId: null,
   loaded: false,
   load: async (companyId) => {
-    const projects = await window.dashboardAgent.projects.list(companyId);
-    const pathStatuses = await window.dashboardAgent.projects.checkPaths(companyId);
+    const projects = await window.prospero.projects.list(companyId);
+    const pathStatuses = await window.prospero.projects.checkPaths(companyId);
     set((s) => ({
       projects,
       pathStatuses,
@@ -961,21 +961,21 @@ export const useProjectsStore = create<State>((set, get) => ({
     }));
   },
   refreshPaths: async (companyId) => {
-    const pathStatuses = await window.dashboardAgent.projects.checkPaths(companyId);
+    const pathStatuses = await window.prospero.projects.checkPaths(companyId);
     set({ pathStatuses });
   },
   create: async (input) => {
-    const p = await window.dashboardAgent.projects.create(input);
+    const p = await window.prospero.projects.create(input);
     set((s) => ({ projects: [...s.projects, p], selectedId: p.id }));
     return p;
   },
   update: async (input) => {
-    const next = await window.dashboardAgent.projects.update(input);
+    const next = await window.prospero.projects.update(input);
     if (next === null) return;
     set((s) => ({ projects: s.projects.map((p) => (p.id === next.id ? next : p)) }));
   },
   delete: async (id) => {
-    await window.dashboardAgent.projects.delete(id);
+    await window.prospero.projects.delete(id);
     set((s) => {
       const projects = s.projects.filter((p) => p.id !== id);
       const selectedId = s.selectedId === id ? (projects[0]?.id ?? null) : s.selectedId;
@@ -1106,7 +1106,7 @@ Create `apps/renderer/src/components/projects/ProjectListItem.tsx`:
 
 ```tsx
 import type { FC } from "react";
-import type { Project, ProjectPathStatus } from "@dashboard-agent/shared";
+import type { Project, ProjectPathStatus } from "@prospero/shared";
 
 type Props = {
   project: Project;
@@ -1139,7 +1139,7 @@ Create `apps/renderer/src/components/projects/ProjectDetail.tsx`:
 ```tsx
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Project, Agent, Issue, ProjectPathStatus } from "@dashboard-agent/shared";
+import type { Project, Agent, Issue, ProjectPathStatus } from "@prospero/shared";
 import { AllowlistEditor } from "./AllowlistEditor.js";
 
 type Props = {
@@ -1237,7 +1237,7 @@ Create `apps/renderer/src/components/projects/ProjectFormModal.tsx`:
 ```tsx
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Project } from "@dashboard-agent/shared";
+import type { Project } from "@prospero/shared";
 
 const COLORS = ["#1D5DD7","#10b981","#f59e0b","#dc2626","#8b5cf6","#ec4899","#0ea5e9","#64748b"];
 
@@ -1255,7 +1255,7 @@ export const ProjectFormModal: FC<Props> = ({ initial, onSubmit, onClose }) => {
   const [busy, setBusy] = useState(false);
 
   const pickFolder = async () => {
-    const picked = await window.dashboardAgent.settings.pickWorkspace();
+    const picked = await window.prospero.settings.pickWorkspace();
     if (picked !== null) setPath(picked);
   };
 
@@ -1314,7 +1314,7 @@ Create `apps/renderer/src/components/projects/AllowlistEditor.tsx`:
 
 ```tsx
 import { useState, type FC } from "react";
-import type { Agent, Project } from "@dashboard-agent/shared";
+import type { Agent, Project } from "@prospero/shared";
 
 type Props = {
   agent: Agent;
@@ -1337,7 +1337,7 @@ export const AllowlistEditor: FC<Props> = ({ agent, project }) => {
         ? agent.allowedProjects.filter((id) => id !== project.id)
         : [...agent.allowedProjects, project.id];
     }
-    await window.dashboardAgent.agents.setAllowedProjects(agent.id, next);
+    await window.prospero.agents.setAllowedProjects(agent.id, next);
     setOpen(false);
   };
 
@@ -1435,7 +1435,7 @@ setAllowedProjects: (agentId: string, projectIds: string[]) =>
 - [ ] **Step 6: Tests + typecheck**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 pnpm typecheck
 ```
 
@@ -1463,7 +1463,7 @@ Create `apps/renderer/src/routes/Projects.tsx`:
 ```tsx
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Project } from "@dashboard-agent/shared";
+import type { Project } from "@prospero/shared";
 import { useProjectsStore } from "../stores/projects.js";
 import { useAgentsStore } from "../stores/agents.js";
 import { ProjectListItem } from "../components/projects/ProjectListItem.js";
@@ -1489,7 +1489,7 @@ export const Projects: FC = () => {
 
   useEffect(() => {
     void (async () => {
-      const cs = await window.dashboardAgent.companies.list();
+      const cs = await window.prospero.companies.list();
       if (cs.length > 0) {
         setCompanyId(cs[0]!.id);
         void load(cs[0]!.id);
@@ -1534,7 +1534,7 @@ export const Projects: FC = () => {
                          recentIssues={[]} doingCount={0}
                          onEdit={() => { setEditing(selected); setShowForm(true); }}
                          onDelete={() => { if (window.confirm(t("projects.form.confirmDelete"))) void deleteProj(selected.id); }}
-                         onOpenFolder={() => void window.dashboardAgent.projects.openFolder(selected.id)} />
+                         onOpenFolder={() => void window.prospero.projects.openFolder(selected.id)} />
         )}
       </div>
       {showForm && companyId !== null && (
@@ -1581,7 +1581,7 @@ await useProjectsStore.getState().load(cid);
 - [ ] **Step 3: Verify**
 
 ```powershell
-pnpm lint; pnpm typecheck; pnpm --filter @dashboard-agent/main test
+pnpm lint; pnpm typecheck; pnpm --filter @prospero/main test
 ```
 
 Expected: all green.
@@ -1630,7 +1630,7 @@ Replace `isInsideWorkspace(expanded, workspaceCwd)` with `isInsideAnyAllowed(exp
 Find every `workspaceCwd: "..."` literal in the file and replace with `allowedProjectPaths: ["..."]`. Tests should still pass.
 
 ```powershell
-pnpm --filter @dashboard-agent/main test security.gate
+pnpm --filter @prospero/main test security.gate
 ```
 
 - [ ] **Step 5: Add new project-aware test**
@@ -1640,7 +1640,7 @@ Create `apps/main/tests/security.gate-projects.test.ts`:
 ```ts
 import { describe, expect, it } from "vitest";
 import { evaluatePermission } from "../src/security/gate.js";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 
 const fakeAgent = (mode: "supervised" | "auto" = "auto"): Agent => ({
   id: "a1", companyId: "c1", name: "X", role: "x", systemPrompt: "x",
@@ -1686,7 +1686,7 @@ describe("evaluatePermission with project allowlist", () => {
 - [ ] **Step 6: Run + commit**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test security.gate
+pnpm --filter @prospero/main test security.gate
 ```
 
 ```bash
@@ -1745,7 +1745,7 @@ In `apps/main/tests/security.permission-watcher.test.ts`, replace every `getWork
 - [ ] **Step 4: Test + typecheck + commit**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test security.permission-watcher; pnpm typecheck
+pnpm --filter @prospero/main test security.permission-watcher; pnpm typecheck
 ```
 
 ```bash
@@ -1763,7 +1763,7 @@ git commit -m "feat(m6): permission-watcher resolves allowed project paths per a
 
 - [ ] **Step 1: Open Settings.tsx + locate the Workspace section**
 
-The section uses `t("settings.workspace.label")` and a button that calls `window.dashboardAgent.settings.pickWorkspace()`.
+The section uses `t("settings.workspace.label")` and a button that calls `window.prospero.settings.pickWorkspace()`.
 
 - [ ] **Step 2: Replace the section with a deprecation nota**
 
@@ -1912,7 +1912,7 @@ describe("issues repository", () => {
 - [ ] **Step 2: Run — confirm fail**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test issues.repository
+pnpm --filter @prospero/main test issues.repository
 ```
 
 - [ ] **Step 3: Implement repository**
@@ -1925,7 +1925,7 @@ import { randomUUID } from "node:crypto";
 import type {
   Issue, IssueDetail, IssueStatus, IssuePriority,
   IssueComment, IssueEvent, IssueEventKind, ToolCallRef,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 
 type IssueRow = {
   id: string; company_id: string; project_id: string | null; parent_id: string | null;
@@ -2111,7 +2111,7 @@ export const createIssuesRepository = (db: Database.Database): IssuesRepository 
 - [ ] **Step 4: Run + commit**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test issues.repository
+pnpm --filter @prospero/main test issues.repository
 ```
 
 ```bash
@@ -2168,7 +2168,7 @@ Create `apps/main/src/issues/comments-repository.ts`:
 ```ts
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type { IssueComment } from "@dashboard-agent/shared";
+import type { IssueComment } from "@prospero/shared";
 
 type Row = {
   id: string; issue_id: string; sender_kind: string;
@@ -2276,7 +2276,7 @@ Create `apps/main/src/issues/tool-history.ts`:
 
 ```ts
 import type Database from "better-sqlite3";
-import type { ToolCallRef } from "@dashboard-agent/shared";
+import type { ToolCallRef } from "@prospero/shared";
 
 type EventRow = { kind: string; payload_json: string; created_at: number };
 type MsgRow = { tool_calls_json: string | null; created_at: number };
@@ -2336,7 +2336,7 @@ Replace `const toolHistory: ToolCallRef[] = [];` with `const toolHistory = getTo
 - [ ] **Step 6: Run + commit**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test issues
+pnpm --filter @prospero/main test issues
 ```
 
 ```bash
@@ -2376,7 +2376,7 @@ Create `apps/main/src/ipc/issue-events-broadcast.ts`:
 
 ```ts
 import { BrowserWindow } from "electron";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 
 export type IssueChangedEvent =
   | { kind: "created"; issueId: string; companyId: string }
@@ -2401,7 +2401,7 @@ import type Database from "better-sqlite3";
 import {
   IPC, type Issue, type IssueDetail, type IssueComment,
   type IssueStatus, type IssuePriority,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { createIssuesRepository } from "../issues/repository.js";
 import { createIssueCommentsRepository } from "../issues/comments-repository.js";
 import { broadcastIssueChanged } from "./issue-events-broadcast.js";
@@ -2503,18 +2503,18 @@ Add to `apps/main/src/ipc/preload.ts` (alongside `projects`):
 issues: {
   list: (payload: {
     companyId: string; projectId?: string; assigneeId?: string;
-    status?: import("@dashboard-agent/shared").IssueStatus;
+    status?: import("@prospero/shared").IssueStatus;
   }) => ipcRenderer.invoke(IPC.ISSUES_LIST, payload) as Promise<Issue[]>,
   get: (id: string) => ipcRenderer.invoke(IPC.ISSUES_GET, { id }) as Promise<IssueDetail | null>,
   create: (input: {
     companyId: string; projectId: string | null; title: string; description?: string | null;
-    assigneeId?: string | null; priority?: import("@dashboard-agent/shared").IssuePriority;
+    assigneeId?: string | null; priority?: import("@prospero/shared").IssuePriority;
     parentId?: string | null;
   }) => ipcRenderer.invoke(IPC.ISSUES_CREATE, input) as Promise<Issue>,
   update: (input: {
     id: string; title?: string; description?: string | null;
-    status?: import("@dashboard-agent/shared").IssueStatus;
-    assigneeId?: string | null; priority?: import("@dashboard-agent/shared").IssuePriority;
+    status?: import("@prospero/shared").IssueStatus;
+    assigneeId?: string | null; priority?: import("@prospero/shared").IssuePriority;
     parentId?: string | null;
   }) => ipcRenderer.invoke(IPC.ISSUES_UPDATE, input) as Promise<Issue | null>,
   delete: (id: string) => ipcRenderer.invoke(IPC.ISSUES_DELETE, { id }) as Promise<{ ok: true }>,
@@ -2528,7 +2528,7 @@ issues: {
 },
 ```
 
-Add `Issue, IssueDetail, IssueComment` to the `import type` line from `@dashboard-agent/shared`.
+Add `Issue, IssueDetail, IssueComment` to the `import type` line from `@prospero/shared`.
 
 - [ ] **Step 6: Smoke test**
 
@@ -2567,7 +2567,7 @@ describe("issues handlers — channel registration", () => {
 - [ ] **Step 7: Run + commit**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test ipc.issues-handlers; pnpm typecheck
+pnpm --filter @prospero/main test ipc.issues-handlers; pnpm typecheck
 ```
 
 ```bash
@@ -2825,7 +2825,7 @@ describe("MCP tools — issues", () => {
 - [ ] **Step 5: Run + commit**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test mcp.tools
+pnpm --filter @prospero/main test mcp.tools
 ```
 
 ```bash
@@ -2848,7 +2848,7 @@ git commit -m "feat(m6): real MCP tools for issues (create/update/assign/list/ch
 - [ ] **Step 1: Add dnd-kit deps**
 
 ```powershell
-pnpm --filter @dashboard-agent/renderer add @dnd-kit/core @dnd-kit/sortable
+pnpm --filter @prospero/renderer add @dnd-kit/core @dnd-kit/sortable
 ```
 
 Verify the entries appear in `apps/renderer/package.json` under dependencies.
@@ -2859,7 +2859,7 @@ Create `apps/renderer/src/stores/issues.ts`:
 
 ```ts
 import { create } from "zustand";
-import type { Issue, IssueDetail, IssueStatus, IssuePriority } from "@dashboard-agent/shared";
+import type { Issue, IssueDetail, IssueStatus, IssuePriority } from "@prospero/shared";
 
 type State = {
   issues: Issue[];
@@ -2888,21 +2888,21 @@ export const useIssuesStore = create<State>((set, get) => ({
   detail: null,
   loaded: false,
   load: async (companyId) => {
-    const issues = await window.dashboardAgent.issues.list({ companyId });
+    const issues = await window.prospero.issues.list({ companyId });
     set({ issues, loaded: true });
   },
   loadDetail: async (id) => {
-    const detail = await window.dashboardAgent.issues.get(id);
+    const detail = await window.prospero.issues.get(id);
     set({ detail });
   },
   clearDetail: () => set({ detail: null }),
   create: async (input) => {
-    const i = await window.dashboardAgent.issues.create(input);
+    const i = await window.prospero.issues.create(input);
     set((s) => ({ issues: [i, ...s.issues] }));
     return i;
   },
   update: async (input) => {
-    const next = await window.dashboardAgent.issues.update(input);
+    const next = await window.prospero.issues.update(input);
     if (next === null) return;
     set((s) => ({
       issues: s.issues.map((i) => (i.id === next.id ? next : i)),
@@ -2910,11 +2910,11 @@ export const useIssuesStore = create<State>((set, get) => ({
     }));
   },
   delete: async (id) => {
-    await window.dashboardAgent.issues.delete(id);
+    await window.prospero.issues.delete(id);
     set((s) => ({ issues: s.issues.filter((i) => i.id !== id) }));
   },
   addComment: async (issueId, content) => {
-    await window.dashboardAgent.issues.addComment(issueId, content);
+    await window.prospero.issues.addComment(issueId, content);
     if (get().detail?.issue.id === issueId) await get().loadDetail(issueId);
   },
   optimisticStatus: (id, status) =>
@@ -2977,7 +2977,7 @@ Create `apps/renderer/src/components/issues/IssueCard.tsx`:
 import type { FC } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Issue } from "@dashboard-agent/shared";
+import type { Issue } from "@prospero/shared";
 
 type Props = {
   issue: Issue;
@@ -3033,7 +3033,7 @@ Create `apps/renderer/src/components/issues/KanbanColumn.tsx`:
 import type { FC, ReactNode } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import type { IssueStatus } from "@dashboard-agent/shared";
+import type { IssueStatus } from "@prospero/shared";
 
 type Props = {
   status: IssueStatus;
@@ -3082,7 +3082,7 @@ import { useEffect, useMemo, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import type { Issue, IssueStatus, IssuePriority } from "@dashboard-agent/shared";
+import type { Issue, IssueStatus, IssuePriority } from "@prospero/shared";
 import { useIssuesStore } from "../stores/issues.js";
 import { useProjectsStore } from "../stores/projects.js";
 import { useAgentsStore } from "../stores/agents.js";
@@ -3113,7 +3113,7 @@ export const Issues: FC = () => {
 
   useEffect(() => {
     void (async () => {
-      const cs = await window.dashboardAgent.companies.list();
+      const cs = await window.prospero.companies.list();
       if (cs.length > 0) {
         setCompanyId(cs[0]!.id);
         void load(cs[0]!.id);
@@ -3122,7 +3122,7 @@ export const Issues: FC = () => {
   }, [load]);
 
   useEffect(() => {
-    const off = window.dashboardAgent.issues.onChanged((ev) => {
+    const off = window.prospero.issues.onChanged((ev) => {
       if (companyId !== null && ev.companyId === companyId) void load(companyId);
     });
     return off;
@@ -3253,7 +3253,7 @@ Create `apps/renderer/src/components/issues/IssueFormModal.tsx`:
 ```tsx
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { IssuePriority } from "@dashboard-agent/shared";
+import type { IssuePriority } from "@prospero/shared";
 import { useIssuesStore } from "../../stores/issues.js";
 import { useProjectsStore } from "../../stores/projects.js";
 import { useAgentsStore } from "../../stores/agents.js";
@@ -3370,7 +3370,7 @@ Create `apps/renderer/src/components/issues/IssueCommentsList.tsx`:
 
 ```tsx
 import type { FC } from "react";
-import type { IssueComment, Agent } from "@dashboard-agent/shared";
+import type { IssueComment, Agent } from "@prospero/shared";
 
 type Props = { comments: IssueComment[]; agentMap: Map<string, Agent> };
 
@@ -3444,7 +3444,7 @@ Create `apps/renderer/src/components/issues/SubtaskList.tsx`:
 ```tsx
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Issue } from "@dashboard-agent/shared";
+import type { Issue } from "@prospero/shared";
 import { useIssuesStore } from "../../stores/issues.js";
 
 type Props = { subtasks: Issue[]; parentId: string; onAdd: () => void };
@@ -3481,7 +3481,7 @@ Create `apps/renderer/src/components/issues/ToolCallHistoryAccordion.tsx`:
 ```tsx
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { ToolCallRef } from "@dashboard-agent/shared";
+import type { ToolCallRef } from "@prospero/shared";
 
 type Props = { history: ToolCallRef[] };
 
@@ -3517,7 +3517,7 @@ Create `apps/renderer/src/components/issues/ReassignDropdown.tsx`:
 ```tsx
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 import { useIssuesStore } from "../../stores/issues.js";
 
 type Props = { issueId: string; currentAssigneeId: string | null; agents: Agent[] };
@@ -3751,12 +3751,12 @@ Add `import { useMemo } from "react";` if missing.
 - [ ] **Step 4: Test full smoke**
 
 ```powershell
-pnpm lint; pnpm typecheck; pnpm --filter @dashboard-agent/main test
+pnpm lint; pnpm typecheck; pnpm --filter @prospero/main test
 ```
 
 - [ ] **Step 5: Manual smoke (Electron)**
 
-Run the app (`pnpm dev` or `pnpm --filter @dashboard-agent/main dev`). Verify:
+Run the app (`pnpm dev` or `pnpm --filter @prospero/main dev`). Verify:
 1. App boots, sidebar shows Projects + Issues entries
 2. /projects shows "Default Workspace" auto-created
 3. + New project works, modal opens, creates a project
@@ -3855,8 +3855,8 @@ git commit -m "feat(m6): token budget non-regression test (compares vs baseline 
 **Files:**
 - Modify: `ROADMAP.md`
 - Modify: `CHANGELOG.md`
-- Create: `C:\Users\hever\.claude\projects\d--Projetos-pessoais-DashboardAgent\memory\project_m6_lessons.md`
-- Modify: `C:\Users\hever\.claude\projects\d--Projetos-pessoais-DashboardAgent\memory\MEMORY.md`
+- Create: `C:\Users\hever\.claude\projects\d--Projetos-pessoais-Prospero\memory\project_m6_lessons.md`
+- Modify: `C:\Users\hever\.claude\projects\d--Projetos-pessoais-Prospero\memory\MEMORY.md`
 
 - [ ] **Step 1: Update ROADMAP.md**
 
@@ -3881,7 +3881,7 @@ Add an `## M6 — Issues + Projects (YYYY-MM-DD)` entry summarising:
 
 - [ ] **Step 3: Write memory:m6_lessons**
 
-Create the memory file at `C:\Users\hever\.claude\projects\d--Projetos-pessoais-DashboardAgent\memory\project_m6_lessons.md`:
+Create the memory file at `C:\Users\hever\.claude\projects\d--Projetos-pessoais-Prospero\memory\project_m6_lessons.md`:
 
 ```markdown
 ---
@@ -3902,7 +3902,7 @@ type: project
 - Inbox 'completed' notification em status='done' — boa observabilidade sem approval gate
 ```
 
-Update `C:\Users\hever\.claude\projects\d--Projetos-pessoais-DashboardAgent\memory\MEMORY.md` adding a line near the M5 lessons entry:
+Update `C:\Users\hever\.claude\projects\d--Projetos-pessoais-Prospero\memory\MEMORY.md` adding a line near the M5 lessons entry:
 
 ```markdown
 - [M6 lições técnicas](project_m6_lessons.md) — post-migration pattern, @dnd-kit, optimistic kanban, tool history windows, etc
@@ -3913,8 +3913,8 @@ Update `C:\Users\hever\.claude\projects\d--Projetos-pessoais-DashboardAgent\memo
 ```powershell
 pnpm lint
 pnpm typecheck
-pnpm --filter @dashboard-agent/main test
-pnpm --filter @dashboard-agent/renderer test
+pnpm --filter @prospero/main test
+pnpm --filter @prospero/renderer test
 ```
 
 Expected: all green; tests count significantly higher than baseline 147.

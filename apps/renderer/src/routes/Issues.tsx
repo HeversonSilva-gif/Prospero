@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import type { Issue, IssueStatus, IssuePriority } from "@dashboard-agent/shared";
+import type { Issue, IssueStatus, IssuePriority } from "@prospero/shared";
 import { useIssuesStore } from "../stores/issues.js";
 import { useProjectsStore } from "../stores/projects.js";
 import { useAgentsStore } from "../stores/agents.js";
@@ -36,7 +36,7 @@ export const Issues: FC = () => {
 
   useEffect(() => {
     void (async () => {
-      const cs = await window.dashboardAgent.companies.list();
+      const cs = await window.prospero.companies.list();
       if (cs.length > 0) {
         setCompanyId(cs[0]!.id);
         void load(cs[0]!.id);
@@ -49,14 +49,14 @@ export const Issues: FC = () => {
     // full reload was wiping dnd-kit's transient state mid-drag and causing
     // visible jank. Fetching just the changed issue keeps array references
     // stable so React re-renders only the affected card.
-    const off = window.dashboardAgent.issues.onChanged((ev) => {
+    const off = window.prospero.issues.onChanged((ev) => {
       if (companyId === null || ev.companyId !== companyId) return;
       if (ev.kind === "deleted") {
         removeIssue(ev.issueId);
         return;
       }
       void (async () => {
-        const detail = await window.dashboardAgent.issues.get(ev.issueId);
+        const detail = await window.prospero.issues.get(ev.issueId);
         if (detail === null) return;
         if (ev.kind === "created") {
           upsertIssue(detail.issue);

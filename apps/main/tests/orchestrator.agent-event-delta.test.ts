@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AgentEvent } from "@dashboard-agent/shared";
+import type { AgentEvent } from "@prospero/shared";
 
 // Regression guard: keep current-action and status payloads small (delta-style).
 // The whole reason for splitting kinds is to avoid renderer re-renders + token

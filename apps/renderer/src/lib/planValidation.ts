@@ -1,4 +1,4 @@
-import type { GoalPlan } from "@dashboard-agent/shared";
+import type { GoalPlan } from "@prospero/shared";
 
 export type PlanValidationError =
   | { kind: "issue-assignee-excluded"; issueIndex: number; agentIndex: number }

@@ -1,6 +1,6 @@
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Project, Agent, Issue, ProjectPathStatus } from "@dashboard-agent/shared";
+import type { Project, Agent, Issue, ProjectPathStatus } from "@prospero/shared";
 import { AgentAccessSection } from "./AgentAccessSection.js";
 import { useProjectsStore } from "../../stores/projects.js";
 

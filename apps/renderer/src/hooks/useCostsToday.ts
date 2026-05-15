@@ -3,7 +3,7 @@
 // widget stays fresh without polling.
 
 import { useCallback, useEffect, useState } from "react";
-import type { CostsAggregateTodayResult } from "@dashboard-agent/shared";
+import type { CostsAggregateTodayResult } from "@prospero/shared";
 
 const empty: CostsAggregateTodayResult = {
   totalCents: 0,
@@ -22,7 +22,7 @@ export const useCostsToday = (
     if (companyId === null) return;
     setLoading(true);
     try {
-      const r = await window.dashboardAgent.costs.aggregateToday({ companyId });
+      const r = await window.prospero.costs.aggregateToday({ companyId });
       setData(r);
     } finally {
       setLoading(false);
@@ -35,7 +35,7 @@ export const useCostsToday = (
 
   useEffect(() => {
     if (companyId === null) return;
-    const off = window.dashboardAgent.costs.onNew(() => {
+    const off = window.prospero.costs.onNew(() => {
       void refresh();
     });
     return off;

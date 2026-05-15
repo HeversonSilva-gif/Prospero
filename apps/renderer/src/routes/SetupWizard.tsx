@@ -25,7 +25,7 @@ export const SetupWizard = () => {
   const goAuto = async () => {
     setStep("auto");
     setError(null);
-    const result = await window.dashboardAgent.auth.detect();
+    const result = await window.prospero.auth.detect();
     setAutoPrefix(result.found ? result.maskedPrefix : null);
     setAutoSearched(true);
   };

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ClaudeApiKeyLocalAdapter } from "./adapter.js";
-import type { Agent, SpawnContext } from "@dashboard-agent/shared";
+import type { Agent, SpawnContext } from "@prospero/shared";
 
 const baseAgent = (): Agent => ({
   id: "ag_1",

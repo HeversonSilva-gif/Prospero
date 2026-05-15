@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { GoalPlan } from "@dashboard-agent/shared";
+import type { GoalPlan } from "@prospero/shared";
 import {
   validatePlanSelection,
   computeFilteredEstimates,

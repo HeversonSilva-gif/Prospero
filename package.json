@@ -1,5 +1,5 @@
 {
-  "name": "dashboard-agent",
+  "name": "prospero",
   "version": "0.0.0",
   "private": true,
   "description": "Local orchestrator for Claude Code agents using Claude Max OAuth (no API key).",
@@ -14,9 +14,9 @@
     "typecheck": "pnpm -r --parallel run typecheck",
     "test": "pnpm -r --parallel run test",
     "build": "pnpm -r run build",
-    "dev": "pnpm --parallel --filter @dashboard-agent/main --filter @dashboard-agent/renderer run dev",
-    "start": "pnpm --filter @dashboard-agent/main run start",
-    "rebuild:native": "pnpm --filter @dashboard-agent/main run rebuild:native",
+    "dev": "pnpm --parallel --filter @prospero/main --filter @prospero/renderer run dev",
+    "start": "pnpm --filter @prospero/main run start",
+    "rebuild:native": "pnpm --filter @prospero/main run rebuild:native",
     "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts",
     "test:e2e:ui": "playwright test --ui --config=tests/e2e/playwright.config.ts",
     "prepare": "husky"

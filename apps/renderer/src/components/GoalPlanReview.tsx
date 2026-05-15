@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type {
-  AgentToHire,
-  Goal,
-  GoalPlan,
-  IssuePriority,
-  IssueToCreate,
-} from "@dashboard-agent/shared";
+import type { AgentToHire, Goal, GoalPlan, IssuePriority, IssueToCreate } from "@prospero/shared";
 import { useGoalsStore } from "../stores/goals.js";
 import { useBudgetsStore } from "../stores/budgets.js";
 import { useSettingsStore } from "../stores/settings.js";

@@ -98,7 +98,7 @@ If the file already exists, just append the `describe` block at the end (keep ex
 - [ ] **Step 1.3: Run the test to confirm it fails**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- schema
+pnpm --filter @prospero/main test -- schema
 ```
 
 Expected: FAIL — `activeCompanyId` is `undefined` because schema doesn't recognize it.
@@ -129,7 +129,7 @@ if (result.data.activeCompanyId !== undefined) {
 - [ ] **Step 1.5: Run the test to confirm it passes**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- schema
+pnpm --filter @prospero/main test -- schema
 ```
 
 Expected: PASS — all 3 new assertions green.
@@ -137,8 +137,8 @@ Expected: PASS — all 3 new assertions green.
 - [ ] **Step 1.6: Run shared typecheck**
 
 ```bash
-pnpm --filter @dashboard-agent/shared typecheck
-pnpm --filter @dashboard-agent/main typecheck
+pnpm --filter @prospero/shared typecheck
+pnpm --filter @prospero/main typecheck
 ```
 
 Expected: clean. The new field is non-optional but `DEFAULT_SETTINGS` provides it, so existing call sites stay valid.
@@ -229,7 +229,7 @@ describe("companies repository", () => {
 - [ ] **Step 2.2: Run the test to confirm it fails**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- companies/repository
+pnpm --filter @prospero/main test -- companies/repository
 ```
 
 Expected: FAIL — `repo.delete` doesn't exist on the type.
@@ -264,7 +264,7 @@ delete(id) {
 - [ ] **Step 2.4: Run the test to confirm it passes**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- companies/repository
+pnpm --filter @prospero/main test -- companies/repository
 ```
 
 Expected: PASS — 4 assertions green. The cascade test relies on the FK already declared in `0001_initial.sql` (`agents.company_id REFERENCES companies(id) ON DELETE CASCADE`).
@@ -372,7 +372,7 @@ describe("companies handlers", () => {
 - [ ] **Step 3.3: Run the test to confirm it fails**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- ipc/companies-handlers
+pnpm --filter @prospero/main test -- ipc/companies-handlers
 ```
 
 Expected: FAIL — handlers for `company:create` and `company:delete` are not registered.
@@ -384,7 +384,7 @@ Edit `apps/main/src/ipc/companies-handlers.ts`. Replace the file with:
 ```typescript
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type Company } from "@dashboard-agent/shared";
+import { IPC, type Company } from "@prospero/shared";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createDemoCompany } from "../companies/seed.js";
 
@@ -416,7 +416,7 @@ export const registerCompaniesHandlers = (db: Database.Database): void => {
 - [ ] **Step 3.5: Run the test to confirm it passes**
 
 ```bash
-pnpm --filter @dashboard-agent/main test -- ipc/companies-handlers
+pnpm --filter @prospero/main test -- ipc/companies-handlers
 ```
 
 Expected: PASS — all 3 assertions green.
@@ -467,8 +467,8 @@ companies: {
 - [ ] **Step 4.3: Typecheck both packages**
 
 ```bash
-pnpm --filter @dashboard-agent/main typecheck
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/main typecheck
+pnpm --filter @prospero/renderer typecheck
 ```
 
 Expected: clean.
@@ -511,8 +511,8 @@ const ipcMock = {
 beforeEach(() => {
   vi.clearAllMocks();
   (
-    globalThis as unknown as { window: { dashboardAgent: typeof ipcMock } }
-  ).window = { dashboardAgent: ipcMock };
+    globalThis as unknown as { window: { prospero: typeof ipcMock } }
+  ).window = { prospero: ipcMock };
   useCompaniesStore.setState({ companies: [], activeId: null, loaded: false });
 });
 
@@ -596,7 +596,7 @@ describe("useCompaniesStore", () => {
 - [ ] **Step 5.2: Run the test to confirm it fails**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer test -- companies
+pnpm --filter @prospero/renderer test -- companies
 ```
 
 Expected: FAIL — module `./companies.js` doesn't exist.
@@ -607,7 +607,7 @@ Create `apps/renderer/src/stores/companies.ts`:
 
 ```typescript
 import { create } from "zustand";
-import type { Company } from "@dashboard-agent/shared";
+import type { Company } from "@prospero/shared";
 
 type State = {
   companies: Company[];
@@ -626,8 +626,8 @@ export const useCompaniesStore = create<State>((set, get) => ({
 
   load: async () => {
     const [companies, settings] = await Promise.all([
-      window.dashboardAgent.companies.list(),
-      window.dashboardAgent.settings.get(),
+      window.prospero.companies.list(),
+      window.prospero.settings.get(),
     ]);
     const persistedId = settings.activeCompanyId;
     const validPersisted =
@@ -637,14 +637,14 @@ export const useCompaniesStore = create<State>((set, get) => ({
   },
 
   create: async (name) => {
-    const created = await window.dashboardAgent.companies.create(name);
+    const created = await window.prospero.companies.create(name);
     set((s) => ({ companies: [...s.companies, created] }));
     await get().setActive(created.id);
     return created;
   },
 
   delete: async (id) => {
-    await window.dashboardAgent.companies.delete(id);
+    await window.prospero.companies.delete(id);
     const remaining = get().companies.filter((c) => c.id !== id);
     const wasActive = get().activeId === id;
     const nextActive = wasActive ? (remaining[0]?.id ?? null) : get().activeId;
@@ -653,7 +653,7 @@ export const useCompaniesStore = create<State>((set, get) => ({
   },
 
   setActive: async (id) => {
-    await window.dashboardAgent.settings.update({ activeCompanyId: id });
+    await window.prospero.settings.update({ activeCompanyId: id });
     set({ activeId: id });
   },
 }));
@@ -662,7 +662,7 @@ export const useCompaniesStore = create<State>((set, get) => ({
 - [ ] **Step 5.4: Run the test to confirm it passes**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer test -- companies
+pnpm --filter @prospero/renderer test -- companies
 ```
 
 Expected: PASS — all 7 assertions green.
@@ -797,7 +797,7 @@ export const CompanySwitcher = () => {
 - [ ] **Step 6.2: Typecheck**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 ```
 
 Expected: FAIL — `CreateCompanyModal` and `DeleteCompanyConfirm` don't exist yet. We'll create them in Tasks 7 + 8.
@@ -900,7 +900,7 @@ export const CreateCompanyModal = ({ onClose }: Props) => {
 - [ ] **Step 7.2: Typecheck**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 ```
 
 Expected: still failing on `DeleteCompanyConfirm` (next task). Continue.
@@ -1026,7 +1026,7 @@ export const DeleteCompanyConfirm = ({ companyId, onClose }: Props) => {
 - [ ] **Step 8.2: Typecheck**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 ```
 
 Expected: PASS — all 3 new components compile.
@@ -1091,7 +1091,7 @@ Then replace the inbox subscription block (around lines 236-247) so it uses the 
 ```typescript
 useEffect(() => {
   if (!hasToken) return;
-  const off = window.dashboardAgent.inbox.onUpdate(() => {
+  const off = window.prospero.inbox.onUpdate(() => {
     const cid = useCompaniesStore.getState().activeId;
     if (cid !== null) void loadInbox(cid);
   });
@@ -1112,8 +1112,8 @@ to leave the call as-is — it already takes `ev.companyId` from the event paylo
 - [ ] **Step 9.2: Typecheck + run all renderer tests**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
-pnpm --filter @dashboard-agent/renderer test
+pnpm --filter @prospero/renderer typecheck
+pnpm --filter @prospero/renderer test
 ```
 
 Expected: typecheck clean. All existing tests pass (companies store test, agents/inbox/budgets/goals tests untouched).
@@ -1151,7 +1151,7 @@ export const Dashboard = () => {
   const companyId = useCompaniesStore((s) => s.activeId);
 
   const onCreateDemo = async () => {
-    const company = await window.dashboardAgent.companies.createDemo();
+    const company = await window.prospero.companies.createDemo();
     await useCompaniesStore.getState().load();
     await useCompaniesStore.getState().setActive(company.id);
     await loadAgents(company.id);
@@ -1183,7 +1183,7 @@ export const Dashboard = () => {
 - [ ] **Step 10.2: Typecheck**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 ```
 
 Expected: clean.
@@ -1285,7 +1285,7 @@ If needed:
 - [ ] **Step 11.3: Run parity test**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer test -- parity
+pnpm --filter @prospero/renderer test -- parity
 ```
 
 Expected: PASS — the existing parity test walks both JSON trees and asserts every key in PT-BR has an EN-US counterpart and vice versa. If it doesn't already do this, add an assertion that the new `company.*` keys exist in both files.
@@ -1414,7 +1414,7 @@ In the app:
 
 - [ ] **Step 14.2: Add lessons memory**
 
-Create `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\project_m9_pr_a_lessons.md` with shape:
+Create `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\project_m9_pr_a_lessons.md` with shape:
 
 ```markdown
 ---
@@ -1440,7 +1440,7 @@ metadata:
 PR-D — API key adapter (`claude-api-key-local`). Spec §5.
 ```
 
-Then add a line to `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\MEMORY.md`:
+Then add a line to `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\MEMORY.md`:
 
 ```markdown
 - [M9 PR-A lições — Multi-empresa core](project_m9_pr_a_lessons.md) — mergeado 2026-05-14 — settings.activeCompanyId JSON-only, FK cascade já existia, zustand getState() em cross-store actions

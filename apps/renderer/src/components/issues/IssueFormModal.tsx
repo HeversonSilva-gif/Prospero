@@ -1,6 +1,6 @@
 import { useState, type FC, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import type { IssuePriority } from "@dashboard-agent/shared";
+import type { IssuePriority } from "@prospero/shared";
 import { useIssuesStore } from "../../stores/issues.js";
 import { useProjectsStore } from "../../stores/projects.js";
 import { useAgentsStore } from "../../stores/agents.js";

@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import type { AppSettings, AuthMode, ExecutorMode, Language, Theme } from "@dashboard-agent/shared";
-import { DEFAULT_CLAUDE_MODEL } from "@dashboard-agent/shared";
+import type { AppSettings, AuthMode, ExecutorMode, Language, Theme } from "@prospero/shared";
+import { DEFAULT_CLAUDE_MODEL } from "@prospero/shared";
 import { setLanguage } from "../i18n/index.js";
 import { applyTheme } from "../theme/ThemeProvider.js";
 
@@ -32,48 +32,48 @@ export const useSettingsStore = create<State>((set) => ({
   loaded: false,
 
   load: async () => {
-    const fresh = await window.dashboardAgent.settings.get();
+    const fresh = await window.prospero.settings.get();
     setLanguage(fresh.language);
     applyTheme(fresh.theme);
     set({ settings: fresh, loaded: true });
   },
 
   setLanguage: async (lang) => {
-    const next = await window.dashboardAgent.settings.update({ language: lang });
+    const next = await window.prospero.settings.update({ language: lang });
     setLanguage(next.language);
     set({ settings: next });
   },
 
   setTheme: async (theme) => {
-    const next = await window.dashboardAgent.settings.update({ theme });
+    const next = await window.prospero.settings.update({ theme });
     applyTheme(next.theme);
     set({ settings: next });
   },
 
   setWorkspaceCwd: async (path) => {
-    const next = await window.dashboardAgent.settings.update({ workspaceCwd: path });
+    const next = await window.prospero.settings.update({ workspaceCwd: path });
     set({ settings: next });
   },
 
   setModel: async (model) => {
-    const next = await window.dashboardAgent.settings.update({ defaultModelForNewAgents: model });
+    const next = await window.prospero.settings.update({ defaultModelForNewAgents: model });
     set({ settings: next });
   },
 
   pickAndSetWorkspace: async () => {
-    const picked = await window.dashboardAgent.settings.pickWorkspace();
+    const picked = await window.prospero.settings.pickWorkspace();
     if (picked === null) return;
-    const next = await window.dashboardAgent.settings.update({ workspaceCwd: picked });
+    const next = await window.prospero.settings.update({ workspaceCwd: picked });
     set({ settings: next });
   },
 
   saveExecutorMode: async (mode) => {
-    await window.dashboardAgent.settings.setExecutorMode(mode);
+    await window.prospero.settings.setExecutorMode(mode);
     set((s) => ({ settings: { ...s.settings, executorMode: mode } }));
   },
 
   setAuthMode: async (mode) => {
-    const next = await window.dashboardAgent.settings.update({ authMode: mode });
+    const next = await window.prospero.settings.update({ authMode: mode });
     set({ settings: next });
   },
 }));

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACTIVITY_ACTIONS } from "@dashboard-agent/shared";
+import { ACTIVITY_ACTIONS } from "@prospero/shared";
 import { ActivityPayloads } from "../src/activity/schemas.js";
 
 describe("ActivityPayloads", () => {

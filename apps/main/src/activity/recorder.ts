@@ -8,7 +8,7 @@
 
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
-import type { ActivityAction, ActivityEventRow, Actor, EntityKind } from "@dashboard-agent/shared";
+import type { ActivityAction, ActivityEventRow, Actor, EntityKind } from "@prospero/shared";
 import { ActivityPayloads } from "./schemas.js";
 
 const MAX_PAYLOAD_BYTES = 4096;

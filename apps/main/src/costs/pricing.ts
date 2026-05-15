@@ -9,7 +9,7 @@
 //   Haiku 4.5   — input  $1.00, output  $5.00, cacheCreate  $1.25, cacheRead $0.10
 // Multiplied by 100 → cents per 1M tokens (the units of the table below).
 
-import type { UsageEstimate } from "@dashboard-agent/shared";
+import type { UsageEstimate } from "@prospero/shared";
 
 export type ModelPricing = {
   in: number;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildClaudeArgs, MAX_CONCURRENT_AGENTS } from "../src/orchestrator/lifecycle.js";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 
 const baseAgent: Agent = {
   id: "agent_1",

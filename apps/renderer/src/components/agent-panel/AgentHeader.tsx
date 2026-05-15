@@ -1,6 +1,6 @@
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Agent, AgentStatus } from "@dashboard-agent/shared";
+import type { Agent, AgentStatus } from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 import { OverflowMenu } from "./OverflowMenu.js";
 import { TerminateConfirmModal } from "./TerminateConfirmModal.js";

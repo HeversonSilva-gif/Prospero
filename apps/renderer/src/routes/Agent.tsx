@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { Message, PermissionRequest, PermissionResolution } from "@dashboard-agent/shared";
+import type { Message, PermissionRequest, PermissionResolution } from "@prospero/shared";
 import { useAgentsStore } from "../stores/agents.js";
 import { ApprovalCard } from "../components/ApprovalCard.js";
 import { MessageList } from "../components/MessageList.js";
@@ -29,7 +29,7 @@ export const Agent = () => {
   useEffect(() => {
     if (agent === undefined) return;
     void (async () => {
-      const all = await window.dashboardAgent.messages.listByAgent(agent.id);
+      const all = await window.prospero.messages.listByAgent(agent.id);
       setMessages(all);
     })();
   }, [agent]);
@@ -37,10 +37,10 @@ export const Agent = () => {
   // Subscribe to agent events and refetch messages on new message-append
   useEffect(() => {
     if (agent === undefined) return;
-    const off = window.dashboardAgent.agents.onEvent((ev) => {
+    const off = window.prospero.agents.onEvent((ev) => {
       if (ev.kind === "message-append") {
         void (async () => {
-          const all = await window.dashboardAgent.messages.listByAgent(agent.id);
+          const all = await window.prospero.messages.listByAgent(agent.id);
           setMessages(all);
         })();
       }
@@ -50,7 +50,7 @@ export const Agent = () => {
 
   // Subscribe to permission requests for this agent
   useEffect(() => {
-    const unsub = window.dashboardAgent.permissions.onRequest((req) => {
+    const unsub = window.prospero.permissions.onRequest((req) => {
       if (agent !== undefined && req.agentId === agent.id) {
         setPendingApprovals((prev) => [...prev, req]);
       }
@@ -77,13 +77,13 @@ export const Agent = () => {
     const resolution: PermissionResolution = allow
       ? { behavior: "allow" }
       : { behavior: "deny", message: "User rejected" };
-    void window.dashboardAgent.permissions.resolve(req.toolUseId, resolution);
+    void window.prospero.permissions.resolve(req.toolUseId, resolution);
     setPendingApprovals((prev) => prev.filter((r) => r.toolUseId !== req.toolUseId));
   };
 
   const onSend = async (content: string) => {
     if (agent === undefined) return;
-    await window.dashboardAgent.agents.sendMessage(agent.id, content);
+    await window.prospero.agents.sendMessage(agent.id, content);
     // The agent event subscription above handles refetching messages after send.
   };
 

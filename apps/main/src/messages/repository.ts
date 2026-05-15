@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type { Message, MessageKind, SenderKind, ToolCallView } from "@dashboard-agent/shared";
+import type { Message, MessageKind, SenderKind, ToolCallView } from "@prospero/shared";
 import { threadKey } from "./thread-key.js";
 
 type ThreadRow = {

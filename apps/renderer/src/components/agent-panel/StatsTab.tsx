@@ -1,7 +1,7 @@
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import type { AgentStats } from "@dashboard-agent/shared";
+import type { AgentStats } from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 import { useCostsQuery } from "../../hooks/useCostsQuery.js";
 import { formatCents, formatTokens } from "../../lib/costs/formatCents.js";
@@ -17,7 +17,7 @@ const useCompanyId = (): string | null => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   useEffect(() => {
     void (async () => {
-      const companies = await window.dashboardAgent.companies.list();
+      const companies = await window.prospero.companies.list();
       if (companies.length > 0) setCompanyId(companies[0]!.id);
     })();
   }, []);

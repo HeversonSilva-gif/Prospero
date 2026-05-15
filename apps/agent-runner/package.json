@@ -1,5 +1,5 @@
 {
-  "name": "@dashboard-agent/agent-runner",
+  "name": "@prospero/agent-runner",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@dashboard-agent/shared": "workspace:*",
+    "@prospero/shared": "workspace:*",
     "zod": "^3.23.8"
   },
   "devDependencies": {

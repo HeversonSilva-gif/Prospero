@@ -15,9 +15,9 @@ Antes de abrir o app:
 pnpm install
 pnpm typecheck         # esperado: 0 errors
 pnpm lint              # esperado: 0 errors
-pnpm --filter @dashboard-agent/main test   # esperado: 187 passing, 37 files
-pnpm --filter @dashboard-agent/main build
-pnpm --filter @dashboard-agent/renderer build
+pnpm --filter @prospero/main test   # esperado: 187 passing, 37 files
+pnpm --filter @prospero/main build
+pnpm --filter @prospero/renderer build
 ```
 
 Se algum passo falhar, **NÃO continuar**. Abrir issue.
@@ -155,7 +155,7 @@ Agora liste os arquivos da raiz do projeto Test Project.
 ```powershell
 # Encontre o agent_id do CEO no DB SQLite
 # Ferramentas: DB Browser for SQLite, ou via terminal:
-# sqlite3 "$env:APPDATA\dashboard-agent\dashboard-agent.db" "UPDATE agents SET allowed_projects_json = json_array('<DEFAULT_PROJECT_ID>') WHERE name = 'CEO'"
+# sqlite3 "$env:APPDATA\prospero\prospero.db" "UPDATE agents SET allowed_projects_json = json_array('<DEFAULT_PROJECT_ID>') WHERE name = 'CEO'"
 ```
 
 Substitua `<DEFAULT_PROJECT_ID>` pelo `id` real (consulta: `SELECT id, name FROM projects;`).

@@ -7,7 +7,7 @@ import {
   type DetectResult,
   type TokenSource,
   type TokenStatus,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { saveToken, loadTokenStatus, clearToken } from "../auth/token-storage.js";
 import { saveApiKey, loadApiKeyStatus, clearApiKey } from "../auth/api-key-storage.js";
 import { detectClaudeCliToken } from "../auth/token-detect.js";

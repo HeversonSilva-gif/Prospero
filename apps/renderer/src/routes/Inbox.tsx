@@ -1,7 +1,7 @@
 import { useState, type FC } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { InboxItem, InboxKind, PermissionResolution } from "@dashboard-agent/shared";
+import type { InboxItem, InboxKind, PermissionResolution } from "@prospero/shared";
 import { useInboxStore } from "../stores/inbox.js";
 
 const GOAL_KINDS: InboxKind[] = ["goal_proposed", "goal_executing", "goal_error"];
@@ -56,7 +56,7 @@ export const Inbox: FC = () => {
     const resolution: PermissionResolution = allow
       ? { behavior: "allow" }
       : { behavior: "deny", message: "User rejected via inbox" };
-    await window.dashboardAgent.permissions.resolve(payload.toolUseId, resolution);
+    await window.prospero.permissions.resolve(payload.toolUseId, resolution);
     await markRead(item.id);
   };
 
@@ -143,7 +143,7 @@ export const Inbox: FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          void window.dashboardAgent.goals
+                          void window.prospero.goals
                             .narratedResume({ goalId })
                             .then(() => markRead(item.id));
                         }}
@@ -154,7 +154,7 @@ export const Inbox: FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          void window.dashboardAgent.goals
+                          void window.prospero.goals
                             .narratedRollback({ goalId })
                             .then(() => markRead(item.id));
                         }}

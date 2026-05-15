@@ -2,19 +2,19 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Bootstrap the DashboardAgent monorepo: empty Electron app with SQLite, IPC bridge, tray icon, lint/test/CI pipeline, and seed/commit hygiene — so subsequent milestones can build on a solid base.
+**Goal:** Bootstrap the Prospero monorepo: empty Electron app with SQLite, IPC bridge, tray icon, lint/test/CI pipeline, and seed/commit hygiene — so subsequent milestones can build on a solid base.
 
 **Architecture:** pnpm monorepo with `apps/main` (Electron + Node + better-sqlite3), `apps/renderer` (React + Vite + Tailwind), and `packages/shared` (cross-process TypeScript types and IPC channel constants). All TypeScript strict. Tooling: ESLint + Prettier + Vitest + Playwright + husky + gitleaks + GitHub Actions.
 
 **Tech Stack:** Node 20+, pnpm 9+, Electron 33, TypeScript 5.5+, React 18, Vite 5, Tailwind 3, better-sqlite3 11, Vitest 2, Playwright 1.47, husky 9, lint-staged 15, gitleaks (binary), commitlint.
 
-**Spec reference:** `docs/superpowers/specs/2026-05-09-dashboard-agent-design.md`
+**Spec reference:** `docs/superpowers/specs/2026-05-09-prospero-design.md`
 
 ---
 
 ## Pre-flight
 
-- This is a fresh empty directory at `D:\Projetos pessoais\DashboardAgent` (only `docs/` and `.superpowers/` exist).
+- This is a fresh empty directory at `D:\Projetos pessoais\Prospero` (only `docs/` and `.superpowers/` exist).
 - Verify Node and pnpm are installed:
   ```
   node --version    # expect ≥ 20.0.0
@@ -28,7 +28,7 @@
 ## File Structure (this milestone)
 
 ```
-DashboardAgent/
+Prospero/
 ├── package.json                      # root workspace root
 ├── pnpm-workspace.yaml               # workspace declaration
 ├── tsconfig.base.json                # shared compiler options
@@ -114,10 +114,10 @@ Each file has a single responsibility:
 ## Task 1: Initialize git + monorepo skeleton
 
 **Files:**
-- Create: `D:\Projetos pessoais\DashboardAgent\package.json`
-- Create: `D:\Projetos pessoais\DashboardAgent\pnpm-workspace.yaml`
-- Create: `D:\Projetos pessoais\DashboardAgent\.gitignore`
-- Create: `D:\Projetos pessoais\DashboardAgent\.editorconfig`
+- Create: `D:\Projetos pessoais\Prospero\package.json`
+- Create: `D:\Projetos pessoais\Prospero\pnpm-workspace.yaml`
+- Create: `D:\Projetos pessoais\Prospero\.gitignore`
+- Create: `D:\Projetos pessoais\Prospero\.editorconfig`
 
 - [ ] **Step 1: Initialize git repository**
 
@@ -126,13 +126,13 @@ git init
 git config core.autocrlf true
 ```
 
-Expected: `Initialized empty Git repository in D:/Projetos pessoais/DashboardAgent/.git/`
+Expected: `Initialized empty Git repository in D:/Projetos pessoais/Prospero/.git/`
 
 - [ ] **Step 2: Create root `package.json`**
 
 ```json
 {
-  "name": "dashboard-agent",
+  "name": "prospero",
   "version": "0.0.0",
   "private": true,
   "description": "Local orchestrator for Claude Code agents using Claude Max OAuth (no API key).",
@@ -147,7 +147,7 @@ Expected: `Initialized empty Git repository in D:/Projetos pessoais/DashboardAge
     "typecheck": "pnpm -r --parallel run typecheck",
     "test": "pnpm -r --parallel run test",
     "build": "pnpm -r run build",
-    "dev": "pnpm --filter @dashboard-agent/main dev & pnpm --filter @dashboard-agent/renderer dev",
+    "dev": "pnpm --filter @prospero/main dev & pnpm --filter @prospero/renderer dev",
     "prepare": "husky"
   },
   "devDependencies": {}
@@ -312,7 +312,7 @@ git commit -m "chore: add base tsconfig with strict options"
 
 ```json
 {
-  "name": "@dashboard-agent/shared",
+  "name": "@prospero/shared",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -375,7 +375,7 @@ describe("IPC channels", () => {
 - [ ] **Step 4: Run test to verify it fails**
 
 ```powershell
-pnpm --filter @dashboard-agent/shared test
+pnpm --filter @prospero/shared test
 ```
 
 Expected: FAIL — module not found (`ipc-channels.js` does not exist yet).
@@ -423,8 +423,8 @@ export * from "./types/index.js";
 - [ ] **Step 9: Run test to verify it passes**
 
 ```powershell
-pnpm --filter @dashboard-agent/shared install
-pnpm --filter @dashboard-agent/shared test
+pnpm --filter @prospero/shared install
+pnpm --filter @prospero/shared test
 ```
 
 Expected: PASS — 3 tests green.
@@ -432,7 +432,7 @@ Expected: PASS — 3 tests green.
 - [ ] **Step 10: Run typecheck**
 
 ```powershell
-pnpm --filter @dashboard-agent/shared typecheck
+pnpm --filter @prospero/shared typecheck
 ```
 
 Expected: no errors.
@@ -564,7 +564,7 @@ git commit -m "chore: add eslint flat config and prettier"
 
 ```json
 {
-  "name": "@dashboard-agent/main",
+  "name": "@prospero/main",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -577,7 +577,7 @@ git commit -m "chore: add eslint flat config and prettier"
     "test": "vitest run"
   },
   "dependencies": {
-    "@dashboard-agent/shared": "workspace:*",
+    "@prospero/shared": "workspace:*",
     "electron": "33.0.2"
   },
   "devDependencies": {
@@ -689,7 +689,7 @@ app.on("activate", () => {
 ```ts
 import { contextBridge } from "electron";
 
-contextBridge.exposeInMainWorld("dashboardAgent", {
+contextBridge.exposeInMainWorld("prospero", {
   ping: () => "pong",
 });
 ```
@@ -698,7 +698,7 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
 
 ```powershell
 pnpm install
-pnpm --filter @dashboard-agent/main build
+pnpm --filter @prospero/main build
 ```
 
 Expected: `apps/main/dist/index.js` and `apps/main/dist/ipc/preload.js` exist; no TS errors.
@@ -706,7 +706,7 @@ Expected: `apps/main/dist/index.js` and `apps/main/dist/ipc/preload.js` exist; n
 - [ ] **Step 8: Verify Electron launches**
 
 ```powershell
-pnpm --filter @dashboard-agent/main exec electron .
+pnpm --filter @prospero/main exec electron .
 ```
 
 Expected: a 1280×800 window with `#F5F5FA` background appears (blank — no renderer yet). Close it.
@@ -739,7 +739,7 @@ git commit -m "feat(main): electron bootstrap with window and preload stub"
 
 ```json
 {
-  "name": "@dashboard-agent/renderer",
+  "name": "@prospero/renderer",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -752,7 +752,7 @@ git commit -m "feat(main): electron bootstrap with window and preload stub"
     "preview": "vite preview"
   },
   "dependencies": {
-    "@dashboard-agent/shared": "workspace:*",
+    "@prospero/shared": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -884,7 +884,7 @@ export default {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard Agent</title>
+    <title>Prospero</title>
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
@@ -912,7 +912,7 @@ export default {
 
 declare global {
   interface Window {
-    dashboardAgent: {
+    prospero: {
       ping: () => string;
     };
   }
@@ -927,7 +927,7 @@ export const App = (): JSX.Element => {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold text-brand-dark">Dashboard Agent</h1>
+        <h1 className="text-3xl font-bold text-brand-dark">Prospero</h1>
         <p className="text-ink-muted">Foundation milestone — bootstrap complete.</p>
       </div>
     </div>
@@ -957,10 +957,10 @@ ReactDOM.createRoot(rootEl).render(
 
 ```powershell
 pnpm install
-pnpm --filter @dashboard-agent/renderer dev
+pnpm --filter @prospero/renderer dev
 ```
 
-Open `http://localhost:5173`. Expected: white page with "Dashboard Agent" heading in dark blue. Stop with Ctrl+C.
+Open `http://localhost:5173`. Expected: white page with "Prospero" heading in dark blue. Stop with Ctrl+C.
 
 - [ ] **Step 13: Commit**
 
@@ -1014,7 +1014,7 @@ describe("registerIpcHandlers", () => {
 - [ ] **Step 2: Run test — should fail (handlers.ts missing)**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 ```
 
 Expected: FAIL — module not found.
@@ -1023,7 +1023,7 @@ Expected: FAIL — module not found.
 
 ```ts
 import { ipcMain } from "electron";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 
 export const registerIpcHandlers = (): void => {
   ipcMain.handle(IPC.PING, () => "pong");
@@ -1033,7 +1033,7 @@ export const registerIpcHandlers = (): void => {
 - [ ] **Step 4: Run test — should pass**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 ```
 
 Expected: PASS.
@@ -1042,9 +1042,9 @@ Expected: PASS.
 
 ```ts
 import { contextBridge, ipcRenderer } from "electron";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 
-contextBridge.exposeInMainWorld("dashboardAgent", {
+contextBridge.exposeInMainWorld("prospero", {
   ping: (): Promise<string> => ipcRenderer.invoke(IPC.PING),
 });
 ```
@@ -1081,7 +1081,7 @@ app.on("activate", () => {
 
 declare global {
   interface Window {
-    dashboardAgent: {
+    prospero: {
       ping: () => Promise<string>;
     };
   }
@@ -1098,13 +1098,13 @@ export const App = (): JSX.Element => {
   const [pong, setPong] = useState<string>("(waiting)");
 
   useEffect(() => {
-    void window.dashboardAgent.ping().then(setPong);
+    void window.prospero.ping().then(setPong);
   }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold text-brand-dark">Dashboard Agent</h1>
+        <h1 className="text-3xl font-bold text-brand-dark">Prospero</h1>
         <p className="text-ink-muted">IPC ping → {pong}</p>
       </div>
     </div>
@@ -1116,14 +1116,14 @@ export const App = (): JSX.Element => {
 
 In one terminal:
 ```powershell
-pnpm --filter @dashboard-agent/renderer dev
+pnpm --filter @prospero/renderer dev
 ```
 
 In another:
 ```powershell
 $env:RENDERER_URL = "http://localhost:5173"
-pnpm --filter @dashboard-agent/main build
-pnpm --filter @dashboard-agent/main exec electron .
+pnpm --filter @prospero/main build
+pnpm --filter @prospero/main exec electron .
 ```
 
 Expected: window opens; UI shows "IPC ping → pong".
@@ -1170,7 +1170,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export const createTray = (getWindow: () => BrowserWindow | null): Tray => {
   const iconPath = resolve(__dirname, "../resources/tray-icon.png");
   const tray = new Tray(iconPath);
-  tray.setToolTip("Dashboard Agent");
+  tray.setToolTip("Prospero");
 
   const menu = Menu.buildFromTemplate([
     {
@@ -1288,8 +1288,8 @@ app.on("before-quit", () => {
 - [ ] **Step 5: Manually verify tray**
 
 ```powershell
-pnpm --filter @dashboard-agent/main build
-pnpm --filter @dashboard-agent/main exec electron .
+pnpm --filter @prospero/main build
+pnpm --filter @prospero/main exec electron .
 ```
 
 Expected: window opens; close window → window hides; tray icon visible in system tray (near clock); right-click tray shows menu (Open / Quit); click "Open" → window reappears; click "Quit" → process exits.
@@ -1316,8 +1316,8 @@ git commit -m "feat(main): add tray icon with hide-on-close"
 - [ ] **Step 1: Add `better-sqlite3` to `apps/main/package.json` dependencies**
 
 ```powershell
-pnpm --filter @dashboard-agent/main add better-sqlite3@^11.3.0
-pnpm --filter @dashboard-agent/main add -D @types/better-sqlite3@^7.6.11
+pnpm --filter @prospero/main add better-sqlite3@^11.3.0
+pnpm --filter @prospero/main add -D @types/better-sqlite3@^7.6.11
 ```
 
 Expected: `pnpm-lock.yaml` updated; package compiles native module.
@@ -1393,7 +1393,7 @@ describe("openDatabase", () => {
 - [ ] **Step 4: Run tests — they should fail (modules missing)**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 ```
 
 Expected: 5 failures.
@@ -1610,7 +1610,7 @@ export const openDatabase = (filePath: string): Database.Database => {
 - [ ] **Step 8: Run tests — should pass**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 ```
 
 Expected: 5 PASS.
@@ -1637,7 +1637,7 @@ import { app } from "electron";
 import { join } from "node:path";
 
 export const databasePath = (): string =>
-  join(app.getPath("userData"), "dashboard-agent.db");
+  join(app.getPath("userData"), "prospero.db");
 ```
 
 - [ ] **Step 2: Update `apps/main/src/index.ts` to open DB on ready**
@@ -1685,11 +1685,11 @@ app.on("before-quit", () => {
 - [ ] **Step 3: Manually verify**
 
 ```powershell
-pnpm --filter @dashboard-agent/main build
-pnpm --filter @dashboard-agent/main exec electron .
+pnpm --filter @prospero/main build
+pnpm --filter @prospero/main exec electron .
 ```
 
-Expected: window opens. Check `%APPDATA%\dashboard-agent\dashboard-agent.db` exists. Quit via tray.
+Expected: window opens. Check `%APPDATA%\prospero\prospero.db` exists. Quit via tray.
 
 - [ ] **Step 4: Commit**
 
@@ -1762,7 +1762,7 @@ Add this top-level field:
 - [ ] **Step 7: Create `.gitleaks.toml` with custom rules**
 
 ```toml
-title = "Dashboard Agent gitleaks rules"
+title = "Prospero gitleaks rules"
 
 [extend]
 useDefault = true
@@ -1952,7 +1952,7 @@ SOFTWARE.
 - [ ] **Step 2: Create `README.md`**
 
 ```markdown
-# Dashboard Agent
+# Prospero
 
 Local orchestrator for Claude Code agents using the Claude Max OAuth login — no API key required.
 
@@ -1978,7 +1978,7 @@ If you already pay for Claude Max, you shouldn't need a separate API key just to
 - [ ] M8 — Token efficiency
 - [ ] M9 — Open-source readiness
 
-See [`docs/superpowers/specs/2026-05-09-dashboard-agent-design.md`](docs/superpowers/specs/2026-05-09-dashboard-agent-design.md) for the full design.
+See [`docs/superpowers/specs/2026-05-09-prospero-design.md`](docs/superpowers/specs/2026-05-09-prospero-design.md) for the full design.
 
 ## Disclaimer
 
@@ -2033,7 +2033,7 @@ Prerequisites: Node 20+, pnpm 9+, gitleaks, Windows 11 (primary platform).
 
 ```powershell
 git clone <url>
-cd DashboardAgent
+cd Prospero
 pnpm install
 pnpm dev
 ```
@@ -2098,31 +2098,31 @@ Expected: all green. If any step fails, fix in-place and re-commit.
 
 In one terminal:
 ```powershell
-pnpm --filter @dashboard-agent/renderer dev
+pnpm --filter @prospero/renderer dev
 ```
 
 In another:
 ```powershell
 $env:RENDERER_URL = "http://localhost:5173"
-pnpm --filter @dashboard-agent/main build
-pnpm --filter @dashboard-agent/main exec electron .
+pnpm --filter @prospero/main build
+pnpm --filter @prospero/main exec electron .
 ```
 
 Verify all of the following:
 
 - [ ] Window opens at 1280×800 with `#F5F5FA` background
-- [ ] UI shows "Dashboard Agent" + "IPC ping → pong"
+- [ ] UI shows "Prospero" + "IPC ping → pong"
 - [ ] Tray icon visible in system tray; right-click shows Open/Quit menu
 - [ ] Closing the window hides it; tray icon stays
 - [ ] Click tray "Open" → window reappears
 - [ ] Click tray "Quit" → process exits cleanly
-- [ ] `%APPDATA%\dashboard-agent\dashboard-agent.db` exists after first run
+- [ ] `%APPDATA%\prospero\prospero.db` exists after first run
 
 - [ ] **Step 3: Verify CI passes on GitHub** (after pushing — push step is optional in M1; can be deferred)
 
 If pushing now:
 ```powershell
-gh repo create dashboard-agent --private --source=. --remote=origin
+gh repo create prospero --private --source=. --remote=origin
 git push -u origin main
 ```
 
@@ -2161,4 +2161,4 @@ If all 9 boxes check, M1 is done. Move to M2 — Auth & Settings.
 - **Windows-first**: this milestone is verified on Windows 11. Mac/Linux verification is a v2 concern — don't spend time fixing platform-specific issues outside Win11 unless they block.
 - **Native modules**: `better-sqlite3` may rebuild on first install (takes 10–30s). If `electron-rebuild` becomes necessary in later milestones, defer until needed (M3 spawns Electron-bound code that hits this).
 - **Don't expand scope**: M1 is plumbing. Resist the urge to add features (settings UI, sidebar, etc.) — those have dedicated milestones with proper tests.
-- **Spec is the source of truth**: when in doubt, re-read the relevant section of `docs/superpowers/specs/2026-05-09-dashboard-agent-design.md`. The plan implements the spec, not the other way around.
+- **Spec is the source of truth**: when in doubt, re-read the relevant section of `docs/superpowers/specs/2026-05-09-prospero-design.md`. The plan implements the spec, not the other way around.

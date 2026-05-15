@@ -4,7 +4,7 @@
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
-import type { CostProjectTotal } from "@dashboard-agent/shared";
+import type { CostProjectTotal } from "@prospero/shared";
 import { formatTokens } from "../../lib/costs/formatCents.js";
 
 type Props = { rows: CostProjectTotal[] };

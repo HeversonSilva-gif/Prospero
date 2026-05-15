@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type Database from "better-sqlite3";
-import type { HireAgentInput } from "@dashboard-agent/shared";
+import type { HireAgentInput } from "@prospero/shared";
 import { HIRE_AGENT_INPUT_SCHEMA } from "../schemas/hire-agent-input.js";
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";

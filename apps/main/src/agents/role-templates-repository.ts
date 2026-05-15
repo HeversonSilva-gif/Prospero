@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { RoleTemplate } from "@dashboard-agent/shared";
+import type { RoleTemplate } from "@prospero/shared";
 
 type Row = {
   id: string;

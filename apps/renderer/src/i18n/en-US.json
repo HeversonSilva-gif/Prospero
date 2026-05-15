@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Dashboard Agent"
+    "title": "Prospero"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -485,7 +485,7 @@
     "auth.tokenLabel": "Paste token here",
     "auth.tokenInvalid": "Invalid token. Expected format sk-ant-oat-...",
     "workspaceFolder": "Workspace Folder",
-    "workspaceFolderHint": "Where agents execute commands. Default: ~/DashboardAgent-Workspace",
+    "workspaceFolderHint": "Where agents execute commands. Default: ~/Prospero-Workspace",
     "workspaceFolderBrowse": "Browse...",
     "workspace.label": "Workspace Folder",
     "workspace.deprecatedNote": "Workspaces are now managed in",
@@ -579,7 +579,7 @@
     }
   },
   "wizard": {
-    "title": "Welcome to Dashboard Agent",
+    "title": "Welcome to Prospero",
     "subtitle": "Let's set up your OAuth token to get started.",
     "chooseMethod": "How would you like to configure?",
     "manualOption": "Manual paste (step-by-step)",

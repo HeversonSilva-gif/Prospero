@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import type { ActivityEventRow, ActivityQueryFilters } from "@dashboard-agent/shared";
+import type { ActivityEventRow, ActivityQueryFilters } from "@prospero/shared";
 import { useAgentsStore } from "../stores/agents.js";
 import {
   ActivityFilters,
@@ -23,7 +23,7 @@ const useCompanyId = (): string | null => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   useEffect(() => {
     void (async () => {
-      const companies = await window.dashboardAgent.companies.list();
+      const companies = await window.prospero.companies.list();
       if (companies.length > 0) setCompanyId(companies[0]!.id);
     })();
   }, []);

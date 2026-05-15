@@ -1,6 +1,6 @@
 import { ipcMain, shell } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type Project, type ProjectPathStatus } from "@dashboard-agent/shared";
+import { IPC, type Project, type ProjectPathStatus } from "@prospero/shared";
 import { createProjectsRepository } from "../projects/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 

@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Issue } from "@dashboard-agent/shared";
+import type { Issue } from "@prospero/shared";
 
 type Props = {
   issue: Issue;

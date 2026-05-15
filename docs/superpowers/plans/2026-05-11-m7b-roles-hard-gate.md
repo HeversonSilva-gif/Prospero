@@ -51,7 +51,7 @@
 | `apps/main/tests/mcp.tools.test.ts` | modify | Tests for hire_agent with role_template_id |
 | `apps/main/src/ipc/roles-handlers.ts` | create | IPC handlers for `roles:list` / `roles:get` |
 | `apps/main/src/ipc/handlers.ts` | modify | Register roles handlers |
-| `apps/main/src/ipc/preload.ts` | modify | Expose `dashboardAgent.roles` API |
+| `apps/main/src/ipc/preload.ts` | modify | Expose `prospero.roles` API |
 | `apps/main/tests/ipc.roles-handlers.test.ts` | create | Integration tests |
 | `apps/renderer/src/i18n/en-US.json` | modify | `skills.*` keys |
 | `apps/renderer/src/i18n/pt-BR.json` | modify | Same |
@@ -99,7 +99,7 @@ Preserve the existing `AgentMode`, `AgentStatus`, and `NO_ACCESS_SENTINEL` expor
 - [ ] **Step 2: Verify typecheck**
 
 ```bash
-pnpm -F @dashboard-agent/shared typecheck
+pnpm -F @prospero/shared typecheck
 ```
 Expected: PASS. Downstream packages will fail typecheck — that's expected; subsequent tasks fix them.
 
@@ -153,7 +153,7 @@ Read `packages/shared/src/types/index.ts` first. It probably re-exports each typ
 - [ ] **Step 3: Typecheck**
 
 ```bash
-pnpm -F @dashboard-agent/shared typecheck
+pnpm -F @prospero/shared typecheck
 ```
 Expected: PASS.
 
@@ -298,7 +298,7 @@ describe("resolveSkillTools (full resolver with chat safety-net)", () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-pnpm -F @dashboard-agent/shared test -- skills.test
+pnpm -F @prospero/shared test -- skills.test
 ```
 Expected: FAIL — module doesn't exist yet.
 
@@ -434,7 +434,7 @@ Read `packages/shared/src/index.ts`. It currently has `export * from "./ipc-chan
 - [ ] **Step 5: Run tests to verify they pass**
 
 ```bash
-pnpm -F @dashboard-agent/shared test -- skills.test
+pnpm -F @prospero/shared test -- skills.test
 ```
 Expected: PASS (all ~14 tests).
 
@@ -504,7 +504,7 @@ describe("AgentsRepository — skills + templateId", () => {
 - [ ] **Step 2: Run test to verify failure**
 
 ```bash
-pnpm -C "<wt-or-repo-root>" -F @dashboard-agent/main test -- agents.repository
+pnpm -C "<wt-or-repo-root>" -F @prospero/main test -- agents.repository
 ```
 Expected: FAIL — current `Agent` returned by repo lacks `skills` / `templateId`.
 
@@ -590,7 +590,7 @@ create(input) {
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-pnpm -F @dashboard-agent/main test -- agents.repository
+pnpm -F @prospero/main test -- agents.repository
 ```
 Expected: PASS (all existing + 2 new tests).
 
@@ -671,7 +671,7 @@ git commit -m "test(m7b): backfill skills+templateId in Agent test fixtures"
 Read `apps/main/src/orchestrator/system-prompt.ts` first to see the current PREAMBLE block. Then replace the export at the end with:
 
 ```typescript
-import { resolveSkillTools, ensureChatSkill } from "@dashboard-agent/shared";
+import { resolveSkillTools, ensureChatSkill } from "@prospero/shared";
 
 // buildAgentSystemPrompt assembles the full system prompt for a spawned agent:
 //   1. PREAMBLE — sandbox + delegation contract (project-wide).
@@ -709,7 +709,7 @@ your role.
 - [ ] **Step 2: Typecheck**
 
 ```bash
-pnpm -F @dashboard-agent/main typecheck
+pnpm -F @prospero/main typecheck
 ```
 Expected: errors in `lifecycle.ts` (which calls `buildAgentSystemPrompt(agent.systemPrompt)` without skills). Task 7 fixes that.
 
@@ -775,7 +775,7 @@ Open `apps/main/tests/orchestrator.lifecycle.test.ts`. Find the `describe("build
 - [ ] **Step 2: Run tests to verify failure**
 
 ```bash
-pnpm -F @dashboard-agent/main test -- orchestrator.lifecycle
+pnpm -F @prospero/main test -- orchestrator.lifecycle
 ```
 Expected: FAIL — `--allowedTools` not in args.
 
@@ -834,13 +834,13 @@ export const buildClaudeArgs = (agent: Agent, mcpConfigPath: string): string[] =
 Add the import at the top of the file (alongside existing shared imports):
 
 ```typescript
-import { resolveSkillTools } from "@dashboard-agent/shared";
+import { resolveSkillTools } from "@prospero/shared";
 ```
 
 - [ ] **Step 4: Run tests**
 
 ```bash
-pnpm -F @dashboard-agent/main test -- orchestrator.lifecycle
+pnpm -F @prospero/main test -- orchestrator.lifecycle
 ```
 Expected: PASS (3 new + all existing).
 
@@ -1021,7 +1021,7 @@ describe("postMigration 0004 — seed roles + backfill", () => {
 - [ ] **Step 2: Run tests to verify failure**
 
 ```bash
-pnpm -F @dashboard-agent/main test -- db.post-migration-0004
+pnpm -F @prospero/main test -- db.post-migration-0004
 ```
 Expected: FAIL — module doesn't exist.
 
@@ -1174,14 +1174,14 @@ export const runPostMigrations = (db: Database.Database): void => {
 - [ ] **Step 5: Run tests to verify they pass**
 
 ```bash
-pnpm -F @dashboard-agent/main test -- db.post-migration-0004
+pnpm -F @prospero/main test -- db.post-migration-0004
 ```
 Expected: PASS (all 7 tests).
 
 - [ ] **Step 6: Run full migration suite**
 
 ```bash
-pnpm -F @dashboard-agent/main test -- db
+pnpm -F @prospero/main test -- db
 ```
 Expected: PASS for all `db.*` tests.
 
@@ -1273,7 +1273,7 @@ Open `apps/main/tests/mcp.tools.test.ts`. Append a new test inside the existing 
 - [ ] **Step 2: Run tests to verify failure**
 
 ```bash
-pnpm -F @dashboard-agent/main test -- mcp.tools
+pnpm -F @prospero/main test -- mcp.tools
 ```
 Expected: FAIL — current `hire_agent` doesn't apply role.
 
@@ -1355,7 +1355,7 @@ Open `apps/main/src/mcp/tools.ts`. Find the `hire_agent` tool entry. Add `role_t
 - [ ] **Step 4: Run tests**
 
 ```bash
-pnpm -F @dashboard-agent/main test -- mcp.tools
+pnpm -F @prospero/main test -- mcp.tools
 ```
 Expected: PASS (all existing + 2 new).
 
@@ -1444,7 +1444,7 @@ describe("RoleTemplatesRepository", () => {
 - [ ] **Step 2: Run tests to verify failure**
 
 ```bash
-pnpm -F @dashboard-agent/main test -- role-templates.repository
+pnpm -F @prospero/main test -- role-templates.repository
 ```
 Expected: FAIL — module doesn't exist.
 
@@ -1454,7 +1454,7 @@ Create `apps/main/src/agents/role-templates-repository.ts`:
 
 ```typescript
 import type Database from "better-sqlite3";
-import type { RoleTemplate } from "@dashboard-agent/shared";
+import type { RoleTemplate } from "@prospero/shared";
 
 type Row = {
   id: string;
@@ -1513,7 +1513,7 @@ export const createRoleTemplatesRepository = (
 - [ ] **Step 4: Run tests**
 
 ```bash
-pnpm -F @dashboard-agent/main test -- role-templates.repository
+pnpm -F @prospero/main test -- role-templates.repository
 ```
 Expected: PASS (5 tests).
 
@@ -1638,7 +1638,7 @@ describe("roles IPC handlers", () => {
 - [ ] **Step 3: Run test to verify failure**
 
 ```bash
-pnpm -F @dashboard-agent/main test -- ipc.roles-handlers
+pnpm -F @prospero/main test -- ipc.roles-handlers
 ```
 Expected: FAIL — handler module doesn't exist.
 
@@ -1649,7 +1649,7 @@ Create `apps/main/src/ipc/roles-handlers.ts`:
 ```typescript
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, resolveSkillTools, type RoleDetail, type RoleTemplate } from "@dashboard-agent/shared";
+import { IPC, resolveSkillTools, type RoleDetail, type RoleTemplate } from "@prospero/shared";
 import { createRoleTemplatesRepository } from "../agents/role-templates-repository.js";
 
 type RoleSummary = RoleTemplate & { agentCount: number };
@@ -1687,7 +1687,7 @@ Open `apps/main/src/ipc/handlers.ts`. Add an import and a registration call. The
 ```typescript
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 import { registerSettingsHandlers } from "./settings-handlers.js";
 import { registerAuthHandlers } from "./auth-handlers.js";
 import { registerCompaniesHandlers } from "./companies-handlers.js";
@@ -1739,7 +1739,7 @@ Then add a `roles` namespace to the `contextBridge.exposeInMainWorld` object. Pl
 - [ ] **Step 7: Run tests**
 
 ```bash
-pnpm -F @dashboard-agent/main test -- ipc.roles-handlers
+pnpm -F @prospero/main test -- ipc.roles-handlers
 ```
 Expected: PASS (3 tests).
 
@@ -1849,7 +1849,7 @@ Create `apps/renderer/src/stores/roles.ts`:
 
 ```typescript
 import { create } from "zustand";
-import type { RoleDetail, RoleTemplate } from "@dashboard-agent/shared";
+import type { RoleDetail, RoleTemplate } from "@prospero/shared";
 
 type RoleSummary = RoleTemplate & { agentCount: number };
 
@@ -1869,7 +1869,7 @@ export const useRolesStore = create<State>((set, get) => ({
   loaded: false,
 
   load: async () => {
-    const list = await window.dashboardAgent.roles.list();
+    const list = await window.prospero.roles.list();
     set({ roles: list, loaded: true });
     // Auto-select the first role if none is selected yet.
     if (get().selectedId === null && list.length > 0) {
@@ -1879,7 +1879,7 @@ export const useRolesStore = create<State>((set, get) => ({
 
   select: async (id) => {
     set({ selectedId: id });
-    const detail = await window.dashboardAgent.roles.get(id);
+    const detail = await window.prospero.roles.get(id);
     set({ selectedDetail: detail });
   },
 }));
@@ -1888,7 +1888,7 @@ export const useRolesStore = create<State>((set, get) => ({
 - [ ] **Step 2: Verify renderer build**
 
 ```bash
-pnpm -F @dashboard-agent/renderer build
+pnpm -F @prospero/renderer build
 ```
 Expected: PASS (the store isn't used yet — that's fine; next task wires it).
 
@@ -1915,7 +1915,7 @@ Create `apps/renderer/src/components/skills/RoleListItem.tsx`:
 ```typescript
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { RoleTemplate } from "@dashboard-agent/shared";
+import type { RoleTemplate } from "@prospero/shared";
 
 type Props = {
   role: RoleTemplate & { agentCount: number };
@@ -1955,7 +1955,7 @@ Create `apps/renderer/src/components/skills/RoleDetail.tsx`:
 import { type FC, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { SKILL_CATALOG, type RoleDetail as RoleDetailType } from "@dashboard-agent/shared";
+import { SKILL_CATALOG, type RoleDetail as RoleDetailType } from "@prospero/shared";
 
 type Props = {
   detail: RoleDetailType;
@@ -2105,7 +2105,7 @@ export const Skills: FC = () => {
 - [ ] **Step 4: Verify renderer build**
 
 ```bash
-pnpm -F @dashboard-agent/renderer build
+pnpm -F @prospero/renderer build
 ```
 Expected: PASS.
 
@@ -2166,7 +2166,7 @@ import { Skills } from "./routes/Skills.js";
 - [ ] **Step 2: Verify build + typecheck**
 
 ```bash
-pnpm -F @dashboard-agent/renderer build
+pnpm -F @prospero/renderer build
 ```
 Expected: PASS.
 
@@ -2229,14 +2229,14 @@ Expected: clean.
 Confirm that an agent without `shell` skill cannot spawn with `Bash` in `--allowedTools`:
 
 ```bash
-pnpm -F @dashboard-agent/main test -- orchestrator.lifecycle
+pnpm -F @prospero/main test -- orchestrator.lifecycle
 ```
 Expected: all `--allowedTools` tests PASS.
 
 - [ ] **Step 5: Verify M5 sandbox tests still green**
 
 ```bash
-pnpm -F @dashboard-agent/main test -- security
+pnpm -F @prospero/main test -- security
 ```
 Expected: gate, gate-projects, permission-watcher, blocklist all PASS.
 

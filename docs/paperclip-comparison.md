@@ -1,4 +1,4 @@
-# DashboardAgent x Paperclip — Comparação feature-a-feature
+# Prospero x Paperclip — Comparação feature-a-feature
 
 > **Data:** 2026-05-11
 > **Nossa base:** M1–M6 mergeados em `master` (ver [ROADMAP.md](../ROADMAP.md))
@@ -11,9 +11,9 @@
 
 ## TL;DR
 
-Paperclip e DashboardAgent compartilham a **visão de produto** ("CEO chat orquestrando time de agentes"), mas divergem em quase tudo no nível de execução:
+Paperclip e Prospero compartilham a **visão de produto** ("CEO chat orquestrando time de agentes"), mas divergem em quase tudo no nível de execução:
 
-| Eixo | DashboardAgent (nós) | Paperclip |
+| Eixo | Prospero (nós) | Paperclip |
 |---|---|---|
 | **Distribuição** | Electron desktop, single-user | Server Express + UI web, multi-tenant capable |
 | **Auth → Anthropic** | OAuth Max (flat-rate) via `safeStorage` | BYO API key, agent autenticado por JWT local |
@@ -25,7 +25,7 @@ Paperclip e DashboardAgent compartilham a **visão de produto** ("CEO chat orque
 | **Extensibilidade** | Hard-coded (escopo deliberado v1) | Plugin SDK rodando em worker threads (~20K linhas) |
 | **LoC backend** | ~4.2K linhas | ~36K linhas server + 28K db + 20K plugins |
 
-**Resumo qualitativo:** Paperclip é uma plataforma genérica de orquestração multi-provider; o DashboardAgent é um cliente desktop **opinionado e enxuto** para Claude Code OAuth Max. As decisões de simplicidade nossas (1 provider, sqlite, sem plugin) são **conscientes** e alinhadas com [project_dashboardagent.md](../memory) e a restrição de ToS Anthropic (máx 4 agentes paralelos, 1× volume normal). **Não devemos imitar Paperclip em escopo — devemos selecionar onde ele resolve melhor um problema que nós também temos.**
+**Resumo qualitativo:** Paperclip é uma plataforma genérica de orquestração multi-provider; o Prospero é um cliente desktop **opinionado e enxuto** para Claude Code OAuth Max. As decisões de simplicidade nossas (1 provider, sqlite, sem plugin) são **conscientes** e alinhadas com [project_prospero.md](../memory) e a restrição de ToS Anthropic (máx 4 agentes paralelos, 1× volume normal). **Não devemos imitar Paperclip em escopo — devemos selecionar onde ele resolve melhor um problema que nós também temos.**
 
 ---
 
@@ -50,7 +50,7 @@ Prioridade das melhorias:
 
 **Nós** ([apps/main/src/index.ts](../apps/main/src), [apps/renderer](../apps/renderer), [apps/main/src/ipc/preload.ts](../apps/main/src/ipc/preload.ts))
 
-Electron 33 com `contextIsolation: true`. Main expõe IPC bridge em namespaces (`window.dashboardAgent.{auth,agents,messages,inbox,permissions,projects,issues,settings}`). Comunicação bidirecional: renderer chama via `invoke`, main empurra via `webContents.send` (`AGENT_EVENT`, `ISSUES_CHANGED`, `INBOX_UPDATE`, `PERMISSION_REQUEST`). ~307 linhas no core (index + preload + handlers + window).
+Electron 33 com `contextIsolation: true`. Main expõe IPC bridge em namespaces (`window.prospero.{auth,agents,messages,inbox,permissions,projects,issues,settings}`). Comunicação bidirecional: renderer chama via `invoke`, main empurra via `webContents.send` (`AGENT_EVENT`, `ISSUES_CHANGED`, `INBOX_UPDATE`, `PERMISSION_REQUEST`). ~307 linhas no core (index + preload + handlers + window).
 
 **Paperclip** (`server/src/index.ts`, `ui/src/App.tsx`)
 
@@ -58,12 +58,12 @@ Express 5.1 + Drizzle + WebSocket (`ws`) + React + Vite. Server e UI são proces
 
 **Por que diverge**
 
-Foco de produto. Nosso target é "desktop app pessoal, sem servidor, sem cloud" (memory: `project_dashboardagent`). Paperclip nasceu como server justamente para abrir o caminho de cloud/multi-user — coisas que estão **out-of-scope explicitamente** pra nós (ToS Anthropic Max é single-user).
+Foco de produto. Nosso target é "desktop app pessoal, sem servidor, sem cloud" (memory: `project_prospero`). Paperclip nasceu como server justamente para abrir o caminho de cloud/multi-user — coisas que estão **out-of-scope explicitamente** pra nós (ToS Anthropic Max é single-user).
 
 **Onde podemos melhorar**
 
 - 🟢 **WebSocket-like granular events em vez de broadcast IPC chato.** Nosso `roster broadcast em todo turn-complete` (M5 lesson) é grosso. Paperclip tem `live-events-ws.ts` com tipos `issue.updated`, `approval.pending`, etc. **Não muda arquitetura, só refina o protocolo IPC**: criar um discriminated union por evento e mandar deltas, não snapshots completos. Reduz churn no renderer. Custo: ~1 dia. Cabe num polish do M9.
-- ⚪ **Não adotar arquitetura server.** Já é regra (`project_dashboardagent`). Reafirmar aqui para futuras tentações.
+- ⚪ **Não adotar arquitetura server.** Já é regra (`project_prospero`). Reafirmar aqui para futuras tentações.
 
 ---
 
@@ -142,7 +142,7 @@ i18n é decisão de UX nossa (PT-BR + EN-US). Paperclip vai EN-only e ninguém r
 
 **Onde podemos melhorar**
 
-- 🟡 **Separar settings "boot" de settings "runtime".** Hoje `settings.workspaceCwd` está na mesma tabela que `language`. Mas `workspaceCwd` foi migrado pra `projects` (lição M6 post-migration). Talvez valha definir explicitamente: o que muda em runtime via UI vai pra `settings`; o que precisa de relaunch vai pra config file (`~/.dashboard-agent/config.json` ou similar). Pequeno e ajuda no M9 quando adicionar "default model" e "default mode".
+- 🟡 **Separar settings "boot" de settings "runtime".** Hoje `settings.workspaceCwd` está na mesma tabela que `language`. Mas `workspaceCwd` foi migrado pra `projects` (lição M6 post-migration). Talvez valha definir explicitamente: o que muda em runtime via UI vai pra `settings`; o que precisa de relaunch vai pra config file (`~/.prospero/config.json` ou similar). Pequeno e ajuda no M9 quando adicionar "default model" e "default mode".
 - ⚪ **Não adicionar Better-Auth equivalente.** Nosso modelo single-user dispensa.
 
 ---
@@ -489,7 +489,7 @@ Maturidade do pattern + adapter pluggability. Paperclip evoluiu "how to instruct
 
 **Onde podemos melhorar**
 
-- 🔴 **PREAMBLE em arquivo `.md` versionado e carregado em runtime.** Hoje editar PREAMBLE = recompilar Electron. Mover pra `apps/main/src/orchestrator/preamble.md` lido com `fs.readFileSync`. Custo: 30 min. Benefício: muito mais fácil iterar prompt (lição comum: 50% do efeito de "melhorar agente" é prompt). Bonus: usuário pode override via `~/.dashboard-agent/preamble.md` (caso queira tunar).
+- 🔴 **PREAMBLE em arquivo `.md` versionado e carregado em runtime.** Hoje editar PREAMBLE = recompilar Electron. Mover pra `apps/main/src/orchestrator/preamble.md` lido com `fs.readFileSync`. Custo: 30 min. Benefício: muito mais fácil iterar prompt (lição comum: 50% do efeito de "melhorar agente" é prompt). Bonus: usuário pode override via `~/.prospero/preamble.md` (caso queira tunar).
 - 🟡 **System prompt composable** (M7 lookahead). Quando adicionar skills (M7) e model-aware behavior (M7a), o prompt vai depender de:
   - PREAMBLE comum
   - Role-specific (CEO vs engenheiro)
@@ -645,7 +645,7 @@ Lista explícita pra evitar tentação futura:
 | **Embedded Postgres** | sqlite serve perfeitamente desktop. Migrar custaria 1-2 semanas e ganharia 0 valor pro nosso uso. |
 | **Heartbeat polling model** | Perdemos UX de chat streaming live. Nossa daemon-arch + watchdog timeout cobre o caso de "agente travado". |
 | **Adapter para OpenClaw / Codex / Cursor / Gemini / Pi / Acpx / OpenCode** | Out-of-scope v1 (somos cliente Claude). v2 adiciona 1-2 adapters relevantes (Codex, Cursor) mas não todos. |
-| **Sandbox providers (e2b, Cloudflare, Daytona, exe-dev)** | Out-of-scope (local-only). Memory `project_dashboardagent` reforça. |
+| **Sandbox providers (e2b, Cloudflare, Daytona, exe-dev)** | Out-of-scope (local-only). Memory `project_prospero` reforça. |
 | **SVG export server-side via `sharp`** | Out-of-scope (sem server, sem export PNG). Manter SVG só no DOM. |
 | **`dangerouslySkipPermissions: true` default** | Threat model deles assume sandbox de processo (eles têm); nosso threat model é "agente roda no host" e blocklist é necessária. |
 | **Skill = code module com source sync (GitHub/NPM)** | Threat model: download e execução de código remoto. Memory `feedback_security_priority`. Skill = tag é suficiente pra nós. |

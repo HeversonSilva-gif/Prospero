@@ -1,6 +1,6 @@
 import { defineConfig } from "tsup";
 
-// One self-contained ESM bundle for the Docker image. @dashboard-agent/shared
+// One self-contained ESM bundle for the Docker image. @prospero/shared
 // is a workspace package and zod is bundled in, so the container needs no
 // node_modules at runtime.
 export default defineConfig({
@@ -11,5 +11,5 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  noExternal: ["@dashboard-agent/shared", "zod"],
+  noExternal: ["@prospero/shared", "zod"],
 });

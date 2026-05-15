@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type { IssueComment } from "@dashboard-agent/shared";
+import type { IssueComment } from "@prospero/shared";
 
 type Row = {
   id: string;

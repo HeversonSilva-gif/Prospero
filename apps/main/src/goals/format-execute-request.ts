@@ -1,4 +1,4 @@
-import type { Goal, GoalPlan } from "@dashboard-agent/shared";
+import type { Goal, GoalPlan } from "@prospero/shared";
 
 const fmtReportsTo = (r: number | "CEO"): string => (r === "CEO" ? "CEO" : `#${r}`);
 

@@ -1,7 +1,7 @@
 import type { FC, ReactNode } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import type { IssueStatus } from "@dashboard-agent/shared";
+import type { IssueStatus } from "@prospero/shared";
 
 type Props = {
   status: IssueStatus;

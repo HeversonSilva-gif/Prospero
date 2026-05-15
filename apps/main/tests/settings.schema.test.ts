@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AppSettingsSchema, parseSettings } from "../src/settings/schema.js";
-import { DEFAULT_CLAUDE_MODEL } from "@dashboard-agent/shared";
+import { DEFAULT_CLAUDE_MODEL } from "@prospero/shared";
 
 describe("settings schema", () => {
   it("accepts valid settings", () => {

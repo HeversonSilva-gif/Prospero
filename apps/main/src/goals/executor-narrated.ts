@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { ExecutePlanResult, ExecutionState } from "@dashboard-agent/shared";
+import type { ExecutePlanResult, ExecutionState } from "@prospero/shared";
 import { createGoalsRepository } from "./repository.js";
 import { createGoalPlansRepository } from "./plans-repository.js";
 import { createAgentsRepository } from "../agents/repository.js";

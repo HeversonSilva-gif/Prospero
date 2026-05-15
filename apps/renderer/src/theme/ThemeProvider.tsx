@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { Theme } from "@dashboard-agent/shared";
+import type { Theme } from "@prospero/shared";
 
 export const applyTheme = (theme: Theme): void => {
   const html = document.documentElement;

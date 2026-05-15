@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import type { Agent, Message, MessageKind } from "@dashboard-agent/shared";
+import type { Agent, Message, MessageKind } from "@prospero/shared";
 import { ToolCallCard } from "./ToolCallCard.js";
 
 type Props = {

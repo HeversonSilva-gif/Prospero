@@ -1,6 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import type { Language } from "@dashboard-agent/shared";
+import type { Language } from "@prospero/shared";
 import ptBR from "./pt-BR.json";
 import enUS from "./en-US.json";
 

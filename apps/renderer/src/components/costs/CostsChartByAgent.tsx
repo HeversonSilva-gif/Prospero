@@ -3,7 +3,7 @@
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import type { CostAgentTotal } from "@dashboard-agent/shared";
+import type { CostAgentTotal } from "@prospero/shared";
 import { formatTokens } from "../../lib/costs/formatCents.js";
 
 type Props = { rows: CostAgentTotal[] };

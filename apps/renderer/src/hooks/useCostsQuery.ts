@@ -3,7 +3,7 @@
 // React render.
 
 import { useCallback, useEffect, useState } from "react";
-import type { CostsQueryInput, CostsQueryResult, CostsQueryScope } from "@dashboard-agent/shared";
+import type { CostsQueryInput, CostsQueryResult, CostsQueryScope } from "@prospero/shared";
 
 export type DateRange = "1d" | "7d" | "30d";
 
@@ -56,7 +56,7 @@ export const useCostsQuery = (
         ...(agentFilter.refId !== undefined ? { refId: agentFilter.refId } : {}),
         ...(filters.adapterName !== "" ? { adapterName: filters.adapterName } : {}),
       };
-      const r = await window.dashboardAgent.costs.query(input);
+      const r = await window.prospero.costs.query(input);
       setResult(r);
     } finally {
       setLoading(false);

@@ -10,8 +10,8 @@ export const TitleBar: FC = () => {
   const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
-    void window.dashboardAgent.windowControls.isMaximized().then(setIsMaximized);
-    const off = window.dashboardAgent.windowControls.onStateChanged((s) => {
+    void window.prospero.windowControls.isMaximized().then(setIsMaximized);
+    const off = window.prospero.windowControls.onStateChanged((s) => {
       setIsMaximized(s.isMaximized);
     });
     return off;
@@ -27,7 +27,7 @@ export const TitleBar: FC = () => {
         <button
           type="button"
           aria-label="minimize"
-          onClick={() => void window.dashboardAgent.windowControls.minimize()}
+          onClick={() => void window.prospero.windowControls.minimize()}
           className="h-full w-11 flex items-center justify-center text-ink-muted hover:bg-surface-soft hover:text-ink"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
@@ -37,7 +37,7 @@ export const TitleBar: FC = () => {
         <button
           type="button"
           aria-label="maximize"
-          onClick={() => void window.dashboardAgent.windowControls.maximizeToggle()}
+          onClick={() => void window.prospero.windowControls.maximizeToggle()}
           className="h-full w-11 flex items-center justify-center text-ink-muted hover:bg-surface-soft hover:text-ink"
         >
           {isMaximized ? (
@@ -78,7 +78,7 @@ export const TitleBar: FC = () => {
         <button
           type="button"
           aria-label="close"
-          onClick={() => void window.dashboardAgent.windowControls.close()}
+          onClick={() => void window.prospero.windowControls.close()}
           className="h-full w-11 flex items-center justify-center text-ink-muted hover:bg-semantic-danger hover:text-white"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">

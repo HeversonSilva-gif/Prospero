@@ -75,8 +75,8 @@ host. O SQLite nunca sai do host. Nada é exposto na rede (um único canal SSH).
 O adapter lança um processo-filho cujo stdin/stdout **é** o canal do wire
 protocol:
 
-- **Docker local** (validação): `docker run -i dashboard-agent/agent-runner`
-- **VPS remota**: `ssh <user>@<host> -- docker run -i dashboard-agent/agent-runner`
+- **Docker local** (validação): `docker run -i prospero/agent-runner`
+- **VPS remota**: `ssh <user>@<host> -- docker run -i prospero/agent-runner`
 
 Mesma imagem, mesmo runner, mesmo protocolo. O transporte difere **só pelo
 prefixo `ssh`**. Isso é o que faz a validação local de-riscar o caminho remoto.

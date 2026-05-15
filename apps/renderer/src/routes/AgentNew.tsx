@@ -27,7 +27,7 @@ export const AgentNew: FC = () => {
 
   useEffect(() => {
     void (async () => {
-      const cs = await window.dashboardAgent.companies.list();
+      const cs = await window.prospero.companies.list();
       if (cs.length > 0) setCompanyId(cs[0]!.id);
     })();
     void loadRoles();

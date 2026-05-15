@@ -8,10 +8,10 @@ import type {
   ActivityQueryParams,
   ActorKind,
   EntityKind,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 
 // Re-export for ergonomic imports inside main code.
-export type { ActivityQueryFilters, ActivityQueryParams } from "@dashboard-agent/shared";
+export type { ActivityQueryFilters, ActivityQueryParams } from "@prospero/shared";
 
 export interface ActivityRepository {
   query(params: ActivityQueryParams): ActivityEventRow[];

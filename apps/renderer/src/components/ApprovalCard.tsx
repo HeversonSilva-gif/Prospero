@@ -1,6 +1,6 @@
 import { type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { PermissionRequest } from "@dashboard-agent/shared";
+import type { PermissionRequest } from "@prospero/shared";
 
 type Props = {
   request: PermissionRequest;

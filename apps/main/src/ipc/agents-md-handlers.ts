@@ -1,6 +1,6 @@
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 import { parseAgentsMd } from "../agents-md/parser.js";
 import { serializeAgentsMd } from "../agents-md/serialize.js";
 import { hireFromAgentsMd } from "../agents-md/hire.js";

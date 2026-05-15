@@ -1,6 +1,6 @@
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { GoalPlan, GoalPlanStatus } from "@dashboard-agent/shared";
+import type { GoalPlan, GoalPlanStatus } from "@prospero/shared";
 
 const STATUS_BADGE: Record<GoalPlanStatus, string> = {
   proposed: "bg-brand-bg text-brand",

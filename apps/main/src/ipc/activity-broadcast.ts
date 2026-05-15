@@ -3,7 +3,7 @@
 // importing electron — tests inject a vi.fn() instead of this helper.
 
 import { BrowserWindow } from "electron";
-import { IPC, type ActivityEventRow } from "@dashboard-agent/shared";
+import { IPC, type ActivityEventRow } from "@prospero/shared";
 
 export const broadcastActivityNew = (row: ActivityEventRow): void => {
   for (const win of BrowserWindow.getAllWindows()) {

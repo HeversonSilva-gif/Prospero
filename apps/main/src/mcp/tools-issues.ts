@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { BrowserWindow } from "electron";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 import { createIssuesRepository } from "../issues/repository.js";
 import { createIssueCommentsRepository } from "../issues/comments-repository.js";
 import { tryGetRecorder } from "../activity/index.js";

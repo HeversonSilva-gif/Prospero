@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ApiKeyStatus, TokenSource, TokenStatus } from "@dashboard-agent/shared";
+import type { ApiKeyStatus, TokenSource, TokenStatus } from "@prospero/shared";
 
 type State = {
   status: TokenStatus;
@@ -20,34 +20,34 @@ export const useAuthStore = create<State>((set) => ({
 
   load: async () => {
     const [status, apiKeyStatus] = await Promise.all([
-      window.dashboardAgent.auth.status(),
-      window.dashboardAgent.auth.apiKeyStatus(),
+      window.prospero.auth.status(),
+      window.prospero.auth.apiKeyStatus(),
     ]);
     set({ status, apiKeyStatus, loaded: true });
   },
 
   setToken: async (raw, source) => {
-    const status = await window.dashboardAgent.auth.set(raw, source);
+    const status = await window.prospero.auth.set(raw, source);
     set({ status });
   },
 
   importDetected: async () => {
-    const status = await window.dashboardAgent.auth.importDetected();
+    const status = await window.prospero.auth.importDetected();
     set({ status });
   },
 
   clearToken: async () => {
-    const status = await window.dashboardAgent.auth.clear();
+    const status = await window.prospero.auth.clear();
     set({ status });
   },
 
   setApiKey: async (raw) => {
-    const apiKeyStatus = await window.dashboardAgent.auth.apiKeySet(raw);
+    const apiKeyStatus = await window.prospero.auth.apiKeySet(raw);
     set({ apiKeyStatus });
   },
 
   clearApiKey: async () => {
-    const apiKeyStatus = await window.dashboardAgent.auth.apiKeyClear();
+    const apiKeyStatus = await window.prospero.auth.apiKeyClear();
     set({ apiKeyStatus });
   },
 }));

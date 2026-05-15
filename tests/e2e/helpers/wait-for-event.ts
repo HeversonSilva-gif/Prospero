@@ -18,9 +18,9 @@ export const waitForAgentEvent = async (
         const timer = setTimeout(() => reject(new Error("waitForAgentEvent timeout")), timeoutMs);
         const off = (
           window as unknown as {
-            dashboardAgent: { agents: { onEvent: (cb: (ev: unknown) => void) => () => void } };
+            prospero: { agents: { onEvent: (cb: (ev: unknown) => void) => () => void } };
           }
-        ).dashboardAgent.agents.onEvent((ev) => {
+        ).prospero.agents.onEvent((ev) => {
           if (predicateFn(ev) === true) {
             clearTimeout(timer);
             off();

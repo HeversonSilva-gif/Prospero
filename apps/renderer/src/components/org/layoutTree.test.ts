@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 import { layoutTree } from "./layoutTree.js";
 
 const mkAgent = (id: string, reportsTo: string | null): Agent => ({

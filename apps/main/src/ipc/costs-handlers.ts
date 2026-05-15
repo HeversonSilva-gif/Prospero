@@ -4,7 +4,7 @@
 
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 import type {
   CostsQueryInput,
   CostsQueryResult,
@@ -13,7 +13,7 @@ import type {
   CostBucket,
   CostAgentTotal,
   CostProjectTotal,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { createBudgetsRepository } from "../costs/budgets-repository.js";
 
 const bucketMs = (b: "day" | "hour"): number => (b === "day" ? 86_400_000 : 3_600_000);

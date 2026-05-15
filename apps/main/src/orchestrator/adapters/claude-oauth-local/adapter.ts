@@ -11,7 +11,7 @@ import type {
   ParsedEvent,
   SpawnContext,
   UsageEstimate,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { buildClaudeArgs } from "./build-args.js";
 import { findClaudeExe } from "./resolve-binary.js";
 import { prepareSandbox, seedSandboxCredentials, writeSandboxSettings } from "./prepare-sandbox.js";

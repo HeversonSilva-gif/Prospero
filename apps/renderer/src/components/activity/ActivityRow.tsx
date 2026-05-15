@@ -1,6 +1,6 @@
 import { type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { ActivityEventRow, ActorKind } from "@dashboard-agent/shared";
+import type { ActivityEventRow, ActorKind } from "@prospero/shared";
 import { renderDescription, ENTITY_IS_NAVIGABLE, type Lookups } from "./activityRender.js";
 import { useRelativeTime } from "../../hooks/useRelativeTime.js";
 

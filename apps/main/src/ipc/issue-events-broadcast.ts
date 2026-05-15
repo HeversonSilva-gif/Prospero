@@ -1,5 +1,5 @@
 import { BrowserWindow } from "electron";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 
 export type IssueChangedEvent =
   | { kind: "created"; issueId: string; companyId: string }

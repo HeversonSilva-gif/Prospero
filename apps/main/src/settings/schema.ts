@@ -4,7 +4,7 @@ import {
   DEFAULT_CLAUDE_MODEL,
   MODEL_ID_REGEX,
   type AppSettings,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 
 export const AppSettingsSchema = z.object({
   language: z.enum(["pt-BR", "en-US"]),

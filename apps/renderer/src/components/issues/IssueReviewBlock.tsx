@@ -1,7 +1,7 @@
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import ReactDiffViewer from "react-diff-viewer-continued";
-import type { IssueArtifact } from "@dashboard-agent/shared";
+import type { IssueArtifact } from "@prospero/shared";
 import { useIssuesStore } from "../../stores/issues.js";
 import { useSettingsStore } from "../../stores/settings.js";
 import {

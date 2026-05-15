@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { RoleDetail, RoleTemplate } from "@dashboard-agent/shared";
+import type { RoleDetail, RoleTemplate } from "@prospero/shared";
 
 type RoleSummary = RoleTemplate & { agentCount: number };
 
@@ -19,7 +19,7 @@ export const useRolesStore = create<State>((set, get) => ({
   loaded: false,
 
   load: async () => {
-    const list = await window.dashboardAgent.roles.list();
+    const list = await window.prospero.roles.list();
     set({ roles: list, loaded: true });
     if (get().selectedId === null && list.length > 0) {
       await get().select(list[0]!.id);
@@ -28,7 +28,7 @@ export const useRolesStore = create<State>((set, get) => ({
 
   select: async (id) => {
     set({ selectedId: id });
-    const detail = await window.dashboardAgent.roles.get(id);
+    const detail = await window.prospero.roles.get(id);
     set({ selectedDetail: detail });
   },
 }));

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { RoleTemplate } from "@dashboard-agent/shared";
+import type { RoleTemplate } from "@prospero/shared";
 
 type Props = {
   currentRoleId: string | null;
@@ -17,7 +17,7 @@ export const ChangeRoleModal: FC<Props> = ({ currentRoleId, onConfirm, onCancel 
 
   useEffect(() => {
     void (async () => {
-      const list = await window.dashboardAgent.roles.list();
+      const list = await window.prospero.roles.list();
       setRoles(list);
     })();
   }, []);

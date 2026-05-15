@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { IssueArtifact, IssueArtifactKind } from "@dashboard-agent/shared";
+import type { IssueArtifact, IssueArtifactKind } from "@prospero/shared";
 import { pickDiffArtifact } from "./artifact.js";
 
 const make = (

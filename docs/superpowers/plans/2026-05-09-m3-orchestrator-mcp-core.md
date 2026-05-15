@@ -8,7 +8,7 @@
 
 **Tech stack additions:** `@modelcontextprotocol/sdk@^1.0.0`, `zod` (already added in M2), Node `child_process.spawn`, `readline` for line-buffered JSONL parsing.
 
-**Spec reference:** `docs/superpowers/specs/2026-05-09-dashboard-agent-design.md` (§5.2 MCP tools list, §5.4 fluxo, §8.2 sandbox of paths, §9 token budget caps; M3 only seeds the budget machinery).
+**Spec reference:** `docs/superpowers/specs/2026-05-09-prospero-design.md` (§5.2 MCP tools list, §5.4 fluxo, §8.2 sandbox of paths, §9 token budget caps; M3 only seeds the budget machinery).
 
 **Validated technical facts** (confirmed by claude-code-guide subagent):
 
@@ -283,8 +283,8 @@ MESSAGE_LIST: "message:list",
 - [ ] **Step 4: Verify green + commit**
 
 ```powershell
-pnpm --filter @dashboard-agent/shared test
-pnpm --filter @dashboard-agent/shared typecheck
+pnpm --filter @prospero/shared test
+pnpm --filter @prospero/shared typecheck
 git add packages/shared
 git commit -m "feat(shared): add m3 types (agent, company, message, inbox) and channels"
 ```
@@ -344,7 +344,7 @@ describe("companies repository", () => {
 // apps/main/src/companies/repository.ts
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type { Company } from "@dashboard-agent/shared";
+import type { Company } from "@prospero/shared";
 
 export type CompaniesRepository = {
   create(input: { name: string }): Company;
@@ -461,7 +461,7 @@ describe("agents repository", () => {
 // apps/main/src/agents/repository.ts
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type { Agent, AgentMode, AgentStatus } from "@dashboard-agent/shared";
+import type { Agent, AgentMode, AgentStatus } from "@prospero/shared";
 
 type Row = {
   id: string;
@@ -569,7 +569,7 @@ export const createAgentsRepository = (db: Database.Database): AgentsRepository 
 ```ts
 // apps/main/src/companies/seed.ts
 import type Database from "better-sqlite3";
-import type { Company } from "@dashboard-agent/shared";
+import type { Company } from "@prospero/shared";
 import { createCompaniesRepository } from "./repository.js";
 import { createCEOAgent } from "../agents/seed.js";
 
@@ -584,7 +584,7 @@ export const createDemoCompany = (db: Database.Database): Company => {
 ```ts
 // apps/main/src/agents/seed.ts
 import type Database from "better-sqlite3";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 import { createAgentsRepository } from "./repository.js";
 
 const CEO_SYSTEM_PROMPT = `You are the CEO of a small company. Your role:
@@ -636,7 +636,7 @@ describe("createDemoCompany", () => {
 - [ ] **Step 7: Verify + commit**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 git add apps/main
 git commit -m "feat(domain): add companies, agents repositories and demo seed"
 ```
@@ -672,7 +672,7 @@ import type {
   Message,
   SenderKind,
   ToolCallView,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { threadKey } from "./thread-key.js";
 
 type ThreadRow = {
@@ -857,7 +857,7 @@ describe("messages repository", () => {
 // apps/main/src/inbox/repository.ts
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type { InboxItem, InboxKind } from "@dashboard-agent/shared";
+import type { InboxItem, InboxKind } from "@prospero/shared";
 
 type Row = {
   id: string;
@@ -948,7 +948,7 @@ Mirror the messages test pattern with company setup + a couple of `create()` cal
 - [ ] **Step 6: Verify + commit**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 git add apps/main
 git commit -m "feat(domain): add messages and inbox repositories"
 ```
@@ -967,7 +967,7 @@ git commit -m "feat(domain): add messages and inbox repositories"
 - [ ] **Step 1: Install SDK**
 
 ```powershell
-pnpm --filter @dashboard-agent/main add @modelcontextprotocol/sdk@^1.0.0
+pnpm --filter @prospero/main add @modelcontextprotocol/sdk@^1.0.0
 ```
 
 - [ ] **Step 2: Auth check**
@@ -1154,15 +1154,15 @@ The MCP server runs as a CHILD PROCESS spawned by Claude. It needs its own bundl
   sourcemap: true,
   clean: false,
   external: ["better-sqlite3"], // not used, but excluded just in case
-  noExternal: ["@dashboard-agent/shared", "@modelcontextprotocol/sdk"],
+  noExternal: ["@prospero/shared", "@modelcontextprotocol/sdk"],
 }
 ```
 
 - [ ] **Step 7: Verify + commit**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
-pnpm --filter @dashboard-agent/main build
+pnpm --filter @prospero/main test
+pnpm --filter @prospero/main build
 git add apps/main pnpm-lock.yaml
 git commit -m "feat(mcp): add internal mcp server with mock orchestration tools"
 ```
@@ -1322,7 +1322,7 @@ export const parseStreamLine = (line: string): ParsedEvent | null => {
 - [ ] **Step 3: Verify + commit**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 git add apps/main
 git commit -m "feat(orchestrator): add stream-json line parser"
 ```
@@ -1343,7 +1343,7 @@ git commit -m "feat(orchestrator): add stream-json line parser"
 ```ts
 // apps/main/src/orchestrator/env.ts
 import { randomBytes } from "node:crypto";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 
 export type SpawnEnv = {
   CLAUDE_CODE_OAUTH_TOKEN: string;
@@ -1399,7 +1399,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 import { parseStreamLine, type ParsedEvent } from "./stream-parser.js";
 import { buildSpawnEnv } from "./env.js";
 import { writeMcpConfigFile } from "./mcp-config.js";
@@ -1559,7 +1559,7 @@ describe("writeMcpConfigFile", () => {
 - [ ] **Step 5: Verify + commit**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 git add apps/main
 git commit -m "feat(orchestrator): add spawn lifecycle, env builder, mcp-config writer"
 ```
@@ -1581,7 +1581,7 @@ git commit -m "feat(orchestrator): add spawn lifecycle, env builder, mcp-config 
 // apps/main/src/ipc/companies-handlers.ts
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type Company } from "@dashboard-agent/shared";
+import { IPC, type Company } from "@prospero/shared";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createDemoCompany } from "../companies/seed.js";
 
@@ -1598,7 +1598,7 @@ export const registerCompaniesHandlers = (db: Database.Database): void => {
 // apps/main/src/ipc/messages-handlers.ts
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type Message } from "@dashboard-agent/shared";
+import { IPC, type Message } from "@prospero/shared";
 import { createMessagesRepository } from "../messages/repository.js";
 
 export const registerMessagesHandlers = (db: Database.Database): void => {
@@ -1627,7 +1627,7 @@ import {
   type AgentEvent,
   type Message,
   type ToolCallView,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
@@ -1823,7 +1823,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
 // apps/main/src/ipc/handlers.ts
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 import { registerSettingsHandlers } from "./settings-handlers.js";
 import { registerAuthHandlers } from "./auth-handlers.js";
 import { registerCompaniesHandlers } from "./companies-handlers.js";
@@ -1854,9 +1854,9 @@ import {
   type AgentEvent,
   type Company,
   type Message,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 
-contextBridge.exposeInMainWorld("dashboardAgent", {
+contextBridge.exposeInMainWorld("prospero", {
   ping: (): Promise<string> => ipcRenderer.invoke(IPC.PING),
   settings: {
     get: () => ipcRenderer.invoke(IPC.SETTINGS_GET) as Promise<AppSettings>,
@@ -1896,7 +1896,7 @@ contextBridge.exposeInMainWorld("dashboardAgent", {
 
 - [ ] **Step 5: Update env.d.ts in renderer to mirror the new namespaces**
 
-Extend `Window["dashboardAgent"]` with `companies`, `agents`, `messages` matching the preload shape above.
+Extend `Window["prospero"]` with `companies`, `agents`, `messages` matching the preload shape above.
 
 - [ ] **Step 6: Verify + commit**
 
@@ -1929,7 +1929,7 @@ git commit -m "feat(ipc): add orchestrator, companies, messages handlers + prelo
 ```ts
 // apps/renderer/src/stores/agents.ts
 import { create } from "zustand";
-import type { Agent, AgentStatus } from "@dashboard-agent/shared";
+import type { Agent, AgentStatus } from "@prospero/shared";
 
 type State = {
   agents: Agent[];
@@ -1942,7 +1942,7 @@ export const useAgentsStore = create<State>((set) => ({
   agents: [],
   loaded: false,
   load: async (companyId) => {
-    const list = await window.dashboardAgent.agents.list(companyId);
+    const list = await window.prospero.agents.list(companyId);
     set({ agents: list, loaded: true });
   },
   applyStatus: (agentId, status, currentAction) =>
@@ -1959,7 +1959,7 @@ export const useAgentsStore = create<State>((set) => ({
 ```ts
 // apps/renderer/src/stores/messages.ts
 import { create } from "zustand";
-import type { Message, ToolCallView } from "@dashboard-agent/shared";
+import type { Message, ToolCallView } from "@prospero/shared";
 
 type State = {
   byThreadId: Record<string, Message[]>;
@@ -1971,7 +1971,7 @@ type State = {
 export const useMessagesStore = create<State>((set, get) => ({
   byThreadId: {},
   load: async (companyId, participants) => {
-    const list = await window.dashboardAgent.messages.list(companyId, participants);
+    const list = await window.prospero.messages.list(companyId, participants);
     if (list.length === 0) return null;
     const threadId = list[0]!.threadId;
     set((s) => ({ byThreadId: { ...s.byThreadId, [threadId]: list } }));
@@ -2002,7 +2002,7 @@ export const useMessagesStore = create<State>((set, get) => ({
 
 ```tsx
 // apps/renderer/src/components/ToolCallCard.tsx
-import type { ToolCallView } from "@dashboard-agent/shared";
+import type { ToolCallView } from "@prospero/shared";
 
 export const ToolCallCard = ({ tool }: { tool: ToolCallView }) => {
   const inputJson = JSON.stringify(tool.input, null, 2);
@@ -2028,7 +2028,7 @@ export const ToolCallCard = ({ tool }: { tool: ToolCallView }) => {
 
 ```tsx
 // apps/renderer/src/components/MessageList.tsx
-import type { Message } from "@dashboard-agent/shared";
+import type { Message } from "@prospero/shared";
 import { ToolCallCard } from "./ToolCallCard.js";
 
 export const MessageList = ({ messages }: { messages: Message[] }) => (
@@ -2146,7 +2146,7 @@ export const Composer = ({ onSubmit, disabled = false }: Props) => {
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { Message } from "@dashboard-agent/shared";
+import type { Message } from "@prospero/shared";
 import { useAgentsStore } from "../stores/agents.js";
 import { useMessagesStore } from "../stores/messages.js";
 import { MessageList } from "../components/MessageList.js";
@@ -2172,7 +2172,7 @@ export const Agent = () => {
 
   const onSend = async (content: string) => {
     if (agent === undefined) return;
-    const userMsg = await window.dashboardAgent.agents.sendMessage(agent.id, content);
+    const userMsg = await window.prospero.agents.sendMessage(agent.id, content);
     if (threadId === null) setThreadId(userMsg.threadId);
     // Note: store.append is also called by the global onEvent listener; we don't double-append
     // because the broadcast listener handles it once.
@@ -2204,7 +2204,7 @@ export const Agent = () => {
 
 - [ ] **Step 7: Wire global event listener in App.tsx**
 
-Subscribe to `window.dashboardAgent.agents.onEvent` once at app boot and dispatch to stores.
+Subscribe to `window.prospero.agents.onEvent` once at app boot and dispatch to stores.
 
 ```tsx
 // apps/renderer/src/App.tsx — within useEffect that runs at boot
@@ -2217,7 +2217,7 @@ const patchToolCall = useMessagesStore((s) => s.patchToolCallResult);
 const applyStatus = useAgentsStore((s) => s.applyStatus);
 
 useEffect(() => {
-  const off = window.dashboardAgent.agents.onEvent((ev) => {
+  const off = window.prospero.agents.onEvent((ev) => {
     if (ev.kind === "message-append") appendMessage(ev.message);
     else if (ev.kind === "tool-result")
       patchToolCall(ev.threadId, ev.toolCallId, ev.result);
@@ -2248,7 +2248,7 @@ export const Dashboard = () => {
   const loadAgents = useAgentsStore((s) => s.load);
 
   const onCreateDemo = async () => {
-    const company = await window.dashboardAgent.companies.createDemo();
+    const company = await window.prospero.companies.createDemo();
     await loadAgents(company.id);
     const updated = useAgentsStore.getState().agents;
     if (updated.length > 0) navigate(`/agents/${updated[0]!.id}`);

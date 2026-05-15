@@ -112,7 +112,7 @@ describe("parseSettings defaultAlwaysOn", () => {
 });
 ```
 
-Run: `pnpm --filter @dashboard-agent/main test -- schema`. Expected FAIL.
+Run: `pnpm --filter @prospero/main test -- schema`. Expected FAIL.
 
 - [ ] **Step 1.3: Extend zod schema**
 
@@ -145,7 +145,7 @@ defaultAgentMode: "supervised",
 defaultAlwaysOn: false,
 ```
 
-Run: `pnpm --filter @dashboard-agent/main test -- settings`. Expected PASS.
+Run: `pnpm --filter @prospero/main test -- settings`. Expected PASS.
 
 - [ ] **Step 1.5: Renderer settings store default**
 
@@ -156,7 +156,7 @@ defaultAgentMode: "supervised",
 defaultAlwaysOn: false,
 ```
 
-(Also fix the type import if AgentMode wasn't imported there already — pull it from `@dashboard-agent/shared`.)
+(Also fix the type import if AgentMode wasn't imported there already — pull it from `@prospero/shared`.)
 
 - [ ] **Step 1.6: Shared types test**
 
@@ -265,7 +265,7 @@ export const RoleTemplateGalleryModal = ({ onClose }: Props) => {
 - [ ] **Step 2.2: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/components/RoleTemplateGalleryModal.tsx
 git commit -m "feat(m9): role template gallery modal — picks template + nav to /agents/new"
 ```
@@ -287,7 +287,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useAgentsStore } from "../stores/agents.js";
 import { RoleTemplateGalleryModal } from "../components/RoleTemplateGalleryModal.js";
-import type { AgentStatus } from "@dashboard-agent/shared";
+import type { AgentStatus } from "@prospero/shared";
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
   idle: "bg-ink-soft",
@@ -404,7 +404,7 @@ Find the `<Route path="/agents/new"` block. Above it, add the new `/agents` rout
 - [ ] **Step 3.3: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/routes/Agents.tsx apps/renderer/src/App.tsx
 git commit -m "feat(m9): /agents list route + sidebar link + gallery wiring"
 ```
@@ -468,7 +468,7 @@ Skip this step.
 - [ ] **Step 4.3: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/routes/AgentNew.tsx
 git commit -m "feat(m9): agent-new reads ?template= query + applies default mode setting"
 ```
@@ -486,7 +486,7 @@ Edit `apps/renderer/src/routes/Settings.tsx`. Near the top of the component (whe
 
 ```typescript
 const updateSetting = async (patch: Partial<{ defaultAgentMode: "supervised" | "auto"; defaultAlwaysOn: boolean }>) => {
-  await window.dashboardAgent.settings.update(patch);
+  await window.prospero.settings.update(patch);
   await loadSettings();
 };
 ```
@@ -541,7 +541,7 @@ Just before the closing `</div>` of the route (between the existing Executor mod
 - [ ] **Step 5.2: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/routes/Settings.tsx
 git commit -m "feat(m9): settings — defaults for new agents section (mode + alwaysOn)"
 ```
@@ -663,7 +663,7 @@ it("includes the M9 PR-C agents-list + settings defaults keys in both locales", 
 });
 ```
 
-Run: `pnpm --filter @dashboard-agent/renderer test -- parity`. Expected PASS.
+Run: `pnpm --filter @prospero/renderer test -- parity`. Expected PASS.
 
 - [ ] **Step 6.4: Commit**
 
@@ -747,9 +747,9 @@ git commit -m "docs(m9): close pr-c agents-list + settings defaults in roadmap (
 ## Task 9: Memory + handoff
 
 **Files:**
-- Create: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\project_m9_pr_c_lessons.md`
-- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\MEMORY.md`
-- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\project_session_handoff.md`
+- Create: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\project_m9_pr_c_lessons.md`
+- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\MEMORY.md`
+- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\project_session_handoff.md`
 
 - [ ] **Step 9.1: Lessons memory**
 

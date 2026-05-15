@@ -1,4 +1,4 @@
-# Dashboard Agent
+# Prospero
 
 Local orchestrator for Claude Code agents using the Claude Max OAuth login — no API key required.
 
@@ -26,7 +26,7 @@ If you already pay for Claude Max, you shouldn't need a separate API key just to
 - [ ] M8 — Token efficiency
 - [ ] M9 — Open-source readiness
 
-See [`docs/superpowers/specs/2026-05-09-dashboard-agent-design.md`](docs/superpowers/specs/2026-05-09-dashboard-agent-design.md) for the full design.
+See [`docs/superpowers/specs/2026-05-09-prospero-design.md`](docs/superpowers/specs/2026-05-09-prospero-design.md) for the full design.
 
 ## Disclaimer
 

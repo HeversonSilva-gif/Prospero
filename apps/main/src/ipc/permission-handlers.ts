@@ -2,7 +2,7 @@ import { ipcMain, BrowserWindow, app } from "electron";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type Database from "better-sqlite3";
-import { IPC, type PermissionResolution, type PermissionRequest } from "@dashboard-agent/shared";
+import { IPC, type PermissionResolution, type PermissionRequest } from "@prospero/shared";
 import { getPermissionsDir } from "../security/permissions-dir.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { createApprovalsRepository } from "../approvals/repository.js";

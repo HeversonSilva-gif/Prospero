@@ -7,7 +7,7 @@ import {
   type ActorKind,
   type EntityKind,
   type Agent,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 
 export type WhenKey = "today" | "7d" | "30d" | "all";
 

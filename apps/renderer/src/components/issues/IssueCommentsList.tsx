@@ -1,6 +1,6 @@
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { IssueComment, Agent } from "@dashboard-agent/shared";
+import type { IssueComment, Agent } from "@prospero/shared";
 
 type Props = { comments: IssueComment[]; agentMap: Map<string, Agent> };
 

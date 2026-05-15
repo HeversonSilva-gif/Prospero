@@ -4,7 +4,7 @@
 
 **Goal:** Scaffold the new `apps/agent-runner` app and make it speak the wire protocol over stdio for the two simplest methods — `handshake` and `health`.
 
-**Architecture:** A self-contained Node app, bundled by tsup into one ESM file for the Docker image. It runs a `WireServer` (from `@dashboard-agent/shared`, built in PR-A) over a `StdioWireTransport` that wraps `process.stdin`/`process.stdout`. Request handlers are pure functions over a small mutable `RunnerState`. This PR stops short of spawning `claude` — that is PR-B.2.
+**Architecture:** A self-contained Node app, bundled by tsup into one ESM file for the Docker image. It runs a `WireServer` (from `@prospero/shared`, built in PR-A) over a `StdioWireTransport` that wraps `process.stdin`/`process.stdout`. Request handlers are pure functions over a small mutable `RunnerState`. This PR stops short of spawning `claude` — that is PR-B.2.
 
 **Tech Stack:** TypeScript, tsup, vitest, zod, pnpm workspace.
 
@@ -20,9 +20,9 @@
 ## File Structure
 
 **Created — app scaffold:**
-- `apps/agent-runner/package.json` — workspace package `@dashboard-agent/agent-runner`.
+- `apps/agent-runner/package.json` — workspace package `@prospero/agent-runner`.
 - `apps/agent-runner/tsconfig.json` — extends the repo base config.
-- `apps/agent-runner/tsup.config.ts` — single ESM bundle, `@dashboard-agent/shared` + `zod` bundled in.
+- `apps/agent-runner/tsup.config.ts` — single ESM bundle, `@prospero/shared` + `zod` bundled in.
 
 **Created — source (`apps/agent-runner/src/`):**
 - `state.ts` — `RunnerState` type + `createRunnerState()`.
@@ -44,7 +44,7 @@
 - Imports use explicit `.js` extensions; `verbatimModuleSyntax` is on, so type-only imports need the `type` modifier.
 - `pnpm lint` runs `eslint src` only — test files are typechecked but not linted.
 - `dist/` is gitignored repo-wide.
-- Run one test file: `pnpm --filter @dashboard-agent/agent-runner exec vitest run tests/<file>`.
+- Run one test file: `pnpm --filter @prospero/agent-runner exec vitest run tests/<file>`.
 
 ---
 
@@ -57,7 +57,7 @@
 
 ```json
 {
-  "name": "@dashboard-agent/agent-runner",
+  "name": "@prospero/agent-runner",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -69,7 +69,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@dashboard-agent/shared": "workspace:*",
+    "@prospero/shared": "workspace:*",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -103,7 +103,7 @@
 ```ts
 import { defineConfig } from "tsup";
 
-// One self-contained ESM bundle for the Docker image. @dashboard-agent/shared
+// One self-contained ESM bundle for the Docker image. @prospero/shared
 // is a workspace package and zod is bundled in, so the container needs no
 // node_modules at runtime.
 export default defineConfig({
@@ -114,7 +114,7 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  noExternal: ["@dashboard-agent/shared", "zod"],
+  noExternal: ["@prospero/shared", "zod"],
 });
 ```
 
@@ -127,17 +127,17 @@ export {};
 - [ ] **Step 5: Install and link the workspace**
 
 Run: `pnpm install`
-Expected: completes without error; `@dashboard-agent/agent-runner` is linked into the workspace and `pnpm-lock.yaml` is updated.
+Expected: completes without error; `@prospero/agent-runner` is linked into the workspace and `pnpm-lock.yaml` is updated.
 
 - [ ] **Step 6: Verify the build works**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner build`
+Run: `pnpm --filter @prospero/agent-runner build`
 Expected: tsup succeeds and creates `apps/agent-runner/dist/index.js`.
 
 - [ ] **Step 7: Verify typecheck across the workspace**
 
 Run: `pnpm -r typecheck`
-Expected: all packages green, including the new `@dashboard-agent/agent-runner`.
+Expected: all packages green, including the new `@prospero/agent-runner`.
 
 - [ ] **Step 8: Confirm build output is not tracked, then commit**
 
@@ -186,7 +186,7 @@ describe("createRunnerState", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner exec vitest run tests/state.test.ts`
+Run: `pnpm --filter @prospero/agent-runner exec vitest run tests/state.test.ts`
 Expected: FAIL — cannot resolve `../src/state.js`.
 
 - [ ] **Step 3: Create the state module**
@@ -194,7 +194,7 @@ Expected: FAIL — cannot resolve `../src/state.js`.
 Create `apps/agent-runner/src/state.ts`:
 
 ```ts
-import type { WireCredentials } from "@dashboard-agent/shared";
+import type { WireCredentials } from "@prospero/shared";
 
 /** Mutable state shared across the runner's wire handlers. */
 export type RunnerState = {
@@ -213,12 +213,12 @@ export const createRunnerState = (now: number = Date.now()): RunnerState => ({
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner exec vitest run tests/state.test.ts`
+Run: `pnpm --filter @prospero/agent-runner exec vitest run tests/state.test.ts`
 Expected: PASS — 3 tests.
 
 - [ ] **Step 5: Typecheck and commit**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner typecheck`
+Run: `pnpm --filter @prospero/agent-runner typecheck`
 Expected: no errors.
 
 ```bash
@@ -240,13 +240,13 @@ Create `apps/agent-runner/tests/handshake.test.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest";
-import { WireHandlerError } from "@dashboard-agent/shared";
+import { WireHandlerError } from "@prospero/shared";
 import { handleHandshake } from "../src/handlers/handshake.js";
 import { createRunnerState } from "../src/state.js";
 
 const validParams = {
   protocolVersion: 1,
-  client: "dashboard-agent",
+  client: "prospero",
   clientVersion: "0.10.0",
   credentials: { kind: "oauth", oauthToken: "tok-123" },
 };
@@ -308,7 +308,7 @@ describe("handleHandshake", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner exec vitest run tests/handshake.test.ts`
+Run: `pnpm --filter @prospero/agent-runner exec vitest run tests/handshake.test.ts`
 Expected: FAIL — cannot resolve `../src/handlers/handshake.js`.
 
 - [ ] **Step 3: Create the handshake handler**
@@ -322,7 +322,7 @@ import {
   WireErrorCode,
   WireHandlerError,
   type HandshakeResult,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import type { RunnerState } from "../state.js";
 
 const RUNNER_SERVER_NAME = "agent-runner";
@@ -373,14 +373,14 @@ export const handleHandshake = (params: unknown, state: RunnerState): HandshakeR
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner exec vitest run tests/handshake.test.ts`
+Run: `pnpm --filter @prospero/agent-runner exec vitest run tests/handshake.test.ts`
 Expected: PASS — 5 tests.
 
 - [ ] **Step 5: Typecheck, lint, and commit**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner typecheck`
+Run: `pnpm --filter @prospero/agent-runner typecheck`
 Expected: no errors.
-Run: `pnpm --filter @dashboard-agent/agent-runner lint`
+Run: `pnpm --filter @prospero/agent-runner lint`
 Expected: no errors.
 
 ```bash
@@ -420,7 +420,7 @@ describe("handleHealth", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner exec vitest run tests/health.test.ts`
+Run: `pnpm --filter @prospero/agent-runner exec vitest run tests/health.test.ts`
 Expected: FAIL — cannot resolve `../src/handlers/health.js`.
 
 - [ ] **Step 3: Create the health handler**
@@ -428,7 +428,7 @@ Expected: FAIL — cannot resolve `../src/handlers/health.js`.
 Create `apps/agent-runner/src/handlers/health.ts`:
 
 ```ts
-import type { HealthResult } from "@dashboard-agent/shared";
+import type { HealthResult } from "@prospero/shared";
 import type { RunnerState } from "../state.js";
 
 /**
@@ -445,14 +445,14 @@ export const handleHealth = (state: RunnerState, now: number = Date.now()): Heal
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner exec vitest run tests/health.test.ts`
+Run: `pnpm --filter @prospero/agent-runner exec vitest run tests/health.test.ts`
 Expected: PASS — 2 tests.
 
 - [ ] **Step 5: Typecheck, lint, and commit**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner typecheck`
+Run: `pnpm --filter @prospero/agent-runner typecheck`
 Expected: no errors.
-Run: `pnpm --filter @dashboard-agent/agent-runner lint`
+Run: `pnpm --filter @prospero/agent-runner lint`
 Expected: no errors.
 
 ```bash
@@ -518,7 +518,7 @@ describe("StdioWireTransport", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner exec vitest run tests/stdio-transport.test.ts`
+Run: `pnpm --filter @prospero/agent-runner exec vitest run tests/stdio-transport.test.ts`
 Expected: FAIL — cannot resolve `../src/transport/stdio-transport.js`.
 
 - [ ] **Step 3: Create the stdio transport**
@@ -527,7 +527,7 @@ Create `apps/agent-runner/src/transport/stdio-transport.ts`:
 
 ```ts
 import type { Readable, Writable } from "node:stream";
-import type { WireTransport } from "@dashboard-agent/shared";
+import type { WireTransport } from "@prospero/shared";
 
 /**
  * WireTransport over a Readable/Writable pair — `process.stdin`/`process.stdout`
@@ -570,14 +570,14 @@ export class StdioWireTransport implements WireTransport {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner exec vitest run tests/stdio-transport.test.ts`
+Run: `pnpm --filter @prospero/agent-runner exec vitest run tests/stdio-transport.test.ts`
 Expected: PASS — 3 tests.
 
 - [ ] **Step 5: Typecheck, lint, and commit**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner typecheck`
+Run: `pnpm --filter @prospero/agent-runner typecheck`
 Expected: no errors.
-Run: `pnpm --filter @dashboard-agent/agent-runner lint`
+Run: `pnpm --filter @prospero/agent-runner lint`
 Expected: no errors.
 
 ```bash
@@ -599,7 +599,7 @@ git commit -m "feat(m10): runner stdio wire transport"
 Create `apps/agent-runner/tests/memory-transport.ts`:
 
 ```ts
-import type { WireTransport } from "@dashboard-agent/shared";
+import type { WireTransport } from "@prospero/shared";
 
 export type MemoryTransportPair = {
   a: WireTransport;
@@ -656,7 +656,7 @@ Create `apps/agent-runner/tests/runner.test.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest";
-import { decodeWireMessage, encodeWireMessage } from "@dashboard-agent/shared";
+import { decodeWireMessage, encodeWireMessage } from "@prospero/shared";
 import { createRunner } from "../src/runner.js";
 import { createMemoryTransportPair } from "./memory-transport.js";
 
@@ -710,7 +710,7 @@ describe("createRunner", () => {
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner exec vitest run tests/runner.test.ts`
+Run: `pnpm --filter @prospero/agent-runner exec vitest run tests/runner.test.ts`
 Expected: FAIL — cannot resolve `../src/runner.js`.
 
 - [ ] **Step 4: Create the runner module**
@@ -718,7 +718,7 @@ Expected: FAIL — cannot resolve `../src/runner.js`.
 Create `apps/agent-runner/src/runner.ts`:
 
 ```ts
-import { WireServer, type WireTransport } from "@dashboard-agent/shared";
+import { WireServer, type WireTransport } from "@prospero/shared";
 import { createRunnerState, type RunnerState } from "./state.js";
 import { handleHandshake } from "./handlers/handshake.js";
 import { handleHealth } from "./handlers/health.js";
@@ -743,14 +743,14 @@ export const createRunner = (transport: WireTransport): Runner => {
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner exec vitest run tests/runner.test.ts`
+Run: `pnpm --filter @prospero/agent-runner exec vitest run tests/runner.test.ts`
 Expected: PASS — 3 tests.
 
 - [ ] **Step 6: Typecheck, lint, and commit**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner typecheck`
+Run: `pnpm --filter @prospero/agent-runner typecheck`
 Expected: no errors.
-Run: `pnpm --filter @dashboard-agent/agent-runner lint`
+Run: `pnpm --filter @prospero/agent-runner lint`
 Expected: no errors.
 
 ```bash
@@ -782,7 +782,7 @@ process.stderr.write("agent-runner: ready (wire protocol v1)\n");
 
 - [ ] **Step 2: Verify the build works**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner build`
+Run: `pnpm --filter @prospero/agent-runner build`
 Expected: tsup succeeds; `apps/agent-runner/dist/index.js` is regenerated.
 
 - [ ] **Step 3: Smoke-test the entry by hand**
@@ -797,9 +797,9 @@ Expected: stderr prints `agent-runner: ready (wire protocol v1)`, and stdout pri
 
 - [ ] **Step 4: Typecheck, lint, and commit**
 
-Run: `pnpm --filter @dashboard-agent/agent-runner typecheck`
+Run: `pnpm --filter @prospero/agent-runner typecheck`
 Expected: no errors.
-Run: `pnpm --filter @dashboard-agent/agent-runner lint`
+Run: `pnpm --filter @prospero/agent-runner lint`
 Expected: no errors.
 
 ```bash
@@ -840,5 +840,5 @@ Confirm: every changed file is under `apps/agent-runner/` except `pnpm-lock.yaml
 - **Spec coverage (§10 row B, part 1 of 3):** new `apps/agent-runner` app ✓ (Task 1), wire server over stdio ✓ (Tasks 5–6), `handshake` ✓ (Task 3), `health` ✓ (Task 4). Deferred to PR-B.2/B.3 by design: `spawn`/`stdin-write`/`kill` + container sandbox + raw forwarding (B.2), `mcp-bridge` + Docker image + `compose.yml` (B.3).
 - **Spec §5.1 / §5.3 alignment:** the runner is a self-contained Node app bundled by tsup; zod validation lives in the app (handshake handler), not in `packages/shared`.
 - **Placeholder scan:** none — every step has concrete code or an exact command.
-- **Type consistency:** `RunnerState` (`startedAt`, `credentials`) is created by `createRunnerState` (Task 2) and consumed identically by `handleHandshake` (Task 3), `handleHealth` (Task 4), and `createRunner` (Task 6). `WireTransport`, `WireServer`, `WireHandlerError`, `WireErrorCode`, `WIRE_PROTOCOL_VERSION`, `HandshakeResult`, `HealthResult`, `WireCredentials`, `encodeWireMessage`, `decodeWireMessage` are all consumed from `@dashboard-agent/shared` exactly as PR-A exported them.
+- **Type consistency:** `RunnerState` (`startedAt`, `credentials`) is created by `createRunnerState` (Task 2) and consumed identically by `handleHandshake` (Task 3), `handleHealth` (Task 4), and `createRunner` (Task 6). `WireTransport`, `WireServer`, `WireHandlerError`, `WireErrorCode`, `WIRE_PROTOCOL_VERSION`, `HandshakeResult`, `HealthResult`, `WireCredentials`, `encodeWireMessage`, `decodeWireMessage` are all consumed from `@prospero/shared` exactly as PR-A exported them.
 - **Capabilities string:** the handshake advertises `["health"]` in PR-B.1; PR-B.2 extends it to include `"spawn"`/`"stdin"`/`"kill"`.

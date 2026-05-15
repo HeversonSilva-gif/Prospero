@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Issue, IssueDetail, IssueStatus, IssuePriority } from "@dashboard-agent/shared";
+import type { Issue, IssueDetail, IssueStatus, IssuePriority } from "@prospero/shared";
 
 type State = {
   issues: Issue[];
@@ -42,21 +42,21 @@ export const useIssuesStore = create<State>((set, get) => ({
   detail: null,
   loaded: false,
   load: async (companyId) => {
-    const issues = await window.dashboardAgent.issues.list({ companyId });
+    const issues = await window.prospero.issues.list({ companyId });
     set({ issues, loaded: true });
   },
   loadDetail: async (id) => {
-    const detail = await window.dashboardAgent.issues.get(id);
+    const detail = await window.prospero.issues.get(id);
     set({ detail });
   },
   clearDetail: () => set({ detail: null }),
   create: async (input) => {
-    const i = await window.dashboardAgent.issues.create(input);
+    const i = await window.prospero.issues.create(input);
     set((s) => ({ issues: [i, ...s.issues] }));
     return i;
   },
   update: async (input) => {
-    const next = await window.dashboardAgent.issues.update(input);
+    const next = await window.prospero.issues.update(input);
     if (next === null) return;
     set((s) => ({
       issues: s.issues.map((i) => (i.id === next.id ? next : i)),
@@ -64,11 +64,11 @@ export const useIssuesStore = create<State>((set, get) => ({
     }));
   },
   delete: async (id) => {
-    await window.dashboardAgent.issues.delete(id);
+    await window.prospero.issues.delete(id);
     set((s) => ({ issues: s.issues.filter((i) => i.id !== id) }));
   },
   addComment: async (issueId, content) => {
-    await window.dashboardAgent.issues.addComment(issueId, content);
+    await window.prospero.issues.addComment(issueId, content);
     if (get().detail?.issue.id === issueId) await get().loadDetail(issueId);
   },
   optimisticStatus: (id, status) =>

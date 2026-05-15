@@ -2,7 +2,7 @@
 // continuous line instead of skipping gaps. Input must already be daily-
 // bucketed (bucketStart == UTC midnight). Range is [from, to) — half-open.
 
-import type { CostBucket } from "@dashboard-agent/shared";
+import type { CostBucket } from "@prospero/shared";
 
 const DAY_MS = 86_400_000;
 

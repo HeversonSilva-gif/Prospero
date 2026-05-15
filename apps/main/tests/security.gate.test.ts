@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { evaluatePermission } from "../src/security/gate.js";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 
 const agent = (mode: "supervised" | "auto"): Agent => ({
   id: "a",

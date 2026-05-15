@@ -17,12 +17,12 @@ describe("resolveWorkspaceCwd", () => {
 
   it("returns default when null + creates default dir", () => {
     const out = resolveWorkspaceCwd(null);
-    expect(out).toBe(join(homedir(), "DashboardAgent-Workspace"));
+    expect(out).toBe(join(homedir(), "Prospero-Workspace"));
     expect(existsSync(out)).toBe(true);
   });
 
   it("returns default when empty string", () => {
     const out = resolveWorkspaceCwd("");
-    expect(out).toBe(join(homedir(), "DashboardAgent-Workspace"));
+    expect(out).toBe(join(homedir(), "Prospero-Workspace"));
   });
 });

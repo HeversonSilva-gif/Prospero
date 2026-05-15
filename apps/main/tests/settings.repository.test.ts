@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
-import { DEFAULT_CLAUDE_MODEL } from "@dashboard-agent/shared";
+import { DEFAULT_CLAUDE_MODEL } from "@prospero/shared";
 import { applyMigrations } from "../src/db/migrations.js";
 import { createSettingsRepository } from "../src/settings/repository.js";
 

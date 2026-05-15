@@ -1,7 +1,7 @@
 import { type FC, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { SKILL_CATALOG, type RoleDetail as RoleDetailType } from "@dashboard-agent/shared";
+import { SKILL_CATALOG, type RoleDetail as RoleDetailType } from "@prospero/shared";
 
 type Props = {
   detail: RoleDetailType;

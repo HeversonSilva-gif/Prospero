@@ -5,7 +5,7 @@ import type {
   GoalStatus,
   CreateGoalInput,
   ExecutePlanResult,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 
 type State = {
   goals: Goal[];
@@ -42,25 +42,25 @@ export const useGoalsStore = create<State>((set, get) => ({
   load: async (companyId, status) => {
     set({ loading: true });
     const args = status !== undefined ? { companyId, status } : { companyId };
-    const goals = await window.dashboardAgent.goals.list(args);
+    const goals = await window.prospero.goals.list(args);
     set({ goals, loaded: true, loading: false });
   },
 
   loadDetail: async (id) => {
-    const detail = await window.dashboardAgent.goals.get({ id });
+    const detail = await window.prospero.goals.get({ id });
     set({ detail });
   },
 
   clearDetail: () => set({ detail: null }),
 
   create: async (input) => {
-    const goal = await window.dashboardAgent.goals.create(input);
+    const goal = await window.prospero.goals.create(input);
     set((s) => ({ goals: [goal, ...s.goals] }));
     return goal;
   },
 
   requestPlan: async (goalId) => {
-    await window.dashboardAgent.goals.requestPlan({ goalId });
+    await window.prospero.goals.requestPlan({ goalId });
     if (get().detail?.id === goalId) {
       await get().loadDetail(goalId);
     }
@@ -78,7 +78,7 @@ export const useGoalsStore = create<State>((set, get) => ({
     if (opts?.includeIssueIndexes !== undefined)
       args.includeIssueIndexes = opts.includeIssueIndexes;
     if (opts?.mode !== undefined) args.mode = opts.mode;
-    const result = await window.dashboardAgent.goals.approvePlan(args);
+    const result = await window.prospero.goals.approvePlan(args);
     const detail = get().detail;
     if (result.ok && detail?.currentPlan?.id === planId) {
       await get().loadDetail(detail.id);
@@ -87,7 +87,7 @@ export const useGoalsStore = create<State>((set, get) => ({
   },
 
   requestChanges: async (planId, feedback) => {
-    await window.dashboardAgent.goals.requestChanges({ planId, feedback });
+    await window.prospero.goals.requestChanges({ planId, feedback });
     const detail = get().detail;
     if (detail?.currentPlan?.id === planId) {
       await get().loadDetail(detail.id);
@@ -97,7 +97,7 @@ export const useGoalsStore = create<State>((set, get) => ({
   rejectPlan: async (planId, reason) => {
     const args: { planId: string; reason?: string } = { planId };
     if (reason !== undefined) args.reason = reason;
-    await window.dashboardAgent.goals.rejectPlan(args);
+    await window.prospero.goals.rejectPlan(args);
     const detail = get().detail;
     if (detail?.currentPlan?.id === planId) {
       await get().loadDetail(detail.id);
@@ -105,12 +105,12 @@ export const useGoalsStore = create<State>((set, get) => ({
   },
 
   narratedResume: async (goalId) => {
-    await window.dashboardAgent.goals.narratedResume({ goalId });
+    await window.prospero.goals.narratedResume({ goalId });
     if (get().detail?.id === goalId) await get().loadDetail(goalId);
   },
 
   narratedRollback: async (goalId) => {
-    await window.dashboardAgent.goals.narratedRollback({ goalId });
+    await window.prospero.goals.narratedRollback({ goalId });
     if (get().detail?.id === goalId) await get().loadDetail(goalId);
   },
 

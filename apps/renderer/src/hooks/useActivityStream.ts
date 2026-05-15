@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ActivityEventRow, ActivityQueryFilters } from "@dashboard-agent/shared";
+import type { ActivityEventRow, ActivityQueryFilters } from "@prospero/shared";
 
 const PAGE_SIZE = 50;
 
@@ -46,7 +46,7 @@ export const useActivityStream = (
     async (cursor?: { beforeCreatedAt: number; beforeId: string }) => {
       setLoading(true);
       try {
-        const result = await window.dashboardAgent.activity.query({
+        const result = await window.prospero.activity.query({
           companyId,
           filters: filtersRef.current,
           limit: PAGE_SIZE,
@@ -85,7 +85,7 @@ export const useActivityStream = (
   }, [companyId, filtersKey, refresh]);
 
   useEffect(() => {
-    const off = window.dashboardAgent.activity.onNew((row) => {
+    const off = window.prospero.activity.onNew((row) => {
       if (row.companyId !== companyId) return;
       if (!matchesFilters(row, filtersRef.current)) return;
       setRows((current) => mergeNew(current, row));

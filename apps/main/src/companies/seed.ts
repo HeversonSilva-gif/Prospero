@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { Company } from "@dashboard-agent/shared";
+import type { Company } from "@prospero/shared";
 import { createCompaniesRepository } from "./repository.js";
 import { createCEOAgent } from "../agents/seed.js";
 

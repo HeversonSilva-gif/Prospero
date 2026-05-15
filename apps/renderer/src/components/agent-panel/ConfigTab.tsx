@@ -6,7 +6,7 @@ import {
   SKILL_CATALOG,
   type Agent,
   type RoleTemplate,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 import { useProjectsStore } from "../../stores/projects.js";
 import { AgentProjectsEditor } from "./AgentProjectsEditor.js";
@@ -40,7 +40,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
 
   useEffect(() => {
     void (async () => {
-      const list = await window.dashboardAgent.roles.list();
+      const list = await window.prospero.roles.list();
       setRoles(list);
     })();
   }, []);

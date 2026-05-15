@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Agent, Issue, Goal } from "@dashboard-agent/shared";
+import type { Agent, Issue, Goal } from "@prospero/shared";
 import {
   selectActiveAgents,
   selectActiveIssues,

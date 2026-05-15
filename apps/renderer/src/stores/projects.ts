@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Project, ProjectPathStatus } from "@dashboard-agent/shared";
+import type { Project, ProjectPathStatus } from "@prospero/shared";
 
 type State = {
   projects: Project[];
@@ -28,8 +28,8 @@ export const useProjectsStore = create<State>((set) => ({
   selectedId: null,
   loaded: false,
   load: async (companyId) => {
-    const projects = await window.dashboardAgent.projects.list(companyId);
-    const pathStatuses = await window.dashboardAgent.projects.checkPaths(companyId);
+    const projects = await window.prospero.projects.list(companyId);
+    const pathStatuses = await window.prospero.projects.checkPaths(companyId);
     set((s) => ({
       projects,
       pathStatuses,
@@ -38,21 +38,21 @@ export const useProjectsStore = create<State>((set) => ({
     }));
   },
   refreshPaths: async (companyId) => {
-    const pathStatuses = await window.dashboardAgent.projects.checkPaths(companyId);
+    const pathStatuses = await window.prospero.projects.checkPaths(companyId);
     set({ pathStatuses });
   },
   create: async (input) => {
-    const p = await window.dashboardAgent.projects.create(input);
+    const p = await window.prospero.projects.create(input);
     set((s) => ({ projects: [...s.projects, p], selectedId: p.id }));
     return p;
   },
   update: async (input) => {
-    const next = await window.dashboardAgent.projects.update(input);
+    const next = await window.prospero.projects.update(input);
     if (next === null) return;
     set((s) => ({ projects: s.projects.map((p) => (p.id === next.id ? next : p)) }));
   },
   delete: async (id) => {
-    await window.dashboardAgent.projects.delete(id);
+    await window.prospero.projects.delete(id);
     set((s) => {
       const projects = s.projects.filter((p) => p.id !== id);
       const selectedId = s.selectedId === id ? (projects[0]?.id ?? null) : s.selectedId;
@@ -60,19 +60,19 @@ export const useProjectsStore = create<State>((set) => ({
     });
   },
   setIcon: async (id, icon) => {
-    await window.dashboardAgent.projects.setIcon(id, icon);
+    await window.prospero.projects.setIcon(id, icon);
     set((s) => ({
       projects: s.projects.map((p) => (p.id === id ? { ...p, icon } : p)),
     }));
   },
   archive: async (id) => {
-    await window.dashboardAgent.projects.archive(id);
+    await window.prospero.projects.archive(id);
     set((s) => ({
       projects: s.projects.map((p) => (p.id === id ? { ...p, archivedAt: Date.now() } : p)),
     }));
   },
   unarchive: async (id) => {
-    await window.dashboardAgent.projects.unarchive(id);
+    await window.prospero.projects.unarchive(id);
     set((s) => ({
       projects: s.projects.map((p) => (p.id === id ? { ...p, archivedAt: null } : p)),
     }));

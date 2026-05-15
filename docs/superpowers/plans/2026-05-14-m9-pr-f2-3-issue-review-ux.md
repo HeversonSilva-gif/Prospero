@@ -36,7 +36,7 @@ Activity events já são gravados via `recorder.recordActivity` no `issues.updat
 
 ### 1. Plan + dep
 - [x] Criar este arquivo de plano.
-- [ ] `pnpm -F @dashboard-agent/renderer add react-diff-viewer-continued` (last release 2024, peer-dep React 18 ok).
+- [ ] `pnpm -F @prospero/renderer add react-diff-viewer-continued` (last release 2024, peer-dep React 18 ok).
 
 ### 2. Helpers puros + tests
 

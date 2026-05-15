@@ -1,4 +1,4 @@
-import type { ToolCallView } from "@dashboard-agent/shared";
+import type { ToolCallView } from "@prospero/shared";
 
 export const ToolCallCard = ({ tool }: { tool: ToolCallView }) => {
   const inputJson = JSON.stringify(tool.input, null, 2);

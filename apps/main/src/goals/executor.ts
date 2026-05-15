@@ -6,7 +6,7 @@ import { createIssuesRepository } from "../issues/repository.js";
 import { createSettingsRepository } from "../settings/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { executePlanNarrated } from "./executor-narrated.js";
-import type { AgentToHire, IssueToCreate, ExecutePlanResult } from "@dashboard-agent/shared";
+import type { AgentToHire, IssueToCreate, ExecutePlanResult } from "@prospero/shared";
 
 export type ExecuteOptions = {
   includeAgentIndexes?: Set<number>;

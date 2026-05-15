@@ -1,6 +1,6 @@
 // Seeds the SQLite DB directly (not through IPC) for tests that need
 // preconditions like "company exists with CEO already hired". The Electron
-// app is launched against the same DB file via DASHBOARD_AGENT_USER_DATA.
+// app is launched against the same DB file via PROSPERO_USER_DATA.
 //
 // Imports are lazy so this module loads cleanly under Playwright's CJS
 // runner even when the suite is skipped — without it, top-level ESM-only
@@ -17,7 +17,7 @@ export type SeedOptions = {
   projectSlug?: string;
 };
 
-export const dbPathOf = (userDataDir: string): string => `${userDataDir}/dashboard-agent.db`;
+export const dbPathOf = (userDataDir: string): string => `${userDataDir}/prospero.db`;
 
 export const seedDb = async (dbPath: string, opts: SeedOptions = {}): Promise<void> => {
   const { applyMigrations } = await import("../../../apps/main/src/db/migrations.js");

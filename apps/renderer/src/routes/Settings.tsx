@@ -87,7 +87,7 @@ export const Settings = () => {
     try {
       const text = await file.text();
       const parsed: unknown = JSON.parse(text);
-      const result = await window.dashboardAgent.companies.importSnapshot(parsed);
+      const result = await window.prospero.companies.importSnapshot(parsed);
       setImportSummary({
         name: result.newCompanyName,
         counts: result.counts,
@@ -113,13 +113,13 @@ export const Settings = () => {
     setExportError(null);
     setExportSavedAt(null);
     try {
-      const snapshot = await window.dashboardAgent.companies.exportSnapshot(activeCompanyId);
+      const snapshot = await window.prospero.companies.exportSnapshot(activeCompanyId);
       const json = JSON.stringify(snapshot, null, 2);
       const blob = new Blob([json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `dashboard-agent-company-${activeCompanyId}.json`;
+      a.download = `prospero-company-${activeCompanyId}.json`;
       a.click();
       URL.revokeObjectURL(url);
       setExportSavedAt(a.download);
@@ -331,7 +331,7 @@ export const Settings = () => {
                     name="defaultAgentMode"
                     checked={settings.defaultAgentMode === m}
                     onChange={() =>
-                      void window.dashboardAgent.settings
+                      void window.prospero.settings
                         .update({ defaultAgentMode: m })
                         .then(() => loadSettings())
                     }
@@ -347,7 +347,7 @@ export const Settings = () => {
               type="checkbox"
               checked={settings.defaultAlwaysOn}
               onChange={(e) =>
-                void window.dashboardAgent.settings
+                void window.prospero.settings
                   .update({ defaultAlwaysOn: e.target.checked })
                   .then(() => loadSettings())
               }

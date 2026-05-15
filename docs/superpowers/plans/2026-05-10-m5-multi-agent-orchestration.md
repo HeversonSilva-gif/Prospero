@@ -8,7 +8,7 @@
 
 **Tech Stack:** Electron, better-sqlite3 (WAL mode), @modelcontextprotocol/sdk, zod, React 18 + zustand, vitest.
 
-**Spec reference:** `docs/superpowers/specs/2026-05-10-m5-multi-agent-orchestration-design.md` (referido como "M5 spec"); `docs/superpowers/specs/2026-05-09-dashboard-agent-design.md` (spec v1).
+**Spec reference:** `docs/superpowers/specs/2026-05-10-m5-multi-agent-orchestration-design.md` (referido como "M5 spec"); `docs/superpowers/specs/2026-05-09-prospero-design.md` (spec v1).
 
 ---
 
@@ -37,16 +37,16 @@ Run: `pnpm dev` em terminal separado. Setup wizard, criar demo company, mandar 1
 ## Task 0.1: §8.5 MCP server — registrar realidade do M4
 
 **Files:**
-- Modify: `docs/superpowers/specs/2026-05-09-dashboard-agent-design.md` (§8.5)
+- Modify: `docs/superpowers/specs/2026-05-09-prospero-design.md` (§8.5)
 
 - [ ] **Step 1: Localizar §8.5 atual**
 
-Run: `Grep "### 8.5" docs/superpowers/specs/2026-05-09-dashboard-agent-design.md`
+Run: `Grep "### 8.5" docs/superpowers/specs/2026-05-09-prospero-design.md`
 Expected: linha localizada.
 
 - [ ] **Step 2: Ler trecho §8.5**
 
-Read `docs/superpowers/specs/2026-05-09-dashboard-agent-design.md` linhas 384-389 (range exato do §8.5 atual conforme git).
+Read `docs/superpowers/specs/2026-05-09-prospero-design.md` linhas 384-389 (range exato do §8.5 atual conforme git).
 
 - [ ] **Step 3: Substituir conteúdo do §8.5**
 
@@ -65,14 +65,14 @@ O MCP child recebe `AGENT_ID` e `COMPANY_ID` via env do parent, usados para esco
 - [ ] **Step 4: Commitar**
 
 ```bash
-git add docs/superpowers/specs/2026-05-09-dashboard-agent-design.md
+git add docs/superpowers/specs/2026-05-09-prospero-design.md
 git commit -m "docs(spec-v1): rewrite section 8.5 to reflect M4 stdio reality"
 ```
 
 ## Task 0.2: §8.2 — nota sobre pre-Projects-CRUD
 
 **Files:**
-- Modify: `docs/superpowers/specs/2026-05-09-dashboard-agent-design.md` (§8.2)
+- Modify: `docs/superpowers/specs/2026-05-09-prospero-design.md` (§8.2)
 
 - [ ] **Step 1: Localizar fim de §8.2**
 
@@ -90,7 +90,7 @@ No fim do §8.2 (antes de `### 8.3`), adiciona:
 - [ ] **Step 3: Commitar**
 
 ```bash
-git add docs/superpowers/specs/2026-05-09-dashboard-agent-design.md
+git add docs/superpowers/specs/2026-05-09-prospero-design.md
 git commit -m "docs(spec-v1): note pre-projects workspace allowlist fallback"
 ```
 
@@ -138,7 +138,7 @@ it("parseSettings backwards-compat: missing workspaceCwd defaults to null", () =
 
 - [ ] **Step 2: Run test — deve falhar**
 
-Run: `pnpm -F @dashboard-agent/main test settings.schema`
+Run: `pnpm -F @prospero/main test settings.schema`
 Expected: FAIL — workspaceCwd not on type.
 
 - [ ] **Step 3: Estender type em shared**
@@ -166,7 +166,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 `apps/main/src/settings/schema.ts`:
 ```ts
 import { z } from "zod";
-import { DEFAULT_SETTINGS, type AppSettings } from "@dashboard-agent/shared";
+import { DEFAULT_SETTINGS, type AppSettings } from "@prospero/shared";
 
 export const AppSettingsSchema = z.object({
   language: z.enum(["pt-BR", "en-US"]),
@@ -189,7 +189,7 @@ export const parseSettings = (raw: unknown): AppSettings => {
 
 - [ ] **Step 5: Run test — deve passar**
 
-Run: `pnpm -F @dashboard-agent/main test settings.schema`
+Run: `pnpm -F @prospero/main test settings.schema`
 Expected: PASS, novos casos verdes.
 
 - [ ] **Step 6: Run typecheck e lint**
@@ -233,20 +233,20 @@ describe("resolveWorkspaceCwd", () => {
 
   it("returns default when null + creates default dir", () => {
     const out = resolveWorkspaceCwd(null);
-    expect(out).toBe(join(homedir(), "DashboardAgent-Workspace"));
+    expect(out).toBe(join(homedir(), "Prospero-Workspace"));
     expect(existsSync(out)).toBe(true);
   });
 
   it("returns default when empty string", () => {
     const out = resolveWorkspaceCwd("");
-    expect(out).toBe(join(homedir(), "DashboardAgent-Workspace"));
+    expect(out).toBe(join(homedir(), "Prospero-Workspace"));
   });
 });
 ```
 
 - [ ] **Step 2: Run — falha (módulo não existe)**
 
-Run: `pnpm -F @dashboard-agent/main test settings.workspace`
+Run: `pnpm -F @prospero/main test settings.workspace`
 Expected: FAIL — Cannot find module.
 
 - [ ] **Step 3: Implementar**
@@ -257,7 +257,7 @@ import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-export const DEFAULT_WORKSPACE_DIRNAME = "DashboardAgent-Workspace";
+export const DEFAULT_WORKSPACE_DIRNAME = "Prospero-Workspace";
 
 export const resolveWorkspaceCwd = (configured: string | null): string => {
   const path =
@@ -271,7 +271,7 @@ export const resolveWorkspaceCwd = (configured: string | null): string => {
 
 - [ ] **Step 4: Run — passa**
 
-Run: `pnpm -F @dashboard-agent/main test settings.workspace`
+Run: `pnpm -F @prospero/main test settings.workspace`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -351,7 +351,7 @@ git commit -m "feat(settings): add IPC to open native folder picker dialog"
 ```json
 "settings": {
   "workspaceFolder": "Pasta de Trabalho",
-  "workspaceFolderHint": "Onde os agentes vão executar comandos. Padrão: ~/DashboardAgent-Workspace",
+  "workspaceFolderHint": "Onde os agentes vão executar comandos. Padrão: ~/Prospero-Workspace",
   "workspaceFolderBrowse": "Selecionar..."
 }
 ```
@@ -360,7 +360,7 @@ git commit -m "feat(settings): add IPC to open native folder picker dialog"
 ```json
 "settings": {
   "workspaceFolder": "Workspace Folder",
-  "workspaceFolderHint": "Where agents execute commands. Default: ~/DashboardAgent-Workspace",
+  "workspaceFolderHint": "Where agents execute commands. Default: ~/Prospero-Workspace",
   "workspaceFolderBrowse": "Browse..."
 }
 ```
@@ -389,7 +389,7 @@ Adicionar bloco abaixo dos campos existentes de language/theme:
     <input
       type="text"
       value={settings.workspaceCwd ?? ""}
-      placeholder="~/DashboardAgent-Workspace"
+      placeholder="~/Prospero-Workspace"
       readOnly
       style={{ flex: 1 }}
     />
@@ -481,7 +481,7 @@ describe("ALWAYS_BLOCKED pathPrefix", () => {
 
 - [ ] **Step 2: Run — falha**
 
-Run: `pnpm -F @dashboard-agent/main test security.blocklist`
+Run: `pnpm -F @prospero/main test security.blocklist`
 Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implementar**
@@ -519,7 +519,7 @@ export const matchesBlockedPath = (path: string): boolean =>
 
 - [ ] **Step 4: Run — passa**
 
-Run: `pnpm -F @dashboard-agent/main test security.blocklist`
+Run: `pnpm -F @prospero/main test security.blocklist`
 Expected: PASS, todos os casos.
 
 - [ ] **Step 5: Commit**
@@ -541,7 +541,7 @@ git commit -m "feat(security): add versioned always-blocked patterns list"
 ```ts
 import { describe, expect, it } from "vitest";
 import { evaluatePermission } from "../src/security/gate.js";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 
 const agent = (mode: "supervised" | "auto"): Agent => ({
   id: "a", companyId: "c", name: "n", role: "r",
@@ -674,7 +674,7 @@ describe("evaluatePermission §4 non-fs tools (orchestrator MCP)", () => {
 
 - [ ] **Step 2: Run — falha**
 
-Run: `pnpm -F @dashboard-agent/main test security.gate`
+Run: `pnpm -F @prospero/main test security.gate`
 Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implementar**
@@ -683,7 +683,7 @@ Expected: FAIL — module not found.
 ```ts
 import { resolve, isAbsolute } from "node:path";
 import { homedir } from "node:os";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 import { matchesBlockedBash, matchesBlockedPath } from "./blocklist.js";
 
 export type GateInput = {
@@ -771,7 +771,7 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
 
 - [ ] **Step 4: Run — passa todos os casos**
 
-Run: `pnpm -F @dashboard-agent/main test security.gate`
+Run: `pnpm -F @prospero/main test security.gate`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -847,7 +847,7 @@ git commit -m "feat(security): add permission types + dir helper"
 - [ ] **Step 1: Verificar `chokidar` é dep**
 
 Run: `Grep "chokidar" apps/main/package.json`
-Expected: dep presente. Se ausente, adicionar com `pnpm -F @dashboard-agent/main add chokidar` (commit separado).
+Expected: dep presente. Se ausente, adicionar com `pnpm -F @prospero/main add chokidar` (commit separado).
 
 - [ ] **Step 2: Escrever test**
 
@@ -858,7 +858,7 @@ import { mkdtempSync, writeFileSync, rmSync, existsSync, readFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startPermissionWatcher } from "../src/security/permission-watcher.js";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 
 const agent: Agent = {
   id: "a1", companyId: "c1", name: "Alice", role: "FE",
@@ -941,7 +941,7 @@ describe("permission-watcher", () => {
 
 - [ ] **Step 3: Run — falha**
 
-Run: `pnpm -F @dashboard-agent/main test security.permission-watcher`
+Run: `pnpm -F @prospero/main test security.permission-watcher`
 Expected: FAIL — module not found.
 
 - [ ] **Step 4: Implementar**
@@ -951,7 +951,7 @@ Expected: FAIL — module not found.
 import chokidar, { type FSWatcher } from "chokidar";
 import { readFileSync, writeFileSync, unlinkSync, existsSync, readdirSync } from "node:fs";
 import { join, basename } from "node:path";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 import { evaluatePermission } from "./gate.js";
 
 export type WatcherOptions = {
@@ -1042,7 +1042,7 @@ export const startPermissionWatcher = (opts: WatcherOptions): (() => void) => {
 
 - [ ] **Step 5: Run — passa**
 
-Run: `pnpm -F @dashboard-agent/main test security.permission-watcher`
+Run: `pnpm -F @prospero/main test security.permission-watcher`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
@@ -1078,7 +1078,7 @@ export const IPC = {
 import { ipcMain, BrowserWindow, app } from "electron";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { IPC, type PermissionResolution, type PermissionRequest } from "@dashboard-agent/shared";
+import { IPC, type PermissionResolution, type PermissionRequest } from "@prospero/shared";
 import { getPermissionsDir } from "../security/permissions-dir.js";
 
 export const broadcastPermissionRequest = (req: PermissionRequest): void => {
@@ -1332,7 +1332,7 @@ it("read_thread returns ordered messages between two agents", async () => {
 
 - [ ] **Step 2: Run — falha**
 
-Run: `pnpm -F @dashboard-agent/main test mcp.tools`
+Run: `pnpm -F @prospero/main test mcp.tools`
 Expected: FAIL — implementations are still mock.
 
 - [ ] **Step 3: Implementar list_agents + read_thread reais**
@@ -1380,7 +1380,7 @@ import { createMessagesRepository } from "../messages/repository.js";
 
 - [ ] **Step 4: Run — passa**
 
-Run: `pnpm -F @dashboard-agent/main test mcp.tools`
+Run: `pnpm -F @prospero/main test mcp.tools`
 Expected: PASS para os dois novos casos.
 
 - [ ] **Step 5: Commit**
@@ -1982,7 +1982,7 @@ E ajustar `WatcherOptions` com `onResolved?: (toolUseId: string, resolution: Per
 
 - [ ] **Step 6: Run testes existentes**
 
-Run: `pnpm -F @dashboard-agent/main test`
+Run: `pnpm -F @prospero/main test`
 Expected: tests existentes ainda passing. Adapt qualquer test que assumia hard-coded participants.
 
 - [ ] **Step 7: Commit**
@@ -2205,7 +2205,7 @@ INBOX_UPDATE: "inbox:update",  // broadcast main → renderer
 ```ts
 import { ipcMain, BrowserWindow } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type InboxItem } from "@dashboard-agent/shared";
+import { IPC, type InboxItem } from "@prospero/shared";
 import { createInboxRepository } from "../inbox/repository.js";
 
 export const broadcastInboxUpdate = (companyId: string): void => {
@@ -2313,7 +2313,7 @@ git commit -m "feat(ui): inbox route with approve/reject for permission requests
 
 ```tsx
 import { useTranslation } from "react-i18next";
-import type { PermissionRequest } from "@dashboard-agent/shared";
+import type { PermissionRequest } from "@prospero/shared";
 
 type Props = { request: PermissionRequest; onResolve: (allow: boolean) => void };
 

@@ -1,7 +1,7 @@
 import { useMemo, type FC } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { Goal, GoalStatus } from "@dashboard-agent/shared";
+import type { Goal, GoalStatus } from "@prospero/shared";
 import { buildGoalTree, type GoalTreeNode } from "../lib/goalsTree.js";
 
 const STATUS_BADGE: Record<GoalStatus, string> = {

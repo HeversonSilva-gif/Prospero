@@ -17,8 +17,8 @@ There is no framing beyond `\n`.
 
 The child process is one of:
 
-- **Local Docker** (validation): `docker run -i dashboard-agent/agent-runner`
-- **Remote VPS**: `ssh <user>@<host> -- docker run -i dashboard-agent/agent-runner`
+- **Local Docker** (validation): `docker run -i prospero/agent-runner`
+- **Remote VPS**: `ssh <user>@<host> -- docker run -i prospero/agent-runner`
 
 SSH supplies authentication, encryption, and the pipe — no port is exposed and
 no TLS certificate is managed. The two cases differ only by the `ssh` prefix, so

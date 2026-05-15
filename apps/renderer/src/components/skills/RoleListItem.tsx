@@ -1,6 +1,6 @@
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { RoleTemplate } from "@dashboard-agent/shared";
+import type { RoleTemplate } from "@prospero/shared";
 
 type Props = {
   role: RoleTemplate & { agentCount: number };

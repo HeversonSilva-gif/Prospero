@@ -1,5 +1,5 @@
 {
-  "name": "@dashboard-agent/main",
+  "name": "@prospero/main",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@dashboard-agent/shared": "workspace:*",
+    "@prospero/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "better-sqlite3": "^11.3.0",
     "chokidar": "^5.0.0",

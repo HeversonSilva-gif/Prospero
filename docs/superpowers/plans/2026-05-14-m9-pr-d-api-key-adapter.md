@@ -107,7 +107,7 @@ describe("parseSettings authMode", () => {
 });
 ```
 
-Run: `pnpm --filter @dashboard-agent/main test -- schema`. Expected FAIL.
+Run: `pnpm --filter @prospero/main test -- schema`. Expected FAIL.
 
 - [ ] **Step 1.3: Extend zod schema**
 
@@ -125,13 +125,13 @@ if (result.data.authMode !== undefined) {
 }
 ```
 
-Run: `pnpm --filter @dashboard-agent/main test -- schema`. Expected PASS.
+Run: `pnpm --filter @prospero/main test -- schema`. Expected PASS.
 
 - [ ] **Step 1.4: Update existing toEqual({...}) test assertions**
 
 Edit `apps/main/tests/settings.schema.test.ts` and `apps/main/tests/settings.repository.test.ts`. Find every `toEqual({...})` against the full DEFAULT_SETTINGS shape and add `authMode: "oauth"` line.
 
-Run: `pnpm --filter @dashboard-agent/main test -- settings`. Expected PASS.
+Run: `pnpm --filter @prospero/main test -- settings`. Expected PASS.
 
 - [ ] **Step 1.5: Update renderer settings store default**
 
@@ -201,7 +201,7 @@ describe("isWellFormedApiKey", () => {
 });
 ```
 
-Run: `pnpm --filter @dashboard-agent/main test -- api-key-validate`. Expected FAIL.
+Run: `pnpm --filter @prospero/main test -- api-key-validate`. Expected FAIL.
 
 - [ ] **Step 2.2: Implement**
 
@@ -335,7 +335,7 @@ describe("api key storage", () => {
 });
 ```
 
-Run: `pnpm --filter @dashboard-agent/main test -- api-key-storage`. Expected FAIL.
+Run: `pnpm --filter @prospero/main test -- api-key-storage`. Expected FAIL.
 
 - [ ] **Step 3.3: Implement storage module**
 
@@ -344,7 +344,7 @@ Create `apps/main/src/auth/api-key-storage.ts`:
 ```typescript
 import type Database from "better-sqlite3";
 import { safeStorage } from "electron";
-import type { ApiKeyStatus } from "@dashboard-agent/shared";
+import type { ApiKeyStatus } from "@prospero/shared";
 import { isWellFormedApiKey } from "./api-key-validate.js";
 
 const KEY_CIPHERTEXT = "auth.apikey.ciphertext";
@@ -402,7 +402,7 @@ export const loadApiKeyStatus = (db: Database.Database): ApiKeyStatus => {
 
 export const loadDecryptedApiKey = (db: Database.Database): string | null => {
   // E2E bypass mirrors token-storage.ts: read plaintext from a file when env var is set.
-  const e2ePath = process.env["DASHBOARD_AGENT_E2E_API_KEY_PATH"];
+  const e2ePath = process.env["PROSPERO_E2E_API_KEY_PATH"];
   if (e2ePath !== undefined && e2ePath !== "") {
     try {
       const { readFileSync } = require("node:fs") as typeof import("node:fs");
@@ -429,7 +429,7 @@ export const clearApiKey = (db: Database.Database): void => {
 
 > **Note:** `require("node:fs")` is used because `import { readFileSync }` at the top of a module that's mocked via `vi.mock("electron")` can interact with module caching. If lint complains about `require`, use `import("node:fs")` dynamic or move to a top-level import — verify it doesn't break the test's electron mock first.
 
-Run: `pnpm --filter @dashboard-agent/main test -- api-key-storage`. Expected PASS.
+Run: `pnpm --filter @prospero/main test -- api-key-storage`. Expected PASS.
 
 - [ ] **Step 3.4: Commit**
 
@@ -492,7 +492,7 @@ describe("getActiveAuthMode", () => {
 
 > **There may be an existing stub test** at `apps/main/tests/auth.auth-mode.test.ts` asserting `getActiveAuthMode() === "oauth"` (no DB argument). Update it: either delete it (functionality moved here) or rewrite it to match the new signature.
 
-Run: `pnpm --filter @dashboard-agent/main test -- auth-mode`. Expected FAIL (function signature change).
+Run: `pnpm --filter @prospero/main test -- auth-mode`. Expected FAIL (function signature change).
 
 - [ ] **Step 4.2: Update auth-mode.ts**
 
@@ -537,12 +537,12 @@ Check `apps/main/tests/auth.auth-mode.test.ts`. If it tests the old no-arg signa
 rm apps/main/tests/auth.auth-mode.test.ts  # only if its content is the old stub
 ```
 
-Run: `pnpm --filter @dashboard-agent/main test -- auth-mode`. Expected PASS.
+Run: `pnpm --filter @prospero/main test -- auth-mode`. Expected PASS.
 
 - [ ] **Step 4.5: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/main typecheck
+pnpm --filter @prospero/main typecheck
 git add apps/main/src/auth/auth-mode.ts apps/main/src/auth/auth-mode.test.ts apps/main/src/orchestrator/lifecycle.ts apps/main/tests/auth.auth-mode.test.ts
 git commit -m "feat(m9): auth-mode reads from settings.authMode (no longer stub)"
 ```
@@ -577,7 +577,7 @@ describe("buildSpawnEnvApiKey", () => {
 });
 ```
 
-Run: `pnpm --filter @dashboard-agent/main test -- orchestrator.env`. Expected FAIL.
+Run: `pnpm --filter @prospero/main test -- orchestrator.env`. Expected FAIL.
 
 - [ ] **Step 5.2: Implement helper**
 
@@ -609,7 +609,7 @@ export const buildSpawnEnvApiKey = (
 });
 ```
 
-Run: `pnpm --filter @dashboard-agent/main test -- orchestrator.env`. Expected PASS.
+Run: `pnpm --filter @prospero/main test -- orchestrator.env`. Expected PASS.
 
 - [ ] **Step 5.3: Commit**
 
@@ -698,7 +698,7 @@ import type {
   ParsedEvent,
   SpawnContext,
   UsageEstimate,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { buildClaudeArgs } from "../claude-oauth-local/build-args.js";
 import { findClaudeExe } from "../claude-oauth-local/resolve-binary.js";
 import { prepareSandbox, writeSandboxSettings } from "../claude-oauth-local/prepare-sandbox.js";
@@ -893,7 +893,7 @@ Create `apps/main/src/orchestrator/adapters/claude-api-key-local/adapter.test.ts
 ```typescript
 import { describe, expect, it } from "vitest";
 import { ClaudeApiKeyLocalAdapter } from "./adapter.js";
-import type { Agent, SpawnContext } from "@dashboard-agent/shared";
+import type { Agent, SpawnContext } from "@prospero/shared";
 
 const baseAgent = (): Agent => ({
   id: "ag_1",
@@ -946,7 +946,7 @@ describe("ClaudeApiKeyLocalAdapter", () => {
 
 > **Note:** A real spawn test against the claude binary would need FakeClaude — out of scope here. The two assertions above cover the contract; full spawn behavior is identical to the OAuth adapter (already covered by its tests).
 
-Run: `pnpm --filter @dashboard-agent/main test -- claude-api-key-local`. Expected PASS.
+Run: `pnpm --filter @prospero/main test -- claude-api-key-local`. Expected PASS.
 
 - [ ] **Step 6.6: Typecheck + commit**
 
@@ -973,7 +973,7 @@ import type {
   AgentAdapterFactory,
   AdapterName,
   SpawnContext,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { ClaudeOAuthLocalAdapter } from "./claude-oauth-local/adapter.js";
 import { ClaudeApiKeyLocalAdapter } from "./claude-api-key-local/adapter.js";
 
@@ -1009,7 +1009,7 @@ export const createAdapter = (name: AdapterName, ctx: SpawnContext): AgentAdapte
 - [ ] **Step 7.2: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/main typecheck
+pnpm --filter @prospero/main typecheck
 git add apps/main/src/orchestrator/adapters/index.ts
 git commit -m "feat(m9): register claude-api-key-local in adapter registry"
 ```
@@ -1125,7 +1125,7 @@ describe("auth api-key handlers", () => {
 Edit `apps/main/src/ipc/auth-handlers.ts`. Add imports:
 
 ```typescript
-import type { ApiKeyStatus } from "@dashboard-agent/shared";
+import type { ApiKeyStatus } from "@prospero/shared";
 import { saveApiKey, loadApiKeyStatus, clearApiKey } from "../auth/api-key-storage.js";
 ```
 
@@ -1154,7 +1154,7 @@ ipcMain.handle(IPC.AUTH_API_KEY_CLEAR, (): ApiKeyStatus => {
 });
 ```
 
-Run: `pnpm --filter @dashboard-agent/main test -- auth-api-key-handlers`. Expected PASS.
+Run: `pnpm --filter @prospero/main test -- auth-api-key-handlers`. Expected PASS.
 
 - [ ] **Step 8.4: Commit**
 
@@ -1202,7 +1202,7 @@ void vi;
 
 > **Note:** `it.todo` markers document that real cap enforcement is integration-level. The behavior change is small (one `if` branch) and is exercised by manual smoke. Keeping integration tests honest matters more than padding numbers.
 
-Run: `pnpm --filter @dashboard-agent/main test -- orchestrator.cap`. Should pass (1 assertion + 2 todos).
+Run: `pnpm --filter @prospero/main test -- orchestrator.cap`. Should pass (1 assertion + 2 todos).
 
 - [ ] **Step 9.2: Update lifecycle cap**
 
@@ -1272,7 +1272,7 @@ describe("create — adapter_name", () => {
 
 > **`baseInput` and `setupDb`** already exist at the top of `repository.test.ts` — see lines 20-30. Use them as-is. You may need to import `createAgentsRepository` (line 6).
 
-Run: `pnpm --filter @dashboard-agent/main test -- agents/repository`. Expected FAIL on second assertion.
+Run: `pnpm --filter @prospero/main test -- agents/repository`. Expected FAIL on second assertion.
 
 - [ ] **Step 10.2: Extend CreateAgentInput + insert**
 
@@ -1332,7 +1332,7 @@ And update the `create()` impl to pass `adapter_name`:
 
 > Adjust the rest of the body (recorder dual-write etc.) — keep it. Show the rest of the function in your editor before changing.
 
-Run: `pnpm --filter @dashboard-agent/main test -- agents/repository`. Expected PASS.
+Run: `pnpm --filter @prospero/main test -- agents/repository`. Expected PASS.
 
 - [ ] **Step 10.3: Update hireFromUi handler to pass adapterName**
 
@@ -1409,8 +1409,8 @@ Find the `void ensureAdapter({ … })` call below it. Replace the `oauthToken: t
 - [ ] **Step 11.2: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/main typecheck
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main typecheck
+pnpm --filter @prospero/main test
 git add apps/main/src/ipc/orchestrator-handlers.ts
 git commit -m "feat(m9): ensureAgentRunner picks credentials based on agent adapter_name"
 ```
@@ -1491,7 +1491,7 @@ Note its current shape (status, setToken, importDetected). We'll extend.
 Edit `apps/renderer/src/stores/auth.ts`. Add fields to State:
 
 ```typescript
-import type { ApiKeyStatus } from "@dashboard-agent/shared";
+import type { ApiKeyStatus } from "@prospero/shared";
 // …
 type State = {
   // …existing
@@ -1507,11 +1507,11 @@ In the create() body, add initial state and impl:
 apiKeyStatus: { hasKey: false } as ApiKeyStatus,
 // …
 setApiKey: async (raw) => {
-  const status = await window.dashboardAgent.auth.apiKeySet(raw);
+  const status = await window.prospero.auth.apiKeySet(raw);
   set({ apiKeyStatus: status });
 },
 clearApiKey: async () => {
-  const status = await window.dashboardAgent.auth.apiKeyClear();
+  const status = await window.prospero.auth.apiKeyClear();
   set({ apiKeyStatus: status });
 },
 ```
@@ -1520,8 +1520,8 @@ Update the existing `load()` (or `init()`) action — wherever it fetches `auth.
 
 ```typescript
 const [status, apiKeyStatus] = await Promise.all([
-  window.dashboardAgent.auth.status(),
-  window.dashboardAgent.auth.apiKeyStatus(),
+  window.prospero.auth.status(),
+  window.prospero.auth.apiKeyStatus(),
 ]);
 set({ status, apiKeyStatus, loaded: true });
 ```
@@ -1538,7 +1538,7 @@ Inside the factory, after `setModel`:
 
 ```typescript
 setAuthMode: async (mode) => {
-  const next = await window.dashboardAgent.settings.update({ authMode: mode });
+  const next = await window.prospero.settings.update({ authMode: mode });
   set({ settings: next });
 },
 ```
@@ -1546,7 +1546,7 @@ setAuthMode: async (mode) => {
 - [ ] **Step 13.4: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/stores/auth.ts apps/renderer/src/stores/settings.ts
 git commit -m "feat(m9): renderer auth store handles api key + settings setAuthMode"
 ```
@@ -1688,7 +1688,7 @@ Don't forget the imports at top: `useState`, `useAuthStore`, `useSettingsStore`.
 - [ ] **Step 14.3: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/routes/Settings.tsx
 git commit -m "feat(m9): settings authentication section — mode radio + api key inline form"
 ```
@@ -1810,7 +1810,7 @@ Actually for clarity, change the Back buttons in `manual` and `auto` from `setSt
 - [ ] **Step 15.4: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/routes/SetupWizard.tsx
 git commit -m "feat(m9): setup wizard auth source step + api key step"
 ```
@@ -1961,7 +1961,7 @@ it("includes the M9 PR-D api-key keys in both locales", () => {
 });
 ```
 
-Run: `pnpm --filter @dashboard-agent/renderer test -- parity`. Expected PASS (both bidirectional + new).
+Run: `pnpm --filter @prospero/renderer test -- parity`. Expected PASS (both bidirectional + new).
 
 - [ ] **Step 16.4: Commit**
 
@@ -2089,9 +2089,9 @@ git commit -m "docs(m9): close pr-d api-key adapter in roadmap (3 places)"
 ## Task 20: Memory snippet + handoff
 
 **Files:**
-- Create: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\project_m9_pr_d_lessons.md`
-- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\MEMORY.md`
-- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\project_session_handoff.md`
+- Create: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\project_m9_pr_d_lessons.md`
+- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\MEMORY.md`
+- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\project_session_handoff.md`
 
 - [ ] **Step 20.1: Write lessons memory**
 

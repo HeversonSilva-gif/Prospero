@@ -31,9 +31,9 @@ export const test = base.extend<Fixtures>({
       args: [electronMain],
       env: {
         ...process.env,
-        DASHBOARD_AGENT_USER_DATA: userDataDir,
-        DASHBOARD_AGENT_E2E_TOKEN_PATH: tokenPath,
-        DASHBOARD_AGENT_E2E_FAKE_CLAUDE: "1",
+        PROSPERO_USER_DATA: userDataDir,
+        PROSPERO_E2E_TOKEN_PATH: tokenPath,
+        PROSPERO_E2E_FAKE_CLAUDE: "1",
         ELECTRON_DISABLE_SECURITY_WARNINGS: "1",
       },
     });

@@ -132,7 +132,7 @@ describe("migration 0011 — cost_events table + budget settings seed", () => {
 
 - [ ] **Step 2: Run the test — expect failure (no migration yet)**
 
-Run: `pnpm --filter @dashboard-agent/main test db.migration-0011`
+Run: `pnpm --filter @prospero/main test db.migration-0011`
 Expected: FAIL — `costs_log` still exists OR `cost_events` does not exist.
 
 - [ ] **Step 3: Create the migration SQL**
@@ -190,12 +190,12 @@ INSERT OR IGNORE INTO settings (key, value) VALUES
 
 - [ ] **Step 4: Run the test — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/main test db.migration-0011`
+Run: `pnpm --filter @prospero/main test db.migration-0011`
 Expected: PASS — 4 cases green.
 
 - [ ] **Step 5: Run the full migration suite to confirm no regression**
 
-Run: `pnpm --filter @dashboard-agent/main test db.migration`
+Run: `pnpm --filter @prospero/main test db.migration`
 Expected: PASS — all migration tests (0002–0011) green.
 
 - [ ] **Step 6: Commit**
@@ -228,7 +228,7 @@ export type ParsedEvent =
 
 - [ ] **Step 2: Build shared package**
 
-Run: `pnpm --filter @dashboard-agent/shared build`
+Run: `pnpm --filter @prospero/shared build`
 Expected: success.
 
 - [ ] **Step 3: Run typecheck across main + renderer**
@@ -339,7 +339,7 @@ describe("parseStreamLine — result event with usage (M8)", () => {
 
 - [ ] **Step 2: Run tests — expect failures**
 
-Run: `pnpm --filter @dashboard-agent/main test orchestrator.stream-parser`
+Run: `pnpm --filter @prospero/main test orchestrator.stream-parser`
 Expected: 5 FAILs in the M8 describe block.
 
 - [ ] **Step 3: Implement `safeReadUsage` + update `result` branch**
@@ -385,12 +385,12 @@ const readModel = (data: Record<string, unknown>): string | undefined => {
 Add `UsageEstimate` to the import line at the top:
 
 ```ts
-import type { AssistantContentBlock, ParsedEvent, UsageEstimate } from "@dashboard-agent/shared";
+import type { AssistantContentBlock, ParsedEvent, UsageEstimate } from "@prospero/shared";
 ```
 
 - [ ] **Step 4: Run tests — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/main test orchestrator.stream-parser`
+Run: `pnpm --filter @prospero/main test orchestrator.stream-parser`
 Expected: all PASS (including the 4 existing test groups + 5 new M8 cases).
 
 - [ ] **Step 5: Commit**
@@ -415,7 +415,7 @@ Append to `apps/main/tests/orchestrator.adapter.test.ts`. Use the existing test 
 ```ts
 import { describe, expect, it } from "vitest";
 import { ClaudeOAuthLocalAdapter } from "../src/orchestrator/adapters/claude-oauth-local/adapter.js";
-import type { SpawnContext } from "@dashboard-agent/shared";
+import type { SpawnContext } from "@prospero/shared";
 
 describe("ClaudeOAuthLocalAdapter — usage accumulation (M8)", () => {
   const makeCtx = (): SpawnContext => ({
@@ -464,7 +464,7 @@ describe("ClaudeOAuthLocalAdapter — usage accumulation (M8)", () => {
     // by inlining a helper on the prototype is not exposed — so we exercise
     // the parser-to-state hook by reaching the same private method via cast.
     const internal = adapter as unknown as {
-      handleParsedEvent: (e: import("@dashboard-agent/shared").ParsedEvent) => void;
+      handleParsedEvent: (e: import("@prospero/shared").ParsedEvent) => void;
     };
     internal.handleParsedEvent({
       kind: "turn-complete",
@@ -486,7 +486,7 @@ describe("ClaudeOAuthLocalAdapter — usage accumulation (M8)", () => {
   it("ignores turn-complete events with no usage", () => {
     const adapter = new ClaudeOAuthLocalAdapter(makeCtx());
     const internal = adapter as unknown as {
-      handleParsedEvent: (e: import("@dashboard-agent/shared").ParsedEvent) => void;
+      handleParsedEvent: (e: import("@prospero/shared").ParsedEvent) => void;
     };
     internal.handleParsedEvent({ kind: "turn-complete" });
     expect(adapter.getUsage()).toEqual({
@@ -501,7 +501,7 @@ describe("ClaudeOAuthLocalAdapter — usage accumulation (M8)", () => {
 
 - [ ] **Step 2: Run tests — expect failures**
 
-Run: `pnpm --filter @dashboard-agent/main test orchestrator.adapter`
+Run: `pnpm --filter @prospero/main test orchestrator.adapter`
 Expected: FAIL — `handleParsedEvent` does not exist yet OR usage stays at zero.
 
 - [ ] **Step 3: Refactor `adapter.ts` to centralize parsed-event handling**
@@ -550,7 +550,7 @@ private handleParsedEvent(event: ParsedEvent): void {
 
 - [ ] **Step 4: Run tests — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/main test orchestrator.adapter`
+Run: `pnpm --filter @prospero/main test orchestrator.adapter`
 Expected: 3 new M8 cases PASS + all prior cases PASS.
 
 - [ ] **Step 5: Commit**
@@ -662,7 +662,7 @@ describe("estimateCostCents", () => {
 
 - [ ] **Step 2: Run tests — expect failures**
 
-Run: `pnpm --filter @dashboard-agent/main test costs.pricing`
+Run: `pnpm --filter @prospero/main test costs.pricing`
 Expected: FAIL — module does not exist.
 
 - [ ] **Step 3: Implement pricing module**
@@ -680,7 +680,7 @@ Expected: FAIL — module does not exist.
 //   Haiku 4.5   — input  $1.00, output  $5.00, cacheCreate  $1.25, cacheRead $0.10
 // Multiplied by 100 → cents per 1M tokens (the units of the table below).
 
-import type { UsageEstimate } from "@dashboard-agent/shared";
+import type { UsageEstimate } from "@prospero/shared";
 
 export type ModelPricing = {
   in: number;
@@ -714,7 +714,7 @@ export const estimateCostCents = (
 
 - [ ] **Step 4: Run tests — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/main test costs.pricing`
+Run: `pnpm --filter @prospero/main test costs.pricing`
 Expected: 8 PASS.
 
 - [ ] **Step 5: Commit**
@@ -914,7 +914,7 @@ describe("costs repository", () => {
 
 - [ ] **Step 2: Run tests — expect failures**
 
-Run: `pnpm --filter @dashboard-agent/main test costs.repository`
+Run: `pnpm --filter @prospero/main test costs.repository`
 Expected: FAIL — module not implemented.
 
 - [ ] **Step 3: Implement the repository**
@@ -1052,7 +1052,7 @@ export const createCostsRepository = (db: Database.Database): CostsRepository =>
 
 - [ ] **Step 4: Run tests — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/main test costs.repository`
+Run: `pnpm --filter @prospero/main test costs.repository`
 Expected: 5 PASS.
 
 - [ ] **Step 5: Commit**
@@ -1174,7 +1174,7 @@ describe("createCostRecorder.recordTurn", () => {
 
 - [ ] **Step 2: Run tests — expect failures**
 
-Run: `pnpm --filter @dashboard-agent/main test costs.recorder`
+Run: `pnpm --filter @prospero/main test costs.recorder`
 Expected: FAIL — recorder module missing.
 
 - [ ] **Step 3: Implement the recorder**
@@ -1185,7 +1185,7 @@ Expected: FAIL — recorder module missing.
 // recordTurn validates non-zero usage, computes cost cents via the pricing
 // table, persists, and broadcasts a small delta for live UI updates.
 
-import type { UsageEstimate } from "@dashboard-agent/shared";
+import type { UsageEstimate } from "@prospero/shared";
 import { estimateCostCents } from "./pricing.js";
 import type { CostsRepository } from "./repository.js";
 
@@ -1265,7 +1265,7 @@ export const createCostRecorder = (deps: CostRecorderDeps): CostRecorder => {
 
 - [ ] **Step 4: Run tests — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/main test costs.recorder`
+Run: `pnpm --filter @prospero/main test costs.recorder`
 Expected: 4 PASS.
 
 - [ ] **Step 5: Commit**
@@ -1348,7 +1348,7 @@ describe("budgets repository", () => {
 
 - [ ] **Step 2: Run tests — expect failures**
 
-Run: `pnpm --filter @dashboard-agent/main test costs.budgets-repository`
+Run: `pnpm --filter @prospero/main test costs.budgets-repository`
 Expected: FAIL — module missing.
 
 - [ ] **Step 3: Implement the repository**
@@ -1436,7 +1436,7 @@ export const createBudgetsRepository = (db: Database.Database): BudgetsRepositor
 
 - [ ] **Step 4: Run tests — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/main test costs.budgets-repository`
+Run: `pnpm --filter @prospero/main test costs.budgets-repository`
 Expected: 5 PASS.
 
 - [ ] **Step 5: Commit**
@@ -1586,7 +1586,7 @@ describe("checkAndPause", () => {
 
 - [ ] **Step 2: Run tests — expect failures**
 
-Run: `pnpm --filter @dashboard-agent/main test costs.enforce-budget`
+Run: `pnpm --filter @prospero/main test costs.enforce-budget`
 Expected: FAIL — module missing.
 
 - [ ] **Step 3: Implement the helper**
@@ -1689,7 +1689,7 @@ export const checkAndPause = (
 
 - [ ] **Step 4: Run tests — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/main test costs.enforce-budget`
+Run: `pnpm --filter @prospero/main test costs.enforce-budget`
 Expected: 5 PASS.
 
 - [ ] **Step 5: Commit**
@@ -1713,7 +1713,7 @@ git commit -m "feat(m8): enforce-budget soft-stop helper (daily + per-issue)"
 // apps/main/tests/costs.day-summary.test.ts
 import { describe, expect, it, vi } from "vitest";
 import Database from "better-sqlite3";
-import type { ActivityEventRow } from "@dashboard-agent/shared";
+import type { ActivityEventRow } from "@prospero/shared";
 import { applyMigrations } from "../src/db/migrations.js";
 import { createCompaniesRepository } from "../src/companies/repository.js";
 import { createCostsRepository } from "../src/costs/repository.js";
@@ -1830,7 +1830,7 @@ describe("rollUpYesterdayIfNeeded", () => {
 
 - [ ] **Step 2: Run tests — expect failures**
 
-Run: `pnpm --filter @dashboard-agent/main test costs.day-summary`
+Run: `pnpm --filter @prospero/main test costs.day-summary`
 Expected: FAIL — module missing.
 
 - [ ] **Step 3: Implement the roll-up**
@@ -1975,7 +1975,7 @@ rollUpYesterdayIfNeeded({
 
 - [ ] **Step 4: Run tests — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/main test costs.day-summary`
+Run: `pnpm --filter @prospero/main test costs.day-summary`
 Expected: 3 PASS.
 
 - [ ] **Step 5: Commit**
@@ -2161,7 +2161,7 @@ import { rollUpYesterdayIfNeeded } from "../costs/day-summary.js";
 
 - [ ] **Step 4: Run typecheck + main suite**
 
-Run: `pnpm typecheck && pnpm --filter @dashboard-agent/main test`
+Run: `pnpm typecheck && pnpm --filter @prospero/main test`
 Expected: PASS. If `agents.pause` does not exist as a single-arg API, look up the existing M7.6 pause method — likely `agents.pause(agentId)` with reason set separately, or `agents.setStatus(agentId, 'paused', { reason })`. Match what M7.6 actually exposes.
 
 - [ ] **Step 5: Commit**
@@ -2366,7 +2366,7 @@ describe("costs IPC handlers", () => {
 
 - [ ] **Step 4: Run tests — expect failures**
 
-Run: `pnpm --filter @dashboard-agent/main test ipc.costs-handlers`
+Run: `pnpm --filter @prospero/main test ipc.costs-handlers`
 Expected: FAIL — `registerCostsHandlers` and `costs-handlers.ts` do not exist.
 
 - [ ] **Step 5: Implement the handlers module**
@@ -2379,7 +2379,7 @@ Expected: FAIL — `registerCostsHandlers` and `costs-handlers.ts` do not exist.
 
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 import type {
   CostsQueryInput,
   CostsQueryResult,
@@ -2388,7 +2388,7 @@ import type {
   CostBucket,
   CostAgentTotal,
   CostProjectTotal,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { createCostsRepository } from "../costs/repository.js";
 import { createBudgetsRepository } from "../costs/budgets-repository.js";
 
@@ -2621,12 +2621,12 @@ registerCostsHandlers(db);
 
 - [ ] **Step 7: Run tests — expect pass**
 
-Run: `pnpm --filter @dashboard-agent/main test ipc.costs-handlers`
+Run: `pnpm --filter @prospero/main test ipc.costs-handlers`
 Expected: 5 PASS.
 
 - [ ] **Step 8: Run full main test suite to confirm no regressions**
 
-Run: `pnpm --filter @dashboard-agent/main test`
+Run: `pnpm --filter @prospero/main test`
 Expected: PASS — pre-M8 baseline 472 plus ~30-35 new from tasks 1–12 ≈ 505-510 tests green.
 
 - [ ] **Step 9: Commit**
@@ -2662,7 +2662,7 @@ In the app:
 In a separate terminal:
 
 ```powershell
-$dbPath = "$env:APPDATA\Electron\dashboard-agent.db"
+$dbPath = "$env:APPDATA\Electron\prospero.db"
 sqlite3 $dbPath "SELECT COUNT(*) FROM cost_events"
 sqlite3 $dbPath "SELECT agent_id, model, input_tokens, output_tokens, cost_cents_estimate FROM cost_events ORDER BY occurred_at DESC LIMIT 5"
 ```

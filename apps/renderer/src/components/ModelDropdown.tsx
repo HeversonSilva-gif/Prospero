@@ -1,6 +1,6 @@
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import { CLAUDE_MODEL_PRESETS, MODEL_ID_REGEX } from "@dashboard-agent/shared";
+import { CLAUDE_MODEL_PRESETS, MODEL_ID_REGEX } from "@prospero/shared";
 import { categorizeCostTier, type CostTier } from "../lib/costs/categorizeCostTier.js";
 
 type Props = {

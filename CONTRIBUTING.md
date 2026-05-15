@@ -8,7 +8,7 @@ Prerequisites: Node 20+, pnpm 9+, gitleaks, Windows 11 (primary platform).
 
 ```powershell
 git clone <url>
-cd DashboardAgent
+cd Prospero
 pnpm install
 pnpm dev
 ```

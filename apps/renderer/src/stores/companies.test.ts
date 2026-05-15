@@ -15,8 +15,8 @@ const ipcMock = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  (globalThis as unknown as { window: { dashboardAgent: typeof ipcMock } }).window = {
-    dashboardAgent: ipcMock,
+  (globalThis as unknown as { window: { prospero: typeof ipcMock } }).window = {
+    prospero: ipcMock,
   };
   useCompaniesStore.setState({ companies: [], activeId: null, loaded: false });
 });

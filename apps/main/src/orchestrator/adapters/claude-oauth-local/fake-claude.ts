@@ -3,7 +3,7 @@ import { Readable, Writable } from "node:stream";
 
 // Test-only stub that mimics the surface of node:child_process.ChildProcess
 // the adapter uses (stdin Writable, stdout Readable, stderr Readable, on,
-// kill, pid, killed, exitCode). Used when DASHBOARD_AGENT_E2E_FAKE_CLAUDE=1
+// kill, pid, killed, exitCode). Used when PROSPERO_E2E_FAKE_CLAUDE=1
 // is set so the E2E suite never hits the real Anthropic API.
 
 export class FakeClaude extends EventEmitter {
@@ -110,5 +110,4 @@ export class FakeClaude extends EventEmitter {
   }
 }
 
-export const isFakeClaudeEnabled = (): boolean =>
-  process.env["DASHBOARD_AGENT_E2E_FAKE_CLAUDE"] === "1";
+export const isFakeClaudeEnabled = (): boolean => process.env["PROSPERO_E2E_FAKE_CLAUDE"] === "1";

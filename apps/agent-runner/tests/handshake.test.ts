@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { WireHandlerError } from "@dashboard-agent/shared";
+import { WireHandlerError } from "@prospero/shared";
 import { handleHandshake } from "../src/handlers/handshake.js";
 import { createRunnerState } from "../src/state.js";
 
 const validParams = {
   protocolVersion: 1,
-  client: "dashboard-agent",
+  client: "prospero",
   clientVersion: "0.10.0",
   credentials: { kind: "oauth", oauthToken: "tok-123" },
 };

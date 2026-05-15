@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { ToolCallRef } from "@dashboard-agent/shared";
+import type { ToolCallRef } from "@prospero/shared";
 
 type EventRow = { kind: string; payload_json: string; created_at: number };
 type MsgRow = { tool_calls_json: string | null; created_at: number };

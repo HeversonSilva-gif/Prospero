@@ -1,4 +1,4 @@
-import type { IssueStatus } from "@dashboard-agent/shared";
+import type { IssueStatus } from "@prospero/shared";
 
 export type ReviewDecision = "approve" | "request_changes" | "reject";
 

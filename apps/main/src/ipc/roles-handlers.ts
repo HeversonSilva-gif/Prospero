@@ -1,11 +1,6 @@
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import {
-  IPC,
-  resolveSkillTools,
-  type RoleDetail,
-  type RoleTemplate,
-} from "@dashboard-agent/shared";
+import { IPC, resolveSkillTools, type RoleDetail, type RoleTemplate } from "@prospero/shared";
 import { createRoleTemplatesRepository } from "../agents/role-templates-repository.js";
 
 type RoleSummary = RoleTemplate & { agentCount: number };

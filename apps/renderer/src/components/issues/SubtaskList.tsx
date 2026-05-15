@@ -1,6 +1,6 @@
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Issue } from "@dashboard-agent/shared";
+import type { Issue } from "@prospero/shared";
 import { useIssuesStore } from "../../stores/issues.js";
 
 type Props = { subtasks: Issue[]; parentId: string; onAdd: () => void };

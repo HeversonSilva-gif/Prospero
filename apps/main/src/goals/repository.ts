@@ -6,7 +6,7 @@ import type {
   GoalStatus,
   CreateGoalInput,
   ExecutionState,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 
 export type GoalsListFilter = {
   status?: GoalStatus;

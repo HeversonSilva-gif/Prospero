@@ -2,7 +2,7 @@
 
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { CostsAggregateTodayResult, CostsQueryResult } from "@dashboard-agent/shared";
+import type { CostsAggregateTodayResult, CostsQueryResult } from "@prospero/shared";
 import { formatCents, formatTokens } from "../../lib/costs/formatCents.js";
 
 type Props = {

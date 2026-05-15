@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import { useGoalsStore } from "./goals.js";
-import type { Goal, GoalWithPlan } from "@dashboard-agent/shared";
+import type { Goal, GoalWithPlan } from "@prospero/shared";
 
 const ipcMock = {
   list: vi.fn(),
@@ -35,10 +35,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   (
     globalThis as unknown as {
-      window: { dashboardAgent: { goals: typeof ipcMock } };
+      window: { prospero: { goals: typeof ipcMock } };
     }
   ).window = {
-    dashboardAgent: { goals: ipcMock },
+    prospero: { goals: ipcMock },
   };
   useGoalsStore.setState({ goals: [], detail: null, loaded: false, loading: false });
 });

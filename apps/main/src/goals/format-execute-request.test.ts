@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { formatGoalExecuteRequest } from "./format-execute-request.js";
-import type { Goal, GoalPlan } from "@dashboard-agent/shared";
+import type { Goal, GoalPlan } from "@prospero/shared";
 
 const goal = (over: Partial<Goal> = {}): Goal => ({
   id: "g_1",

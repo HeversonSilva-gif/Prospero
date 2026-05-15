@@ -1,4 +1,4 @@
-import type { Goal } from "@dashboard-agent/shared";
+import type { Goal } from "@prospero/shared";
 
 export const formatGoalPlanRequest = (goal: Goal, feedback?: string): string => {
   const lines: string[] = ["[GOAL_PLAN_REQUEST]"];

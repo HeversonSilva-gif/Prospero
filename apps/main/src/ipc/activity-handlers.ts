@@ -1,6 +1,6 @@
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type ActivityEventRow } from "@dashboard-agent/shared";
+import { IPC, type ActivityEventRow } from "@prospero/shared";
 import { createActivityRepository, type ActivityQueryParams } from "../activity/repository.js";
 
 export const registerActivityHandlers = (db: Database.Database): void => {

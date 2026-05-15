@@ -1,5 +1,5 @@
 import type { FC } from "react";
-import type { Project, ProjectPathStatus } from "@dashboard-agent/shared";
+import type { Project, ProjectPathStatus } from "@prospero/shared";
 
 type Props = {
   project: Project;

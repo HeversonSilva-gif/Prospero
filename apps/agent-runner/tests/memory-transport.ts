@@ -1,4 +1,4 @@
-import type { WireTransport } from "@dashboard-agent/shared";
+import type { WireTransport } from "@prospero/shared";
 
 export type MemoryTransportPair = {
   a: WireTransport;

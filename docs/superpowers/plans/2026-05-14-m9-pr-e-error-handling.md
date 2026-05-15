@@ -246,7 +246,7 @@ expect(detectClaudeCliToken(home)).toEqual({ token: "sk-ant-oat-...", expiresAt:
 
 ```bash
 pnpm -r typecheck
-pnpm --filter @dashboard-agent/main test -- auth
+pnpm --filter @prospero/main test -- auth
 git add packages/shared/src/types/auth.ts apps/main/src/auth/token-detect.ts apps/main/src/auth/token-storage.ts apps/main/src/ipc/auth-handlers.ts apps/main/tests
 git commit -m "feat(m9): persist oauth expires_at; token-detect returns {token, expiresAt}"
 ```
@@ -327,8 +327,8 @@ describe("parseStreamLine rate_limit_event", () => {
 - [ ] **Step 2.4: Typecheck + run + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/main typecheck
-pnpm --filter @dashboard-agent/main test -- stream-parser
+pnpm --filter @prospero/main typecheck
+pnpm --filter @prospero/main test -- stream-parser
 git add packages/shared/src/types/adapter.ts apps/main/src/orchestrator/adapters/claude-oauth-local/stream-parser.ts apps/main/src/orchestrator/adapters/claude-oauth-local/stream-parser.test.ts
 git commit -m "feat(m9): stream-parser surfaces rate-limited event with retryAfterSec"
 ```
@@ -565,7 +565,7 @@ export const scanStaleAgents = (db: Database.Database, thresholdMs: number): Sta
 };
 ```
 
-Run: `pnpm --filter @dashboard-agent/main test -- heartbeat`. Expected PASS.
+Run: `pnpm --filter @prospero/main test -- heartbeat`. Expected PASS.
 
 - [ ] **Step 4.5: Add markAsUnresponsive helper + side-effect function**
 
@@ -651,7 +651,7 @@ app.on("before-quit", () => {
 
 ```bash
 pnpm -r typecheck
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 git add packages/shared/src/types/inbox.ts apps/main/src/db/migrations/0015_inbox_agent_unresponsive.sql apps/main/src/orchestrator/heartbeat.ts apps/main/src/orchestrator/heartbeat.test.ts apps/main/src/index.ts
 git commit -m "feat(m9): heartbeat scanner — stale agents become error + agent_unresponsive inbox"
 ```
@@ -697,7 +697,7 @@ process.on("uncaughtException", (err) => {
 - [ ] **Step 5.2: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/main typecheck
+pnpm --filter @prospero/main typecheck
 git add apps/main/src/index.ts
 git commit -m "feat(m9): auto-restart main on uncaughtException (5s log window + relaunch)"
 ```
@@ -778,7 +778,7 @@ export const isExpiringSoon = (expiresAt: number | null, now: number): boolean =
 - [ ] **Step 6.3: Run + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer test -- oauth-expiry
+pnpm --filter @prospero/renderer test -- oauth-expiry
 git add apps/renderer/src/lib/oauth-expiry.ts apps/renderer/src/lib/oauth-expiry.test.ts
 git commit -m "feat(m9): oauth-expiry pure helpers (daysUntil + isExpiringSoon)"
 ```
@@ -871,7 +871,7 @@ export const RateLimitBanner: FC = () => {
   const [state, setState] = useState<State>(initial);
 
   useEffect(() => {
-    const off = window.dashboardAgent.agents.onEvent((ev) => {
+    const off = window.prospero.agents.onEvent((ev) => {
       if (ev.kind !== "rate-limited") return;
       const retryAt =
         ev.retryAfterSec !== null && ev.retryAfterSec > 0
@@ -927,7 +927,7 @@ const Shell = ({ children }: { children: React.ReactNode }) => (
 - [ ] **Step 7.5: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/components/banners apps/renderer/src/App.tsx
 git commit -m "feat(m9): three global banners (auth error, oauth expiry, rate limit)"
 ```
@@ -1002,7 +1002,7 @@ it("includes the M9 PR-E banner keys in both locales", () => {
 });
 ```
 
-Run: `pnpm --filter @dashboard-agent/renderer test -- parity`. Expected PASS.
+Run: `pnpm --filter @prospero/renderer test -- parity`. Expected PASS.
 
 - [ ] **Step 8.4: Commit**
 
@@ -1077,9 +1077,9 @@ git commit -m "docs(m9): close pr-e error handling in roadmap (3 places)"
 ## Task 11: Memory + handoff
 
 **Files:**
-- Create: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\project_m9_pr_e_lessons.md`
-- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\MEMORY.md`
-- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\project_session_handoff.md`
+- Create: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\project_m9_pr_e_lessons.md`
+- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\MEMORY.md`
+- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\project_session_handoff.md`
 
 - [ ] **Step 11.1: Lessons memory**
 

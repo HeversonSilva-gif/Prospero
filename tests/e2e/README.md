@@ -12,7 +12,7 @@ pnpm test:e2e:ui     # Playwright UI for debugging a single spec
 
 ## How the suite avoids hitting the real API
 
-`DASHBOARD_AGENT_E2E_FAKE_CLAUDE=1` short-circuits the orchestrator's spawn
+`PROSPERO_E2E_FAKE_CLAUDE=1` short-circuits the orchestrator's spawn
 path: instead of launching the real claude CLI, the adapter runs a stub child
 that emits a canned sequence of stream-json events (session-init, an optional
 hire_agent tool call, turn-complete). The stub lives in
@@ -21,7 +21,7 @@ hire_agent tool call, turn-complete). The stub lives in
 ## How the suite isolates state
 
 Every test gets its own `userData` directory created with `mkdtempSync`. The
-fixture sets `DASHBOARD_AGENT_USER_DATA` so the main process points its DB,
+fixture sets `PROSPERO_USER_DATA` so the main process points its DB,
 events dir, permissions dir, and config dir at that throwaway path.
 
 ## Per-scenario skip fallback

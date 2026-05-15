@@ -1,4 +1,4 @@
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 
 export type PositionedNode = {
   id: string;

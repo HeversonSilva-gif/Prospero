@@ -18,7 +18,7 @@ export const Dashboard = () => {
   const companyId = useCompaniesStore((s) => s.activeId);
 
   const onCreateDemo = async () => {
-    const company = await window.dashboardAgent.companies.createDemo();
+    const company = await window.prospero.companies.createDemo();
     await useCompaniesStore.getState().load();
     await useCompaniesStore.getState().setActive(company.id);
     await loadAgents(company.id);

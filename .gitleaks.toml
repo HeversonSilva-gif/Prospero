@@ -1,4 +1,4 @@
-title = "Dashboard Agent gitleaks rules"
+title = "Prospero gitleaks rules"
 
 [extend]
 useDefault = true

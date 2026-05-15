@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { useAgentsStore } from "./agents.js";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 
 const sampleAgent = (overrides: Partial<Agent> = {}): Agent => ({
   id: "agent_1",

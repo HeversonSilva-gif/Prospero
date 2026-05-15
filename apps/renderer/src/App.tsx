@@ -1,7 +1,7 @@
 import { useEffect, lazy, Suspense } from "react";
 import { HashRouter, Routes, Route, Navigate, NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { AgentStatus } from "@dashboard-agent/shared";
+import type { AgentStatus } from "@prospero/shared";
 import { useSettingsStore } from "./stores/settings.js";
 import { useAuthStore } from "./stores/auth.js";
 import { useAgentsStore } from "./stores/agents.js";
@@ -257,7 +257,7 @@ export const App = () => {
   // Permanent inbox-update subscription. Reloads only when active company matches.
   useEffect(() => {
     if (!hasToken) return;
-    const off = window.dashboardAgent.inbox.onUpdate(() => {
+    const off = window.prospero.inbox.onUpdate(() => {
       const cid = useCompaniesStore.getState().activeId;
       if (cid !== null) void loadInbox(cid);
     });
@@ -266,7 +266,7 @@ export const App = () => {
 
   // Subscribe to agent:event broadcasts
   useEffect(() => {
-    const off = window.dashboardAgent.agents.onEvent((ev) => {
+    const off = window.prospero.agents.onEvent((ev) => {
       switch (ev.kind) {
         case "message-append":
           appendMessage(ev.message);

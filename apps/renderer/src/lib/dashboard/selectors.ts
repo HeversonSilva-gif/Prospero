@@ -1,4 +1,4 @@
-import type { Agent, Issue, Goal } from "@dashboard-agent/shared";
+import type { Agent, Issue, Goal } from "@prospero/shared";
 
 const ACTIVE_AGENT_STATUSES = new Set(["thinking", "working", "waiting"]);
 const ACTIVE_ISSUE_STATUSES = new Set(["doing", "review"]);

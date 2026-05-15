@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { BrowserWindow } from "electron";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalPlansRepository } from "../goals/plans-repository.js";
 import { createRoleTemplatesRepository } from "../agents/role-templates-repository.js";
@@ -11,7 +11,7 @@ import { tryGetRecorder } from "../activity/index.js";
 import { getCostBaseline } from "../costs/baseline.js";
 import { GoalPlanPayloadSchema, type GoalPlanPayload } from "../schemas/goalPlan.js";
 import type { ToolContext } from "./tools.js";
-import type { GoalStatus, GoalLevel } from "@dashboard-agent/shared";
+import type { GoalStatus, GoalLevel } from "@prospero/shared";
 
 type Tool = {
   name: string;

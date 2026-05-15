@@ -3,7 +3,7 @@
 **Data:** 2026-05-10
 **Autor:** Heverson + Claude (Opus 4.7)
 **Status:** Spec aprovado — pronto para implementation plan
-**Spec mãe:** `docs/superpowers/specs/2026-05-09-dashboard-agent-design.md` (referenciado como "spec v1")
+**Spec mãe:** `docs/superpowers/specs/2026-05-09-prospero-design.md` (referenciado como "spec v1")
 
 > ⚠ **Não-regressão (spec v1 §10):** segurança, testes e tokens (≤ 1.3x baseline) não podem regredir entre releases. M5 adiciona suite de regression-guard tests específicos da §6.4 e §7.1 deste doc.
 
@@ -60,7 +60,7 @@ Settings já são serializadas como JSON sob a key `app-settings` (ver [apps/mai
 export type AppSettings = {
   language: Language;
   theme: Theme;
-  workspaceCwd: string | null;   // null = use default <homedir>/DashboardAgent-Workspace
+  workspaceCwd: string | null;   // null = use default <homedir>/Prospero-Workspace
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -304,7 +304,7 @@ Sub-agentes têm na system_prompt (definido pelo CEO no hire_agent): "Mensagens 
 
 ### 7.4 Cwd injection
 
-`spawnAgent` recebe `cwd` do settings (`settingsRepo.get('workspace_cwd')`); fallback pra default `path.join(homedir(), 'DashboardAgent-Workspace')`. Mkdir if missing antes do spawn.
+`spawnAgent` recebe `cwd` do settings (`settingsRepo.get('workspace_cwd')`); fallback pra default `path.join(homedir(), 'Prospero-Workspace')`. Mkdir if missing antes do spawn.
 
 ## 8. UI changes (renderer)
 
@@ -355,7 +355,7 @@ Sub-agentes têm na system_prompt (definido pelo CEO no hire_agent): "Mensagens 
 - Novo campo "Workspace Folder" com input + botão "Browse..." (dialog do Electron)
 - Validação: path deve existir (ou opção de criar)
 - Save persiste em `settings.workspace_cwd` via novo IPC `settings:set workspace_cwd`
-- Default visível como hint: `<homedir>/DashboardAgent-Workspace`
+- Default visível como hint: `<homedir>/Prospero-Workspace`
 
 ### 8.6 i18n
 

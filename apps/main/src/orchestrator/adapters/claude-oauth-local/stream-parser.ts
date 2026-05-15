@@ -12,7 +12,7 @@
 //   - {"type":"stream_event", event:{type:"content_block_*"|"message_stop", ...}}
 // Still parsed for forward compatibility.
 
-import type { AssistantContentBlock, ParsedEvent, UsageEstimate } from "@dashboard-agent/shared";
+import type { AssistantContentBlock, ParsedEvent, UsageEstimate } from "@prospero/shared";
 
 export type { AssistantContentBlock, ParsedEvent };
 

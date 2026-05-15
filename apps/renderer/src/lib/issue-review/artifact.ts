@@ -1,4 +1,4 @@
-import type { IssueArtifact, IssueArtifactKind } from "@dashboard-agent/shared";
+import type { IssueArtifact, IssueArtifactKind } from "@prospero/shared";
 
 const DIFFABLE_KINDS: ReadonlySet<IssueArtifactKind> = new Set<IssueArtifactKind>([
   "output_text",

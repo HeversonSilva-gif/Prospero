@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Message } from "@dashboard-agent/shared";
+import type { Message } from "@prospero/shared";
 import { groupBySession } from "./RunsModal.js";
 
 const msg = (over: Partial<Message>): Message => ({

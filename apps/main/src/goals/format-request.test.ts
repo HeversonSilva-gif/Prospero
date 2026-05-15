@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { Goal } from "@dashboard-agent/shared";
+import type { Goal } from "@prospero/shared";
 import { formatGoalPlanRequest } from "./format-request.js";
 
 const sample: Goal = {

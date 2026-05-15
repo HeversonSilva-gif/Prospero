@@ -66,7 +66,7 @@ Recomendação: (a) por enquanto, (b) quando/se mudarmos transport.
 
 **Onde:** commit `419239276ab71d293673207c61b1430a562da15b` ("chore(gitleaks): allow placeholder tokens in design docs")
 
-**Problema:** introduziu o email pessoal do autor em `docs/superpowers/specs/2026-05-09-dashboard-agent-design.md:4`. Working tree atual já tem a remoção (uncommitted em 2026-05-09); HEAD ainda contém.
+**Problema:** introduziu o email pessoal do autor em `docs/superpowers/specs/2026-05-09-prospero-design.md:4`. Working tree atual já tem a remoção (uncommitted em 2026-05-09); HEAD ainda contém.
 
 **Risco real:** zero enquanto o repo for local (sem `git remote`). Vira problema se/quando for pushado. Repo público + email indexado pelo GitHub = phishing/spam.
 

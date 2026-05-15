@@ -1,6 +1,6 @@
 import { resolve, isAbsolute } from "node:path";
 import { homedir } from "node:os";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 import { matchesBlockedBash, matchesBlockedPath } from "./blocklist.js";
 
 export type GateInput = {

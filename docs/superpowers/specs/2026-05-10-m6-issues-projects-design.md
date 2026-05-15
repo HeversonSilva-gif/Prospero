@@ -2,7 +2,7 @@
 
 **Status:** spec — pendente plano de implementação
 **Data:** 2026-05-10
-**Spec base:** [2026-05-09-dashboard-agent-design.md](2026-05-09-dashboard-agent-design.md)
+**Spec base:** [2026-05-09-prospero-design.md](2026-05-09-prospero-design.md)
 **Roadmap:** [ROADMAP.md](../../../ROADMAP.md) — M6 (próximo natural)
 **Lições prévias:** [project_m5_lessons.md](memory) — file-fence, router, settings.json `permissions.ask`, request_permission key=`input`, roster broadcast
 
@@ -178,7 +178,7 @@ Adicionar entrada **Projects** em `apps/renderer/src/components/Sidebar.tsx`, lo
 ┌──────────────────────────────────────────────────┐
 │  Projects                              [+ New]   │
 ├──────────────┬───────────────────────────────────┤
-│ ● DashboardA.│  ● DashboardAgent          [⋯]   │
+│ ● DashboardA.│  ● Prospero          [⋯]   │
 │   Marketing  │  ─────────────────────────────────│
 │   Old API ⚠️ │  📁 d:\Projetos pessoais\Dashboar│
 │              │  4 agents · 12 issues · 3 doing  │
@@ -268,7 +268,7 @@ Top bar: 3 dropdowns (Project, Assignee, Priority). Estado local — não persis
 │  Atualizar /v1/* pra /v2/* mantendo retrocompat...  │
 │  [Edit description]                                  │
 │                                                      │
-│  Project: ● DashboardAgent     Assignee: 👤 Dev1   │
+│  Project: ● Prospero     Assignee: 👤 Dev1   │
 │  Priority: ⬆ high              Status: doing       │
 │                                                      │
 │  ── Sub-tasks (2) ─────────────────────────         │
@@ -444,7 +444,7 @@ Nada open — todas as decisões saíram do brainstorming 2026-05-10. Acceptance
 - [ ] User pode criar/editar/deletar projects via UI
 - [ ] Migration auto-cria "Default Workspace" do `workspaceCwd` legado
 - [ ] User pode restringir agents per-project via chips no detail de project
-- [ ] CEO consegue chamar `create_issue(project="DashboardAgent", title="...")` via MCP e isso aparece no kanban em <2s
+- [ ] CEO consegue chamar `create_issue(project="Prospero", title="...")` via MCP e isso aparece no kanban em <2s
 - [ ] Drag-drop entre colunas no kanban persiste status mudança
 - [ ] Modal de detail abre com `?selected=<id>` na URL e fecha com Esc/×
 - [ ] Comments user e agent renderizam ordenados por created_at

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ActivityEventRow } from "@dashboard-agent/shared";
+import type { ActivityEventRow } from "@prospero/shared";
 import { matchesFilters, mergeNew } from "./useActivityStream.js";
 
 const row = (over: Partial<ActivityEventRow>): ActivityEventRow => ({

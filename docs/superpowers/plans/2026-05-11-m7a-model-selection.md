@@ -74,7 +74,7 @@ export type Agent = {
 
 - [ ] **Step 2: Verify typecheck**
 
-Run: `pnpm -F @dashboard-agent/shared build`
+Run: `pnpm -F @prospero/shared build`
 Expected: PASS. Other packages will fail compile next — that's expected.
 
 - [ ] **Step 3: Commit**
@@ -132,7 +132,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
 - [ ] **Step 2: Verify typecheck**
 
-Run: `pnpm -F @dashboard-agent/shared build`
+Run: `pnpm -F @prospero/shared build`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -213,7 +213,7 @@ describe("migration 0003 — roles & model", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm -F @dashboard-agent/main test -- db.migration-0003`
+Run: `pnpm -F @prospero/main test -- db.migration-0003`
 Expected: FAIL — `model` column not defined.
 
 - [ ] **Step 3: Create the migration SQL**
@@ -236,12 +236,12 @@ CREATE INDEX IF NOT EXISTS idx_agents_template ON agents(template_id);
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm -F @dashboard-agent/main test -- db.migration-0003`
+Run: `pnpm -F @prospero/main test -- db.migration-0003`
 Expected: PASS (4 tests).
 
 - [ ] **Step 5: Run full migrations test to verify no regression**
 
-Run: `pnpm -F @dashboard-agent/main test -- db.migrations`
+Run: `pnpm -F @prospero/main test -- db.migrations`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
@@ -264,7 +264,7 @@ git commit -m "feat(m7a): migration 0003 — agents.model + role_templates.defau
 Open `apps/main/tests/settings.schema.test.ts` and append (after existing tests):
 
 ```typescript
-import { DEFAULT_CLAUDE_MODEL } from "@dashboard-agent/shared";
+import { DEFAULT_CLAUDE_MODEL } from "@prospero/shared";
 
 describe("AppSettingsSchema — defaultModelForNewAgents", () => {
   it("accepts a valid Claude model id", () => {
@@ -307,7 +307,7 @@ describe("AppSettingsSchema — defaultModelForNewAgents", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm -F @dashboard-agent/main test -- settings.schema`
+Run: `pnpm -F @prospero/main test -- settings.schema`
 Expected: FAIL — schema doesn't have the field.
 
 - [ ] **Step 3: Update schema**
@@ -321,7 +321,7 @@ import {
   DEFAULT_CLAUDE_MODEL,
   MODEL_ID_REGEX,
   type AppSettings,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 
 export const AppSettingsSchema = z.object({
   language: z.enum(["pt-BR", "en-US"]),
@@ -348,12 +348,12 @@ export const parseSettings = (raw: unknown): AppSettings => {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm -F @dashboard-agent/main test -- settings.schema`
+Run: `pnpm -F @prospero/main test -- settings.schema`
 Expected: PASS (4 new + all prior tests).
 
 - [ ] **Step 5: Run settings repository test (no change, but verify regression)**
 
-Run: `pnpm -F @dashboard-agent/main test -- settings.repository`
+Run: `pnpm -F @prospero/main test -- settings.repository`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
@@ -416,7 +416,7 @@ describe("AgentsRepository — model field", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm -F @dashboard-agent/main test -- agents.repository`
+Run: `pnpm -F @prospero/main test -- agents.repository`
 Expected: FAIL — Agent type missing `model`.
 
 - [ ] **Step 3: Update repository**
@@ -426,7 +426,7 @@ Open `apps/main/src/agents/repository.ts`. Replace the relevant sections:
 ```typescript
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import { DEFAULT_CLAUDE_MODEL, type Agent, type AgentMode, type AgentStatus } from "@dashboard-agent/shared";
+import { DEFAULT_CLAUDE_MODEL, type Agent, type AgentMode, type AgentStatus } from "@prospero/shared";
 
 type Row = {
   id: string;
@@ -549,7 +549,7 @@ export const createAgentsRepository = (db: Database.Database): AgentsRepository 
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm -F @dashboard-agent/main test -- agents.repository`
+Run: `pnpm -F @prospero/main test -- agents.repository`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -610,7 +610,7 @@ const baseAgent: Agent = {
 
 - [ ] **Step 2: Run test to verify failure**
 
-Run: `pnpm -F @dashboard-agent/main test -- orchestrator.lifecycle`
+Run: `pnpm -F @prospero/main test -- orchestrator.lifecycle`
 Expected: FAIL on `--model` assertions; also type compile errors on baseAgent if not updated.
 
 - [ ] **Step 3: Update buildClaudeArgs**
@@ -647,7 +647,7 @@ export const buildClaudeArgs = (agent: Agent, mcpConfigPath: string): string[] =
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm -F @dashboard-agent/main test -- orchestrator.lifecycle`
+Run: `pnpm -F @prospero/main test -- orchestrator.lifecycle`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -701,7 +701,7 @@ Open `apps/main/tests/mcp.tools.test.ts`. Find the `hire_agent` describe block (
 
 - [ ] **Step 2: Run test to verify failure**
 
-Run: `pnpm -F @dashboard-agent/main test -- mcp.tools`
+Run: `pnpm -F @prospero/main test -- mcp.tools`
 Expected: FAIL — `created.model` is `claude-sonnet-4-6` (column default), not `claude-opus-4-7` (settings).
 
 - [ ] **Step 3: Update hire_agent**
@@ -747,7 +747,7 @@ Modify the `run` function:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm -F @dashboard-agent/main test -- mcp.tools`
+Run: `pnpm -F @prospero/main test -- mcp.tools`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -811,7 +811,7 @@ Open `apps/renderer/src/i18n/ptBR.ts`. Same structure:
 
 - [ ] **Step 3: Verify i18n coverage test (if exists)**
 
-Run: `pnpm -F @dashboard-agent/renderer test -- i18n` (skip if no such test)
+Run: `pnpm -F @prospero/renderer test -- i18n` (skip if no such test)
 Expected: PASS (both files have parity).
 
 - [ ] **Step 4: Commit**
@@ -835,7 +835,7 @@ Create `apps/renderer/src/components/ModelDropdown.tsx`:
 ```typescript
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import { CLAUDE_MODEL_PRESETS, MODEL_ID_REGEX } from "@dashboard-agent/shared";
+import { CLAUDE_MODEL_PRESETS, MODEL_ID_REGEX } from "@prospero/shared";
 
 type Props = {
   value: string;
@@ -905,7 +905,7 @@ export const ModelDropdown: FC<Props> = ({ value, onChange, disabled = false }) 
 
 - [ ] **Step 2: Verify typecheck**
 
-Run: `pnpm -F @dashboard-agent/renderer build`
+Run: `pnpm -F @prospero/renderer build`
 Expected: PASS (build succeeds; component not yet imported anywhere — that's next task).
 
 - [ ] **Step 3: Commit**
@@ -926,9 +926,9 @@ git commit -m "feat(m7a): ModelDropdown component (presets + custom + validation
 
 First verify the existing settings store. Search for it:
 
-Run: `pnpm -F @dashboard-agent/renderer test -- settings.store` (if exists)
+Run: `pnpm -F @prospero/renderer test -- settings.store` (if exists)
 
-Open `apps/renderer/src/stores/settings.ts` (likely path; if it doesn't exist, the Settings.tsx page may use direct IPC calls — fallback to `window.dashboardAgent.settings.get/update`).
+Open `apps/renderer/src/stores/settings.ts` (likely path; if it doesn't exist, the Settings.tsx page may use direct IPC calls — fallback to `window.prospero.settings.get/update`).
 
 If the store needs a new field for `defaultModelForNewAgents`, it's already covered by reading the whole `AppSettings` blob — no schema change needed. Just make sure the renderer can read/write the field.
 
@@ -939,7 +939,7 @@ Open `apps/renderer/src/routes/Settings.tsx`. Add imports at the top:
 ```typescript
 import { useEffect, useState } from "react";
 import { ModelDropdown } from "../components/ModelDropdown.js";
-import { DEFAULT_CLAUDE_MODEL } from "@dashboard-agent/shared";
+import { DEFAULT_CLAUDE_MODEL } from "@prospero/shared";
 ```
 
 Add a new section above the workspace deprecated note. Inside the component, add state + load:
@@ -950,13 +950,13 @@ Add a new section above the workspace deprecated note. Inside the component, add
 
   useEffect(() => {
     void (async () => {
-      const settings = await window.dashboardAgent.settings.get();
+      const settings = await window.prospero.settings.get();
       setDefaultModel(settings.defaultModelForNewAgents);
     })();
   }, []);
 
   const saveModel = async (next: string) => {
-    await window.dashboardAgent.settings.update({ defaultModelForNewAgents: next });
+    await window.prospero.settings.update({ defaultModelForNewAgents: next });
     setDefaultModel(next);
     setModelSaved(true);
     window.setTimeout(() => setModelSaved(false), 2000);
@@ -980,7 +980,7 @@ In the JSX, add this section between the auth section and the workspace section:
 
 - [ ] **Step 3: Verify renderer builds**
 
-Run: `pnpm -F @dashboard-agent/renderer build`
+Run: `pnpm -F @prospero/renderer build`
 Expected: PASS.
 
 - [ ] **Step 4: Manual smoke (dev mode)**
@@ -1026,12 +1026,12 @@ Expected: 0 errors.
 
 - [ ] **Step 4: Verify token-leak regression still green**
 
-Run: `pnpm -F @dashboard-agent/main test -- auth.token-redact ipc.handlers`
+Run: `pnpm -F @prospero/main test -- auth.token-redact ipc.handlers`
 Expected: PASS — `model` field carrying through IPC does not leak OAuth token.
 
 - [ ] **Step 5: Verify M6 token budget regression**
 
-Run: `pnpm -F @dashboard-agent/main test -- m6-token-budget`
+Run: `pnpm -F @prospero/main test -- m6-token-budget`
 Expected: PASS (skip-while-zero still applies; this is the baseline marker).
 
 - [ ] **Step 6: Update ROADMAP.md**

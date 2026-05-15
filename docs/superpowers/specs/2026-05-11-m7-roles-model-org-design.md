@@ -2,7 +2,7 @@
 
 **Status:** Design aprovado · pendente plan + implementação
 **Data:** 2026-05-11
-**Spec base:** [docs/superpowers/specs/2026-05-09-dashboard-agent-design.md](2026-05-09-dashboard-agent-design.md) §6.4 (Dashboard widgets), §6.5 (right panel), §8 (sandbox)
+**Spec base:** [docs/superpowers/specs/2026-05-09-prospero-design.md](2026-05-09-prospero-design.md) §6.4 (Dashboard widgets), §6.5 (right panel), §8 (sandbox)
 **Roadmap entry:** [ROADMAP.md](../../../ROADMAP.md) §M7
 **Memória aplicada:** tokens não inflar, segurança não regredir, Paperclip referência ativa
 

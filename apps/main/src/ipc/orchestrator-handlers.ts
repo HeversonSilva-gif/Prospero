@@ -10,7 +10,7 @@ import {
   type Message,
   type MessageKind,
   type ToolCallView,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { redactString } from "../auth/token-redact.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
@@ -21,7 +21,7 @@ import { getActiveAuthMode } from "../auth/auth-mode.js";
 import { ensureAdapter, getAdapter, removeAdapter } from "../orchestrator/lifecycle.js";
 import { createRouter } from "../orchestrator/router.js";
 import type { Sender } from "../orchestrator/router.js";
-import type { ParsedEvent } from "@dashboard-agent/shared";
+import type { ParsedEvent } from "@prospero/shared";
 import { mapToolUseToAction } from "../orchestrator/current-action-mapper.js";
 import {
   createCurrentActionDebouncer,

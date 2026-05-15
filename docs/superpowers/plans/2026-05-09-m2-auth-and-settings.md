@@ -8,7 +8,7 @@
 
 **Tech Stack:** Electron `safeStorage`, better-sqlite3 (existing), Zod, react-i18next 15, Zustand 4, react-router-dom 6 (basic), Vitest (existing), better-sqlite3 (existing).
 
-**Spec reference:** `docs/superpowers/specs/2026-05-09-dashboard-agent-design.md` (§5.3 settings table; §8.1 credentials encryption; §6.3 i18n; §6.2 theme palette).
+**Spec reference:** `docs/superpowers/specs/2026-05-09-prospero-design.md` (§5.3 settings table; §8.1 credentials encryption; §6.3 i18n; §6.2 theme palette).
 
 **Spec compliance hooks:**
 - §8.1 — DPAPI encryption: implemented via Electron `safeStorage` (uses DPAPI on Windows, Keychain on Mac, libsecret on Linux)
@@ -71,7 +71,7 @@ apps/renderer/src/
 │   └── settings.ts             # Zustand store + IPC sync
 ├── App.tsx                     # MODIFIED: routing + first-run gate
 ├── main.tsx                    # MODIFIED: i18n init + theme apply
-├── env.d.ts                    # MODIFIED: extended dashboardAgent API
+├── env.d.ts                    # MODIFIED: extended prospero API
 └── styles/index.css            # MODIFIED: import theme tokens
 
 packages/shared/src/
@@ -138,7 +138,7 @@ describe("settings types and channels", () => {
 - [ ] **Step 2: Verify red**
 
 ```powershell
-pnpm --filter @dashboard-agent/shared test
+pnpm --filter @prospero/shared test
 ```
 
 Expected: FAIL — types/channels missing.
@@ -202,8 +202,8 @@ export type IpcChannel = (typeof IPC)[keyof typeof IPC];
 - [ ] **Step 7: Verify green**
 
 ```powershell
-pnpm --filter @dashboard-agent/shared test
-pnpm --filter @dashboard-agent/shared typecheck
+pnpm --filter @prospero/shared test
+pnpm --filter @prospero/shared typecheck
 ```
 
 Expected: 5 + 3 (existing) = 8 tests pass; typecheck clean.
@@ -227,7 +227,7 @@ git commit -m "feat(shared): add settings + auth types and ipc channels"
 - [ ] **Step 1: Add `zod` dependency**
 
 ```powershell
-pnpm --filter @dashboard-agent/main add zod@^3.23.8
+pnpm --filter @prospero/main add zod@^3.23.8
 ```
 
 - [ ] **Step 2: Write failing test**
@@ -273,7 +273,7 @@ describe("settings schema", () => {
 - [ ] **Step 3: Verify red**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 ```
 
 Expected: 6 new failures (module missing).
@@ -282,7 +282,7 @@ Expected: 6 new failures (module missing).
 
 ```ts
 import { z } from "zod";
-import { DEFAULT_SETTINGS, type AppSettings } from "@dashboard-agent/shared";
+import { DEFAULT_SETTINGS, type AppSettings } from "@prospero/shared";
 
 export const AppSettingsSchema = z.object({
   language: z.enum(["pt-BR", "en-US"]),
@@ -301,7 +301,7 @@ export const parseSettings = (raw: unknown): AppSettings => {
 - [ ] **Step 5: Verify green**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 ```
 
 Expected: 6 new tests pass + 6 pre-existing = 12 passing.
@@ -376,7 +376,7 @@ describe("settings repository", () => {
 
 ```ts
 import type Database from "better-sqlite3";
-import { DEFAULT_SETTINGS, type AppSettings } from "@dashboard-agent/shared";
+import { DEFAULT_SETTINGS, type AppSettings } from "@prospero/shared";
 import { AppSettingsSchema } from "./schema.js";
 
 const KEY = "app-settings";
@@ -535,7 +535,7 @@ export const isWellFormedToken = (raw: string): boolean =>
 - [ ] **Step 5: Verify green**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 ```
 
 - [ ] **Step 6: Commit**
@@ -629,7 +629,7 @@ describe("token-storage", () => {
 ```ts
 import type Database from "better-sqlite3";
 import { safeStorage } from "electron";
-import type { TokenSource, TokenStatus } from "@dashboard-agent/shared";
+import type { TokenSource, TokenStatus } from "@prospero/shared";
 import { isWellFormedToken } from "./token-validate.js";
 import { redactToken } from "./token-redact.js";
 
@@ -918,7 +918,7 @@ describe("settings ipc handlers", () => {
 ```ts
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type AppSettings } from "@dashboard-agent/shared";
+import { IPC, type AppSettings } from "@prospero/shared";
 import { createSettingsRepository } from "../settings/repository.js";
 
 export const registerSettingsHandlers = (db: Database.Database): void => {
@@ -1059,7 +1059,7 @@ describe("auth ipc handlers", () => {
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
 import { homedir } from "node:os";
-import { IPC, type TokenSource, type TokenStatus } from "@dashboard-agent/shared";
+import { IPC, type TokenSource, type TokenStatus } from "@prospero/shared";
 import {
   saveToken,
   loadTokenStatus,
@@ -1104,7 +1104,7 @@ export const registerAuthHandlers = (
 ```ts
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 import { registerSettingsHandlers } from "./settings-handlers.js";
 import { registerAuthHandlers } from "./auth-handlers.js";
 
@@ -1119,14 +1119,14 @@ export const registerIpcHandlers = (db: Database.Database): void => {
 
 ```ts
 import { contextBridge, ipcRenderer } from "electron";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 import type {
   AppSettings,
   TokenSource,
   TokenStatus,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 
-contextBridge.exposeInMainWorld("dashboardAgent", {
+contextBridge.exposeInMainWorld("prospero", {
   ping: (): Promise<string> => ipcRenderer.invoke(IPC.PING),
   settings: {
     get: (): Promise<AppSettings> => ipcRenderer.invoke(IPC.SETTINGS_GET),
@@ -1198,7 +1198,7 @@ app.on("before-quit", () => {
 - [ ] **Step 8: Verify green**
 
 ```powershell
-pnpm --filter @dashboard-agent/main test
+pnpm --filter @prospero/main test
 ```
 
 Expected: ~22 tests passing (8 existing + 2 settings handlers + 6 auth handlers + 6 settings repo + 6 schema = adjusted by exact counts).
@@ -1224,7 +1224,7 @@ git commit -m "feat(ipc): add settings and auth handlers wired to main process"
 - [ ] **Step 1: Add i18n deps**
 
 ```powershell
-pnpm --filter @dashboard-agent/renderer add i18next@^23.15.1 react-i18next@^15.0.2
+pnpm --filter @prospero/renderer add i18next@^23.15.1 react-i18next@^15.0.2
 ```
 
 - [ ] **Step 2: Create `apps/renderer/src/i18n/pt-BR.json`** (seeds for M2 only)
@@ -1232,7 +1232,7 @@ pnpm --filter @dashboard-agent/renderer add i18next@^23.15.1 react-i18next@^15.0
 ```json
 {
   "app": {
-    "title": "Dashboard Agent"
+    "title": "Prospero"
   },
   "settings": {
     "title": "Configurações",
@@ -1253,7 +1253,7 @@ pnpm --filter @dashboard-agent/renderer add i18next@^23.15.1 react-i18next@^15.0
     "auth.tokenInvalid": "Token inválido. Esperado formato sk-ant-oat-..."
   },
   "wizard": {
-    "title": "Bem-vindo ao Dashboard Agent",
+    "title": "Bem-vindo ao Prospero",
     "subtitle": "Vamos configurar seu OAuth token para começar.",
     "chooseMethod": "Como você prefere configurar?",
     "manualOption": "Cola manual (passo a passo)",
@@ -1286,7 +1286,7 @@ pnpm --filter @dashboard-agent/renderer add i18next@^23.15.1 react-i18next@^15.0
 ```json
 {
   "app": {
-    "title": "Dashboard Agent"
+    "title": "Prospero"
   },
   "settings": {
     "title": "Settings",
@@ -1307,7 +1307,7 @@ pnpm --filter @dashboard-agent/renderer add i18next@^23.15.1 react-i18next@^15.0
     "auth.tokenInvalid": "Invalid token. Expected format sk-ant-oat-..."
   },
   "wizard": {
-    "title": "Welcome to Dashboard Agent",
+    "title": "Welcome to Prospero",
     "subtitle": "Let's set up your OAuth token to get started.",
     "chooseMethod": "How would you like to configure?",
     "manualOption": "Manual paste (step-by-step)",
@@ -1340,7 +1340,7 @@ pnpm --filter @dashboard-agent/renderer add i18next@^23.15.1 react-i18next@^15.0
 ```ts
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import type { Language } from "@dashboard-agent/shared";
+import type { Language } from "@prospero/shared";
 import ptBR from "./pt-BR.json";
 import enUS from "./en-US.json";
 
@@ -1387,7 +1387,7 @@ ReactDOM.createRoot(rootEl).render(
 - [ ] **Step 7: Verify build**
 
 ```powershell
-pnpm --filter @dashboard-agent/renderer build
+pnpm --filter @prospero/renderer build
 ```
 
 - [ ] **Step 8: Commit**
@@ -1456,7 +1456,7 @@ html.dark {
 
 ```tsx
 import { useEffect } from "react";
-import type { Theme } from "@dashboard-agent/shared";
+import type { Theme } from "@prospero/shared";
 
 export const applyTheme = (theme: Theme): void => {
   const html = document.documentElement;
@@ -1494,14 +1494,14 @@ git commit -m "feat(theme): add light/dark css tokens and theme provider"
 - [ ] **Step 1: Add zustand**
 
 ```powershell
-pnpm --filter @dashboard-agent/renderer add zustand@^4.5.5
+pnpm --filter @prospero/renderer add zustand@^4.5.5
 ```
 
 - [ ] **Step 2: Implement `apps/renderer/src/stores/settings.ts`**
 
 ```ts
 import { create } from "zustand";
-import type { AppSettings, Language, Theme } from "@dashboard-agent/shared";
+import type { AppSettings, Language, Theme } from "@prospero/shared";
 import { setLanguage } from "../i18n/index.js";
 import { applyTheme } from "../theme/ThemeProvider.js";
 
@@ -1518,27 +1518,27 @@ export const useSettingsStore = create<State>((set, get) => ({
   loaded: false,
 
   load: async () => {
-    const fresh = await window.dashboardAgent.settings.get();
+    const fresh = await window.prospero.settings.get();
     setLanguage(fresh.language);
     applyTheme(fresh.theme);
     set({ settings: fresh, loaded: true });
   },
 
   setLanguage: async (lang) => {
-    const next = await window.dashboardAgent.settings.update({ language: lang });
+    const next = await window.prospero.settings.update({ language: lang });
     setLanguage(next.language);
     set({ settings: next });
   },
 
   setTheme: async (theme) => {
-    const next = await window.dashboardAgent.settings.update({ theme });
+    const next = await window.prospero.settings.update({ theme });
     applyTheme(next.theme);
     set({ settings: next });
   },
 }));
 ```
 
-- [ ] **Step 3: Update `apps/renderer/src/env.d.ts`** (extend the dashboardAgent type)
+- [ ] **Step 3: Update `apps/renderer/src/env.d.ts`** (extend the prospero type)
 
 ```ts
 /// <reference types="vite/client" />
@@ -1546,11 +1546,11 @@ import type {
   AppSettings,
   TokenSource,
   TokenStatus,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 
 declare global {
   interface Window {
-    dashboardAgent: {
+    prospero: {
       ping: () => Promise<string>;
       settings: {
         get: () => Promise<AppSettings>;
@@ -1571,7 +1571,7 @@ export {};
 - [ ] **Step 4: Verify typecheck**
 
 ```powershell
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 ```
 
 - [ ] **Step 5: Commit**
@@ -1711,7 +1711,7 @@ git commit -m "feat(renderer): add theme/language toggles and sidebar footer"
 - [ ] **Step 1: Add react-router-dom**
 
 ```powershell
-pnpm --filter @dashboard-agent/renderer add react-router-dom@^6.27.0
+pnpm --filter @prospero/renderer add react-router-dom@^6.27.0
 ```
 
 - [ ] **Step 2: Create `apps/renderer/src/routes/Dashboard.tsx`** (placeholder until M6)
@@ -1735,7 +1735,7 @@ export const Dashboard = () => {
 ```tsx
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { TokenStatus } from "@dashboard-agent/shared";
+import type { TokenStatus } from "@prospero/shared";
 
 export const Settings = () => {
   const { t } = useTranslation();
@@ -1743,7 +1743,7 @@ export const Settings = () => {
   const [tokenInput, setTokenInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = async () => setStatus(await window.dashboardAgent.auth.status());
+  const refresh = async () => setStatus(await window.prospero.auth.status());
 
   useEffect(() => {
     void refresh();
@@ -1752,7 +1752,7 @@ export const Settings = () => {
   const onSave = async () => {
     setError(null);
     try {
-      await window.dashboardAgent.auth.set(tokenInput, "manual");
+      await window.prospero.auth.set(tokenInput, "manual");
       setTokenInput("");
       await refresh();
     } catch {
@@ -1761,7 +1761,7 @@ export const Settings = () => {
   };
 
   const onClear = async () => {
-    await window.dashboardAgent.auth.clear();
+    await window.prospero.auth.clear();
     await refresh();
   };
 
@@ -1838,7 +1838,7 @@ export const SetupWizard = () => {
   const goAuto = async () => {
     setStep("auto");
     setError(null);
-    const found = await window.dashboardAgent.auth.detect();
+    const found = await window.prospero.auth.detect();
     setAutoToken(found);
     setAutoSearched(true);
   };
@@ -1846,7 +1846,7 @@ export const SetupWizard = () => {
   const importAuto = async () => {
     if (autoToken === null) return;
     try {
-      await window.dashboardAgent.auth.set(autoToken, "auto-detect");
+      await window.prospero.auth.set(autoToken, "auto-detect");
       navigate("/dashboard");
     } catch {
       setError(t("settings.auth.tokenInvalid"));
@@ -1856,7 +1856,7 @@ export const SetupWizard = () => {
   const saveManual = async () => {
     setError(null);
     try {
-      await window.dashboardAgent.auth.set(tokenInput, "manual");
+      await window.prospero.auth.set(tokenInput, "manual");
       navigate("/dashboard");
     } catch {
       setError(t("settings.auth.tokenInvalid"));
@@ -1988,7 +1988,7 @@ import { SidebarFooter } from "./components/SidebarFooter.js";
 
 const Sidebar = () => (
   <aside className="w-56 bg-surface border-r border-surface-border flex flex-col p-3">
-    <h1 className="px-2 mb-4 text-sm font-bold text-brand-dark">Dashboard Agent</h1>
+    <h1 className="px-2 mb-4 text-sm font-bold text-brand-dark">Prospero</h1>
     <nav className="flex flex-col gap-1 text-sm text-ink-muted">
       <a href="#/dashboard" className="px-2 py-1 hover:bg-surface-soft rounded">
         Dashboard
@@ -2015,7 +2015,7 @@ export const App = () => {
   useEffect(() => {
     const init = async () => {
       await load();
-      const status = await window.dashboardAgent.auth.status();
+      const status = await window.prospero.auth.status();
       setHasToken(status.hasToken);
     };
     void init();
@@ -2071,8 +2071,8 @@ export const App = () => {
 - [ ] **Step 6: Verify build**
 
 ```powershell
-pnpm --filter @dashboard-agent/renderer build
-pnpm --filter @dashboard-agent/main build
+pnpm --filter @prospero/renderer build
+pnpm --filter @prospero/main build
 ```
 
 - [ ] **Step 7: Commit**

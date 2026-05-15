@@ -4,7 +4,7 @@
 
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { CostAgentTotal } from "@dashboard-agent/shared";
+import type { CostAgentTotal } from "@prospero/shared";
 import { formatCents, formatTokens } from "../../lib/costs/formatCents.js";
 
 type Props = { rows: CostAgentTotal[] };

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Company } from "@dashboard-agent/shared";
+import type { Company } from "@prospero/shared";
 
 type State = {
   companies: Company[];
@@ -18,8 +18,8 @@ export const useCompaniesStore = create<State>((set, get) => ({
 
   load: async () => {
     const [companies, settings] = await Promise.all([
-      window.dashboardAgent.companies.list(),
-      window.dashboardAgent.settings.get(),
+      window.prospero.companies.list(),
+      window.prospero.settings.get(),
     ]);
     const persistedId = settings.activeCompanyId;
     const validPersisted =
@@ -29,14 +29,14 @@ export const useCompaniesStore = create<State>((set, get) => ({
   },
 
   create: async (name) => {
-    const created = await window.dashboardAgent.companies.create(name);
+    const created = await window.prospero.companies.create(name);
     set((s) => ({ companies: [...s.companies, created] }));
     await get().setActive(created.id);
     return created;
   },
 
   delete: async (id) => {
-    await window.dashboardAgent.companies.delete(id);
+    await window.prospero.companies.delete(id);
     const remaining = get().companies.filter((c) => c.id !== id);
     const wasActive = get().activeId === id;
     set({ companies: remaining });
@@ -47,7 +47,7 @@ export const useCompaniesStore = create<State>((set, get) => ({
   },
 
   setActive: async (id) => {
-    await window.dashboardAgent.settings.update({ activeCompanyId: id });
+    await window.prospero.settings.update({ activeCompanyId: id });
     set({ activeId: id });
   },
 }));

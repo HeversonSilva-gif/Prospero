@@ -34,7 +34,7 @@
 - `packages/shared` has no build step (`main` points at `./src/index.ts`); imports use explicit `.js` extensions.
 - Tests live in `packages/shared/tests/`, named `*.test.ts`, importing from `../src/...`.
 - `pnpm lint` only covers `src/` — test files are typechecked but not linted.
-- Run one test file: `pnpm --filter @dashboard-agent/shared exec vitest run tests/<file>`.
+- Run one test file: `pnpm --filter @prospero/shared exec vitest run tests/<file>`.
 
 ---
 
@@ -100,7 +100,7 @@ describe("wire-protocol types", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-protocol.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-protocol.test.ts`
 Expected: FAIL — cannot resolve `../src/types/wire-protocol.js`.
 
 - [ ] **Step 3: Create the types module**
@@ -216,12 +216,12 @@ export type McpCloseNotification = { agentId: string };
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-protocol.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-protocol.test.ts`
 Expected: PASS — 4 tests.
 
 - [ ] **Step 5: Typecheck and commit**
 
-Run: `pnpm --filter @dashboard-agent/shared typecheck`
+Run: `pnpm --filter @prospero/shared typecheck`
 Expected: no errors.
 
 ```bash
@@ -294,7 +294,7 @@ describe("wire codec", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-codec.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-codec.test.ts`
 Expected: FAIL — cannot resolve `../src/wire/codec.js`.
 
 - [ ] **Step 3: Create the codec module**
@@ -347,12 +347,12 @@ export const decodeWireMessage = (line: string): WireMessage => {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-codec.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-codec.test.ts`
 Expected: PASS — 6 tests.
 
 - [ ] **Step 5: Typecheck and commit**
 
-Run: `pnpm --filter @dashboard-agent/shared typecheck`
+Run: `pnpm --filter @prospero/shared typecheck`
 Expected: no errors.
 
 ```bash
@@ -402,7 +402,7 @@ describe("LineFramer", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-codec.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-codec.test.ts`
 Expected: FAIL — `LineFramer` is not exported by `codec.js`.
 
 - [ ] **Step 3: Add `LineFramer` to the codec module**
@@ -434,12 +434,12 @@ export class LineFramer {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-codec.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-codec.test.ts`
 Expected: PASS — 10 tests (6 + 4).
 
 - [ ] **Step 5: Typecheck and commit**
 
-Run: `pnpm --filter @dashboard-agent/shared typecheck`
+Run: `pnpm --filter @prospero/shared typecheck`
 Expected: no errors.
 
 ```bash
@@ -499,7 +499,7 @@ describe("createMemoryTransportPair", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-test-utils.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-test-utils.test.ts`
 Expected: FAIL — cannot resolve `./wire-test-utils.js`.
 
 - [ ] **Step 3: Create the transport interface**
@@ -582,12 +582,12 @@ export const createMemoryTransportPair = (): MemoryTransportPair => {
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-test-utils.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-test-utils.test.ts`
 Expected: PASS — 3 tests.
 
 - [ ] **Step 6: Typecheck and commit**
 
-Run: `pnpm --filter @dashboard-agent/shared typecheck`
+Run: `pnpm --filter @prospero/shared typecheck`
 Expected: no errors.
 
 ```bash
@@ -685,7 +685,7 @@ describe("WireClient", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-client.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-client.test.ts`
 Expected: FAIL — cannot resolve `../src/wire/client.js`.
 
 - [ ] **Step 3: Create the WirePeer base**
@@ -833,12 +833,12 @@ export class WireClient extends WirePeer {
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-client.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-client.test.ts`
 Expected: PASS — 5 tests.
 
 - [ ] **Step 6: Typecheck and commit**
 
-Run: `pnpm --filter @dashboard-agent/shared typecheck`
+Run: `pnpm --filter @prospero/shared typecheck`
 Expected: no errors.
 
 ```bash
@@ -938,7 +938,7 @@ describe("WireServer", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-server.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-server.test.ts`
 Expected: FAIL — cannot resolve `../src/wire/server.js`.
 
 - [ ] **Step 3: Create the WireServer**
@@ -1018,12 +1018,12 @@ export class WireServer extends WirePeer {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-server.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-server.test.ts`
 Expected: PASS — 7 tests.
 
 - [ ] **Step 5: Typecheck and commit**
 
-Run: `pnpm --filter @dashboard-agent/shared typecheck`
+Run: `pnpm --filter @prospero/shared typecheck`
 Expected: no errors.
 
 ```bash
@@ -1073,7 +1073,7 @@ describe("wire protocol public exports", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-exports.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-exports.test.ts`
 Expected: FAIL — the wire symbols are not exported from `../src/index.js`.
 
 - [ ] **Step 3: Add the type re-export**
@@ -1099,12 +1099,12 @@ export * from "./wire/server.js";
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `pnpm --filter @dashboard-agent/shared exec vitest run tests/wire-exports.test.ts`
+Run: `pnpm --filter @prospero/shared exec vitest run tests/wire-exports.test.ts`
 Expected: PASS — 1 test.
 
 - [ ] **Step 6: Typecheck and commit**
 
-Run: `pnpm --filter @dashboard-agent/shared typecheck`
+Run: `pnpm --filter @prospero/shared typecheck`
 Expected: no errors.
 
 ```bash
@@ -1143,8 +1143,8 @@ There is no framing beyond `\n`.
 
 The child process is one of:
 
-- **Local Docker** (validation): `docker run -i dashboard-agent/agent-runner`
-- **Remote VPS**: `ssh <user>@<host> -- docker run -i dashboard-agent/agent-runner`
+- **Local Docker** (validation): `docker run -i prospero/agent-runner`
+- **Remote VPS**: `ssh <user>@<host> -- docker run -i prospero/agent-runner`
 
 SSH supplies authentication, encryption, and the pipe — no port is exposed and
 no TLS certificate is managed. The two cases differ only by the `ssh` prefix, so

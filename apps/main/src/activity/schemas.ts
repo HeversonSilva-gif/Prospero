@@ -4,7 +4,7 @@
 // without a schema here is a compile error.
 
 import { z } from "zod";
-import type { ActivityAction } from "@dashboard-agent/shared";
+import type { ActivityAction } from "@prospero/shared";
 
 const stringId = z.string().min(1);
 

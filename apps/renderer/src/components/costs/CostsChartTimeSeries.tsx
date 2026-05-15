@@ -14,7 +14,7 @@ import {
   Legend,
   CartesianGrid,
 } from "recharts";
-import type { CostBucket } from "@dashboard-agent/shared";
+import type { CostBucket } from "@prospero/shared";
 import { formatTokens } from "../../lib/costs/formatCents.js";
 
 type Props = { buckets: CostBucket[] };

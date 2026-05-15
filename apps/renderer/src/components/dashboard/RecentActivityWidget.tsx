@@ -6,7 +6,7 @@ import { useAgentsStore } from "../../stores/agents.js";
 import { useActivityStream } from "../../hooks/useActivityStream.js";
 import { renderDescription, type Lookups } from "../activity/activityRender.js";
 import { useRelativeTime } from "../../hooks/useRelativeTime.js";
-import type { ActivityEventRow, ActorKind } from "@dashboard-agent/shared";
+import type { ActivityEventRow, ActorKind } from "@prospero/shared";
 
 const DOT_COLOR: Record<ActorKind, string> = {
   user: "bg-brand",

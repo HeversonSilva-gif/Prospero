@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Message, ToolCallView } from "@dashboard-agent/shared";
+import type { Message, ToolCallView } from "@prospero/shared";
 
 type State = {
   byThreadId: Record<string, Message[]>;
@@ -11,7 +11,7 @@ type State = {
 export const useMessagesStore = create<State>((set) => ({
   byThreadId: {},
   load: async (companyId, participants) => {
-    const list = await window.dashboardAgent.messages.list(companyId, participants);
+    const list = await window.prospero.messages.list(companyId, participants);
     if (list.length === 0) return null;
     const threadId = list[0]!.threadId;
     set((s) => ({ byThreadId: { ...s.byThreadId, [threadId]: list } }));

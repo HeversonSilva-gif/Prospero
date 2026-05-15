@@ -34,11 +34,11 @@ import type {
   GoalWithPlan,
   CreateGoalInput,
   ExecutePlanResult,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 
 declare global {
   interface Window {
-    dashboardAgent: {
+    prospero: {
       ping: () => Promise<string>;
       settings: {
         get: () => Promise<AppSettings>;

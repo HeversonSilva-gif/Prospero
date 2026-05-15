@@ -3,7 +3,7 @@ import type {
   AgentAdapterFactory,
   AdapterName,
   SpawnContext,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { ClaudeOAuthLocalAdapter } from "./claude-oauth-local/adapter.js";
 import { ClaudeApiKeyLocalAdapter } from "./claude-api-key-local/adapter.js";
 

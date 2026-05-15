@@ -3,7 +3,7 @@ import type { Tray } from "electron";
 import type Database from "better-sqlite3";
 import { appendFileSync } from "node:fs";
 import { join } from "node:path";
-import { IPC } from "@dashboard-agent/shared";
+import { IPC } from "@prospero/shared";
 import { createMainWindow } from "./window/main-window.js";
 import { registerIpcHandlers } from "./ipc/handlers.js";
 import { registerWindowHandlers } from "./ipc/window-handlers.js";
@@ -29,9 +29,9 @@ let stopHeartbeat: (() => void) | null = null;
 
 const getWindow = (): BrowserWindow | null => mainWindow;
 
-// E2E support: when DASHBOARD_AGENT_USER_DATA is set, point Electron at an
+// E2E support: when PROSPERO_USER_DATA is set, point Electron at an
 // isolated tmp directory so the suite doesn't touch the user's real DB.
-const e2eUserData = process.env["DASHBOARD_AGENT_USER_DATA"];
+const e2eUserData = process.env["PROSPERO_USER_DATA"];
 if (e2eUserData !== undefined && e2eUserData !== "") {
   app.setPath("userData", e2eUserData);
 }

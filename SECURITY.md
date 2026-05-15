@@ -25,7 +25,7 @@ Generate a new token with `claude setup-token`, then paste it in Settings.
 
 ## Incident runbook
 
-See `docs/superpowers/specs/2026-05-09-dashboard-agent-design.md` §8.9 (full runbook lands in M7+).
+See `docs/superpowers/specs/2026-05-09-prospero-design.md` §8.9 (full runbook lands in M7+).
 
 ## Architectural decisions
 

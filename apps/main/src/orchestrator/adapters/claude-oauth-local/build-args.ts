@@ -1,4 +1,4 @@
-import { resolveSkillTools, type Agent } from "@dashboard-agent/shared";
+import { resolveSkillTools, type Agent } from "@prospero/shared";
 import { composeSystemPrompt } from "../../system-prompt.js";
 import { goalsSystemPromptBlock } from "../../system-prompt-goals.js";
 import { buildNarratedBlock } from "../../system-prompt-narrated.js";

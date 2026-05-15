@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import { NO_ACCESS_SENTINEL, type Agent, type Project } from "@dashboard-agent/shared";
+import { NO_ACCESS_SENTINEL, type Agent, type Project } from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 
 type Props = {

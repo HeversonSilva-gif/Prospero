@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ClaudeOAuthLocalAdapter } from "../src/orchestrator/adapters/claude-oauth-local/adapter.js";
-import type { Agent, ParsedEvent, SpawnContext } from "@dashboard-agent/shared";
+import type { Agent, ParsedEvent, SpawnContext } from "@prospero/shared";
 
 const baseAgent: Agent = {
   id: "agent_1",

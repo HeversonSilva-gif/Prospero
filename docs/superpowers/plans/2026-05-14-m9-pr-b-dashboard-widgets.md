@@ -44,7 +44,7 @@ Create `apps/renderer/src/lib/dashboard/selectors.test.ts`:
 
 ```typescript
 import { describe, expect, it } from "vitest";
-import type { Agent, Issue, Goal } from "@dashboard-agent/shared";
+import type { Agent, Issue, Goal } from "@prospero/shared";
 import {
   selectActiveAgents,
   selectActiveIssues,
@@ -170,14 +170,14 @@ describe("selectInProgressGoals", () => {
 });
 ```
 
-Run: `pnpm --filter @dashboard-agent/renderer test -- "lib/dashboard/selectors"`. Expected FAIL.
+Run: `pnpm --filter @prospero/renderer test -- "lib/dashboard/selectors"`. Expected FAIL.
 
 - [ ] **Step 1.2: Implement selectors**
 
 Create `apps/renderer/src/lib/dashboard/selectors.ts`:
 
 ```typescript
-import type { Agent, Issue, Goal } from "@dashboard-agent/shared";
+import type { Agent, Issue, Goal } from "@prospero/shared";
 
 const ACTIVE_AGENT_STATUSES = new Set(["thinking", "working", "waiting"]);
 const ACTIVE_ISSUE_STATUSES = new Set(["doing", "review"]);
@@ -274,7 +274,7 @@ export const ActiveAgentsWidget: FC = () => {
 - [ ] **Step 2.2: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/components/dashboard/ActiveAgentsWidget.tsx
 git commit -m "feat(m9): ActiveAgentsWidget — count + top 3 with status dot"
 ```
@@ -342,7 +342,7 @@ export const ActiveIssuesWidget: FC = () => {
 - [ ] **Step 3.2: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/components/dashboard/ActiveIssuesWidget.tsx
 git commit -m "feat(m9): ActiveIssuesWidget — count + breakdown por project"
 ```
@@ -401,7 +401,7 @@ export const InboxUnreadWidget: FC = () => {
 - [ ] **Step 4.2: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/components/dashboard/InboxUnreadWidget.tsx
 git commit -m "feat(m9): InboxUnreadWidget — count + latest unread snippet"
 ```
@@ -476,7 +476,7 @@ export const ActiveAgentsPanelWidget: FC = () => {
 - [ ] **Step 5.2: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/components/dashboard/ActiveAgentsPanelWidget.tsx
 git commit -m "feat(m9): ActiveAgentsPanelWidget — per-agent status + currentAction"
 ```
@@ -542,7 +542,7 @@ export const GoalsProgressWidget: FC = () => {
 - [ ] **Step 6.2: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/components/dashboard/GoalsProgressWidget.tsx
 git commit -m "feat(m9): GoalsProgressWidget — top 3 in_progress goals"
 ```
@@ -567,7 +567,7 @@ import { useAgentsStore } from "../../stores/agents.js";
 import { useActivityStream } from "../../hooks/useActivityStream.js";
 import { renderDescription, type Lookups } from "../activity/activityRender.js";
 import { useRelativeTime } from "../../hooks/useRelativeTime.js";
-import type { ActivityEventRow, ActorKind } from "@dashboard-agent/shared";
+import type { ActivityEventRow, ActorKind } from "@prospero/shared";
 
 const DOT_COLOR: Record<ActorKind, string> = {
   user: "bg-brand",
@@ -640,7 +640,7 @@ export const RecentActivityWidget: FC<Props> = ({ companyId }) => {
 - [ ] **Step 7.2: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/components/dashboard/RecentActivityWidget.tsx
 git commit -m "feat(m9): RecentActivityWidget — last 10 events with live subscribe"
 ```
@@ -677,7 +677,7 @@ export const Dashboard = () => {
   const companyId = useCompaniesStore((s) => s.activeId);
 
   const onCreateDemo = async () => {
-    const company = await window.dashboardAgent.companies.createDemo();
+    const company = await window.prospero.companies.createDemo();
     await useCompaniesStore.getState().load();
     await useCompaniesStore.getState().setActive(company.id);
     await loadAgents(company.id);
@@ -738,7 +738,7 @@ export const Dashboard = () => {
 - [ ] **Step 8.2: Typecheck + commit**
 
 ```bash
-pnpm --filter @dashboard-agent/renderer typecheck
+pnpm --filter @prospero/renderer typecheck
 git add apps/renderer/src/routes/Dashboard.tsx
 git commit -m "feat(m9): dashboard layout — 2-col grid + recent activity full-width"
 ```
@@ -899,7 +899,7 @@ it("includes the M9 PR-B dashboard widget keys in both locales", () => {
 });
 ```
 
-Run: `pnpm --filter @dashboard-agent/renderer test -- parity`. Expected PASS (bidirectional + new).
+Run: `pnpm --filter @prospero/renderer test -- parity`. Expected PASS (bidirectional + new).
 
 - [ ] **Step 9.5: Commit**
 
@@ -985,9 +985,9 @@ git commit -m "docs(m9): close pr-b dashboard widgets in roadmap (3 places)"
 ## Task 12: Memory snippet + handoff
 
 **Files:**
-- Create: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\project_m9_pr_b_lessons.md`
-- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\MEMORY.md`
-- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-DashboardAgent\memory\project_session_handoff.md`
+- Create: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\project_m9_pr_b_lessons.md`
+- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\MEMORY.md`
+- Modify: `C:\Users\hever\.claude\projects\D--Projetos-pessoais-Prospero\memory\project_session_handoff.md`
 
 - [ ] **Step 12.1: Write lessons memory**
 

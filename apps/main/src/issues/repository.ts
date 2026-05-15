@@ -9,7 +9,7 @@ import type {
   IssueEvent,
   IssueEventKind,
   Actor,
-} from "@dashboard-agent/shared";
+} from "@prospero/shared";
 import { getToolHistory } from "./tool-history.js";
 import type { Recorder } from "../activity/recorder.js";
 

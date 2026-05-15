@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Project } from "@dashboard-agent/shared";
+import type { Project } from "@prospero/shared";
 import { useProjectsStore } from "../stores/projects.js";
 import { useAgentsStore } from "../stores/agents.js";
 import { useIssuesStore } from "../stores/issues.js";
@@ -33,7 +33,7 @@ export const Projects: FC = () => {
 
   useEffect(() => {
     void (async () => {
-      const cs = await window.dashboardAgent.companies.list();
+      const cs = await window.prospero.companies.list();
       if (cs.length > 0) {
         setCompanyId(cs[0]!.id);
         void load(cs[0]!.id);
@@ -115,7 +115,7 @@ export const Projects: FC = () => {
               setShowForm(true);
             }}
             onDelete={() => setConfirmingDelete(selected)}
-            onOpenFolder={() => void window.dashboardAgent.projects.openFolder(selected.id)}
+            onOpenFolder={() => void window.prospero.projects.openFolder(selected.id)}
           />
         )}
       </div>

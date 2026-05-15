@@ -1,4 +1,4 @@
-import type { Goal } from "@dashboard-agent/shared";
+import type { Goal } from "@prospero/shared";
 
 export type GoalTreeNode = Goal & { children: GoalTreeNode[] };
 

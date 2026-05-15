@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { useAgentsStore } from "./agents.js";
-import type { Agent } from "@dashboard-agent/shared";
+import type { Agent } from "@prospero/shared";
 
 const sampleAgent = (over: Partial<Agent> = {}): Agent => ({
   id: "agent_1",
@@ -39,7 +39,7 @@ const setupWindow = (overrides: Record<string, unknown> = {}) => {
     hireFromUi: vi.fn(() => Promise.resolve(sampleAgent({ id: "agent_new" }))),
     ...overrides,
   };
-  (globalThis as { window?: unknown }).window = { dashboardAgent: { agents: agentsApi } };
+  (globalThis as { window?: unknown }).window = { prospero: { agents: agentsApi } };
   return agentsApi;
 };
 

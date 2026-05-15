@@ -4,7 +4,7 @@
 > **Tipo:** Design doc / gap analysis
 > **Origem:** uso real do Paperclip pelo Heverson + decisão de absorver liberdade de mexer em agentes e Goals com plano-gerado-pelo-CEO.
 > **Relação:** complementa [paperclip-comparison.md](../../paperclip-comparison.md) (técnica/ampla) com lente de **UX/governance**. Não substitui — vira input pros novos milestones M7.6 e M8.5.
-> **Memória:** [reference_paperclip](../../../../C:/Users/hever/.claude/projects/D--Projetos-pessoais-DashboardAgent/memory/reference_paperclip.md) · [project_m7_progress](../../../../C:/Users/hever/.claude/projects/D--Projetos-pessoais-DashboardAgent/memory/project_m7_progress.md)
+> **Memória:** [reference_paperclip](../../../../C:/Users/hever/.claude/projects/D--Projetos-pessoais-Prospero/memory/reference_paperclip.md) · [project_m7_progress](../../../../C:/Users/hever/.claude/projects/D--Projetos-pessoais-Prospero/memory/project_m7_progress.md)
 
 ---
 

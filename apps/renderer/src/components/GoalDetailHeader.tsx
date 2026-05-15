@@ -1,6 +1,6 @@
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Goal, GoalStatus } from "@dashboard-agent/shared";
+import type { Goal, GoalStatus } from "@prospero/shared";
 import { useAgentsStore } from "../stores/agents.js";
 
 const STATUS_BADGE: Record<GoalStatus, string> = {

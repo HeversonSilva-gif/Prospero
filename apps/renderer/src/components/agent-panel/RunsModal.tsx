@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Message } from "@dashboard-agent/shared";
+import type { Message } from "@prospero/shared";
 
 interface Props {
   agentId: string;
@@ -42,7 +42,7 @@ export const RunsModal: FC<Props> = ({ agentId, onClose }) => {
 
   useEffect(() => {
     void (async () => {
-      const msgs = await window.dashboardAgent.messages.listByAgent(agentId);
+      const msgs = await window.prospero.messages.listByAgent(agentId);
       setMessages(msgs);
     })();
   }, [agentId]);

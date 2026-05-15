@@ -1,5 +1,5 @@
 import type { Readable, Writable } from "node:stream";
-import type { WireTransport } from "@dashboard-agent/shared";
+import type { WireTransport } from "@prospero/shared";
 
 /**
  * WireTransport over a Readable/Writable pair — `process.stdin`/`process.stdout`

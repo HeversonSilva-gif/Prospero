@@ -1,7 +1,7 @@
 import type Database from "better-sqlite3";
 import { safeStorage } from "electron";
 import { readFileSync } from "node:fs";
-import type { ApiKeyStatus } from "@dashboard-agent/shared";
+import type { ApiKeyStatus } from "@prospero/shared";
 import { isWellFormedApiKey } from "./api-key-validate.js";
 
 const KEY_CIPHERTEXT = "auth.apikey.ciphertext";
@@ -59,7 +59,7 @@ export const loadApiKeyStatus = (db: Database.Database): ApiKeyStatus => {
 
 export const loadDecryptedApiKey = (db: Database.Database): string | null => {
   // E2E bypass mirrors token-storage.ts: read plaintext from a file when env var is set.
-  const e2ePath = process.env["DASHBOARD_AGENT_E2E_API_KEY_PATH"];
+  const e2ePath = process.env["PROSPERO_E2E_API_KEY_PATH"];
   if (e2ePath !== undefined && e2ePath !== "") {
     try {
       return readFileSync(e2ePath, "utf8").trim();

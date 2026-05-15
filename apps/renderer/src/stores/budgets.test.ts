@@ -10,10 +10,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   (
     globalThis as unknown as {
-      window: { dashboardAgent: { costs: typeof ipcMock } };
+      window: { prospero: { costs: typeof ipcMock } };
     }
   ).window = {
-    dashboardAgent: { costs: ipcMock },
+    prospero: { costs: ipcMock },
   };
   useBudgetsStore.setState({
     budgets: {

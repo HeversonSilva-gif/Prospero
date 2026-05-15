@@ -1,6 +1,6 @@
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type Message } from "@dashboard-agent/shared";
+import { IPC, type Message } from "@prospero/shared";
 import { createMessagesRepository } from "../messages/repository.js";
 
 export const registerMessagesHandlers = (db: Database.Database): void => {

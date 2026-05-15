@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useAgentsStore } from "../stores/agents.js";
 import { RoleTemplateGalleryModal } from "../components/RoleTemplateGalleryModal.js";
-import type { AgentStatus } from "@dashboard-agent/shared";
+import type { AgentStatus } from "@prospero/shared";
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
   idle: "bg-ink-soft",

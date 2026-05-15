@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Goal } from "@dashboard-agent/shared";
+import type { Goal } from "@prospero/shared";
 import { buildGoalTree } from "./goalsTree.js";
 
 const mk = (id: string, parent: string | null = null): Goal => ({

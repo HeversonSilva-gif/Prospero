@@ -3,7 +3,7 @@
 
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Agent, Project, CostsQueryScope } from "@dashboard-agent/shared";
+import type { Agent, Project, CostsQueryScope } from "@prospero/shared";
 import type { DateRange, CostsQueryFilters } from "../../hooks/useCostsQuery.js";
 
 type Props = {
