@@ -1155,6 +1155,12 @@
                 como empresa nova com IDs frescos. Se já existir uma com o mesmo nome, vira
                 "(imported)"
               </li>
+              <li>
+                <strong>Descrever o time num <code>AGENTS.md</code></strong> (Settings → Importar de
+                AGENTS.md) — YAML com <code>company</code> + <code>projects</code> +
+                <code>agents</code>. "Hire all" cria tudo de uma vez; conflito de nome → modal
+                Skip/Replace por agente. Reverso: "Exportar AGENTS.md"
+              </li>
             </ul>
           </div>
 
@@ -1505,12 +1511,13 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M9 PR-F.2.1 (companies.sh import) mergeado em 2026-05-14.
-              Zod schema + id remap + FK substitution + UPDATE pass pra reflexive FKs + Settings UI
-              com file picker + summary modal. <strong>800 testes passing</strong> (+7 vs PR-F.1).
-              13/14 milestones; M9 em curso com PR-F.2.2 (AGENTS.md) + PR-F.2.3 (Reviews UX)
-              restantes. Próximo:
-              <strong>M9 PR-F.2.2 — AGENTS.md import/export via gray-matter + zod</strong>.
+              <strong>Estágio:</strong> M9 PR-F.2.2 (AGENTS.md import/export) mergeado em
+              2026-05-14. gray-matter + zod schema em apps/main + two-pass hire (create then wire
+              reports_to) + conflict resolution per-agent (Skip/Replace) + Settings UI com file
+              picker + preview modal + export button. <strong>~815 testes passing</strong>
+              (+~13 vs PR-F.2.1). 13/14 milestones; M9 em curso com PR-F.2.3 (Reviews UX) restante.
+              Próximo:
+              <strong>M9 PR-F.2.3 — Issue Review tab + react-diff-viewer-continued</strong>.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -1535,35 +1542,33 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M9 PR-F.2.1 mergeado</div>
+            <div class="title">M9 PR-F.2.2 mergeado</div>
             <ul class="bullets">
               <li>
-                <span><strong>13 / 14</strong> milestones do v1 · M9 em curso (5.7/6 PRs)</span>
+                <span><strong>13 / 14</strong> milestones do v1 · M9 em curso (5.8/6 PRs)</span>
+              </li>
+              <li>
+                <span><strong>~815</strong> testes passing · 0 lint/typecheck errors</span>
               </li>
               <li>
                 <span
-                  ><strong>800</strong> testes passing (633 main + 33 shared + 134 renderer) · 0
-                  lint/typecheck errors</span
+                  ><strong>AGENTS.md import/export</strong> agora ✅ — gray-matter parser + zod
+                  schema em apps/main + two-pass hire (create projects+agents → wire reports_to) +
+                  conflict resolution per-agent (Skip/Replace) + Settings UI com file picker +
+                  preview modal + export button</span
                 >
               </li>
               <li>
-                <span
-                  ><strong>companies.sh import</strong> agora ✅ — zod schema + fresh IDs + FK remap
-                  em 10 tabelas + UPDATE pass pra reflexive FKs + Settings UI com file picker +
-                  summary modal de counts/warnings</span
-                >
-              </li>
-              <li>
-                <span>Master pós-M9 PR-F.2.1 · ~6 commits novos · ~600 LoC TS/TSX</span>
+                <span>Master pós-M9 PR-F.2.2 · ~13 commits novos · ~900 LoC TS/TSX</span>
               </li>
               <li>
                 <span
-                  >Próximos PRs M9: F.2.2 (AGENTS.md import/export via gray-matter) + F.2.3 (Reviews
-                  UX) — fecham M9</span
+                  >Último PR M9: F.2.3 (Issue Review tab via react-diff-viewer-continued) — fecha
+                  M9</span
                 >
               </li>
             </ul>
-            <div class="eta">v1 quase fechado · 2 PRs do M9 + M10 (VPS adapter) restantes</div>
+            <div class="eta">v1 quase fechado · 1 PR do M9 + M10 (VPS adapter) restantes</div>
           </div>
 
           <div class="card" data-kind="next">
@@ -2819,8 +2824,9 @@
                 <strong
                   >PR-A (multi-empresa) + PR-D (api-key adapter) + PR-B (Dashboard widgets) + PR-C
                   (/agents + Settings defaults) + PR-E (error handling §7) + PR-F.1 (projects polish
-                  + company export) + PR-F.2.1 (companies.sh import) mergeados em 2026-05-14</strong
-                >. Próximos: PR-F.2.2 (AGENTS.md) + PR-F.2.3 (Reviews UX) — fecham M9.
+                  + company export) + PR-F.2.1 (companies.sh import) + PR-F.2.2 (AGENTS.md
+                  import/export) mergeados em 2026-05-14</strong
+                >. Próximo: PR-F.2.3 (Reviews UX) — fecha M9.
               </p>
               <div class="feature-group">
                 <div class="group-name">
@@ -2941,13 +2947,38 @@
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">Pendente PR-F.2.2 + PR-F.2.3 (Paperclip wishlist)</div>
+                <div class="group-name">✅ AGENTS.md import/export (PR-F.2.2 · 2026-05-14)</div>
                 <ul class="feature-list">
                   <li>
-                    PR-F.2.2: AGENTS.md format próprio (YAML front-matter +
-                    <code>gray-matter</code> parser + zod schema + "Hire all" modal com conflict
-                    resolution)
+                    Parser usa <code>gray-matter</code> + zod schema em
+                    <code>apps/main/src/agents-md/</code> (NÃO em <code>packages/shared</code> —
+                    preload sandbox)
                   </li>
+                  <li>
+                    Schema YAML: <code>company</code> + <code>projects[]</code> +
+                    <code>agents[]</code> com <code>name</code>, <code>role</code>,
+                    <code>model?</code>, <code>skills?</code>, <code>reports_to?</code>
+                  </li>
+                  <li>
+                    Hire-all em duas passes: cria projects + agents (skip se path/nome existe);
+                    segunda pass faz <code>setReportsTo</code> usando <code>createdByName</code>
+                    — ordem no YAML não importa
+                  </li>
+                  <li>
+                    Conflito de nome → preview modal mostra radio Skip/Replace per-agent. Replace
+                    usa <code>agents.terminate()</code> (não DELETE — preserva histórico) e cria
+                    fresh
+                  </li>
+                  <li>
+                    Settings UI: "Importar de AGENTS.md" file picker → preview modal com lista +
+                    conflitos + "Hire all"; "Exportar AGENTS.md" gera arquivo da company ativa
+                    (filtra arquivados + terminados; emite <code>reports_to</code> como nome)
+                  </li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Pendente PR-F.2.3 (Paperclip wishlist)</div>
+                <ul class="feature-list">
                   <li>
                     PR-F.2.3: Agent Reviews UX (<code>/issues/:id</code> aba "Review" com diff
                     side-by-side via <code>react-diff-viewer-continued</code> + inline comments via
@@ -3474,12 +3505,15 @@
               M10 absorve · VPS Docker remote adapter. V2 adiciona Cursor, Codex, e2b.
             </div>
           </div>
-          <div class="wish-row" data-wish="planned">
+          <div class="wish-row" data-wish="done">
             <div class="item-name">Easy AGENTS.md configurations</div>
             <div>
-              <span class="wish-status"><span class="sq"></span>planned</span>
+              <span class="wish-status"><span class="sq"></span>✅ PR-F.2.2</span>
             </div>
-            <div class="where">M9 · format próprio YAML front-matter</div>
+            <div class="where">
+              M9 · <code>gray-matter</code> + zod em apps/main · two-pass hire · conflict resolution
+              per-agent · export filtra terminados/arquivados
+            </div>
           </div>
           <div class="wish-row" data-wish="done">
             <div class="item-name">companies.sh import/export</div>

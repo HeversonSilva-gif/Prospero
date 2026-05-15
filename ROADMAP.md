@@ -24,6 +24,7 @@
 - **Arquivar projetos** que terminaram (somem da lista por padrão, toggle "Mostrar arquivados" recupera)
 - **Exportar empresa inteira em JSON** (Settings → Exportar empresa) — backup com agentes/issues/threads/mensagens/inbox/custos/activity
 - **Importar empresa de JSON** (Settings → Importar empresa) — restaura o backup como uma empresa nova com IDs frescos. Se já existir uma com o mesmo nome, vira "(imported)"
+- **Descrever o time inteiro num `AGENTS.md`** (Settings → Importar de AGENTS.md) — YAML com `company` + `projects` + `agents` (nome, role, reports_to). "Hire all" cria tudo de uma vez. Conflito de nome → modal Skip/Replace por agente. Reverso: "Exportar AGENTS.md" gera o arquivo da empresa ativa
 
 ### 👥 Time de agentes Claude
 - "Contratar" agentes Claude — cada um vira tipo um funcionário com persona, função e habilidades próprias
@@ -175,7 +176,7 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 | Métrica | Valor |
 |---|---|
 | Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6** (13/14 do v1) |
-| Em curso | **M9 — 5.7/6 PRs**. PR-A/B/C/D/E/F.1/F.2.1 mergeados em 2026-05-14. Resta PR-F.2.2 (AGENTS.md import/export) + PR-F.2.3 (Reviews UX). |
+| Em curso | **M9 — 5.8/6 PRs**. PR-A/B/C/D/E/F.1/F.2.1/F.2.2 mergeados em 2026-05-14. Resta PR-F.2.3 (Reviews UX). |
 | Testes | **800 passing** (633 main + 33 shared + 134 renderer), 0 lint/typecheck errors |
 | Commits no master | ~325 |
 | LoC (apps + packages) | ~21k TS/TSX |
@@ -768,10 +769,10 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
   - [x] Banner amarelo em rate limit (stream-parser → broadcast → RateLimitBanner com auto-clear)
   - [x] Heartbeat 5min (working/thinking sem activity_events recentes → status=error + inbox `agent_unresponsive`)
   - [x] OAuth expiry banner 30d antes (deferido de PR-C, agora aqui — usa `expires_at` de credentials.json)
-- [ ] **AGENTS.md configurations** (Paperclip wishlist):
-  - [ ] Suporte a `<workspaceCwd>/AGENTS.md` no formato declarativo (front-matter YAML + lista de agents)
-  - [ ] Settings UI: "Import from AGENTS.md" — parseia, lista preview, click "Hire all" cria os agents
-  - [ ] Reverso: "Export AGENTS.md" gera o arquivo a partir dos agents da company atual
+- [x] **AGENTS.md configurations** ✅ **PR-F.2.2 mergeado 2026-05-14** (Paperclip wishlist):
+  - [x] Formato declarativo (front-matter YAML com `company` + `projects` + `agents`)
+  - [x] Settings UI: "Importar de AGENTS.md" — parseia, preview modal com lista + conflict resolution per-agent (Skip/Replace), "Hire all" cria projects+agents em duas passes (create → wire reports_to)
+  - [x] Reverso: "Exportar AGENTS.md" gera o arquivo a partir da company ativa (filtra arquivados + terminados; emite reports_to como nome)
 - [x] **companies.sh export + import** ✅ **PR-F.1 + PR-F.2.1 mergeados 2026-05-14**:
   - [x] Settings UI: botão "Exportar JSON" — gera JSON com agents/threads/messages/inbox/projects/issues/costs/activity/goals/approvals (schemaVersion 1, snapshot-only)
   - [x] Settings UI: botão "Importar JSON" — file picker, valida schemaVersion via zod, gera fresh IDs + remap FK em 10 tabelas + UPDATE pass pra reflexive FKs (reports_to/parent_id/parent_goal_id/goal_id). Foreign keys=OFF dentro da transaction. Conflito de nome rename pra "(imported)". Summary modal com counts + warnings expandíveis.
@@ -782,7 +783,7 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
   - [ ] Inline comments no diff (linka a `approval_comments` ou similar)
   - [ ] Status="review" já existe no M6 — esse milestone polish UX + plug no `approvals` schema
 - [ ] **Right panel `/agents/:id`** — ✅ entregue M7-C + completion em M7.6 (header + ações + faltantes)
-- [ ] **AGENTS.md formato próprio (YAML front-matter)** — `gray-matter` parser:
+- [x] **AGENTS.md formato próprio (YAML front-matter)** ✅ **PR-F.2.2 mergeado 2026-05-14** — `gray-matter` parser + zod schema em `apps/main/src/agents-md/`:
   ```yaml
   ---
   company: Acme
@@ -1207,7 +1208,7 @@ Mapeamento de cada item da wishlist do [Paperclip](https://github.com/paperclipa
 | **Better Budgeting** | 🔄 Planejado | M8 (token tracking + % Max + por agente/projeto/adapter) |
 | **Goals + CEO planning automático** | 🆕 Planejado | **M8.5 — evolução além do Paperclip.** Lá goals são declarativos; nosso CEO **propõe plano completo** (agents+issues+estimates+riscos) → user aprova em PR-review |
 | **Cloud / Sandbox agents** | 🟡 Parcial v1 + v2 | **M10 absorve parte**: VPS Docker remote adapter. v2 adiciona Cursor, Codex, e2b providers |
-| **Easy AGENTS.md configurations** | 🔄 M9 | Format próprio (YAML front-matter) com `gray-matter` parser |
+| **Easy AGENTS.md configurations** | ✅ Completo (PR-F.2.2) | Format próprio (YAML front-matter) com `gray-matter` + zod. Import com conflict resolution per-agent; export filtra terminados/arquivados |
 | **companies.sh — import/export** | ✅ Completo (PR-F.1 + PR-F.2.1) | JSON único (não ZIP) — schemaVersion 1, import com FK remap |
 | **Agent Reviews and Approvals** | 🔄 M7.5 + M9 | M7.5: schema `approvals` decoupled. M9: PR-style diff side-by-side + inline comments |
 | **Work Products / Artifacts** | 🔄 M7.5 | Tabela `issue_artifacts` (kind: file_path, commit_sha, pr_url, snapshot) |
