@@ -29,3 +29,51 @@ describe("parseAgentsMd", () => {
     expect(result.data.agents[1]?.reports_to).toBe("Alice");
   });
 });
+
+describe("parseAgentsMd errors", () => {
+  it("rejects missing company", () => {
+    const raw = `---
+projects: []
+agents:
+  - name: A
+    role: engineer
+---
+`;
+    const result = parseAgentsMd(raw);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toMatch(/company/);
+  });
+
+  it("rejects empty agents list", () => {
+    const raw = `---
+company: Acme
+projects: []
+agents: []
+---
+`;
+    const result = parseAgentsMd(raw);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toMatch(/agents/);
+  });
+
+  it("rejects malformed YAML", () => {
+    const raw = `---
+company: Acme
+agents:
+  - name: "Alice
+---
+`;
+    const result = parseAgentsMd(raw);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toMatch(/YAML parse failed/);
+  });
+
+  it("rejects missing front-matter entirely", () => {
+    const raw = "# just a markdown file, no front-matter\n";
+    const result = parseAgentsMd(raw);
+    expect(result.ok).toBe(false);
+  });
+});
