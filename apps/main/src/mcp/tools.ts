@@ -19,6 +19,7 @@ export type ToolContext = {
   companyId: string;
   db: Database.Database;
   permissionsDir: string;
+  userDataDir: string;
   emit: (event: { kind: string; payload: unknown }) => void;
 };
 

@@ -41,6 +41,7 @@ const setup = () => {
       companyId: co.id,
       db,
       permissionsDir: "",
+      userDataDir: "/tmp/userdata",
       emit: () => undefined,
     } as ToolContext,
   };

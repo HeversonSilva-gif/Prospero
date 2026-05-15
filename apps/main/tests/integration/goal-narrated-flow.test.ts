@@ -84,6 +84,7 @@ describe("integration: goal narrated flow end-to-end", () => {
       companyId: co.id,
       db,
       permissionsDir: "",
+      userDataDir: "/tmp/userdata",
       emit: () => undefined,
     };
     const findTool = (n: string) => goalsToolDefinitions.find((t) => t.name === n);

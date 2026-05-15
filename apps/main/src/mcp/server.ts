@@ -6,7 +6,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import Database from "better-sqlite3";
 import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { toolDefinitions, type ToolContext } from "./tools.js";
 import { goalsToolDefinitions } from "./tools-goals.js";
@@ -46,6 +46,7 @@ const ctx: ToolContext = {
   companyId,
   db,
   permissionsDir,
+  userDataDir: dirname(dbPath),
   emit: (event) => {
     const filename = `${Date.now()}_${randomUUID()}.json`;
     try {

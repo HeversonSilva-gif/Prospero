@@ -16,6 +16,7 @@ const makeCtx = (emit = vi.fn()): ToolContext => {
     companyId: "c",
     db,
     permissionsDir: "/tmp/perm",
+    userDataDir: "/tmp/userdata",
     emit,
   };
 };

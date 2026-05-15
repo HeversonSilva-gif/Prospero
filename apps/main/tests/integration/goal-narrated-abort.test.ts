@@ -81,6 +81,7 @@ describe("integration: goal narrated abort path", () => {
       companyId: co.id,
       db,
       permissionsDir: "",
+      userDataDir: "/tmp/userdata",
       emit: () => undefined,
     };
     const findTool = (n: string) => {

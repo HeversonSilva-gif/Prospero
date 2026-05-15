@@ -31,6 +31,7 @@ const setup = (): {
       companyId: company.id,
       db,
       permissionsDir: "",
+      userDataDir: "/tmp/userdata",
       emit: () => undefined,
     },
     companyId: company.id,

@@ -31,6 +31,7 @@ const setup = () => {
     companyId,
     db,
     permissionsDir: "C:/tmp",
+    userDataDir: "/tmp/userdata",
     emit: () => {},
   };
   return { db, ctx, companyId, agentId };
