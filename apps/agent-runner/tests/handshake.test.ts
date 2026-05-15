@@ -17,7 +17,7 @@ describe("handleHandshake", () => {
       protocolVersion: 1,
       server: "agent-runner",
       serverVersion: "0.1.0",
-      capabilities: ["health"],
+      capabilities: ["spawn", "stdin", "kill", "health"],
     });
   });
 

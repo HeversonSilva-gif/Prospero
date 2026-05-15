@@ -48,6 +48,6 @@ export const handleHandshake = (params: unknown, state: RunnerState): HandshakeR
     protocolVersion: WIRE_PROTOCOL_VERSION,
     server: RUNNER_SERVER_NAME,
     serverVersion: RUNNER_SERVER_VERSION,
-    capabilities: ["health"],
+    capabilities: ["spawn", "stdin", "kill", "health"],
   };
 };

@@ -12,4 +12,13 @@ describe("handleHealth", () => {
     const result = handleHealth(createRunnerState(1_000), 6_500);
     expect(result.uptimeSeconds).toBe(5);
   });
+
+  it("reports the live agent count", () => {
+    const state = createRunnerState(0);
+    state.agents.set("a1", {
+      child: { pid: 1, stdin: null, stdout: null, stderr: null, kill: () => {}, on: () => {} },
+      sandbox: { configDir: "/c", workDir: "/w" },
+    });
+    expect(handleHealth(state, 0).activeAgents).toBe(1);
+  });
 });
