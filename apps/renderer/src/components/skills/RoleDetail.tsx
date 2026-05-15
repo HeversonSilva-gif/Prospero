@@ -1,7 +1,7 @@
 import { type FC, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { SKILL_CATALOG, type RoleDetail as RoleDetailType } from "@prospero/shared";
+import { CAPABILITY_CATALOG, type RoleDetail as RoleDetailType } from "@prospero/shared";
 
 type Props = {
   detail: RoleDetailType;
@@ -17,7 +17,7 @@ export const RoleDetail: FC<Props> = ({ detail }) => {
     const effective = [...detail.defaultSkills];
     if (!effective.includes("chat")) effective.push("chat");
     return effective
-      .map((id) => SKILL_CATALOG[id as keyof typeof SKILL_CATALOG])
+      .map((id) => CAPABILITY_CATALOG[id as keyof typeof CAPABILITY_CATALOG])
       .filter((s) => s !== undefined);
   }, [detail.defaultSkills]);
 

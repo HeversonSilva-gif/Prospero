@@ -1,11 +1,11 @@
-// Canonical skill IDs and their resolved Claude tool sets. Modifying this file
-// changes what each agent CAN see (the --allowedTools whitelist at spawn time).
-// New built-in tools added to Claude CLI must be categorized into a skill here
-// — the test "every built-in tool in KNOWN_CLAUDE_TOOLS is mapped" enforces
-// this.
+// Canonical capability IDs and their resolved Claude tool sets. Modifying this
+// file changes what each agent CAN see (the --allowedTools whitelist at spawn
+// time). New built-in tools added to Claude CLI must be categorized into a
+// capability here — the test "every built-in tool in KNOWN_CLAUDE_TOOLS is
+// mapped" enforces this.
 
 // Master list of built-in Claude tools we know about. Kept manually — when
-// Claude CLI adds a new tool, add it here AND map it into a skill below.
+// Claude CLI adds a new tool, add it here AND map it into a capability below.
 // Tools internal to the CLI (TodoWrite, ExitPlanMode, etc.) are not listed
 // because agents don't need them; they're used by claude itself.
 export const KNOWN_CLAUDE_TOOLS = [
@@ -20,7 +20,7 @@ export const KNOWN_CLAUDE_TOOLS = [
   "Write",
 ] as const;
 
-export type SkillId =
+export type CapabilityId =
   | "chat"
   | "delegation"
   | "fs-read"
@@ -30,13 +30,13 @@ export type SkillId =
   | "shell"
   | "web";
 
-export type SkillDef = {
-  id: SkillId;
+export type CapabilityDef = {
+  id: CapabilityId;
   description: string;
   tools: string[];
 };
 
-export const SKILL_CATALOG: Record<SkillId, SkillDef> = {
+export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
   shell: {
     id: "shell",
     description: "Run shell commands via Bash.",
@@ -91,20 +91,21 @@ export const SKILL_CATALOG: Record<SkillId, SkillDef> = {
   },
 };
 
-// Force-adds the 'chat' skill (needed for --permission-prompt-tool to work) if
-// it's missing. Returns a new array; does not mutate input.
-export const ensureChatSkill = (skills: string[]): string[] => {
-  if (skills.includes("chat")) return [...skills];
-  return [...skills, "chat"];
+// Force-adds the 'chat' capability (needed for --permission-prompt-tool to
+// work) if it's missing. Returns a new array; does not mutate input.
+export const ensureChatCapability = (capabilities: string[]): string[] => {
+  if (capabilities.includes("chat")) return [...capabilities];
+  return [...capabilities, "chat"];
 };
 
-// Translates skill IDs into the flat deduplicated list of Claude tool names.
-// Unknown skill IDs are silently dropped (logged elsewhere if needed) so a
-// stale skills_json from a future version doesn't crash spawn.
-export const skillsToTools = (skills: string[]): string[] => {
+// Translates capability IDs into the flat deduplicated list of Claude tool
+// names. Unknown capability IDs are silently dropped (logged elsewhere if
+// needed) so a stale capabilities_json from a future version doesn't crash
+// spawn.
+export const capabilitiesToTools = (capabilities: string[]): string[] => {
   const out = new Set<string>();
-  for (const id of skills) {
-    const def = SKILL_CATALOG[id as SkillId];
+  for (const id of capabilities) {
+    const def = CAPABILITY_CATALOG[id as CapabilityId];
     if (def === undefined) continue;
     for (const t of def.tools) out.add(t);
   }
@@ -113,6 +114,6 @@ export const skillsToTools = (skills: string[]): string[] => {
 
 // Full resolver: ensures the chat safety-net and returns the flat tool list.
 // This is the function the orchestrator should call when building spawn args.
-export const resolveSkillTools = (skills: string[]): string[] => {
-  return skillsToTools(ensureChatSkill(skills));
+export const resolveCapabilityTools = (capabilities: string[]): string[] => {
+  return capabilitiesToTools(ensureChatCapability(capabilities));
 };

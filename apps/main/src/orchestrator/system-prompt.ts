@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve, join } from "node:path";
 import { homedir } from "node:os";
-import { ensureChatSkill, resolveSkillTools } from "@prospero/shared";
+import { ensureChatCapability, resolveCapabilityTools } from "@prospero/shared";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -35,8 +35,8 @@ export type ComposeArgs = {
 
 export const composeSystemPrompt = (args: ComposeArgs): string => {
   const preamble = args.preambleOverride ?? getPreamble();
-  const effectiveSkills = ensureChatSkill(args.skills);
-  const resolvedTools = resolveSkillTools(args.skills);
+  const effectiveSkills = ensureChatCapability(args.skills);
+  const resolvedTools = resolveCapabilityTools(args.skills);
 
   const roleBlock =
     args.role !== null && args.role !== undefined

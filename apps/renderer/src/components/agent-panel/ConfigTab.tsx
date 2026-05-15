@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   CLAUDE_MODEL_PRESETS,
   MODEL_ID_REGEX,
-  SKILL_CATALOG,
+  CAPABILITY_CATALOG,
   type Agent,
   type RoleTemplate,
 } from "@prospero/shared";
@@ -69,7 +69,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
     [allAgents, agent.id],
   );
 
-  const allSkillIds = useMemo(() => Object.keys(SKILL_CATALOG), []);
+  const allSkillIds = useMemo(() => Object.keys(CAPABILITY_CATALOG), []);
   const categorizedSkills = useMemo(
     () =>
       categorizeSkills({

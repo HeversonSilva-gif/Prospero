@@ -1,6 +1,6 @@
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, resolveSkillTools, type RoleDetail, type RoleTemplate } from "@prospero/shared";
+import { IPC, resolveCapabilityTools, type RoleDetail, type RoleTemplate } from "@prospero/shared";
 import { createRoleTemplatesRepository } from "../agents/role-templates-repository.js";
 
 type RoleSummary = RoleTemplate & { agentCount: number };
@@ -21,7 +21,7 @@ export const registerRolesHandlers = (db: Database.Database): void => {
     if (role === null) return null;
     return {
       ...role,
-      resolvedTools: resolveSkillTools(role.defaultSkills),
+      resolvedTools: resolveCapabilityTools(role.defaultSkills),
       agentsUsing: repo.agentsUsing(role.id),
     };
   });
