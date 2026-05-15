@@ -23,6 +23,16 @@ export type ExecutorMode = "atomic" | "narrated";
 
 export type AuthMode = "oauth" | "api-key";
 
+export type RemoteExecutionMode = "local-docker" | "remote-vps";
+
+export type RemoteExecutionSettings = {
+  enabled: boolean;
+  mode: RemoteExecutionMode;
+  vpsHost: string;
+  vpsUser: string;
+  vpsKeyPath: string;
+};
+
 export type AppSettings = {
   language: Language;
   theme: Theme;
@@ -33,6 +43,7 @@ export type AppSettings = {
   authMode: AuthMode;
   defaultAgentMode: AgentMode;
   defaultAlwaysOn: boolean;
+  remoteExecution: RemoteExecutionSettings;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -45,4 +56,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   authMode: "oauth",
   defaultAgentMode: "supervised",
   defaultAlwaysOn: false,
+  remoteExecution: {
+    enabled: false,
+    mode: "local-docker",
+    vpsHost: "",
+    vpsUser: "",
+    vpsKeyPath: "",
+  },
 };

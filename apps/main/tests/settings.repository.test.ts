@@ -23,6 +23,13 @@ describe("settings repository", () => {
       authMode: "oauth",
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
+      remoteExecution: {
+        enabled: false,
+        mode: "local-docker",
+        vpsHost: "",
+        vpsUser: "",
+        vpsKeyPath: "",
+      },
     });
   });
 
@@ -39,6 +46,13 @@ describe("settings repository", () => {
       authMode: "oauth",
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
+      remoteExecution: {
+        enabled: false,
+        mode: "local-docker",
+        vpsHost: "",
+        vpsUser: "",
+        vpsKeyPath: "",
+      },
     });
   });
 
@@ -55,6 +69,13 @@ describe("settings repository", () => {
       authMode: "oauth",
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
+      remoteExecution: {
+        enabled: false,
+        mode: "local-docker",
+        vpsHost: "",
+        vpsUser: "",
+        vpsKeyPath: "",
+      },
     });
   });
 

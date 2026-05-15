@@ -55,3 +55,36 @@ describe("parseSettings defaultAlwaysOn", () => {
     expect(parseSettings({ defaultAlwaysOn: true }).defaultAlwaysOn).toBe(true);
   });
 });
+
+describe("parseSettings remoteExecution", () => {
+  it("defaults to disabled local-docker when absent", () => {
+    expect(parseSettings({}).remoteExecution).toEqual({
+      enabled: false,
+      mode: "local-docker",
+      vpsHost: "",
+      vpsUser: "",
+      vpsKeyPath: "",
+    });
+  });
+
+  it("preserves a valid remote-vps config", () => {
+    const remoteExecution = {
+      enabled: true,
+      mode: "remote-vps" as const,
+      vpsHost: "1.2.3.4",
+      vpsUser: "deploy",
+      vpsKeyPath: "/home/u/.ssh/id_ed25519",
+    };
+    expect(parseSettings({ remoteExecution }).remoteExecution).toEqual(remoteExecution);
+  });
+
+  it("fills nested defaults for a partial remoteExecution object", () => {
+    expect(parseSettings({ remoteExecution: { enabled: true } }).remoteExecution).toEqual({
+      enabled: true,
+      mode: "local-docker",
+      vpsHost: "",
+      vpsUser: "",
+      vpsKeyPath: "",
+    });
+  });
+});

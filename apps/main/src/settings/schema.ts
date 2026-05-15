@@ -6,6 +6,14 @@ import {
   type AppSettings,
 } from "@prospero/shared";
 
+export const RemoteExecutionSettingsSchema = z.object({
+  enabled: z.boolean().default(false),
+  mode: z.enum(["local-docker", "remote-vps"]).default("local-docker"),
+  vpsHost: z.string().default(""),
+  vpsUser: z.string().default(""),
+  vpsKeyPath: z.string().default(""),
+});
+
 export const AppSettingsSchema = z.object({
   language: z.enum(["pt-BR", "en-US"]),
   theme: z.enum(["light", "dark"]),
@@ -16,6 +24,13 @@ export const AppSettingsSchema = z.object({
   authMode: z.enum(["oauth", "api-key"]).default("oauth"),
   defaultAgentMode: z.enum(["supervised", "auto"]).default("supervised"),
   defaultAlwaysOn: z.boolean().default(false),
+  remoteExecution: RemoteExecutionSettingsSchema.default({
+    enabled: false,
+    mode: "local-docker",
+    vpsHost: "",
+    vpsUser: "",
+    vpsKeyPath: "",
+  }),
 });
 
 const PartialAppSettingsSchema = AppSettingsSchema.partial();
@@ -44,6 +59,9 @@ export const parseSettings = (raw: unknown): AppSettings => {
   }
   if (result.data.defaultAlwaysOn !== undefined) {
     merged.defaultAlwaysOn = result.data.defaultAlwaysOn;
+  }
+  if (result.data.remoteExecution !== undefined) {
+    merged.remoteExecution = result.data.remoteExecution;
   }
   return merged;
 };

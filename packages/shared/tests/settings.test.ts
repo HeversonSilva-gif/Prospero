@@ -31,6 +31,13 @@ describe("settings types and channels", () => {
       authMode: "oauth",
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
+      remoteExecution: {
+        enabled: false,
+        mode: "local-docker",
+        vpsHost: "",
+        vpsUser: "",
+        vpsKeyPath: "",
+      },
     };
     expect(s.language).toBe("pt-BR");
     expect(s.theme).toBe("light");
