@@ -12,7 +12,7 @@ import { useProjectsStore } from "../../stores/projects.js";
 import { useSettingsStore } from "../../stores/settings.js";
 import { AgentProjectsEditor } from "./AgentProjectsEditor.js";
 import { ChangeRoleModal } from "./ChangeRoleModal.js";
-import { categorizeSkills } from "./skillCategorize.js";
+import { categorizeCapabilities } from "./capabilityCategorize.js";
 import { InstructionsFullScreenModal } from "./InstructionsFullScreenModal.js";
 
 type Props = { agent: Agent };
@@ -69,15 +69,15 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
     [allAgents, agent.id],
   );
 
-  const allSkillIds = useMemo(() => Object.keys(CAPABILITY_CATALOG), []);
-  const categorizedSkills = useMemo(
+  const allCapabilityIds = useMemo(() => Object.keys(CAPABILITY_CATALOG), []);
+  const categorizedCapabilities = useMemo(
     () =>
-      categorizeSkills({
-        agentSkills: agent.capabilities,
-        roleDefaultSkills: currentRole?.defaultCapabilities ?? [],
-        allSkills: allSkillIds,
+      categorizeCapabilities({
+        agentCapabilities: agent.capabilities,
+        roleDefaultCapabilities: currentRole?.defaultCapabilities ?? [],
+        allCapabilities: allCapabilityIds,
       }),
-    [agent.capabilities, currentRole?.defaultCapabilities, allSkillIds],
+    [agent.capabilities, currentRole?.defaultCapabilities, allCapabilityIds],
   );
 
   const onModelPresetChange = async (v: string): Promise<void> => {
@@ -264,12 +264,12 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
         <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
           {t("agent.config.capabilities.label")}
         </h3>
-        {categorizedSkills.required.length > 0 && (
+        {categorizedCapabilities.required.length > 0 && (
           <div className="mb-2">
             <p className="text-[10px] uppercase tracking-wide text-ink-soft mb-1">
               {t("agent.config.skillsEdit.required")}
             </p>
-            {categorizedSkills.required.map((s) => (
+            {categorizedCapabilities.required.map((s) => (
               <label key={s.id} className="flex items-center gap-1 text-xs">
                 <input type="checkbox" checked={s.enabled} disabled />
                 <span>{s.id}</span>
@@ -278,12 +278,12 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
           </div>
         )}
 
-        {categorizedSkills.optional.length > 0 && (
+        {categorizedCapabilities.optional.length > 0 && (
           <div className="mb-2">
             <p className="text-[10px] uppercase tracking-wide text-ink-soft mb-1">
               {t("agent.config.skillsEdit.optional")}
             </p>
-            {categorizedSkills.optional.map((s) => (
+            {categorizedCapabilities.optional.map((s) => (
               <label key={s.id} className="flex items-center gap-1 text-xs cursor-pointer">
                 <input
                   type="checkbox"
@@ -301,7 +301,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
           </div>
         )}
 
-        {categorizedSkills.available.length > 0 && (
+        {categorizedCapabilities.available.length > 0 && (
           <select
             value=""
             onChange={(e) => {
@@ -312,7 +312,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
             className="text-xs px-2 py-1 border border-surface-border rounded bg-surface w-full mt-1"
           >
             <option value="">{t("agent.config.skillsEdit.addLabel")}</option>
-            {categorizedSkills.available.map((id) => (
+            {categorizedCapabilities.available.map((id) => (
               <option key={id} value={id}>
                 {id}
               </option>
