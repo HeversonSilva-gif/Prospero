@@ -1,0 +1,27 @@
+# Docker build context for infra/docker/agent-runner/Dockerfile is the repo root.
+# Exclude installed deps, build output, and trees the agent-runner build does not
+# need — the image reinstalls and rebuilds everything from source.
+
+# Never ship installed dependencies or compiled output.
+**/node_modules
+**/dist
+
+# VCS, CI, and editor metadata.
+.git
+.github
+.vscode
+.husky
+
+# Electron desktop-app build artifacts (apps/main / apps/renderer).
+apps/main/release
+apps/main/out
+apps/renderer/.vite
+
+# Docs and end-to-end tests — irrelevant to the runner bundle.
+docs
+tests/e2e
+
+# Logs and local-only environment files.
+**/*.log
+.env
+.env.*
