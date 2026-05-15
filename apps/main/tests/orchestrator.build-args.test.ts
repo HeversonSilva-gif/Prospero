@@ -46,4 +46,13 @@ describe("buildClaudeArgs", () => {
     const args = buildClaudeArgs(baseAgent, "/tmp/mcp.json");
     expect(args).not.toContain("--resume");
   });
+
+  it("omits the MCP triplet when mcpConfigPath is null", () => {
+    const args = buildClaudeArgs(baseAgent, null);
+    expect(args).not.toContain("--mcp-config");
+    expect(args).not.toContain("--strict-mcp-config");
+    expect(args).not.toContain("--permission-prompt-tool");
+    expect(args).toContain("--model");
+    expect(args).toContain("--permission-mode");
+  });
 });

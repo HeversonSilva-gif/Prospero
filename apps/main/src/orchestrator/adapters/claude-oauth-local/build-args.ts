@@ -13,7 +13,7 @@ import { buildNarratedBlock } from "../../system-prompt-narrated.js";
 // and ignores any global MCP servers the host user has configured.
 export const buildClaudeArgs = (
   agent: Agent,
-  mcpConfigPath: string,
+  mcpConfigPath: string | null,
   opts: { narratedActive?: boolean } = {},
 ): string[] => {
   const allowedTools = resolveSkillTools(agent.skills);
@@ -37,14 +37,21 @@ export const buildClaudeArgs = (
     "stream-json",
     "--verbose",
     "--include-partial-messages",
-    "--mcp-config",
-    mcpConfigPath,
-    "--strict-mcp-config",
     "--permission-mode",
     "default",
-    "--permission-prompt-tool",
-    "mcp__dashboard__request_permission",
   ];
+  // The MCP triplet — host-side adapters pass a host mcp.json path; the remote
+  // adapter passes null because the agent-runner appends the triplet itself with
+  // the container-local mcp.json path (m10 design §4.3 / §6).
+  if (mcpConfigPath !== null) {
+    args.push(
+      "--mcp-config",
+      mcpConfigPath,
+      "--strict-mcp-config",
+      "--permission-prompt-tool",
+      "mcp__dashboard__request_permission",
+    );
+  }
   if (agent.claudeSessionId !== null) {
     args.push("--resume", agent.claudeSessionId);
   }
