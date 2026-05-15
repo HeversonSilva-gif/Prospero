@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-14 — **M8.6 ✅ MERGEADO COMPLETO** (PR-A backend + PR-B UI). PR-A: migration 0014 (`execution_state_json` + `depends_on_json`), executor dispatcher (atomic/narrated), 4 MCP tools (`comment_on_issue`, `hire_agent_for_plan`, `create_issue_for_plan`, `finalize_goal_execution`), topological issue activation on done, boot recovery scan, narrated resume/rollback IPCs, 3 activity actions, Settings executorMode atomic/narrated. PR-B: Settings radio toggle, GoalPlanReview narrated checkbox + token comparison, IssueCommentsList sender badges (CEO/agent/user), IssueDetailModal real-time refresh on comment-added, Inbox narrated_halted recovery CTAs, i18n PT/EN +30 keys. **711 testes** (570 main + 33 shared + 108 renderer; +64 vs M8.5). **13/14 milestones fechados** (v1 = M10).
+> **Última atualização:** 2026-05-15 — **M10 ✅ MERGEADO COMPLETO · v1 fechado (14/14 milestones).** 5 PRs (A–E): wire protocol (`packages/shared/src/wire/`), `apps/agent-runner/` + Dockerfile real, host adapter `ClaudeRemoteDockerAdapter` + connection manager + MCP relay, Settings `RemoteExecutionSection` + per-agent location selector + `agents:set-adapter`/`remote:test-connection` IPCs, e docs (SECURITY.md + `docs/m10-vps-setup-runbook.md`). Arquitetura: SSH stdio, host-authoritative, MCP tunelado. **973 testes** (63 shared + 50 agent-runner + 148 renderer + 712 main; +2 todo).
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 >
@@ -61,6 +61,7 @@
 - Mudar **modelo** (Sonnet/Opus/Haiku) por agente
 - Trocar a quem o agente **reporta** (organograma)
 - Histórico de **runs** (sessões) com timestamps + duração
+- **Escolher onde o agente roda** — local (no seu PC) ou numa VPS remota via Docker. Define na contratação ou troca depois no Agent Studio. Settings tem a seção "Execução remota" com teste de conexão (M10, 2026-05-15)
 
 ### 💰 Custos (M8 completo — 2026-05-12)
 - Tracking **automático de tokens** consumidos por turn (entrada, saída, cache)
@@ -117,7 +118,6 @@
 
 - 📈 **Dashboard inicial com widgets dinâmicos** ✅ M9 PR-B (2026-05-14) — 7 widgets + Recent Activity timeline
 - 🏢 **Trocar entre empresas via dropdown da sidebar** ✅ M9 PR-A (2026-05-14)
-- ☁️ **Rodar agentes numa VPS remota (Docker)** — escolha per-agent: local (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
 - 🧠 **Empresa que aprende com a experiência (não só o funcionário)** — após cada issue concluído, o sistema **extrai automaticamente** um "skill" (manual de como fazer aquilo) a partir do trabalho real, você revisa e aceita. Conhecimento institucional **transfere entre funcionários**: se demite o BackendEng e contrata outro, o novato já chega sabendo o que a empresa aprendeu. CEO escreve retrospectiva ao completar um Goal. Inclui busca em conversas antigas. → M11 (pós-v1, v1.1)
 
 ---
@@ -176,14 +176,14 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 
 | Métrica | Valor |
 |---|---|
-| Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6** (13/14 do v1) |
-| Concluído | **M9 — 6/6 PRs** ✅. PR-A/B/C/D/E/F.1/F.2.1/F.2.2/F.2.3 todos mergeados em 2026-05-14. Próximo: M10 (VPS adapter) fecha v1. |
-| Testes | **831 passing** (651 main + 33 shared + 147 renderer + 2 todo), 0 lint/typecheck errors |
+| Milestones fechados | M1–M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6**, **M9**, **M10** (14/14 do v1 ✅) |
+| Concluído | **v1 fechado** 2026-05-15 — **M10 — 5/5 PRs** ✅ (A wire protocol · B agent-runner + Docker image · C host adapter + MCP relay · D Settings + UX · E docs + roadmap). |
+| Testes | **973 passing + 2 todo** (712 main + 63 shared + 50 agent-runner + 148 renderer), 0 lint/typecheck errors |
 | Commits no master | ~345 |
 | LoC (apps + packages) | ~23k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
-| Restante pra v1 | M10 (~4-6 dias). **M9 fechado em 2026-05-14 (6/6 PRs).** |
+| Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** Próximo: M11 (V2 anchor). |
 | V2 anchor | M11 Agent Memory & Learning Loop (~10-14 dias, **âncora V2** — 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). Tese V2: 1-person business via delegação de outcomes + memory que compounda) |
 
 ---
