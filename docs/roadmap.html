@@ -543,39 +543,314 @@
         line-height: 1.55;
       }
 
-      /* ─── em linguagem simples (layperson section) ─── */
-      .layperson-intro {
-        background: var(--bg-elev);
-        border-left: 3px solid var(--accent);
-        padding: 18px 24px;
-        margin-bottom: 32px;
-        font-size: 14px;
-        color: var(--ink-2);
-        line-height: 1.6;
+      /* ─── em linguagem simples — hero block ─── */
+      .lp-hero {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(220px, auto) 1fr;
+        gap: 36px;
+        padding: 40px 44px;
+        margin-bottom: 56px;
+        background:
+          radial-gradient(
+            ellipse 100% 140% at 0% 0%,
+            color-mix(in srgb, var(--accent) 14%, transparent) 0%,
+            transparent 60%
+          ),
+          var(--bg-elev);
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        overflow: hidden;
       }
-      .layperson-intro strong {
+      .lp-hero::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, var(--accent), transparent 60%);
+      }
+      .lp-hero-left {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+      }
+      .lp-hero-number {
+        font-size: clamp(72px, 14vw, 144px);
+        font-weight: 700;
+        line-height: 0.85;
+        letter-spacing: -0.05em;
+        color: var(--accent);
+        margin-bottom: 8px;
+      }
+      .lp-hero-tag {
+        font-size: clamp(16px, 2.4vw, 22px);
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink);
+        line-height: 1.05;
+      }
+      .lp-hero-tag .slash {
+        color: var(--accent);
+        font-weight: 400;
+        padding: 0 0.2em;
+      }
+      .lp-hero-right {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 18px;
+        min-width: 0;
+      }
+      .lp-hero-lede {
+        font-size: 15.5px;
+        line-height: 1.65;
+        color: var(--ink-2);
+        max-width: 56ch;
+      }
+      .lp-hero-lede strong {
         color: var(--ink);
       }
       .lp-summary {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        margin-top: 14px;
       }
       .lp-summary-pill {
         font-size: 11px;
         color: var(--ink-2);
-        padding: 5px 10px;
+        padding: 6px 12px;
         background: var(--bg);
         border: 1px solid var(--rule);
         border-radius: 999px;
         letter-spacing: 0.02em;
+        transition:
+          border-color 200ms ease,
+          color 200ms ease;
+      }
+      .lp-summary-pill:hover {
+        border-color: var(--accent);
+        color: var(--ink);
       }
       .lp-summary-pill strong {
         color: var(--accent);
         font-weight: 700;
         margin-right: 4px;
       }
+      @media (max-width: 760px) {
+        .lp-hero {
+          grid-template-columns: 1fr;
+          gap: 18px;
+          padding: 28px 24px;
+        }
+      }
+
+      /* ─── playbooks (cenários de uso) ─── */
+      .lp-subhead {
+        display: flex;
+        align-items: baseline;
+        gap: 16px;
+        margin-bottom: 22px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .lp-subhead-kicker {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .lp-subhead h3 {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+        line-height: 1.15;
+      }
+      .lp-subhead .note {
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--ink-3);
+      }
+      .playbooks-block {
+        margin-bottom: 64px;
+      }
+      .playbooks-intro {
+        font-size: 14px;
+        color: var(--ink-2);
+        line-height: 1.65;
+        max-width: 64ch;
+        margin-bottom: 26px;
+      }
+      .playbooks-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        gap: 18px;
+      }
+      .playbook-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 26px 26px 22px;
+        background:
+          linear-gradient(
+            145deg,
+            color-mix(in srgb, var(--accent) 6%, transparent) 0%,
+            transparent 50%
+          ),
+          var(--bg-elev);
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        transition:
+          transform 260ms cubic-bezier(0.2, 0.7, 0.3, 1),
+          border-color 220ms ease,
+          box-shadow 260ms ease;
+        overflow: hidden;
+      }
+      .playbook-card::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent), transparent 70%);
+        opacity: 0;
+        transition: opacity 220ms ease;
+      }
+      .playbook-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--accent);
+        box-shadow:
+          0 16px 32px -18px var(--accent-dim),
+          0 2px 0 0 var(--rule);
+      }
+      .playbook-card:hover::after {
+        opacity: 1;
+      }
+      .pb-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      .pb-icon {
+        width: 56px;
+        height: 56px;
+        display: grid;
+        place-items: center;
+        font-size: 30px;
+        background: var(--bg);
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        flex-shrink: 0;
+        line-height: 1;
+        transition:
+          transform 360ms cubic-bezier(0.2, 0.7, 0.3, 1),
+          border-color 220ms ease,
+          background 220ms ease;
+      }
+      .playbook-card:hover .pb-icon {
+        transform: rotate(-8deg) scale(1.08);
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+      }
+      .pb-title-block {
+        flex: 1;
+        min-width: 0;
+      }
+      .pb-kicker {
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 6px;
+      }
+      .pb-title {
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+      }
+      .pb-desc {
+        font-size: 13.5px;
+        line-height: 1.6;
+        color: var(--ink-2);
+      }
+      .pb-desc strong {
+        color: var(--ink);
+      }
+      .pb-setup {
+        list-style: none;
+        padding: 14px 16px;
+        margin: 0;
+        background: var(--bg);
+        border: 1px dashed var(--rule);
+        border-radius: 4px;
+      }
+      .pb-setup-label {
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        margin-bottom: 8px;
+      }
+      .pb-setup li {
+        font-size: 12.5px;
+        line-height: 1.55;
+        color: var(--ink-2);
+        padding: 3px 0 3px 18px;
+        position: relative;
+      }
+      .pb-setup li::before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .pb-setup li strong,
+      .pb-setup li code {
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .pb-setup li code {
+        font-family: inherit;
+        background: var(--accent-dim);
+        color: var(--accent);
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 11.5px;
+      }
+      .pb-outcome {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: auto;
+        padding: 12px 16px;
+        background: color-mix(in srgb, var(--done) 8%, var(--bg));
+        border-left: 3px solid var(--done);
+        border-radius: 0 4px 4px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+        letter-spacing: -0.005em;
+      }
+      .pb-outcome::before {
+        content: "→";
+        color: var(--done);
+        font-weight: 700;
+        font-size: 16px;
+      }
+
+      /* ─── em linguagem simples (layperson section) ─── */
       .layperson-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -1345,15 +1620,239 @@
           <span class="note">pra leigos · o que o app faz hoje, sem jargão</span>
         </div>
 
-        <div class="layperson-intro reveal">
-          <strong>Não é técnico?</strong> Aqui está, sem jargão, tudo que dá pra fazer no
-          DashboardAgent neste momento. Tudo nesta lista <strong>já funciona</strong> — você
-          instala, loga com sua conta Claude Max, e usa.
-          <div class="lp-summary">
-            <span class="lp-summary-pill"><strong>12</strong> categorias</span>
-            <span class="lp-summary-pill"><strong>57</strong> funcionalidades prontas</span>
-            <span class="lp-summary-pill"><strong>3</strong> entregas novas em 2026-05-14</span>
+        <div class="lp-hero reveal">
+          <div class="lp-hero-left">
+            <div class="lp-hero-number">57</div>
+            <div class="lp-hero-tag">superpoderes<span class="slash">/</span>prontos</div>
           </div>
+          <div class="lp-hero-right">
+            <p class="lp-hero-lede">
+              Não é técnico? Tudo bem. <strong>Um time de até 4 agentes Claude</strong> trabalhando
+              em paralelo no seu computador, sob sua conta Max ou sua API key, fazendo o que você
+              definir. <strong>Sem código adicional</strong>, sem servidor, sem assinatura nova —
+              você instala, descreve seu time num arquivo (ou contrata um por um na UI) e
+              <strong>delega como se fosse uma empresa de verdade</strong>.
+            </p>
+            <div class="lp-summary">
+              <span class="lp-summary-pill"><strong>12</strong> categorias</span>
+              <span class="lp-summary-pill"><strong>57</strong> funcionalidades prontas</span>
+              <span class="lp-summary-pill"><strong>3</strong> entregas em 2026-05-14</span>
+              <span class="lp-summary-pill"><strong>4</strong> agentes em paralelo</span>
+              <span class="lp-summary-pill"><strong>0</strong> servidores pra manter</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="playbooks-block">
+          <div class="lp-subhead">
+            <span class="lp-subhead-kicker">/00.1</span>
+            <h3>O que você consegue fazer com isso?</h3>
+            <span class="note">6 cenários reais · só com features já mergeadas</span>
+          </div>
+          <p class="playbooks-intro">
+            Cada playbook abaixo descreve uma <strong>persona</strong>, o
+            <strong>setup</strong> concreto (qual role, quais skills, qual modo) e o
+            <strong>outcome esperado</strong>. Tudo aqui usa só o que já está pronto hoje — zero
+            features futuras, zero promessas. É o que o app entrega assim que você instala.
+          </p>
+
+          <div class="playbooks-grid">
+            <article class="playbook-card reveal">
+              <div class="pb-head">
+                <div class="pb-icon">🚀</div>
+                <div class="pb-title-block">
+                  <div class="pb-kicker">solopreneur · 8 horas livres</div>
+                  <div class="pb-title">Side-project no fim de semana</div>
+                </div>
+              </div>
+              <p class="pb-desc">
+                Você tem uma ideia e algumas horas. Quer entregar uma <strong>v1 funcional</strong>
+                sem montar time, sem aprovar PR um a um, sem gerenciar nada.
+              </p>
+              <div class="pb-setup">
+                <div class="pb-setup-label">Setup</div>
+                <ul>
+                  <li>
+                    <code>CEO</code> + <code>2 Engineers</code> + <code>1 QA</code> — 4 agentes no
+                    limite Max
+                  </li>
+                  <li>
+                    Cria 1 <strong>Goal</strong> de alto nível → CEO monta plano + delega em
+                    <strong>modo PR-review</strong>
+                  </li>
+                  <li>
+                    <strong>Modo auto</strong> nos agentes · budget <code>$10/dia</code> · soft-stop
+                    ligado
+                  </li>
+                </ul>
+              </div>
+              <div class="pb-outcome">v1 funcional em ~6h vs 2 semanas sozinho</div>
+            </article>
+
+            <article class="playbook-card reveal" data-delay="1">
+              <div class="pb-head">
+                <div class="pb-icon">🐛</div>
+                <div class="pb-title-block">
+                  <div class="pb-kicker">dev sobrecarregado · bug em prod</div>
+                  <div class="pb-title">Investigação rolando enquanto você dorme</div>
+                </div>
+              </div>
+              <p class="pb-desc">
+                Bug em produção, você sem energia pra debugar agora.
+                <strong>Cria a issue e dorme</strong> — acorda com a investigação feita e um draft
+                de fix pra revisar.
+              </p>
+              <div class="pb-setup">
+                <div class="pb-setup-label">Setup</div>
+                <ul>
+                  <li>
+                    1 <code>Engineer</code> <strong>always-on</strong> · skills <code>shell</code> +
+                    <code>fs-write</code> + <code>issues</code>
+                  </li>
+                  <li>
+                    Cria issue: <em>"Bug X em /api/foo"</em> + label crítico → agente acorda no push
+                  </li>
+                  <li>
+                    <strong>Modo supervised</strong> — qualquer arquivo escrito vira approval na
+                    Inbox
+                  </li>
+                </ul>
+              </div>
+              <div class="pb-outcome">issue com diagnóstico + fix proposto ao acordar</div>
+            </article>
+
+            <article class="playbook-card reveal" data-delay="2">
+              <div class="pb-head">
+                <div class="pb-icon">🛡️</div>
+                <div class="pb-title-block">
+                  <div class="pb-kicker">consultor · cliente paranoico</div>
+                  <div class="pb-title">Auditoria de segurança recorrente</div>
+                </div>
+              </div>
+              <p class="pb-desc">
+                Cliente paga por security review mensal. Você quer cobrar entregando relatório
+                <strong>semanal</strong> sem ficar relendo o repositório toda segunda.
+              </p>
+              <div class="pb-setup">
+                <div class="pb-setup-label">Setup</div>
+                <ul>
+                  <li>
+                    1 <code>Security Engineer</code> always-on · skills <code>fs-read</code> +
+                    <code>web</code> + <code>issues</code>
+                  </li>
+                  <li>
+                    Persona: <em>"audita repo, abre issue por achado, severidade definida"</em>
+                  </li>
+                  <li>
+                    Goal recorrente com prazo semanal → CEO orquestra · cada audit vira issue list
+                  </li>
+                </ul>
+              </div>
+              <div class="pb-outcome">relatório de issues toda segunda · zero tempo seu</div>
+            </article>
+
+            <article class="playbook-card reveal" data-delay="3">
+              <div class="pb-head">
+                <div class="pb-icon">🧠</div>
+                <div class="pb-title-block">
+                  <div class="pb-kicker">fundador não-técnico · feature ambiciosa</div>
+                  <div class="pb-title">CTO pessoal que decide e delega</div>
+                </div>
+              </div>
+              <p class="pb-desc">
+                Você sabe o que quer (<em>"integrar Stripe com webhook"</em>), mas não como dividir
+                em tasks. <strong>O CEO recebe o objetivo</strong>, monta o plano, escolhe specs,
+                distribui pros agentes.
+              </p>
+              <div class="pb-setup">
+                <div class="pb-setup-label">Setup</div>
+                <ul>
+                  <li>
+                    <code>CEO</code> (model <code>Opus</code>) · skills <code>delegation</code> +
+                    <code>issues</code> + <code>chat</code>
+                  </li>
+                  <li>
+                    Você escreve <strong>Goal</strong> high-level · CEO entrega plano com
+                    <strong>estimativa de tokens + custo + duração</strong>
+                  </li>
+                  <li>
+                    Revisão no modo <strong>PR-review</strong> — checkbox por agente/issue,
+                    recalcula estimativa ao desmarcar
+                  </li>
+                </ul>
+              </div>
+              <div class="pb-outcome">plano executável + custo previsto · você só aprova</div>
+            </article>
+
+            <article class="playbook-card reveal" data-delay="4">
+              <div class="pb-head">
+                <div class="pb-icon">🧪</div>
+                <div class="pb-title-block">
+                  <div class="pb-kicker">time pequeno · sem QA dedicado</div>
+                  <div class="pb-title">QA automático em todo PR de agente</div>
+                </div>
+              </div>
+              <p class="pb-desc">
+                Seus agentes (ou você mesmo) entregam código rápido demais pra dar tempo de QA
+                manual. Quer alguém que
+                <strong>pegue cada issue em <code>status=review</code></strong>
+                e teste antes de aprovar.
+              </p>
+              <div class="pb-setup">
+                <div class="pb-setup-label">Setup</div>
+                <ul>
+                  <li>
+                    1 <code>QA</code> always-on · skills <code>shell</code> + <code>fs-read</code> +
+                    <code>issues</code>
+                  </li>
+                  <li>
+                    Trigger: issue muda pra <code>status=review</code> + tem artifact (PR-F.2.3 em
+                    breve fecha o loop visual com diff side-by-side)
+                  </li>
+                  <li>
+                    QA roda <code>npm test</code>, exercita feature, abre sub-issue se quebrar algo
+                  </li>
+                </ul>
+              </div>
+              <div class="pb-outcome">nenhum PR sem QA review · zero envolvimento manual</div>
+            </article>
+
+            <article class="playbook-card reveal" data-delay="5">
+              <div class="pb-head">
+                <div class="pb-icon">📋</div>
+                <div class="pb-title-block">
+                  <div class="pb-kicker">PM solo · 200 issues no backlog</div>
+                  <div class="pb-title">Triage + priorização semanal autônoma</div>
+                </div>
+              </div>
+              <p class="pb-desc">
+                Backlog cresceu pra 200+ tickets. Sexta à tarde você quer um
+                <strong>snapshot priorizado</strong> pra começar segunda já sabendo o que atacar.
+              </p>
+              <div class="pb-setup">
+                <div class="pb-setup-label">Setup</div>
+                <ul>
+                  <li>
+                    1 <code>PM</code> · schedule wake-up sexta 16h · skills <code>issues</code> +
+                    <code>delegation</code>
+                  </li>
+                  <li>
+                    Persona: <em>"lê backlog inteiro, tag prioridade, escreve top 5 da semana"</em>
+                  </li>
+                  <li>
+                    <strong>Modo supervised</strong> · entrega vira issue de relatório no inbox
+                  </li>
+                </ul>
+              </div>
+              <div class="pb-outcome">snapshot semanal sem você abrir Linear/Jira</div>
+            </article>
+          </div>
+        </div>
+
+        <div class="lp-subhead">
+          <span class="lp-subhead-kicker">/00.2</span>
+          <h3>As 12 áreas que sustentam tudo isso</h3>
+          <span class="note">o app inteiro · agrupado por responsabilidade</span>
         </div>
 
         <div class="layperson-grid">
