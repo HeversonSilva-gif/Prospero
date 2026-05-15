@@ -21,6 +21,7 @@ import { getActiveAuthMode } from "../auth/auth-mode.js";
 import { ensureAdapter, getAdapter, removeAdapter } from "../orchestrator/lifecycle.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
 import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
+import { resolveAdapterCredentials } from "../orchestrator/adapter-credentials.js";
 import { createRouter } from "../orchestrator/router.js";
 import type { Sender } from "../orchestrator/router.js";
 import type { ParsedEvent } from "@prospero/shared";
@@ -250,19 +251,10 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     if (existing !== undefined && existing.isAlive()) return;
 
     const adapterName = agent.adapterName ?? "claude-oauth-local";
-    let oauthToken: string | undefined;
-    let apiKey: string | undefined;
-    if (adapterName === "claude-oauth-local") {
-      const t = loadDecryptedToken(db);
-      if (t === null) throw new Error("OAuth token not configured");
-      oauthToken = t;
-    } else if (adapterName === "claude-api-key-local") {
-      const k = loadDecryptedApiKey(db);
-      if (k === null) throw new Error("API key not configured");
-      apiKey = k;
-    } else {
-      throw new Error(`Unknown adapter '${adapterName}'`);
-    }
+    const { oauthToken, apiKey } = resolveAdapterCredentials(adapterName, {
+      loadOauthToken: () => loadDecryptedToken(db),
+      loadApiKey: () => loadDecryptedApiKey(db),
+    });
 
     const collectedToolCalls = new Map<string, ToolCallView>();
 
