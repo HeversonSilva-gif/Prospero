@@ -8,7 +8,7 @@ import {
 } from "../src/capabilities.js";
 
 describe("capability catalog", () => {
-  it("includes the 8 canonical capability ids", () => {
+  it("includes the 9 canonical capability ids", () => {
     expect(Object.keys(CAPABILITY_CATALOG).sort()).toEqual([
       "chat",
       "delegation",
@@ -16,9 +16,17 @@ describe("capability catalog", () => {
       "fs-write",
       "inbox",
       "issues",
+      "memory",
       "shell",
       "web",
     ]);
+  });
+
+  it("includes the memory capability with the 9 M11 tools", () => {
+    expect(CAPABILITY_CATALOG.memory.tools).toHaveLength(9);
+    expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__skill_search");
+    expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__memory_add");
+    expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__session_search");
   });
 
   it("every built-in tool in KNOWN_CLAUDE_TOOLS is mapped by at least one capability", () => {
@@ -108,6 +116,14 @@ describe("resolveCapabilityTools (full resolver with chat safety-net)", () => {
   });
 
   it("empty capability list still gets request_permission via chat safety-net", () => {
-    expect(resolveCapabilityTools([])).toEqual(["mcp__dashboard__request_permission"]);
+    expect(resolveCapabilityTools([])).toContain("mcp__dashboard__request_permission");
+  });
+});
+
+describe("resolveCapabilityTools force-adds memory", () => {
+  it("includes memory tools even when not requested", () => {
+    const tools = resolveCapabilityTools(["shell"]);
+    expect(tools).toContain("mcp__dashboard__skill_search");
+    expect(tools).toContain("mcp__dashboard__memory_add");
   });
 });

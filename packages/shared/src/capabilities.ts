@@ -27,6 +27,7 @@ export type CapabilityId =
   | "fs-write"
   | "inbox"
   | "issues"
+  | "memory"
   | "shell"
   | "web";
 
@@ -89,6 +90,21 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
     description: "Permission prompt routing — required for filesystem gate to function.",
     tools: ["mcp__dashboard__request_permission"],
   },
+  memory: {
+    id: "memory",
+    description: "Read/write the agent's memory and skills; search past sessions.",
+    tools: [
+      "mcp__dashboard__skill_search",
+      "mcp__dashboard__skill_read",
+      "mcp__dashboard__skill_create",
+      "mcp__dashboard__skill_update",
+      "mcp__dashboard__memory_read",
+      "mcp__dashboard__memory_add",
+      "mcp__dashboard__memory_remove",
+      "mcp__dashboard__memory_search",
+      "mcp__dashboard__session_search",
+    ],
+  },
 };
 
 // Force-adds the 'chat' capability (needed for --permission-prompt-tool to
@@ -96,6 +112,13 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
 export const ensureChatCapability = (capabilities: string[]): string[] => {
   if (capabilities.includes("chat")) return [...capabilities];
   return [...capabilities, "chat"];
+};
+
+// Force-adds the 'memory' capability — the M11 learning loop must be available
+// to every agent regardless of role. Returns a new array; does not mutate input.
+export const ensureMemoryCapability = (capabilities: string[]): string[] => {
+  if (capabilities.includes("memory")) return [...capabilities];
+  return [...capabilities, "memory"];
 };
 
 // Translates capability IDs into the flat deduplicated list of Claude tool
@@ -115,5 +138,5 @@ export const capabilitiesToTools = (capabilities: string[]): string[] => {
 // Full resolver: ensures the chat safety-net and returns the flat tool list.
 // This is the function the orchestrator should call when building spawn args.
 export const resolveCapabilityTools = (capabilities: string[]): string[] => {
-  return capabilitiesToTools(ensureChatCapability(capabilities));
+  return capabilitiesToTools(ensureMemoryCapability(ensureChatCapability(capabilities)));
 };
