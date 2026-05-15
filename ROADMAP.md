@@ -44,6 +44,7 @@
 - **Kanban com 5 colunas** (Backlog → Todo → Doing → Review → Done) com drag-and-drop
 - Comments inline, sub-tasks, arquivos gerados (artifacts) anexados
 - Identificador humano (ex: `BACKEND-7`) em vez de hash
+- **Bloco "Em revisão" embutido** quando a issue entra em `status='review'`: diff side-by-side do output do agente + comentário inline + 3 botões (Aprovar & concluir / Pedir mudanças / Rejeitar) — sem sair do modal
 
 ### 📥 Inbox de aprovações
 - Quando agente quer fazer algo arriscado (rodar comando shell, editar arquivo importante), **pede aprovação**
@@ -176,13 +177,13 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 | Métrica | Valor |
 |---|---|
 | Milestones fechados | M1, M2, M3, M4, M5, M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6** (13/14 do v1) |
-| Em curso | **M9 — 5.8/6 PRs**. PR-A/B/C/D/E/F.1/F.2.1/F.2.2 mergeados em 2026-05-14. Resta PR-F.2.3 (Reviews UX). |
-| Testes | **800 passing** (633 main + 33 shared + 134 renderer), 0 lint/typecheck errors |
-| Commits no master | ~325 |
-| LoC (apps + packages) | ~21k TS/TSX |
+| Concluído | **M9 — 6/6 PRs** ✅. PR-A/B/C/D/E/F.1/F.2.1/F.2.2/F.2.3 todos mergeados em 2026-05-14. Próximo: M10 (VPS adapter) fecha v1. |
+| Testes | **831 passing** (651 main + 33 shared + 147 renderer + 2 todo), 0 lint/typecheck errors |
+| Commits no master | ~345 |
+| LoC (apps + packages) | ~23k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
-| Restante pra v1 | M9 · M10 (~10-18 dias). **M8.6 fechado em 2026-05-14.** |
+| Restante pra v1 | M10 (~4-6 dias). **M9 fechado em 2026-05-14 (6/6 PRs).** |
 | V2 anchor | M11 Agent Memory & Learning Loop (~10-14 dias, **âncora V2** — 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). Tese V2: 1-person business via delegação de outcomes + memory que compounda) |
 
 ---
@@ -725,7 +726,7 @@ M11 (Agent Memory & Learning Loop — inspirado Hermes) ─── v1.1
 
 ---
 
-### 🔄 M9 — Dashboard + Multi-empresa + Polish + Reviews UX + API key (2º adapter)
+### ✅ M9 — Dashboard + Multi-empresa + Polish + Reviews UX + API key (2º adapter) — **MERGEADO 2026-05-14**
 
 Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundation do M7.5** (adapter pattern, approvals decoupled, system prompt composable).
 
@@ -777,11 +778,12 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
   - [x] Settings UI: botão "Exportar JSON" — gera JSON com agents/threads/messages/inbox/projects/issues/costs/activity/goals/approvals (schemaVersion 1, snapshot-only)
   - [x] Settings UI: botão "Importar JSON" — file picker, valida schemaVersion via zod, gera fresh IDs + remap FK em 10 tabelas + UPDATE pass pra reflexive FKs (reports_to/parent_id/parent_goal_id/goal_id). Foreign keys=OFF dentro da transaction. Conflito de nome rename pra "(imported)". Summary modal com counts + warnings expandíveis.
   - [x] Caso de uso: backup, snapshot pré-experimento, share entre instalações
-- [ ] **Agent Reviews UX polish** (Paperclip wishlist + spec §6.4) — aproveita `approvals` decoupled do M7.5:
-  - [ ] Em `/issues/:id`: aba "Review" com diff/output do agent assignee, botões Approve+merge / Request changes / Reject
-  - [ ] Diff side-by-side via `react-diff-viewer-continued` (battle-tested)
-  - [ ] Inline comments no diff (linka a `approval_comments` ou similar)
-  - [ ] Status="review" já existe no M6 — esse milestone polish UX + plug no `approvals` schema
+- [x] **Agent Reviews UX polish** ✅ **PR-F.2.3 mergeado 2026-05-14** (Paperclip wishlist + spec §9.3):
+  - [x] Em `/issues/:id` modal: bloco "Em revisão" renderizado quando `status === 'review'`
+  - [x] Diff side-by-side via `react-diff-viewer-continued` — pega artifact mais recente (`output_text` ou `snapshot`) com `contentPreview`
+  - [x] Comment box embutido (opcional pra Approve, obrigatório pra Request changes / Reject)
+  - [x] Botões Approve & merge (`status → done`) / Request changes (`→ doing`) / Reject (`→ cancelled`) usam `issues:update` + `issues:add-comment` existentes — sem migração nova
+  - [x] Tema dark detectado via `useSettingsStore`, helpers puros (`statusForDecision`, `validateDecision`, `pickDiffArtifact`) com 12 tests
 - [ ] **Right panel `/agents/:id`** — ✅ entregue M7-C + completion em M7.6 (header + ações + faltantes)
 - [x] **AGENTS.md formato próprio (YAML front-matter)** ✅ **PR-F.2.2 mergeado 2026-05-14** — `gray-matter` parser + zod schema em `apps/main/src/agents-md/`:
   ```yaml

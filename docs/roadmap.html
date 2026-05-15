@@ -1806,8 +1806,8 @@
                     <code>issues</code>
                   </li>
                   <li>
-                    Trigger: issue muda pra <code>status=review</code> + tem artifact (PR-F.2.3 em
-                    breve fecha o loop visual com diff side-by-side)
+                    Trigger: issue muda pra <code>status=review</code> + tem artifact (PR-F.2.3
+                    fecha o loop visual com diff side-by-side embutido no modal)
                   </li>
                   <li>
                     QA roda <code>npm test</code>, exercita feature, abre sub-issue se quebrar algo
@@ -2273,7 +2273,7 @@
               <div class="dot"></div>
               <div class="label">M8.6</div>
             </div>
-            <div class="progress-step" data-status="planned">
+            <div class="progress-step" data-status="done">
               <div class="dot"></div>
               <div class="label">M9</div>
             </div>
@@ -2284,13 +2284,13 @@
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M9 PR-F.2.2 (AGENTS.md import/export) mergeado em
-              2026-05-14. gray-matter + zod schema em apps/main + two-pass hire (create then wire
-              reports_to) + conflict resolution per-agent (Skip/Replace) + Settings UI com file
-              picker + preview modal + export button. <strong>~815 testes passing</strong>
-              (+~13 vs PR-F.2.1). 13/14 milestones; M9 em curso com PR-F.2.3 (Reviews UX) restante.
-              Próximo:
-              <strong>M9 PR-F.2.3 — Issue Review tab + react-diff-viewer-continued</strong>.
+              <strong>Estágio:</strong> M9 fechado em 2026-05-14 (6/6 PRs). PR-F.2.3 entrega o
+              IssueReviewBlock embutido no IssueDetailModal: diff side-by-side via
+              react-diff-viewer-continued + comment box + 3 botões (approve/request changes/reject)
+              que disparam <code>issues:update</code> + <code>issues:add-comment</code> existentes —
+              sem migração nova. <strong>831 testes passing</strong> (+12 helpers puros).
+              <strong>14/14 milestones</strong> do v1 quando M10 fechar. Próximo:
+              <strong>M10 VPS adapter — fecha v1</strong>.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -2315,33 +2315,31 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M9 PR-F.2.2 mergeado</div>
+            <div class="title">M9 fechado (6/6 PRs)</div>
             <ul class="bullets">
               <li>
-                <span><strong>13 / 14</strong> milestones do v1 · M9 em curso (5.8/6 PRs)</span>
+                <span><strong>13 / 14</strong> milestones do v1 · M9 ✅ todos os 6 PRs</span>
               </li>
               <li>
-                <span><strong>~815</strong> testes passing · 0 lint/typecheck errors</span>
-              </li>
-              <li>
-                <span
-                  ><strong>AGENTS.md import/export</strong> agora ✅ — gray-matter parser + zod
-                  schema em apps/main + two-pass hire (create projects+agents → wire reports_to) +
-                  conflict resolution per-agent (Skip/Replace) + Settings UI com file picker +
-                  preview modal + export button</span
-                >
-              </li>
-              <li>
-                <span>Master pós-M9 PR-F.2.2 · ~13 commits novos · ~900 LoC TS/TSX</span>
+                <span><strong>831</strong> testes passing · 0 lint/typecheck errors</span>
               </li>
               <li>
                 <span
-                  >Último PR M9: F.2.3 (Issue Review tab via react-diff-viewer-continued) — fecha
-                  M9</span
+                  ><strong>Issue Review embutido</strong> agora ✅ —
+                  <code>react-diff-viewer-continued</code> side-by-side dentro do IssueDetailModal +
+                  comment opcional/obrigatório + Approve/Request changes/Reject. Sem migração nova:
+                  reusa <code>issues:update</code> + <code>issues:add-comment</code> com helpers
+                  puros testados (statusForDecision, validateDecision, pickDiffArtifact)</span
                 >
+              </li>
+              <li>
+                <span>Master pós-M9 PR-F.2.3 · ~5 commits novos · ~270 LoC TS/TSX</span>
+              </li>
+              <li>
+                <span>Único PR restante pro v1: M10 (VPS Docker adapter)</span>
               </li>
             </ul>
-            <div class="eta">v1 quase fechado · 1 PR do M9 + M10 (VPS adapter) restantes</div>
+            <div class="eta">v1 quase fechado · só M10 (VPS adapter) restante</div>
           </div>
 
           <div class="card" data-kind="next">
@@ -3582,11 +3580,11 @@
           </article>
 
           <!-- ──── M9 ──── -->
-          <article class="milestone" data-status="in-progress">
+          <article class="milestone" data-status="done">
             <div class="ms-rail">
               <div class="num">M09</div>
               <div class="status-row">
-                <span class="status-dot"></span>in progress · 5.7/6 PRs merged
+                <span class="status-dot"></span>done · 6/6 PRs merged · 2026-05-14
               </div>
               <div class="meta">closing v1 features · 6 PRs</div>
             </div>
@@ -3598,8 +3596,8 @@
                   >PR-A (multi-empresa) + PR-D (api-key adapter) + PR-B (Dashboard widgets) + PR-C
                   (/agents + Settings defaults) + PR-E (error handling §7) + PR-F.1 (projects polish
                   + company export) + PR-F.2.1 (companies.sh import) + PR-F.2.2 (AGENTS.md
-                  import/export) mergeados em 2026-05-14</strong
-                >. Próximo: PR-F.2.3 (Reviews UX) — fecha M9.
+                  import/export) + PR-F.2.3 (Issue Review UX) mergeados em 2026-05-14</strong
+                >. Próximo: M10 VPS adapter fecha v1.
               </p>
               <div class="feature-group">
                 <div class="group-name">
@@ -3750,12 +3748,35 @@
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">Pendente PR-F.2.3 (Paperclip wishlist)</div>
+                <div class="group-name">✅ Issue Review UX (PR-F.2.3 · 2026-05-14)</div>
                 <ul class="feature-list">
                   <li>
-                    PR-F.2.3: Agent Reviews UX (<code>/issues/:id</code> aba "Review" com diff
-                    side-by-side via <code>react-diff-viewer-continued</code> + inline comments via
-                    <code>approval_comments</code>)
+                    <code>IssueReviewBlock</code> renderizado no
+                    <code>IssueDetailModal</code> quando
+                    <code>issue.status === 'review'</code>
+                  </li>
+                  <li>
+                    Diff side-by-side via <code>react-diff-viewer-continued</code> — pega o artifact
+                    mais recente com <code>kind in (output_text, snapshot)</code> que tenha
+                    <code>contentPreview</code> não-nulo (helper puro <code>pickDiffArtifact</code>)
+                  </li>
+                  <li>
+                    Comment box embutido — opcional para Approve, obrigatório para Request changes /
+                    Reject (helper puro <code>validateDecision</code>)
+                  </li>
+                  <li>
+                    3 botões: Approve & merge (status → <code>done</code>) · Request changes (→
+                    <code>doing</code>) · Reject (→ <code>cancelled</code>). Disparam
+                    <code>issues:update</code> + <code>issues:add-comment</code> existentes — sem
+                    IPC nem migração nova
+                  </li>
+                  <li>
+                    Tema dark detectado via <code>useSettingsStore</code> → propaga pro
+                    <code>useDarkTheme</code> do diff viewer
+                  </li>
+                  <li>
+                    12 testes unitários puros nos helpers (statusForDecision · requiresComment ·
+                    validateDecision · pickDiffArtifact) — repo não usa RTL
                   </li>
                 </ul>
               </div>
@@ -4255,12 +4276,16 @@
             </div>
             <div class="where">M7.5 · <code>issue_artifacts</code> table</div>
           </div>
-          <div class="wish-row" data-wish="planned">
+          <div class="wish-row" data-wish="done">
             <div class="item-name">Agent Reviews and Approvals</div>
             <div>
-              <span class="wish-status"><span class="sq"></span>planned</span>
+              <span class="wish-status"><span class="sq"></span>✅ PR-F.2.3</span>
             </div>
-            <div class="where">M7.5 schema + M9 UX · approvals decoupled + diff side-by-side</div>
+            <div class="where">
+              M9 · <code>IssueReviewBlock</code> dentro do IssueDetailModal · diff side-by-side via
+              <code>react-diff-viewer-continued</code> · 3 botões reusam
+              <code>issues:update</code> existente
+            </div>
           </div>
           <div class="wish-row" data-wish="planned">
             <div class="item-name">Dashboard rico (Recent Activity + Active Agents)</div>
