@@ -116,4 +116,17 @@ describe("handleSpawn", () => {
     }
     expect((caught as WireHandlerError).code).toBe(1030);
   });
+
+  it("injects the handshake oauth token as CLAUDE_CODE_OAUTH_TOKEN", async () => {
+    const fake = new FakeClaude();
+    const { ctx } = makeContext(fake);
+    ctx.state.credentials = { kind: "oauth", oauthToken: "tok-secret" };
+    let seenEnv: Record<string, string> = {};
+    ctx.spawnClaude = (opts) => {
+      seenEnv = opts.env;
+      return fake;
+    };
+    await handleSpawn(validParams, ctx);
+    expect(seenEnv["CLAUDE_CODE_OAUTH_TOKEN"]).toBe("tok-secret");
+  });
 });

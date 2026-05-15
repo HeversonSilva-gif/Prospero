@@ -70,7 +70,15 @@ export const handleSpawn = async (params: unknown, ctx: SpawnContext): Promise<S
   const child = ctx.spawnClaude({
     command: "claude",
     args: [...args, ...mcpTripletArgs(mcpConfigPath)],
-    env: { ...(env ?? {}), CLAUDE_CONFIG_DIR: sandbox.configDir },
+    env: {
+      ...(env ?? {}),
+      // The OAuth token arrives once via the handshake (design §5.1 / §8) and
+      // becomes the claude child's credential — never seeded to disk.
+      ...(ctx.state.credentials !== null
+        ? { CLAUDE_CODE_OAUTH_TOKEN: ctx.state.credentials.oauthToken }
+        : {}),
+      CLAUDE_CONFIG_DIR: sandbox.configDir,
+    },
     cwd: sandbox.workDir,
   });
 
