@@ -326,6 +326,13 @@ contextBridge.exposeInMainWorld("prospero", {
     narratedRollback: (args: { goalId: string }) =>
       ipcRenderer.invoke(IPC.GOALS_NARRATED_ROLLBACK, args) as Promise<{ aborted: true }>,
   },
+  remote: {
+    testConnection: () =>
+      ipcRenderer.invoke(IPC.REMOTE_TEST_CONNECTION) as Promise<{
+        ok: boolean;
+        message: string;
+      }>,
+  },
   windowControls: {
     minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE) as Promise<void>,
     maximizeToggle: () => ipcRenderer.invoke(IPC.WINDOW_MAXIMIZE_TOGGLE) as Promise<void>,

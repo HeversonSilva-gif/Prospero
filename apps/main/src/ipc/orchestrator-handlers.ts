@@ -23,6 +23,10 @@ import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claud
 import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
 import { resolveAdapterCredentials } from "../orchestrator/adapter-credentials.js";
 import { pickAdapterForHire } from "../agents/hire-adapter.js";
+import {
+  testRemoteConnection,
+  type TestConnectionResult,
+} from "../orchestrator/adapters/claude-oauth-remote-docker/test-connection.js";
 import { createRouter } from "../orchestrator/router.js";
 import type { Sender } from "../orchestrator/router.js";
 import type { ParsedEvent } from "@prospero/shared";
@@ -802,6 +806,11 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     createSettingsRepository(db).setExecutorMode(mode);
     return { ok: true };
   });
+
+  ipcMain.handle(
+    IPC.REMOTE_TEST_CONNECTION,
+    (): Promise<TestConnectionResult> => testRemoteConnection(),
+  );
 
   // Boot recovery — re-enqueue [GOAL_PLAN_REQUEST] for goals stuck in 'planning'
   // with no proposed plan (CEO crash mid-turn). Runs once after orchestrator is

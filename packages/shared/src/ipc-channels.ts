@@ -90,6 +90,7 @@ export const IPC = {
   GOALS_NARRATED_ROLLBACK: "goals:narrated-rollback",
   SETTINGS_GET_EXECUTOR_MODE: "settings:get-executor-mode",
   SETTINGS_SET_EXECUTOR_MODE: "settings:set-executor-mode",
+  REMOTE_TEST_CONNECTION: "remote:test-connection",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

@@ -237,6 +237,9 @@ declare global {
         narratedResume: (args: { goalId: string }) => Promise<{ ok: true }>;
         narratedRollback: (args: { goalId: string }) => Promise<{ aborted: true }>;
       };
+      remote: {
+        testConnection: () => Promise<{ ok: boolean; message: string }>;
+      };
       windowControls: {
         minimize: () => Promise<void>;
         maximizeToggle: () => Promise<void>;
