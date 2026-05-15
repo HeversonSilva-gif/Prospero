@@ -1,10 +1,10 @@
 import { useEffect, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import { useRolesStore } from "../stores/roles.js";
-import { RoleListItem } from "../components/skills/RoleListItem.js";
-import { RoleDetail } from "../components/skills/RoleDetail.js";
+import { RoleListItem } from "../components/roles/RoleListItem.js";
+import { RoleDetail } from "../components/roles/RoleDetail.js";
 
-export const Skills: FC = () => {
+export const Roles: FC = () => {
   const { t } = useTranslation();
   const roles = useRolesStore((s) => s.roles);
   const selectedId = useRolesStore((s) => s.selectedId);

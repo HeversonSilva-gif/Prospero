@@ -18,7 +18,7 @@ import { Projects } from "./routes/Projects.js";
 import { useProjectsStore } from "./stores/projects.js";
 import { Issues } from "./routes/Issues.js";
 import { useIssuesStore } from "./stores/issues.js";
-import { Skills } from "./routes/Skills.js";
+import { Roles } from "./routes/Roles.js";
 import { Org } from "./routes/Org.js";
 import { AgentNew } from "./routes/AgentNew.js";
 import { SidebarFooter } from "./components/SidebarFooter.js";
@@ -118,7 +118,7 @@ const Sidebar = () => {
           {t("nav.orgChart")}
         </NavLink>
         <NavLink
-          to="/skills"
+          to="/roles"
           className={({ isActive }) =>
             `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
           }
@@ -378,11 +378,11 @@ export const App = () => {
             }
           />
           <Route
-            path="/skills"
+            path="/roles"
             element={
               hasToken ? (
                 <Layout>
-                  <Skills />
+                  <Roles />
                 </Layout>
               ) : (
                 <Navigate to="/setup" replace />
