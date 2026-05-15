@@ -58,3 +58,102 @@ describe("hireFromAgentsMd", () => {
     expect(bob?.reportsTo).toBe(alice?.id);
   });
 });
+
+describe("hireFromAgentsMd conflict resolution", () => {
+  it("skips agent when conflictMode is 'skip' (default)", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+    const agentsRepo = createAgentsRepository(db);
+    const existing = agentsRepo.create({
+      companyId: co.id,
+      name: "Alice",
+      role: "role-engineer",
+      systemPrompt: "",
+      mode: "supervised",
+      alwaysOn: false,
+      templateId: "role-engineer",
+      actor: { kind: "user" },
+    });
+
+    const summary = hireFromAgentsMd(
+      db,
+      { company: "Acme", projects: [], agents: [{ name: "Alice", role: "engineer" }] },
+      { companyId: co.id, conflictModes: {} },
+    );
+
+    expect(summary.created.agents).toBe(0);
+    expect(summary.skipped.agents).toEqual(["Alice"]);
+    expect(agentsRepo.listByCompany(co.id).filter((a) => a.terminatedAt === null)).toHaveLength(1);
+    expect(agentsRepo.getById(existing.id)?.terminatedAt).toBeNull();
+  });
+
+  it("terminates + recreates agent when conflictMode is 'replace'", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+    const agentsRepo = createAgentsRepository(db);
+    const old = agentsRepo.create({
+      companyId: co.id,
+      name: "Alice",
+      role: "role-engineer",
+      systemPrompt: "",
+      mode: "supervised",
+      alwaysOn: false,
+      templateId: "role-engineer",
+      actor: { kind: "user" },
+    });
+
+    const summary = hireFromAgentsMd(
+      db,
+      { company: "Acme", projects: [], agents: [{ name: "Alice", role: "qa" }] },
+      { companyId: co.id, conflictModes: { Alice: "replace" } },
+    );
+
+    expect(summary.replaced.agents).toEqual(["Alice"]);
+    expect(summary.created.agents).toBe(1);
+    expect(agentsRepo.getById(old.id)?.terminatedAt).not.toBeNull();
+    const live = agentsRepo.listByCompany(co.id).filter((a) => a.terminatedAt === null);
+    expect(live).toHaveLength(1);
+    expect(live[0]?.role).toBe("role-qa");
+    expect(live[0]?.id).not.toBe(old.id);
+  });
+
+  it("warns + skips agent with unknown role", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+
+    const summary = hireFromAgentsMd(
+      db,
+      { company: "Acme", projects: [], agents: [{ name: "Zed", role: "wizard" }] },
+      { companyId: co.id, conflictModes: {} },
+    );
+
+    expect(summary.created.agents).toBe(0);
+    expect(summary.skipped.agents).toEqual(["Zed"]);
+    expect(summary.warnings.length).toBe(1);
+    expect(summary.warnings[0]).toMatch(/unknown role/);
+  });
+
+  it("skips project when path already exists", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+    createProjectsRepository(db).create({
+      companyId: co.id,
+      name: "existing",
+      path: "D:/code/backend",
+      color: "#000",
+    });
+
+    const summary = hireFromAgentsMd(
+      db,
+      {
+        company: "Acme",
+        projects: [{ name: "new-name", path: "D:/code/backend" }],
+        agents: [{ name: "A", role: "engineer" }],
+      },
+      { companyId: co.id, conflictModes: {} },
+    );
+
+    expect(summary.created.projects).toBe(0);
+    expect(summary.skipped.projects).toEqual(["new-name"]);
+  });
+});
