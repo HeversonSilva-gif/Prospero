@@ -118,11 +118,14 @@ describe("buildClaudeArgs", () => {
     expect(tools).toContain("mcp__dashboard__request_permission");
   });
 
-  it("falls back to chat-only when capabilities array is empty", () => {
+  it("falls back to chat + memory tools when capabilities array is empty", () => {
     const args = buildClaudeArgs({ ...baseAgent, capabilities: [] }, "/tmp/mcp.json");
     const idx = args.indexOf("--allowedTools");
     const tools = args[idx + 1]!.split(",");
-    expect(tools).toEqual(["mcp__dashboard__request_permission"]);
+    // chat + memory are force-added (resolveCapabilityTools); shell is not.
+    expect(tools).toContain("mcp__dashboard__request_permission");
+    expect(tools).toContain("mcp__dashboard__skill_search");
+    expect(tools).not.toContain("Bash");
   });
 });
 
