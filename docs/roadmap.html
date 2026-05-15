@@ -1646,14 +1646,16 @@
         <div class="playbooks-block">
           <div class="lp-subhead">
             <span class="lp-subhead-kicker">/00.1</span>
-            <h3>O que você consegue fazer com isso?</h3>
-            <span class="note">6 cenários reais · só com features já mergeadas</span>
+            <h3>Quem usa isso pra sair do gargalo</h3>
+            <span class="note">9 perfis · mesma instalação · sem código extra</span>
           </div>
           <p class="playbooks-intro">
-            Cada playbook abaixo descreve uma <strong>persona</strong>, o
-            <strong>setup</strong> concreto (qual role, quais skills, qual modo) e o
-            <strong>outcome esperado</strong>. Tudo aqui usa só o que já está pronto hoje — zero
-            features futuras, zero promessas. É o que o app entrega assim que você instala.
+            Pense numa empresa onde os funcionários trabalham em paralelo, não cobram salário, te
+            avisam só quando precisam de decisão, e
+            <strong>desligam sozinhos quando estouram o orçamento</strong>. É isso que liga quando
+            você abre o app. Abaixo: nove pessoas reais com nove gargalos diferentes — todas
+            resolvidas pela mesma instalação, sem código extra, sem servidor, sem assinatura nova.
+            <strong>Você vai se reconhecer em pelo menos uma.</strong>
           </p>
 
           <div class="playbooks-grid">
@@ -1661,190 +1663,308 @@
               <div class="pb-head">
                 <div class="pb-icon">🚀</div>
                 <div class="pb-title-block">
-                  <div class="pb-kicker">solopreneur · 8 horas livres</div>
-                  <div class="pb-title">Side-project no fim de semana</div>
+                  <div class="pb-kicker">você tem ideia · zero time</div>
+                  <div class="pb-title">MVP em uma semana, sozinho</div>
                 </div>
               </div>
               <p class="pb-desc">
-                Você tem uma ideia e algumas horas. Quer entregar uma <strong>v1 funcional</strong>
-                sem montar time, sem aprovar PR um a um, sem gerenciar nada.
+                Você sabe o que quer construir. Mas montar time custa muito, e gerenciar custa mais
+                ainda. <strong>Sozinho leva meses; pagando freelancer, fura o orçamento.</strong>
               </p>
               <div class="pb-setup">
-                <div class="pb-setup-label">Setup</div>
+                <div class="pb-setup-label">Como funciona</div>
                 <ul>
                   <li>
-                    <code>CEO</code> + <code>2 Engineers</code> + <code>1 QA</code> — 4 agentes no
-                    limite Max
+                    Você escreve em português o que quer entregar (<em
+                      >"app que processa nota fiscal e gera relatório"</em
+                    >)
                   </li>
                   <li>
-                    Cria 1 <strong>Goal</strong> de alto nível → CEO monta plano + delega em
-                    <strong>modo PR-review</strong>
+                    O <strong>CEO virtual</strong> monta o plano completo — quantos funcionários
+                    contratar, quanto vai custar em horas de IA, em quantos dias entrega
                   </li>
                   <li>
-                    <strong>Modo auto</strong> nos agentes · budget <code>$10/dia</code> · soft-stop
-                    ligado
+                    Você marca checkbox do que aprova, o time inteiro começa, e te chama só quando
+                    precisa decisão sua
                   </li>
                 </ul>
               </div>
-              <div class="pb-outcome">v1 funcional em ~6h vs 2 semanas sozinho</div>
+              <div class="pb-outcome">
+                MVP rodando em ~1 semana · você só revisa, não digita código
+              </div>
             </article>
 
             <article class="playbook-card reveal" data-delay="1">
               <div class="pb-head">
                 <div class="pb-icon">🐛</div>
                 <div class="pb-title-block">
-                  <div class="pb-kicker">dev sobrecarregado · bug em prod</div>
-                  <div class="pb-title">Investigação rolando enquanto você dorme</div>
+                  <div class="pb-kicker">você foi acordado às 3h da manhã</div>
+                  <div class="pb-title">O bug é investigado enquanto você dorme</div>
                 </div>
               </div>
               <p class="pb-desc">
-                Bug em produção, você sem energia pra debugar agora.
-                <strong>Cria a issue e dorme</strong> — acorda com a investigação feita e um draft
-                de fix pra revisar.
+                Bug crítico aparece, você sem energia. Mas se deixar pra amanhã, alguém liga.
+                <strong>Você queria que alguém investigasse enquanto você dorme.</strong>
               </p>
               <div class="pb-setup">
-                <div class="pb-setup-label">Setup</div>
+                <div class="pb-setup-label">Como funciona</div>
                 <ul>
                   <li>
-                    1 <code>Engineer</code> <strong>always-on</strong> · skills <code>shell</code> +
-                    <code>fs-write</code> + <code>issues</code>
+                    Você abre uma issue (<em>"/pedidos retornando erro 500"</em>) e fecha o laptop
                   </li>
                   <li>
-                    Cria issue: <em>"Bug X em /api/foo"</em> + label crítico → agente acorda no push
+                    Um <strong>engenheiro virtual sempre-ligado</strong> acorda sozinho, lê o
+                    código, roda os testes, escreve o diagnóstico
                   </li>
                   <li>
-                    <strong>Modo supervised</strong> — qualquer arquivo escrito vira approval na
-                    Inbox
+                    Manhã seguinte: você abre o app, vê o <strong>diff lado-a-lado</strong> dentro
+                    da própria issue, aprova ou pede mudança com um clique
                   </li>
                 </ul>
               </div>
-              <div class="pb-outcome">issue com diagnóstico + fix proposto ao acordar</div>
+              <div class="pb-outcome">você dorme · bug investigado · revisa de café na mão</div>
             </article>
 
             <article class="playbook-card reveal" data-delay="2">
               <div class="pb-head">
-                <div class="pb-icon">🛡️</div>
+                <div class="pb-icon">🎯</div>
                 <div class="pb-title-block">
-                  <div class="pb-kicker">consultor · cliente paranoico</div>
-                  <div class="pb-title">Auditoria de segurança recorrente</div>
+                  <div class="pb-kicker">você vende e cuida do produto · não é dev</div>
+                  <div class="pb-title">Seu CTO virtual que decide e delega</div>
                 </div>
               </div>
               <p class="pb-desc">
-                Cliente paga por security review mensal. Você quer cobrar entregando relatório
-                <strong>semanal</strong> sem ficar relendo o repositório toda segunda.
+                Sua expertise é mercado, vendas, design. Conversar com dev você até conversa, mas
+                <strong>escrever spec técnica trava você toda vez</strong> — e contratar fractional
+                CTO sai caro.
               </p>
               <div class="pb-setup">
-                <div class="pb-setup-label">Setup</div>
+                <div class="pb-setup-label">Como funciona</div>
                 <ul>
                   <li>
-                    1 <code>Security Engineer</code> always-on · skills <code>fs-read</code> +
-                    <code>web</code> + <code>issues</code>
+                    Você digita o objetivo do jeito que pediria pra um gerente humano (<em
+                      >"integrar Stripe pra cobrar mensalidade"</em
+                    >)
                   </li>
                   <li>
-                    Persona: <em>"audita repo, abre issue por achado, severidade definida"</em>
+                    O CEO virtual decompõe em tarefas, mostra estimativa de
+                    <strong>custo + duração</strong>, e apresenta tudo num formato tipo tela de
+                    revisão
                   </li>
                   <li>
-                    Goal recorrente com prazo semanal → CEO orquestra · cada audit vira issue list
+                    Você desmarca o que não quer (estimativa atualiza na hora), aprova o resto, vai
+                    dormir
                   </li>
                 </ul>
               </div>
-              <div class="pb-outcome">relatório de issues toda segunda · zero tempo seu</div>
+              <div class="pb-outcome">plano executável com preço fechado · você só decide</div>
             </article>
 
             <article class="playbook-card reveal" data-delay="3">
               <div class="pb-head">
-                <div class="pb-icon">🧠</div>
+                <div class="pb-icon">🐝</div>
                 <div class="pb-title-block">
-                  <div class="pb-kicker">fundador não-técnico · feature ambiciosa</div>
-                  <div class="pb-title">CTO pessoal que decide e delega</div>
+                  <div class="pb-kicker">3 projetos · nenhum full-time</div>
+                  <div class="pb-title">Indie hacker que não larga nenhum SaaS</div>
                 </div>
               </div>
               <p class="pb-desc">
-                Você sabe o que quer (<em>"integrar Stripe com webhook"</em>), mas não como dividir
-                em tasks. <strong>O CEO recebe o objetivo</strong>, monta o plano, escolhe specs,
-                distribui pros agentes.
+                Cada um dos seus produtos pode render R$ 500/mês, mas você dividido em três não
+                cuida de nenhum direito. <strong>Larga um, larga os três.</strong>
               </p>
               <div class="pb-setup">
-                <div class="pb-setup-label">Setup</div>
+                <div class="pb-setup-label">Como funciona</div>
                 <ul>
                   <li>
-                    <code>CEO</code> (model <code>Opus</code>) · skills <code>delegation</code> +
-                    <code>issues</code> + <code>chat</code>
+                    Cria <strong>3 empresas separadas</strong> no app — uma por produto — sem
+                    misturar agentes nem orçamentos
                   </li>
                   <li>
-                    Você escreve <strong>Goal</strong> high-level · CEO entrega plano com
-                    <strong>estimativa de tokens + custo + duração</strong>
+                    Cada empresa ganha seu time minúsculo (1 engenheiro, 1 QA) que toca as pequenas
+                    demandas
                   </li>
                   <li>
-                    Revisão no modo <strong>PR-review</strong> — checkbox por agente/issue,
-                    recalcula estimativa ao desmarcar
+                    Troca entre eles no dropdown da sidebar, como quem troca de aba · custo separado
+                    por empresa pra cobrar/declarar
                   </li>
                 </ul>
               </div>
-              <div class="pb-outcome">plano executável + custo previsto · você só aprova</div>
+              <div class="pb-outcome">3 produtos vivos · nenhum abandonado · custo separado</div>
             </article>
 
             <article class="playbook-card reveal" data-delay="4">
               <div class="pb-head">
-                <div class="pb-icon">🧪</div>
+                <div class="pb-icon">🛡️</div>
                 <div class="pb-title-block">
-                  <div class="pb-kicker">time pequeno · sem QA dedicado</div>
-                  <div class="pb-title">QA automático em todo PR de agente</div>
+                  <div class="pb-kicker">cliente paga retainer · você entrega</div>
+                  <div class="pb-title">Auditoria semanal sem reabrir o repo</div>
                 </div>
               </div>
               <p class="pb-desc">
-                Seus agentes (ou você mesmo) entregam código rápido demais pra dar tempo de QA
-                manual. Quer alguém que
-                <strong>pegue cada issue em <code>status=review</code></strong>
-                e teste antes de aprovar.
+                Cliente paga R$ X/mês por security review do código dele. Toda sexta você relê o
+                repositório inteiro de novo, e
+                <strong>o cansaço bate antes do report ficar pronto</strong>.
               </p>
               <div class="pb-setup">
-                <div class="pb-setup-label">Setup</div>
+                <div class="pb-setup-label">Como funciona</div>
                 <ul>
                   <li>
-                    1 <code>QA</code> always-on · skills <code>shell</code> + <code>fs-read</code> +
-                    <code>issues</code>
+                    Contrata um <strong>especialista em segurança</strong> sempre-ligado dentro da
+                    empresa daquele cliente
                   </li>
                   <li>
-                    Trigger: issue muda pra <code>status=review</code> + tem artifact (PR-F.2.3
-                    fecha o loop visual com diff side-by-side embutido no modal)
+                    Define a persona em uma frase (<em
+                      >"audita o repo toda segunda, abre uma issue por achado, marca a
+                      severidade"</em
+                    >)
                   </li>
                   <li>
-                    QA roda <code>npm test</code>, exercita feature, abre sub-issue se quebrar algo
+                    O agente acorda sozinho na hora agendada, varre o código, deixa o relatório
+                    pronto como lista de tickets na sua caixa
                   </li>
                 </ul>
               </div>
-              <div class="pb-outcome">nenhum PR sem QA review · zero envolvimento manual</div>
+              <div class="pb-outcome">relatório pronto toda segunda · você só formata e cobra</div>
             </article>
 
             <article class="playbook-card reveal" data-delay="5">
               <div class="pb-head">
                 <div class="pb-icon">📋</div>
                 <div class="pb-title-block">
-                  <div class="pb-kicker">PM solo · 200 issues no backlog</div>
-                  <div class="pb-title">Triage + priorização semanal autônoma</div>
+                  <div class="pb-kicker">você é um · backlog é 200</div>
+                  <div class="pb-title">Priorização semanal sem você abrir o Linear</div>
                 </div>
               </div>
               <p class="pb-desc">
-                Backlog cresceu pra 200+ tickets. Sexta à tarde você quer um
-                <strong>snapshot priorizado</strong> pra começar segunda já sabendo o que atacar.
+                Sexta à tarde você deveria priorizar a próxima semana. Mas pra priorizar precisa
+                reler 200 tickets, <strong>e isso é dia inteiro de leitura</strong> — então segunda
+                você começa às cegas, de novo.
               </p>
               <div class="pb-setup">
-                <div class="pb-setup-label">Setup</div>
+                <div class="pb-setup-label">Como funciona</div>
                 <ul>
                   <li>
-                    1 <code>PM</code> · schedule wake-up sexta 16h · skills <code>issues</code> +
-                    <code>delegation</code>
+                    Contrata um <strong>PM virtual</strong> com horário agendado pra acordar toda
+                    sexta às 16h
                   </li>
                   <li>
-                    Persona: <em>"lê backlog inteiro, tag prioridade, escreve top 5 da semana"</em>
+                    Define a persona (<em
+                      >"lê backlog inteiro, marca prioridade, escreve os 5 itens mais críticos da
+                      semana"</em
+                    >)
                   </li>
                   <li>
-                    <strong>Modo supervised</strong> · entrega vira issue de relatório no inbox
+                    Sexta às 17h você abre o app: a caixa de entrada tem o snapshot pronto com
+                    justificativa por item
                   </li>
                 </ul>
               </div>
-              <div class="pb-outcome">snapshot semanal sem você abrir Linear/Jira</div>
+              <div class="pb-outcome">você chega segunda sabendo exatamente o que atacar</div>
+            </article>
+
+            <article class="playbook-card reveal" data-delay="6">
+              <div class="pb-head">
+                <div class="pb-icon">🎨</div>
+                <div class="pb-title-block">
+                  <div class="pb-kicker">agência · 5 clientes em paralelo</div>
+                  <div class="pb-title">Time padrão clonado por cliente em 30 segundos</div>
+                </div>
+              </div>
+              <p class="pb-desc">
+                Cada cliente tem stack diferente, prazo diferente, processo diferente. Onboarding de
+                gente nova leva semanas —
+                <strong>e ainda assim algo escapa entre os clientes</strong>.
+              </p>
+              <div class="pb-setup">
+                <div class="pb-setup-label">Como funciona</div>
+                <ul>
+                  <li>
+                    Você desenha <strong>uma única vez</strong> o time padrão da agência (CEO + 2
+                    engenheiros + QA + designer) num arquivo de configuração
+                  </li>
+                  <li>
+                    Pra cada cliente novo, importa esse arquivo: instantaneamente o time inteiro
+                    nasce na empresa daquele cliente, com personas idênticas
+                  </li>
+                  <li>
+                    Projeto fechou? Exporta a empresa em JSON pra arquivar o histórico e replica no
+                    próximo cliente
+                  </li>
+                </ul>
+              </div>
+              <div class="pb-outcome">
+                cada novo cliente começa com time pronto · zero onboarding
+              </div>
+            </article>
+
+            <article class="playbook-card reveal" data-delay="7">
+              <div class="pb-head">
+                <div class="pb-icon">📊</div>
+                <div class="pb-title-block">
+                  <div class="pb-kicker">cientista de dados · pesquisador</div>
+                  <div class="pb-title">Notebook bagunçado vira pipeline profissional</div>
+                </div>
+              </div>
+              <p class="pb-desc">
+                Você tem um notebook Jupyter que roda na sua máquina e ninguém entende além de você.
+                Pra <strong>virar pipeline com teste, alerta, gráfico no email</strong> você
+                travaria duas semanas — e prefere ficar fazendo análise.
+              </p>
+              <div class="pb-setup">
+                <div class="pb-setup-label">Como funciona</div>
+                <ul>
+                  <li>
+                    Você fala em português o que quer (<em
+                      >"transforma esse notebook em script que roda toda manhã e manda gráfico pro
+                      meu email"</em
+                    >)
+                  </li>
+                  <li>
+                    Um engenheiro virtual lê seu código, refatora em algo profissional, adiciona
+                    teste, configura o agendamento
+                  </li>
+                  <li>
+                    Toda mudança no seu código vira <strong>pedido de aprovação</strong> na sua
+                    caixa — você aprova só o que entende, recusa o resto sem culpa
+                  </li>
+                </ul>
+              </div>
+              <div class="pb-outcome">
+                análise virou pipeline · você continua focando em ciência
+              </div>
+            </article>
+
+            <article class="playbook-card reveal" data-delay="8">
+              <div class="pb-head">
+                <div class="pb-icon">🎓</div>
+                <div class="pb-title-block">
+                  <div class="pb-kicker">você está aprendendo · sem internship</div>
+                  <div class="pb-title">Veja um time real trabalhando — em casa</div>
+                </div>
+              </div>
+              <p class="pb-desc">
+                Tutoriais te ensinaram sintaxe. Mas como um time de verdade discute prioridade,
+                divide tarefa, revisa código alheio?
+                <strong>Isso só dentro de uma empresa — ou aqui.</strong>
+              </p>
+              <div class="pb-setup">
+                <div class="pb-setup-label">Como funciona</div>
+                <ul>
+                  <li>
+                    Cria uma "empresa" hobby — um projeto seu de estudo — com 2-3 agentes em funções
+                    diferentes (CEO + Engenheiro + QA)
+                  </li>
+                  <li>
+                    Dá um objetivo simples (<em>"adicionar login com Google"</em>) e
+                    <strong>assiste tudo ao vivo</strong> no feed de atividade
+                  </li>
+                  <li>
+                    Você vê o CEO delegar, o engenheiro perguntar, o QA revisar — exatamente como se
+                    passa numa empresa real
+                  </li>
+                </ul>
+              </div>
+              <div class="pb-outcome">workflow profissional aprendido em casa · sem internship</div>
             </article>
           </div>
         </div>
