@@ -42,12 +42,14 @@ export const ensureAdapter = async (
   const existing = adapters.get(opts.agent.id);
   if (existing !== undefined && existing.isAlive()) return existing;
 
-  // OAuth Max ToS caps parallel sessions at 4. API key has no such cap
-  // (Anthropic rate limit handles it). The agent.adapterName carries the
-  // mode selected at creation time.
+  // OAuth Max ToS caps parallel sessions at 4 — local and remote OAuth agents
+  // both count (m10 design §3.2). API key has no such cap (Anthropic rate limit
+  // handles it). The agent.adapterName carries the mode selected at creation.
+  const adapterName = opts.agent.adapterName as string | undefined;
   const isOauth =
-    (opts.agent.adapterName as string | undefined) === "claude-oauth-local" ||
-    (opts.agent.adapterName as string | undefined) === undefined;
+    adapterName === "claude-oauth-local" ||
+    adapterName === "claude-oauth-remote-docker" ||
+    adapterName === undefined;
   if (isOauth && activeAdapterCount() >= MAX_CONCURRENT_AGENTS) {
     throw new Error(
       `Max concurrent OAuth agents (${String(MAX_CONCURRENT_AGENTS)}) reached. ` +

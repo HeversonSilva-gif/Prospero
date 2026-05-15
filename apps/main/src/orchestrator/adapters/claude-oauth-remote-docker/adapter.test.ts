@@ -5,6 +5,7 @@ import { RemoteConnectionManager } from "./connection-manager.js";
 import { createMemoryTransportPair } from "./memory-transport.js";
 import { FakeRunner } from "./fake-runner.js";
 import { FakeMcpServer, makeSpawnContext } from "./test-fixtures.js";
+import { createAdapter } from "../index.js";
 
 const tick = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
@@ -157,5 +158,13 @@ describe("ClaudeRemoteDockerAdapter", () => {
     runner.emitMcpOpen("agent_1");
     runner.emitExit("agent_1", 0);
     expect(fakeMcp.killed).toBe(true);
+  });
+});
+
+describe("createAdapter — claude-oauth-remote-docker", () => {
+  it("resolves the remote docker adapter from the registry", () => {
+    const adapter = createAdapter("claude-oauth-remote-docker", makeSpawnContext());
+    expect(adapter.name).toBe("claude-oauth-remote-docker");
+    expect(adapter.agentId).toBe("agent_1");
   });
 });
