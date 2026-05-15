@@ -2296,10 +2296,6 @@
           <div class="heading">🚧 O que ainda NÃO funciona (próximas releases)</div>
           <ul>
             <li>
-              ☁️ <strong>Rodar agentes numa VPS remota (Docker)</strong> — escolha per-agent: local
-              (CEO, latência baixa) ou remoto (engenheiros, isolamento) → M10
-            </li>
-            <li>
               🧠 <strong>Empresa que aprende com a experiência (não só o funcionário)</strong> —
               após cada issue concluído, o sistema <strong>extrai automaticamente</strong> um
               "skill" (manual de como fazer aquilo) a partir do trabalho real, você revisa e aceita.
@@ -2334,8 +2330,8 @@
           <span class="index">/01</span>
           <h2>v1 progress</h2>
           <span class="note"
-            >M1—M10 · M8.6 fechado em 2026-05-14 (live execution &amp; kanban collab) · próximo M9
-            Dashboard + multi-empresa + 2º adapter</span
+            >M1—M10 · v1 fechado em 2026-05-15 — M10 VPS Docker adapter (5 PRs A–E) · próximo M11
+            (V2 anchor)</span
           >
         </div>
 
@@ -2397,20 +2393,20 @@
               <div class="dot"></div>
               <div class="label">M9</div>
             </div>
-            <div class="progress-step" data-status="planned">
+            <div class="progress-step" data-status="done">
               <div class="dot"></div>
               <div class="label">M10</div>
             </div>
           </div>
           <div class="progress-meta">
             <div>
-              <strong>Estágio:</strong> M9 fechado em 2026-05-14 (6/6 PRs). PR-F.2.3 entrega o
-              IssueReviewBlock embutido no IssueDetailModal: diff side-by-side via
-              react-diff-viewer-continued + comment box + 3 botões (approve/request changes/reject)
-              que disparam <code>issues:update</code> + <code>issues:add-comment</code> existentes —
-              sem migração nova. <strong>831 testes passing</strong> (+12 helpers puros).
-              <strong>14/14 milestones</strong> do v1 quando M10 fechar. Próximo:
-              <strong>M10 VPS adapter — fecha v1</strong>.
+              <strong>Estágio:</strong> v1 fechado em 2026-05-15. M10 entregou o adapter
+              <code>claude-oauth-remote-docker</code> em 5 PRs (A–E): wire protocol, app
+              <code>agent-runner</code> + imagem Docker, host adapter + MCP relay tunelado, Settings
+              + seletor de localização per-agente, docs. Arquitetura SSH stdio, host-authoritative —
+              o SQLite nunca sai do host. <strong>973 testes passing</strong> (+2 todo).
+              <strong>14/14 milestones</strong> do v1 ✅. Próximo:
+              <strong>M11 — Agent Memory (âncora V2)</strong>.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -3961,79 +3957,104 @@
           </article>
 
           <!-- ──── M10 ──── -->
-          <article class="milestone" data-status="planned">
+          <article class="milestone" data-status="done">
             <div class="ms-rail">
               <div class="num">M10</div>
-              <div class="status-row"><span class="status-dot"></span>planned</div>
-              <div class="meta">novo · fecha v1</div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">fechou v1 · 2026-05-15</div>
             </div>
             <div class="ms-body">
               <h3>VPS Docker Remote Adapter</h3>
               <p class="tagline">
-                Implementa o terceiro adapter <code>claude-oauth-remote-docker</code> (e variante
-                API key) usando foundation do M7.5. Per-agent toggle:
-                <em>Run on: local | VPS-N</em>. <strong>Fecha v1 com distribuição hybrid.</strong>
+                Terceiro adapter <code>claude-oauth-remote-docker</code> sobre a foundation do M7.5.
+                O processo <code>claude</code> roda num container Docker — local ou numa VPS via
+                SSH. Per-agent: <em>localização local | remoto</em>.
+                <strong>Fechou v1 com distribuição hybrid.</strong>
               </p>
               <div class="design-note">
-                <span class="label">Por que existe</span>
-                Isolamento real de processo (rm -rf no container não afeta seu host), agente
-                sempre-ligado mesmo com PC desligado, acesso 24/7.
-                <strong>Mantém Electron como UI principal</strong> (não vira web app —
-                out-of-scope). Defense-in-depth: blocklist do <code>gate.ts</code> continua ativa
-                mesmo após isolamento.
+                <span class="label">Arquitetura</span>
+                SSH stdio, não WSS+mTLS (SSH já entrega auth + cripto + pipe; sem porta aberta, sem
+                ciclo de cert X.509). Host-authoritative: só o <code>claude</code> roda remoto —
+                SQLite, MCP server, permission handshake e o watcher chokidar ficam no host. As
+                ferramentas MCP do agente remoto chegam ao host por um túnel sobre o wire protocol.
+                Defense-in-depth: o blocklist do <code>gate.ts</code> roda host-side mesmo com
+                isolamento Docker.
               </div>
               <div class="feature-group">
-                <div class="group-name">Backend</div>
+                <div class="group-name">PR-A — Wire protocol</div>
+                <ul class="feature-list">
+                  <li><code>packages/shared/src/wire/</code> — tipos, codec, framing</li>
+                  <li>Primitivas <code>WireClient</code> / <code>WireServer</code> / transporte</li>
+                  <li>Doc <code>docs/m10-adapter-wire-protocol.md</code></li>
+                </ul>
+              </div>
+              <div class="feature-group">
+                <div class="group-name">PR-B — Agent runner + imagem</div>
                 <ul class="feature-list">
                   <li>
-                    Novo adapter <code>remote-docker.ts</code> implementando
-                    <code>AgentAdapter</code>
+                    App novo <code>apps/agent-runner/</code> — wire server, spawn de
+                    <code>claude</code>
                   </li>
-                  <li>HTTPS+WSS protocol pro agent-runner remoto</li>
-                  <li>Reconnect automático com backoff exponencial</li>
-                  <li>Settings UI: gerenciador de VPS (add, test connection, remove)</li>
-                  <li>Per-agent dropdown "Run on: local | vps-N"</li>
-                  <li>Migration <strong>0008</strong> — <code>agents.adapter_name</code></li>
-                  <li>Audit log centralizado: <code>vps_audit_events</code></li>
+                  <li>Sandbox container-side + <code>mcp-bridge</code> (stdio ↔ wire)</li>
+                  <li>
+                    Dockerfile multi-stage real (<code>node:22-slim</code>, não-root,
+                    <code>tini</code> PID 1)
+                  </li>
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">VPS side (infra/)</div>
+                <div class="group-name">PR-C — Host adapter + MCP relay</div>
                 <ul class="feature-list">
-                  <li>Dockerfile minimal (node:22-alpine + claude CLI + MCP bridge)</li>
-                  <li>compose.yml: N réplicas + reverse proxy (Caddy auto-TLS)</li>
-                  <li>Provision scripts (Hetzner, DigitalOcean — provider-neutral)</li>
-                  <li>MCP bridge server: WSS ↔ claude CLI local no container</li>
-                  <li>Network: HTTPS bind + Anthropic API outbound only</li>
+                  <li>
+                    <code>ClaudeRemoteDockerAdapter</code> + connection manager (1 conexão por host)
+                  </li>
+                  <li>
+                    Transport launcher: <code>docker run</code> local /
+                    <code>ssh … -- docker run</code>
+                  </li>
+                  <li>
+                    <code>McpRelay</code> per-agente — spawna o <code>mcp/server.js</code> real no
+                    host
+                  </li>
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">Security</div>
+                <div class="group-name">PR-D — Settings + UX</div>
                 <ul class="feature-list">
-                  <li>TLS obrigatório + cert fingerprint pinning</li>
-                  <li>JWT signed pelo main per turn (TTL curto, replay-protected)</li>
-                  <li>Allowlist de IPs no agent-runner</li>
-                  <li>safeStorage guarda chave SSH + cert fingerprint</li>
-                  <li>Rate limit per VPS</li>
-                  <li><code>docs/security/vps-threat-model.md</code></li>
+                  <li>
+                    <code>AppSettings.remoteExecution</code> + seção "Execução remota" no Settings
+                  </li>
+                  <li>Seletor de localização per-agente (contratação + Agent Studio)</li>
+                  <li>
+                    IPCs <code>agents:set-adapter</code> + <code>remote:test-connection</code>
+                  </li>
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">UX &amp; Docs</div>
+                <div class="group-name">PR-E — Docs</div>
                 <ul class="feature-list">
-                  <li>Dashboard widget "VPS health" (latência, agentes, CPU/RAM)</li>
-                  <li>Per-agent indicator (🌐 remote vs 🏠 local)</li>
-                  <li>Onboarding "Connect to VPS" wizard (5 passos)</li>
-                  <li>Connection state indicator no header</li>
-                  <li><code>docs/vps-deployment.md</code> — guia completo</li>
+                  <li><code>SECURITY.md</code> — threat model do adapter remoto refinado</li>
+                  <li>
+                    <code>docs/m10-vps-setup-runbook.md</code> — setup VPS + checklist de smoke
+                  </li>
+                  <li>Roadmap em 3 lugares · v1 fechado</li>
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">Tests</div>
+                <div class="group-name">Segurança</div>
                 <ul class="feature-list">
-                  <li>E2E cycle local + remote misturados</li>
-                  <li>Connection drop + auto-reconnect</li>
-                  <li>JWT replay falha, cert MITM falha, outbound forbidden funciona</li>
+                  <li>
+                    OAuth token só no <code>handshake</code>, criptografado pelo SSH; vira env
+                    <code>CLAUDE_CODE_OAUTH_TOKEN</code>, nunca em disco
+                  </li>
+                  <li>
+                    SSH host key pinada (<code>StrictHostKeyChecking=yes</code> +
+                    <code>BatchMode=yes</code>)
+                  </li>
+                  <li>
+                    Container não-root, <code>--strict-mcp-config</code>, sem mounts de host, work
+                    dir efêmero
+                  </li>
                 </ul>
               </div>
             </div>
