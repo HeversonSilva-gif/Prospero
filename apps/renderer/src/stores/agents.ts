@@ -35,6 +35,7 @@ type State = {
     mode?: "supervised" | "auto";
     reports_to?: string;
     role_template_id?: string;
+    location?: "local" | "remote";
   }) => Promise<Agent>;
 };
 

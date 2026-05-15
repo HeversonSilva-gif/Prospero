@@ -21,6 +21,7 @@ export const AgentNew: FC = () => {
   const [roleTemplateId, setRoleTemplateId] = useState<string>(initialTemplate);
   const [reportsTo, setReportsTo] = useState("");
   const [mode, setMode] = useState<"supervised" | "auto">(settings.defaultAgentMode);
+  const [location, setLocation] = useState<"local" | "remote">("local");
   const [persona, setPersona] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +60,7 @@ export const AgentNew: FC = () => {
         role: selected?.name ?? "Agent",
         system_prompt: persona,
         mode,
+        location,
         ...(reportsTo !== "" ? { reports_to: reportsTo } : {}),
         ...(roleTemplateId !== "" ? { role_template_id: roleTemplateId } : {}),
       });
@@ -137,6 +139,24 @@ export const AgentNew: FC = () => {
             </label>
           ))}
         </div>
+      </div>
+
+      <div className="mb-3">
+        <label className="block text-xs text-ink-soft mb-1">{t("agent.location.label")}</label>
+        <div className="flex gap-3 text-sm">
+          {(["local", "remote"] as const).map((loc) => (
+            <label key={loc} className="flex items-center gap-1">
+              <input
+                type="radio"
+                name="location-new"
+                checked={location === loc}
+                onChange={() => setLocation(loc)}
+              />
+              {t(`agent.location.${loc}`)}
+            </label>
+          ))}
+        </div>
+        <p className="text-[10px] text-ink-soft mt-1">{t("agent.location.hint")}</p>
       </div>
 
       <div className="mb-3">
