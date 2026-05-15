@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeWireMessage, encodeWireMessage } from "../src/wire/codec.js";
+import { decodeWireMessage, encodeWireMessage, LineFramer } from "../src/wire/codec.js";
 import type { WireMessage } from "../src/types/wire-protocol.js";
 
 describe("wire codec", () => {
@@ -44,5 +44,29 @@ describe("wire codec", () => {
     expect(() => decodeWireMessage(JSON.stringify({ type: "bogus" }))).toThrow(
       /unknown message type/,
     );
+  });
+});
+
+describe("LineFramer", () => {
+  it("returns each complete line from one chunk", () => {
+    const framer = new LineFramer();
+    expect(framer.push("a\nb\n")).toEqual(["a", "b"]);
+  });
+
+  it("returns nothing for a chunk with no newline", () => {
+    const framer = new LineFramer();
+    expect(framer.push("partial")).toEqual([]);
+  });
+
+  it("buffers a partial line across chunk boundaries", () => {
+    const framer = new LineFramer();
+    expect(framer.push("hel")).toEqual([]);
+    expect(framer.push("lo\nwor")).toEqual(["hello"]);
+    expect(framer.push("ld\n")).toEqual(["world"]);
+  });
+
+  it("handles many lines in one chunk", () => {
+    const framer = new LineFramer();
+    expect(framer.push("1\n2\n3\n")).toEqual(["1", "2", "3"]);
   });
 });

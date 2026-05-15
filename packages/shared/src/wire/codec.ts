@@ -39,3 +39,24 @@ export const decodeWireMessage = (line: string): WireMessage => {
       throw new Error(`wire: unknown message type: ${String(m["type"])}`);
   }
 };
+
+/**
+ * Reassembles newline-delimited lines from arbitrary stream chunks. A chunk may
+ * carry zero, one, or many lines, and a line may span chunk boundaries.
+ */
+export class LineFramer {
+  private buffer = "";
+
+  /** Feed a chunk; return the lines it completed (newline stripped). */
+  push(chunk: string): string[] {
+    this.buffer += chunk;
+    const lines: string[] = [];
+    let idx = this.buffer.indexOf("\n");
+    while (idx !== -1) {
+      lines.push(this.buffer.slice(0, idx));
+      this.buffer = this.buffer.slice(idx + 1);
+      idx = this.buffer.indexOf("\n");
+    }
+    return lines;
+  }
+}
