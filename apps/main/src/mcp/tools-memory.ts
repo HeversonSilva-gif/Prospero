@@ -2,6 +2,7 @@ import { z } from "zod";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { createSkillsRepository } from "../memory/skills-repository.js";
+import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { getAgentMemoryDir, skillBodyPath } from "../memory/memory-dir.js";
 import { sanitizeMemoryBody } from "../memory/sanitizer.js";
 import { createRateLimiter } from "./rate-limiter.js";
@@ -19,6 +20,7 @@ type Tool = {
 // cannot observe turn boundaries).
 const RATE_WINDOW_MS = 120_000;
 const skillWriteLimiter = createRateLimiter(5, RATE_WINDOW_MS);
+const memoryWriteLimiter = createRateLimiter(3, RATE_WINDOW_MS);
 
 const SKILL_BODY_MAX = 16_384;
 
@@ -138,4 +140,113 @@ const skillUpdate: Tool = {
   },
 };
 
-export const memoryToolDefinitions: Tool[] = [skillSearch, skillRead, skillCreate, skillUpdate];
+const MEMORY_KIND = z.enum(["identity", "rule", "preference", "retrospective"]);
+const MEMORY_SCOPE = z.enum(["agent", "company"]);
+
+const memoryRead: Tool = {
+  name: "memory_read",
+  description:
+    "List your declarative memory entries. Optionally filter by scope ('agent' = your own, 'company' = company-wide) and kind.",
+  inputSchema: z.object({
+    scope: MEMORY_SCOPE.optional(),
+    kind: MEMORY_KIND.optional(),
+  }),
+  // eslint-disable-next-line @typescript-eslint/require-await
+  run: async (input, ctx) => {
+    const { scope, kind } = memoryRead.inputSchema.parse(input) as {
+      scope?: "agent" | "company";
+      kind?: string;
+    };
+    const repo = createMemoriesRepository(ctx.db);
+    const rows =
+      scope === "company" ? repo.listCompanyWide(ctx.companyId) : repo.listByAgent(ctx.agentId);
+    const memories = rows
+      .filter((m) => kind === undefined || m.kind === kind)
+      .map((m) => ({ id: m.id, kind: m.kind, body: m.body, importance: m.importance }));
+    return JSON.stringify({ memories });
+  },
+};
+
+const memoryAdd: Tool = {
+  name: "memory_add",
+  description:
+    "Add a short declarative memory entry (identity / rule / preference / retrospective). Prefer skill_create for procedural know-how — memory is for brief durable facts only.",
+  inputSchema: z.object({
+    kind: MEMORY_KIND,
+    body: z.string().min(1).max(2000),
+    importance: z.number().min(0).max(1).optional(),
+  }),
+  // eslint-disable-next-line @typescript-eslint/require-await
+  run: async (input, ctx) => {
+    const { kind, body, importance } = memoryAdd.inputSchema.parse(input) as {
+      kind: "identity" | "rule" | "preference" | "retrospective";
+      body: string;
+      importance?: number;
+    };
+    assertSane(body);
+    if (!memoryWriteLimiter.tryConsume(ctx.agentId)) {
+      throw new Error("memory write rate limit exceeded — try again shortly");
+    }
+    const memory = createMemoriesRepository(ctx.db).create({
+      companyId: ctx.companyId,
+      agentId: ctx.agentId,
+      kind,
+      body,
+      ...(importance !== undefined ? { importance } : {}),
+    });
+    return JSON.stringify({ id: memory.id });
+  },
+};
+
+const memoryRemove: Tool = {
+  name: "memory_remove",
+  description: "Soft-delete one of your memory entries by id. Pinned entries cannot be removed.",
+  inputSchema: z.object({ id: z.string().min(1) }),
+  // eslint-disable-next-line @typescript-eslint/require-await
+  run: async (input, ctx) => {
+    const { id } = memoryRemove.inputSchema.parse(input) as { id: string };
+    const repo = createMemoriesRepository(ctx.db);
+    const memory = repo.getById(id);
+    if (memory === null || memory.agentId !== ctx.agentId) {
+      throw new Error(`memory not found: ${id}`);
+    }
+    if (memory.pinned) throw new Error("memory is pinned and read-only");
+    repo.softDelete(id);
+    return JSON.stringify({ removed: id });
+  },
+};
+
+const memorySearch: Tool = {
+  name: "memory_search",
+  description:
+    "Full-text search your memory entries by keyword. Returns ranked matches scoped to you.",
+  inputSchema: z.object({
+    query: z.string().min(1).max(200),
+    limit: z.number().int().min(1).max(50).optional(),
+  }),
+  // eslint-disable-next-line @typescript-eslint/require-await
+  run: async (input, ctx) => {
+    const { query, limit } = memorySearch.inputSchema.parse(input) as {
+      query: string;
+      limit?: number;
+    };
+    const rows = createMemoriesRepository(ctx.db).search(query, {
+      agentId: ctx.agentId,
+      ...(limit !== undefined ? { limit } : {}),
+    });
+    return JSON.stringify({
+      memories: rows.map((m) => ({ id: m.id, kind: m.kind, body: m.body })),
+    });
+  },
+};
+
+export const memoryToolDefinitions: Tool[] = [
+  skillSearch,
+  skillRead,
+  skillCreate,
+  skillUpdate,
+  memoryRead,
+  memoryAdd,
+  memoryRemove,
+  memorySearch,
+];
