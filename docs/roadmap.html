@@ -2304,7 +2304,9 @@
               escreve retrospectiva ao completar um Goal. Inclui busca em conversas antigas.
               Inspirado mas com 3 inflexões deliberadas sobre o
               <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>
-              (NousResearch). → <strong>M11 — âncora da V2</strong> (primeira coisa depois do v1)
+              (NousResearch). → <strong>M11 — em andamento</strong> (âncora da V2; criação e leitura
+              manual de skills + a aba "Aprendizado" do agente já funcionam — a derivação automática
+              de skills vem nos próximos PRs)
             </li>
             <li>
               ✦ <strong>V2 — "1-person business"</strong> — depois que o v1 fechar, o produto muda
@@ -2330,8 +2332,8 @@
           <span class="index">/01</span>
           <h2>v1 progress</h2>
           <span class="note"
-            >M1—M10 · v1 fechado em 2026-05-15 — M10 VPS Docker adapter (5 PRs A–E) · próximo M11
-            (V2 anchor)</span
+            >M1—M10 · v1 fechado em 2026-05-15 · V2 em andamento — M11 Agent Memory (PRs A-C
+            mergeados)</span
           >
         </div>
 
@@ -2404,9 +2406,10 @@
               <code>claude-oauth-remote-docker</code> em 5 PRs (A–E): wire protocol, app
               <code>agent-runner</code> + imagem Docker, host adapter + MCP relay tunelado, Settings
               + seletor de localização per-agente, docs. Arquitetura SSH stdio, host-authoritative —
-              o SQLite nunca sai do host. <strong>973 testes passing</strong> (+2 todo).
-              <strong>14/14 milestones</strong> do v1 ✅. Próximo:
-              <strong>M11 — Agent Memory (âncora V2)</strong>.
+              o SQLite nunca sai do host. <strong>1054 testes passing</strong> (+2 todo).
+              <strong>14/14 milestones</strong> do v1 ✅.
+              <strong>V2 em andamento — M11 Agent Memory</strong>: PRs A/B/C mergeados, D/E/F
+              pendentes.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -2431,78 +2434,80 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M9 fechado (6/6 PRs)</div>
+            <div class="title">M11 em andamento (PRs A-C ✅)</div>
             <ul class="bullets">
               <li>
-                <span><strong>13 / 14</strong> milestones do v1 · M9 ✅ todos os 6 PRs</span>
+                <span><strong>14 / 14</strong> milestones do v1 · v1 fechado 2026-05-15</span>
               </li>
               <li>
-                <span><strong>831</strong> testes passing · 0 lint/typecheck errors</span>
+                <span><strong>1054</strong> testes passing + 2 todo · 0 lint/typecheck errors</span>
               </li>
               <li>
                 <span
-                  ><strong>Issue Review embutido</strong> agora ✅ —
-                  <code>react-diff-viewer-continued</code> side-by-side dentro do IssueDetailModal +
-                  comment opcional/obrigatório + Approve/Request changes/Reject. Sem migração nova:
-                  reusa <code>issues:update</code> + <code>issues:add-comment</code> com helpers
-                  puros testados (statusForDecision, validateDecision, pickDiffArtifact)</span
+                  ><strong>M11 PR-A/B/C ✅</strong> — capabilities rename, migration
+                  <code>0018</code> + repositórios + sanitizer, 9 MCP tools de memory/skills +
+                  injeção no system prompt, e a aba "Aprendizado" (Skills/Memória/Histórico) + badge
+                  🎓 no header do agente</span
                 >
               </li>
               <li>
-                <span>Master pós-M9 PR-F.2.3 · ~5 commits novos · ~270 LoC TS/TSX</span>
+                <span
+                  >O agente já cria, lê e busca skills e memória manualmente — tudo aparece no
+                  system prompt da próxima sessão</span
+                >
               </li>
               <li>
-                <span>Único PR restante pro v1: M10 (VPS Docker adapter)</span>
+                <span
+                  >Restante do M11: PR-D auto-derivação · PR-E org learning · PR-F
+                  decay/trust/docs</span
+                >
               </li>
             </ul>
-            <div class="eta">v1 quase fechado · só M10 (VPS adapter) restante</div>
+            <div class="eta">M11 ~10-14d · 4 de 6 PRs entregues</div>
           </div>
 
           <div class="card" data-kind="next">
             <div class="kicker">próximo</div>
-            <div class="title">M9 Dashboard + Multi-empresa</div>
+            <div class="title">M11 PR-D — auto-derivação</div>
             <ul class="bullets">
               <li>
                 <span
-                  >Dashboard widgets dinâmicos (Active Agents · Issues · Inbox · Custos · Recent
-                  Activity) consumindo Activity Stream (M7.7)</span
+                  >Hook no activity recorder em 4 triggers: <code>issue.done</code> /
+                  <code>agent.recovered</code> / <code>goal.achieved</code> /
+                  <code>approval.rejected</code></span
                 >
               </li>
               <li>
                 <span
-                  >Multi-empresa: dropdown na sidebar + criar/deletar · active company
-                  persistido</span
+                  >Novo evento <code>agent.recovered</code> emitido pelo orchestrator quando um turn
+                  conclui após erro</span
                 >
               </li>
               <li>
                 <span
-                  ><code>/agents</code> lista (galeria de role_templates) + right panel rico</span
+                  >Derivation worker: <code>claude -p</code> headless (Sonnet), fila throttled, cap
+                  3/dia/agente</span
                 >
               </li>
               <li>
                 <span
-                  >Settings: defaults de mode/always_on + banner OAuth expiring (30d antes)</span
+                  >Cada <code>skill_candidate</code> vai pro inbox + sub-tab "Candidates"
+                  (Accept/Edit/Reject) — nada entra em <code>skills</code> sem review</span
                 >
               </li>
               <li>
-                <span
-                  ><strong>2º adapter <code>claude-api-key-local</code></strong> via M7.5 adapter
-                  pattern — dual auth (OAuth Max OR API key)</span
-                >
+                <span>Nudges fallback em <code>turn-complete</code></span>
               </li>
             </ul>
-            <div class="eta">
-              ETA: <strong>~10-14 dias</strong> · pode split em sub-PRs (Dashboard / Multi-empresa /
-              API key adapter)
-            </div>
+            <div class="eta">depois: PR-E org learning · PR-F decay/trust + Settings + docs</div>
           </div>
 
           <div class="card" data-kind="horizon">
             <div class="kicker">horizonte</div>
             <div class="title">v1 ✅ → V2 ✦</div>
             <div class="flow">
-              M8 ✅ ──▶ M8.5 ✅ ──▶ M8.6 ✅ ──▶ M9 ──▶ M10 ──▶ v1 ✅ ──▶
-              <strong>M11 (V2 anchor)</strong>
+              M8.6 ✅ ──▶ M9 ✅ ──▶ M10 ✅ ──▶ v1 ✅ ──▶
+              <strong>M11 (V2 anchor · em andamento)</strong>
               ──▶ V2 Tier 1
             </div>
             <ul class="bullets" style="margin-top: 12px">
@@ -2531,10 +2536,7 @@
                 >
               </li>
             </ul>
-            <div class="eta">
-              v1 restante: <strong>~25-33d</strong> · V2 core (M11 + Tier 1):
-              <strong>~30-39d</strong>
-            </div>
+            <div class="eta">v1 ✅ entregue · V2 core (M11 + Tier 1): <strong>~30-39d</strong></div>
           </div>
         </div>
       </section>
@@ -4061,11 +4063,11 @@
           </article>
 
           <!-- ──── M11 ──── -->
-          <article class="milestone" data-status="planned">
+          <article class="milestone" data-status="progress">
             <div class="ms-rail">
               <div class="num">M11</div>
-              <div class="status-row"><span class="status-dot"></span>planned</div>
-              <div class="meta">novo · <strong>âncora V2</strong></div>
+              <div class="status-row"><span class="status-dot"></span>progress</div>
+              <div class="meta">em andamento · <strong>âncora V2</strong></div>
             </div>
             <div class="ms-body">
               <h3>Agent Memory &amp; Learning Loop</h3>
@@ -4115,7 +4117,47 @@
                 Organizational Learning" (que estava em v3+).
               </div>
               <div class="feature-group">
-                <div class="group-name">Schema (Migration M11-01)</div>
+                <div class="group-name">Progresso — 6 PRs (A-F)</div>
+                <ul class="feature-list">
+                  <li>
+                    ✅ <strong>PR-A</strong> — rename skills → capabilities (desambigua o conceito
+                    M7 do M11) · <code>9eb65c2</code>
+                  </li>
+                  <li>
+                    ✅ <strong>PR-B</strong> — migration <code>0018</code> + repositórios +
+                    <code>sanitizer.ts</code> + backfill <code>messages_fts</code> ·
+                    <code>bd46608</code>
+                  </li>
+                  <li>
+                    ✅ <strong>PR-C</strong> — 9 MCP tools de memory/skills + injeção no system
+                    prompt (backend <code>34b7d8c</code>) · tab "Learning" + IPC + badge (UI
+                    <code>074d366</code>)
+                  </li>
+                  <li>
+                    ⏳ <strong>PR-D</strong> — pipeline de auto-derivação +
+                    <code>agent.recovered</code> + sub-tab Candidates
+                  </li>
+                  <li>
+                    ⏳ <strong>PR-E</strong> — org learning (herança por role +
+                    <code>skill_promote</code>)
+                  </li>
+                  <li>⏳ <strong>PR-F</strong> — decay/trust + Settings + docs</li>
+                </ul>
+              </div>
+              <div class="design-note">
+                <span class="label">Spec reconciliada</span>
+                O texto abaixo é o planejamento original. A spec
+                <code>docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md</code> é a fonte
+                de verdade — migrations <code>0017</code>+<code>0018</code> (não "M11-01"),
+                filesystem em <code>userData/memory/</code> (não <code>~/.prospero/</code>), tab
+                Learning é a 3ª (não 4ª), PR-C entrega 9 MCP tools (<code>skill_promote</code>
+                adiado pra PR-E), <code>user.correction</code> vem de sinais objetivos (<code
+                  >approval.rejected</code
+                >
+                + regressão de issue), novo evento <code>agent.recovered</code>.
+              </div>
+              <div class="feature-group">
+                <div class="group-name">Schema (migrations 0017 + 0018) — ✅ PR-A + PR-B</div>
                 <ul class="feature-list">
                   <li>
                     <code>skills</code> — agent_id (NULL = shared), applies_to_role, name,
@@ -4141,13 +4183,13 @@
                 </ul>
               </div>
               <div class="feature-group">
-                <div class="group-name">MCP tools (10 — skills first)</div>
+                <div class="group-name">MCP tools (9 — skills first) — ✅ PR-C</div>
                 <ul class="feature-list">
                   <li>
-                    <strong>Skills (5):</strong> <code>skill_search</code> ·
-                    <code>skill_read</code> · <code>skill_create</code> ·
-                    <code>skill_update</code> · <code>skill_promote</code> (private →
-                    company-shared, requer aprovação)
+                    <strong>Skills:</strong> <code>skill_search</code> · <code>skill_read</code> ·
+                    <code>skill_create</code> · <code>skill_update</code> (4 entregues no PR-C) ·
+                    <code>skill_promote</code> (private → company-shared, requer aprovação — adiado
+                    pro PR-E)
                   </li>
                   <li>
                     <strong>Memory (4, fallback):</strong> <code>memory_read</code> ·
@@ -4224,8 +4266,8 @@
                 <div class="group-name">UI</div>
                 <ul class="feature-list">
                   <li>
-                    <code>/agents/:id</code> ganha tab "Learning" (4ª): sub-tabs Skills (com 🏢 pra
-                    inherited) / Memory / History / Candidates
+                    <code>/agents/:id</code> ganha tab "Learning" (3ª): sub-tabs Skills (com 🏢 pra
+                    herdados) / Memory / History — ✅ PR-C-UI. Sub-tab Candidates vem no PR-D
                   </li>
                   <li>
                     <code>/dashboard</code> ganha card "Org Learnings" (retrospectivas + top skills)
