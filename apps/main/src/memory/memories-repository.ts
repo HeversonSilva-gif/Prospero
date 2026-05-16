@@ -71,6 +71,10 @@ export type MemoriesRepository = {
   update(id: string, patch: UpdateMemoryPatch): Memory;
   softDelete(id: string): void;
   search(query: string, opts?: MemorySearchOptions): Memory[];
+  // M11 PR-F1: active, non-pinned, non-identity memories — the decay pass input.
+  listDecayCandidates(): Memory[];
+  // M11 PR-F1: atomically add `delta` to trust, clamped to [0, 1].
+  bumpTrust(id: string, delta: number): Memory;
 };
 
 export const createMemoriesRepository = (db: Database.Database): MemoriesRepository => {
@@ -102,6 +106,14 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
     "UPDATE memories SET body = ?, importance = ?, trust = ?, pinned = ? WHERE id = ?",
   );
   const softDeleteStmt = db.prepare("UPDATE memories SET soft_deleted = 1 WHERE id = ?");
+  const listDecayCandidatesStmt = db.prepare(
+    `SELECT * FROM memories
+      WHERE soft_deleted = 0 AND pinned = 0 AND kind != 'identity'
+      ORDER BY created_at ASC`,
+  );
+  const bumpTrustStmt = db.prepare(
+    "UPDATE memories SET trust = MAX(0, MIN(1, trust + ?)) WHERE id = ?",
+  );
 
   const getById = (id: string): Memory | null => {
     const row = byId.get(id) as MemoryRow | undefined;
@@ -160,6 +172,15 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
     },
     softDelete(id) {
       softDeleteStmt.run(id);
+    },
+    listDecayCandidates() {
+      return (listDecayCandidatesStmt.all() as MemoryRow[]).map(rowToMemory);
+    },
+    bumpTrust(id, delta) {
+      bumpTrustStmt.run(delta, id);
+      const updated = getById(id);
+      if (updated === null) throw new Error(`memory ${id} not found`);
+      return updated;
     },
     search(query, opts = {}) {
       const limit = opts.limit ?? 50;

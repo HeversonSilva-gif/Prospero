@@ -205,3 +205,21 @@ describe("skills-repository listCompanyGlobal + promote", () => {
     expect(skills.listCompanyGlobal("c1").map((s) => s.name)).toEqual(["x"]);
   });
 });
+
+describe("skills-repository — trust feedback", () => {
+  it("bumpTrust clamps the result to [0, 1]", () => {
+    const db = seed();
+    const repo = createSkillsRepository(db);
+    const s = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "x",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    expect(repo.bumpTrust(s.id, 0.05).trust).toBeCloseTo(0.55, 5);
+    expect(repo.bumpTrust(s.id, 5).trust).toBe(1);
+    expect(repo.bumpTrust(s.id, -10).trust).toBe(0);
+  });
+});

@@ -68,6 +68,8 @@ export type SkillsRepository = {
   update(id: string, patch: UpdateSkillPatch): Skill;
   recordUse(id: string): void;
   softDelete(id: string): void;
+  // M11 PR-F1: atomically add `delta` to trust, clamped to [0, 1].
+  bumpTrust(id: string, delta: number): Skill;
 };
 
 export const createSkillsRepository = (db: Database.Database): SkillsRepository => {
@@ -107,6 +109,9 @@ export const createSkillsRepository = (db: Database.Database): SkillsRepository 
     "UPDATE skills SET use_count = use_count + 1, last_used = ? WHERE id = ?",
   );
   const softDeleteStmt = db.prepare("UPDATE skills SET soft_deleted = 1 WHERE id = ?");
+  const bumpTrustStmt = db.prepare(
+    "UPDATE skills SET trust = MAX(0, MIN(1, trust + ?)) WHERE id = ?",
+  );
 
   const getById = (id: string): Skill | null => {
     const row = byId.get(id) as SkillRow | undefined;
@@ -171,6 +176,12 @@ export const createSkillsRepository = (db: Database.Database): SkillsRepository 
     },
     softDelete(id) {
       softDeleteStmt.run(id);
+    },
+    bumpTrust(id, delta) {
+      bumpTrustStmt.run(delta, id);
+      const updated = getById(id);
+      if (updated === null) throw new Error(`skill ${id} not found`);
+      return updated;
     },
   };
 };

@@ -85,3 +85,28 @@ describe("memoriesRepository", () => {
     expect(repo.search("kafka", { limit: 1 }).length).toBe(1);
   });
 });
+
+describe("memories-repository — decay support", () => {
+  it("listDecayCandidates returns active, non-pinned, non-identity memories across companies", () => {
+    const db = newDb();
+    const repo = createMemoriesRepository(db);
+    const keep = repo.create({ companyId: "c1", agentId: null, kind: "rule", body: "decays" });
+    repo.create({ companyId: "c1", agentId: null, kind: "identity", body: "exempt" });
+    const pinned = repo.create({ companyId: "c1", agentId: null, kind: "rule", body: "pinned" });
+    repo.update(pinned.id, { pinned: true });
+    const deleted = repo.create({ companyId: "c1", agentId: null, kind: "rule", body: "gone" });
+    repo.softDelete(deleted.id);
+
+    const ids = repo.listDecayCandidates().map((m) => m.id);
+    expect(ids).toEqual([keep.id]);
+  });
+
+  it("bumpTrust clamps the result to [0, 1]", () => {
+    const db = newDb();
+    const repo = createMemoriesRepository(db);
+    const m = repo.create({ companyId: "c1", agentId: null, kind: "rule", body: "x" });
+    expect(repo.bumpTrust(m.id, -0.1).trust).toBeCloseTo(0.4, 5);
+    expect(repo.bumpTrust(m.id, -1).trust).toBe(0);
+    expect(repo.bumpTrust(m.id, 5).trust).toBe(1);
+  });
+});
