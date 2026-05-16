@@ -7,6 +7,9 @@ import { applyMigrations } from "../src/db/migrations.js";
 import { createSkillsRepository } from "../src/memory/skills-repository.js";
 import { createMemoriesRepository } from "../src/memory/memories-repository.js";
 import { learningHandlers, toFtsMatchExpr } from "../src/ipc/learning-handlers.js";
+import { createSkillCandidatesRepository } from "../src/memory/skill-candidates-repository.js";
+
+const USERDATA = mkdtempSync(join(tmpdir(), "prospero-lh-ud-"));
 
 const seed = (): Database.Database => {
   const db = new Database(":memory:");
@@ -59,14 +62,14 @@ describe("learningHandlers", () => {
       description: "shared review skill",
       source: "user_authored",
     });
-    const skills = learningHandlers(db).listSkills({ agentId: "a1" });
+    const skills = learningHandlers(db, USERDATA).listSkills({ agentId: "a1" });
     const names = skills.map((s) => s.name).sort();
     expect(names).toEqual(["code-review", "deploy"]);
     expect(skills.find((s) => s.name === "code-review")?.agentId).toBeNull();
   });
 
   it("listSkills returns [] for an unknown agent", () => {
-    expect(learningHandlers(db).listSkills({ agentId: "nope" })).toEqual([]);
+    expect(learningHandlers(db, USERDATA).listSkills({ agentId: "nope" })).toEqual([]);
   });
 
   it("readSkillBody returns the SKILL.md file content", () => {
@@ -81,15 +84,15 @@ describe("learningHandlers", () => {
       description: "d",
       source: "agent_created",
     });
-    const out = learningHandlers(db).readSkillBody({ skillId: skill.id });
+    const out = learningHandlers(db, USERDATA).readSkillBody({ skillId: skill.id });
     expect(out.body).toContain("2. ship");
     rmSync(dir, { recursive: true, force: true });
   });
 
   it("readSkillBody throws for an unknown skill id", () => {
-    expect(() => learningHandlers(db).readSkillBody({ skillId: "skill_missing" })).toThrow(
-      /not found/i,
-    );
+    expect(() =>
+      learningHandlers(db, USERDATA).readSkillBody({ skillId: "skill_missing" }),
+    ).toThrow(/not found/i);
   });
 
   it("listMemories returns the agent's memory rows", () => {
@@ -99,7 +102,7 @@ describe("learningHandlers", () => {
       kind: "rule",
       body: "always lint before commit",
     });
-    const memories = learningHandlers(db).listMemories({ agentId: "a1" });
+    const memories = learningHandlers(db, USERDATA).listMemories({ agentId: "a1" });
     expect(memories).toHaveLength(1);
     expect(memories[0]?.body).toBe("always lint before commit");
   });
@@ -115,7 +118,7 @@ describe("learningHandlers", () => {
     db.prepare(
       "INSERT INTO messages_fts (message_id, content) VALUES ('m1','investigate the redis outage')",
     ).run();
-    const hits = learningHandlers(db).searchSessions({ agentId: "a1", query: "redis" });
+    const hits = learningHandlers(db, USERDATA).searchSessions({ agentId: "a1", query: "redis" });
     expect(hits.map((h) => h.messageId)).toEqual(["m1"]);
     expect(hits[0]?.senderKind).toBe("user");
   });
@@ -131,10 +134,69 @@ describe("learningHandlers", () => {
     db.prepare(
       "INSERT INTO messages_fts (message_id, content) VALUES ('m2','unrelated redis chatter')",
     ).run();
-    expect(learningHandlers(db).searchSessions({ agentId: "a1", query: "redis" })).toEqual([]);
+    expect(
+      learningHandlers(db, USERDATA).searchSessions({ agentId: "a1", query: "redis" }),
+    ).toEqual([]);
   });
 
   it("searchSessions returns [] for a blank query", () => {
-    expect(learningHandlers(db).searchSessions({ agentId: "a1", query: "  " })).toEqual([]);
+    expect(learningHandlers(db, USERDATA).searchSessions({ agentId: "a1", query: "  " })).toEqual(
+      [],
+    );
+  });
+});
+
+describe("learningHandlers — candidates", () => {
+  let db: Database.Database;
+  beforeEach(() => {
+    db = seed();
+    db.prepare(
+      `INSERT INTO activity_events (id, company_id, actor_kind, actor_id, action, entity_kind,
+         entity_id, agent_id, payload_json, created_at)
+       VALUES ('evt_1','c1','agent','a1','issue.status_changed','issue','i1','a1','{}',0)`,
+    ).run();
+  });
+
+  const seedCandidate = (): string => {
+    const candidate = createSkillCandidatesRepository(db).create({
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      trigger: "issue_done",
+      proposedName: "deploy-runbook",
+      proposedDescription: "how to deploy",
+      proposedBody: "1. build\n2. ship",
+    });
+    return candidate.id;
+  };
+
+  it("listCandidates returns the agent's pending candidates", () => {
+    seedCandidate();
+    const list = learningHandlers(db, USERDATA).listCandidates({ agentId: "a1" });
+    expect(list).toHaveLength(1);
+    expect(list[0]?.proposedName).toBe("deploy-runbook");
+  });
+
+  it("acceptCandidate creates a skill and clears the candidate from the pending list", () => {
+    const candidateId = seedCandidate();
+    const h = learningHandlers(db, USERDATA);
+    const skill = h.acceptCandidate({ candidateId });
+    expect(skill.name).toBe("deploy-runbook");
+    expect(h.listCandidates({ agentId: "a1" })).toHaveLength(0);
+    expect(h.listSkills({ agentId: "a1" }).map((s) => s.name)).toContain("deploy-runbook");
+  });
+
+  it("acceptCandidate applies overrides", () => {
+    const candidateId = seedCandidate();
+    const h = learningHandlers(db, USERDATA);
+    const skill = h.acceptCandidate({ candidateId, name: "renamed-skill", body: "new body" });
+    expect(skill.name).toBe("renamed-skill");
+  });
+
+  it("rejectCandidate clears the candidate from the pending list", () => {
+    const candidateId = seedCandidate();
+    const h = learningHandlers(db, USERDATA);
+    expect(h.rejectCandidate({ candidateId })).toEqual({ ok: true });
+    expect(h.listCandidates({ agentId: "a1" })).toHaveLength(0);
   });
 });

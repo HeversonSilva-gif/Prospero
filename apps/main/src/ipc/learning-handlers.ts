@@ -1,10 +1,12 @@
-import { ipcMain } from "electron";
+import { app, ipcMain } from "electron";
 import type Database from "better-sqlite3";
 import { readFileSync } from "node:fs";
 import { IPC } from "@prospero/shared";
-import type { Skill, Memory, SessionSearchHit, SenderKind } from "@prospero/shared";
+import type { Skill, Memory, SessionSearchHit, SenderKind, SkillCandidate } from "@prospero/shared";
 import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
+import { createSkillCandidatesRepository } from "../memory/skill-candidates-repository.js";
+import { acceptSkillCandidate, rejectSkillCandidate } from "../memory/review-candidate.js";
 
 // Turns raw search-box input into a safe FTS5 MATCH expression: each
 // whitespace-separated term is wrapped in double quotes (so special characters
@@ -28,6 +30,17 @@ export type LearningHandlers = {
   listMemories(args: { agentId: string }): Memory[];
   // FTS5 search over the agent's past messages.
   searchSessions(args: { agentId: string; query: string; limit?: number }): SessionSearchHit[];
+  // Pending skill candidates derived for the agent (PR-D auto-derivation).
+  listCandidates(args: { agentId: string }): SkillCandidate[];
+  // Accept a candidate -> creates a real skill. Optional overrides = the Edit flow.
+  acceptCandidate(args: {
+    candidateId: string;
+    name?: string;
+    description?: string;
+    body?: string;
+  }): Skill;
+  // Reject a candidate; optional reason is persisted.
+  rejectCandidate(args: { candidateId: string; reason?: string }): { ok: true };
 };
 
 type SessionRow = {
@@ -38,7 +51,7 @@ type SessionRow = {
   sender_id: string | null;
 };
 
-export const learningHandlers = (db: Database.Database): LearningHandlers => {
+export const learningHandlers = (db: Database.Database, userDataDir: string): LearningHandlers => {
   const skillsRepo = createSkillsRepository(db);
   const memoriesRepo = createMemoriesRepository(db);
   const companyOfAgent = db.prepare("SELECT company_id FROM agents WHERE id = ?");
@@ -83,11 +96,34 @@ export const learningHandlers = (db: Database.Database): LearningHandlers => {
         senderId: r.sender_id,
       }));
     },
+
+    listCandidates({ agentId }) {
+      return createSkillCandidatesRepository(db).listPendingByAgent(agentId);
+    },
+
+    acceptCandidate({ candidateId, name, description, body }) {
+      return acceptSkillCandidate(db, userDataDir, {
+        candidateId,
+        reviewedBy: "user",
+        ...(name !== undefined ? { name } : {}),
+        ...(description !== undefined ? { description } : {}),
+        ...(body !== undefined ? { body } : {}),
+      });
+    },
+
+    rejectCandidate({ candidateId, reason }) {
+      rejectSkillCandidate(db, {
+        candidateId,
+        reviewedBy: "user",
+        ...(reason !== undefined ? { reason } : {}),
+      });
+      return { ok: true };
+    },
   };
 };
 
 export const registerLearningHandlers = (db: Database.Database): void => {
-  const h = learningHandlers(db);
+  const h = learningHandlers(db, app.getPath("userData"));
   ipcMain.handle(IPC.SKILLS_LIST_FOR_AGENT, (_e, args: { agentId: string }) => h.listSkills(args));
   ipcMain.handle(IPC.SKILLS_READ_BODY, (_e, args: { skillId: string }) => h.readSkillBody(args));
   ipcMain.handle(IPC.MEMORIES_LIST_FOR_AGENT, (_e, args: { agentId: string }) =>
@@ -96,5 +132,16 @@ export const registerLearningHandlers = (db: Database.Database): void => {
   ipcMain.handle(
     IPC.SESSION_SEARCH,
     (_e, args: { agentId: string; query: string; limit?: number }) => h.searchSessions(args),
+  );
+  ipcMain.handle(IPC.SKILL_CANDIDATES_LIST_FOR_AGENT, (_e, args: { agentId: string }) =>
+    h.listCandidates(args),
+  );
+  ipcMain.handle(
+    IPC.SKILL_CANDIDATE_ACCEPT,
+    (_e, args: { candidateId: string; name?: string; description?: string; body?: string }) =>
+      h.acceptCandidate(args),
+  );
+  ipcMain.handle(IPC.SKILL_CANDIDATE_REJECT, (_e, args: { candidateId: string; reason?: string }) =>
+    h.rejectCandidate(args),
   );
 };
