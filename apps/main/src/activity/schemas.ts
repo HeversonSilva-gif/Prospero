@@ -9,7 +9,7 @@ import type { ActivityAction } from "@prospero/shared";
 const stringId = z.string().min(1);
 
 export const ActivityPayloads = {
-  // Agent (10)
+  // Agent (11)
   "agent.hired": z.object({
     name: z.string(),
     role: z.string(),
@@ -38,6 +38,7 @@ export const ActivityPayloads = {
   "agent.paused": z.object({ reason: z.string().optional() }),
   "agent.resumed": z.object({}),
   "agent.terminated": z.object({ reason: z.string().optional() }),
+  "agent.recovered": z.object({ issueId: z.string().nullable().optional() }),
 
   // Issue (5)
   "issue.created": z.object({
