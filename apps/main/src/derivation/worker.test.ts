@@ -32,7 +32,7 @@ const seed = (): Database.Database => {
   db.prepare(
     `INSERT INTO activity_events (id, company_id, actor_kind, actor_id, action, entity_kind,
        entity_id, agent_id, payload_json, created_at)
-     VALUES ('evt_1','c1','agent','a1','issue.done','issue','i1','a1','{}',0)`,
+     VALUES ('evt_1','c1','agent','a1','issue.status_changed','issue','i1','a1','{}',0)`,
   ).run();
   return db;
 };
