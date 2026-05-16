@@ -267,6 +267,10 @@ declare global {
           skillId: string;
           appliesToRole: string | null;
         }) => Promise<Skill>;
+        orgLearnings: (companyId: string) => Promise<{
+          topSkills: Skill[];
+          recentRetrospectives: Memory[];
+        }>;
       };
       windowControls: {
         minimize: () => Promise<void>;

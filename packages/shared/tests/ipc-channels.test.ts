@@ -41,4 +41,8 @@ describe("IPC channels", () => {
   it("exposes the M11 skill-promote-approve channel", () => {
     expect(IPC.SKILL_PROMOTE_APPROVE).toBe("skills:promote-approve");
   });
+
+  it("exposes the M11 org-learnings channel", () => {
+    expect(IPC.LEARNING_ORG).toBe("learning:org-learnings");
+  });
 });

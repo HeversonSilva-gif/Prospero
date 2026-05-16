@@ -202,6 +202,31 @@ describe("learningHandlers — candidates", () => {
   });
 });
 
+describe("learningHandlers — orgLearnings", () => {
+  it("returns company-shared skills and recent retrospective memories", () => {
+    const db = seed();
+    createSkillsRepository(db).create({
+      companyId: "c1",
+      agentId: null,
+      name: "deploy-runbook",
+      bodyPath: "p",
+      description: "shared",
+      source: "user_authored",
+    });
+    const memories = createMemoriesRepository(db);
+    memories.create({
+      companyId: "c1",
+      agentId: null,
+      kind: "retrospective",
+      body: "RETRO-BODY",
+    });
+    memories.create({ companyId: "c1", agentId: null, kind: "rule", body: "not a retro" });
+    const out = learningHandlers(db, USERDATA).orgLearnings({ companyId: "c1" });
+    expect(out.topSkills.map((s) => s.name)).toEqual(["deploy-runbook"]);
+    expect(out.recentRetrospectives.map((m) => m.body)).toEqual(["RETRO-BODY"]);
+  });
+});
+
 describe("learningHandlers — skill promotion", () => {
   let db: Database.Database;
   beforeEach(() => {

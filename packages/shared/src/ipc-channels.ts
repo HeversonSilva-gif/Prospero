@@ -99,6 +99,7 @@ export const IPC = {
   SKILL_CANDIDATE_ACCEPT: "skill-candidates:accept",
   SKILL_CANDIDATE_REJECT: "skill-candidates:reject",
   SKILL_PROMOTE_APPROVE: "skills:promote-approve",
+  LEARNING_ORG: "learning:org-learnings",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

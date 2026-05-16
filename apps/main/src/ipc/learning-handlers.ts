@@ -45,6 +45,12 @@ export type LearningHandlers = {
   // Approve a pending skill-promotion request: promotes the skill to
   // company-shared (optionally role-scoped) and resolves its inbox item.
   approveSkillPromotion(args: { skillId: string; appliesToRole: string | null }): Skill;
+  // Dashboard "Org Learnings" data: top company-shared skills + recent
+  // retrospective memories.
+  orgLearnings(args: { companyId: string }): {
+    topSkills: Skill[];
+    recentRetrospectives: Memory[];
+  };
 };
 
 type SessionRow = {
@@ -136,6 +142,15 @@ export const learningHandlers = (db: Database.Database, userDataDir: string): Le
       if (inboxRow !== undefined) createInboxRepository(db).markRead(inboxRow.id);
       return skill;
     },
+
+    orgLearnings({ companyId }) {
+      const topSkills = createSkillsRepository(db).listCompanyShared(companyId).slice(0, 10);
+      const recentRetrospectives = createMemoriesRepository(db)
+        .listCompanyWide(companyId)
+        .filter((m) => m.kind === "retrospective")
+        .slice(0, 5);
+      return { topSkills, recentRetrospectives };
+    },
   };
 };
 
@@ -165,4 +180,5 @@ export const registerLearningHandlers = (db: Database.Database): void => {
     IPC.SKILL_PROMOTE_APPROVE,
     (_e, args: { skillId: string; appliesToRole: string | null }) => h.approveSkillPromotion(args),
   );
+  ipcMain.handle(IPC.LEARNING_ORG, (_e, args: { companyId: string }) => h.orgLearnings(args));
 };
