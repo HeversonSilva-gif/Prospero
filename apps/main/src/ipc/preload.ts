@@ -35,6 +35,9 @@ import {
   type GoalWithPlan,
   type CreateGoalInput,
   type ExecutePlanResult,
+  type Skill,
+  type Memory,
+  type SessionSearchHit,
 } from "@prospero/shared";
 
 contextBridge.exposeInMainWorld("prospero", {
@@ -334,6 +337,18 @@ contextBridge.exposeInMainWorld("prospero", {
         ok: boolean;
         message: string;
       }>,
+  },
+  learning: {
+    listSkills: (agentId: string) =>
+      ipcRenderer.invoke(IPC.SKILLS_LIST_FOR_AGENT, { agentId }) as Promise<Skill[]>,
+    readSkillBody: (skillId: string) =>
+      ipcRenderer.invoke(IPC.SKILLS_READ_BODY, { skillId }) as Promise<{ body: string }>,
+    listMemories: (agentId: string) =>
+      ipcRenderer.invoke(IPC.MEMORIES_LIST_FOR_AGENT, { agentId }) as Promise<Memory[]>,
+    searchSessions: (agentId: string, query: string, limit?: number) =>
+      ipcRenderer.invoke(IPC.SESSION_SEARCH, { agentId, query, limit }) as Promise<
+        SessionSearchHit[]
+      >,
   },
   windowControls: {
     minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE) as Promise<void>,

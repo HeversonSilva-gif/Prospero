@@ -34,6 +34,9 @@ import type {
   GoalWithPlan,
   CreateGoalInput,
   ExecutePlanResult,
+  Skill,
+  Memory,
+  SessionSearchHit,
 } from "@prospero/shared";
 
 declare global {
@@ -239,6 +242,16 @@ declare global {
       };
       remote: {
         testConnection: () => Promise<{ ok: boolean; message: string }>;
+      };
+      learning: {
+        listSkills: (agentId: string) => Promise<Skill[]>;
+        readSkillBody: (skillId: string) => Promise<{ body: string }>;
+        listMemories: (agentId: string) => Promise<Memory[]>;
+        searchSessions: (
+          agentId: string,
+          query: string,
+          limit?: number,
+        ) => Promise<SessionSearchHit[]>;
       };
       windowControls: {
         minimize: () => Promise<void>;
