@@ -2407,9 +2407,9 @@
               <code>claude-oauth-remote-docker</code> em 5 PRs (A–E): wire protocol, app
               <code>agent-runner</code> + imagem Docker, host adapter + MCP relay tunelado, Settings
               + seletor de localização per-agente, docs. Arquitetura SSH stdio, host-authoritative —
-              o SQLite nunca sai do host. <strong>1095 testes passing</strong> (+2 todo).
+              o SQLite nunca sai do host. <strong>1108 testes passing</strong> (+2 todo).
               <strong>14/14 milestones</strong> do v1 ✅.
-              <strong>V2 em andamento — M11 Agent Memory</strong>: PRs A/B/C + D1 mergeados, D2/E/F
+              <strong>V2 em andamento — M11 Agent Memory</strong>: PRs A/B/C/D mergeados, E/F
               pendentes.
             </div>
             <div>
@@ -2435,13 +2435,13 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M11 em andamento (A-C + D1 ✅)</div>
+            <div class="title">M11 em andamento (A-D ✅)</div>
             <ul class="bullets">
               <li>
                 <span><strong>14 / 14</strong> milestones do v1 · v1 fechado 2026-05-15</span>
               </li>
               <li>
-                <span><strong>1095</strong> testes passing + 2 todo · 0 lint/typecheck errors</span>
+                <span><strong>1108</strong> testes passing + 2 todo · 0 lint/typecheck errors</span>
               </li>
               <li>
                 <span
@@ -2452,48 +2452,45 @@
               </li>
               <li>
                 <span
-                  ><strong>M11 PR-D1 ✅</strong> — motor de auto-derivação: ao concluir um issue ou
-                  se recuperar de um erro, um <code>claude -p</code> headless propõe um skill →
-                  <code>skill_candidate</code> + inbox pra revisão humana</span
+                  ><strong>M11 PR-D ✅</strong> — motor de auto-derivação (ao concluir um issue ou
+                  se recuperar de um erro, um <code>claude -p</code> headless propõe um skill) + a
+                  sub-tab "Candidates" pra você Aceitar / Editar / Rejeitar cada proposta</span
                 >
               </li>
               <li>
-                <span
-                  >Restante do M11: PR-D2 (UI de revisão dos candidates + nudges) · PR-E org
-                  learning · PR-F decay/trust/docs</span
-                >
+                <span>Restante do M11: PR-E org learning · PR-F decay/trust + nudges + docs</span>
               </li>
             </ul>
-            <div class="eta">M11 ~10-14d · A-C + D1 entregues</div>
+            <div class="eta">M11 ~10-14d · A-D entregues</div>
           </div>
 
           <div class="card" data-kind="next">
             <div class="kicker">próximo</div>
-            <div class="title">M11 PR-D2 — revisão dos candidates</div>
+            <div class="title">M11 PR-E — org learning</div>
             <ul class="bullets">
               <li>
                 <span
-                  >Sub-tab "Candidates" no <code>/agents/:id</code> — a fila de skill candidates que
-                  o motor D1 derivou, com Accept / Edit / Reject</span
+                  >Herança por role: ao contratar um agente ele já herda os skills e memórias
+                  marcados com o <code>applies_to_role</code> dele</span
                 >
               </li>
               <li>
                 <span
-                  >Aceitar um candidate cria um skill real (vira <code>SKILL.md</code> + linha na
-                  tabela <code>skills</code>)</span
+                  ><code>skill_promote</code> — promover um skill privado pra company-shared, com
+                  aprovação via inbox</span
                 >
-              </li>
-              <li>
-                <span>IPC handlers de list/accept/reject + refresh do badge 🎓</span>
               </li>
               <li>
                 <span
-                  >Nudges fallback (<code>turn-complete</code> / time-based / compaction) pra quando
-                  a derivação automática não disparou</span
+                  >Triggers <code>goal.achieved</code> / <code>approval.rejected</code> → derivam
+                  uma memória (retrospectiva / preferência)</span
                 >
+              </li>
+              <li>
+                <span>Card "Org Learnings" no <code>/dashboard</code></span>
               </li>
             </ul>
-            <div class="eta">depois: PR-E org learning · PR-F decay/trust + Settings + docs</div>
+            <div class="eta">depois: PR-F decay/trust + Settings + nudges + docs · fecha o M11</div>
           </div>
 
           <div class="card" data-kind="horizon">
@@ -4134,14 +4131,17 @@
                     grava <code>skill_candidate</code> + inbox
                   </li>
                   <li>
-                    ⏳ <strong>PR-D2</strong> — sub-tab "Candidates" (Accept/Edit/Reject) +
-                    accept→skill + nudges fallback
+                    ✅ <strong>PR-D2</strong> — sub-tab "Candidates" (Accept/Edit/Reject) +
+                    accept→skill real + resolve do inbox
                   </li>
                   <li>
                     ⏳ <strong>PR-E</strong> — org learning (herança por role +
                     <code>skill_promote</code>)
                   </li>
-                  <li>⏳ <strong>PR-F</strong> — decay/trust + Settings + docs</li>
+                  <li>
+                    ⏳ <strong>PR-F</strong> — decay/trust + Settings + nudges fallback (adiado de
+                    D2) + docs
+                  </li>
                 </ul>
               </div>
               <div class="design-note">
