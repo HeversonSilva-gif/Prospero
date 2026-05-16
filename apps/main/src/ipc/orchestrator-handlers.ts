@@ -18,6 +18,7 @@ import { createMessagesRepository } from "../messages/repository.js";
 import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { buildMemoryBlock } from "../orchestrator/system-prompt-memory.js";
+import { createRecoveryTracker } from "../orchestrator/recovery-tracker.js";
 import { loadDecryptedToken } from "../auth/token-storage.js";
 import { loadDecryptedApiKey } from "../auth/api-key-storage.js";
 import { getActiveAuthMode } from "../auth/auth-mode.js";
@@ -152,6 +153,8 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     200,
   );
 
+  const recoveryTracker = createRecoveryTracker();
+
   const router = createRouter({
     writeStdin: (agentId, content) => {
       const a = getAdapter(agentId);
@@ -267,6 +270,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     const collectedToolCalls = new Map<string, ToolCallView>();
 
     const onError = (err: Error): void => {
+      recoveryTracker.markErrored(agent.id);
       console.error(`[claude:${agent.id}] spawn error: ${err.message}`);
       removeAdapter(agent.id);
       agents.clearSessionId(agent.id);
@@ -427,6 +431,17 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
             // sidebar state. stderr-based agent.spawn-needed events don't always reach
             // us through claude's stdio pipes on Windows, so this is the reliable path.
             broadcast({ kind: "roster-changed", companyId: agent.companyId });
+            if (recoveryTracker.consumeRecovery(agent.id)) {
+              tryGetRecorder()?.recordActivity({
+                companyId: agent.companyId,
+                actor: { kind: "system" },
+                action: "agent.recovered",
+                entityKind: "agent",
+                entityId: agent.id,
+                agentId: agent.id,
+                payload: {},
+              });
+            }
           } else if (ev.kind === "api-retry") {
             broadcast({
               kind: "error",
@@ -459,6 +474,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
           console.error(`[claude:${agent.id}] exit code: ${String(code)}`);
           removeAdapter(agent.id);
           if (code !== 0) {
+            recoveryTracker.markErrored(agent.id);
             agents.clearSessionId(agent.id);
           }
           agents.updateStatus(agent.id, {
