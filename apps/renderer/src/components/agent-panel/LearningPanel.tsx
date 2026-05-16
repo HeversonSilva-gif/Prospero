@@ -50,6 +50,8 @@ const SkillsView: FC<{ skills: Skill[] }> = ({ skills }) => {
   const { t } = useTranslation();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [bodies, setBodies] = useState<Record<string, string>>({});
+  // M11 PR-F1: local trust overrides so a thumb click updates the row at once.
+  const [skillTrust, setSkillTrust] = useState<Record<string, number>>({});
 
   const toggle = (skill: Skill): void => {
     if (expandedId === skill.id) {
@@ -66,6 +68,12 @@ const SkillsView: FC<{ skills: Skill[] }> = ({ skills }) => {
         setBodies((b) => ({ ...b, [skill.id]: t("agent.learning.skills.bodyError") }));
       }
     })();
+  };
+
+  const rateSkill = (skillId: string, direction: "up" | "down"): void => {
+    void window.prospero.learning.rateSkill(skillId, direction).then((s) => {
+      setSkillTrust((prev) => ({ ...prev, [skillId]: s.trust }));
+    });
   };
 
   if (skills.length === 0) {
@@ -103,8 +111,32 @@ const SkillsView: FC<{ skills: Skill[] }> = ({ skills }) => {
                 className="text-[10px] text-ink-soft"
                 title={t("agent.learning.skills.trustTitle")}
               >
-                {Math.round(skill.trust * 100)}%
+                {Math.round((skillTrust[skill.id] ?? skill.trust) * 100)}%
               </span>
+              <button
+                type="button"
+                title={t("agent.learning.skills.rateUp")}
+                aria-label={t("agent.learning.skills.rateUp")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  rateSkill(skill.id, "up");
+                }}
+                className="text-[10px] text-ink-soft hover:text-semantic-success"
+              >
+                👍
+              </button>
+              <button
+                type="button"
+                title={t("agent.learning.skills.rateDown")}
+                aria-label={t("agent.learning.skills.rateDown")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  rateSkill(skill.id, "down");
+                }}
+                className="text-[10px] text-ink-soft hover:text-semantic-danger"
+              >
+                👎
+              </button>
             </div>
             <p className="text-xs text-ink-muted mt-0.5">{skill.description}</p>
           </button>
@@ -123,6 +155,14 @@ const SkillsView: FC<{ skills: Skill[] }> = ({ skills }) => {
 
 const MemoryView: FC<{ memories: Memory[] }> = ({ memories }) => {
   const { t } = useTranslation();
+  // M11 PR-F1: local trust overrides so a thumb click updates the row at once.
+  const [memoryTrust, setMemoryTrust] = useState<Record<string, number>>({});
+
+  const rateMemory = (memoryId: string, direction: "up" | "down"): void => {
+    void window.prospero.learning.rateMemory(memoryId, direction).then((m) => {
+      setMemoryTrust((prev) => ({ ...prev, [memoryId]: m.trust }));
+    });
+  };
 
   if (memories.length === 0) {
     return (
@@ -136,9 +176,38 @@ const MemoryView: FC<{ memories: Memory[] }> = ({ memories }) => {
     <ul className="divide-y divide-surface-border">
       {memories.map((m) => (
         <li key={m.id} className="px-6 py-3">
-          <span className="text-[10px] px-1.5 py-0.5 bg-surface-soft rounded text-ink-muted">
-            {t(`agent.learning.memory.kind.${m.kind}`)}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] px-1.5 py-0.5 bg-surface-soft rounded text-ink-muted">
+              {t(`agent.learning.memory.kind.${m.kind}`)}
+            </span>
+            <span className="flex-1" />
+            {memoryTrust[m.id] !== undefined && (
+              <span
+                className="text-[10px] text-ink-soft"
+                title={t("agent.learning.skills.trustTitle")}
+              >
+                {Math.round((memoryTrust[m.id] ?? m.trust) * 100)}%
+              </span>
+            )}
+            <button
+              type="button"
+              title={t("agent.learning.skills.rateUp")}
+              aria-label={t("agent.learning.skills.rateUp")}
+              onClick={() => rateMemory(m.id, "up")}
+              className="text-[10px] text-ink-soft hover:text-semantic-success"
+            >
+              👍
+            </button>
+            <button
+              type="button"
+              title={t("agent.learning.skills.rateDown")}
+              aria-label={t("agent.learning.skills.rateDown")}
+              onClick={() => rateMemory(m.id, "down")}
+              className="text-[10px] text-ink-soft hover:text-semantic-danger"
+            >
+              👎
+            </button>
+          </div>
           <p className="text-sm text-ink mt-1">{m.body}</p>
         </li>
       ))}

@@ -332,7 +332,9 @@
         "shared": "Shared",
         "usesTitle": "Times used",
         "trustTitle": "Trust",
-        "bodyError": "Could not load the skill body."
+        "bodyError": "Could not load the skill body.",
+        "rateUp": "Mark as useful",
+        "rateDown": "Mark as not useful"
       },
       "memory": {
         "empty": "No memory yet.",

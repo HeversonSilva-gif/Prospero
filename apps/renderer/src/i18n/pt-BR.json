@@ -332,7 +332,9 @@
         "shared": "Compartilhado",
         "usesTitle": "Vezes usado",
         "trustTitle": "Confiança",
-        "bodyError": "Não foi possível carregar o corpo do skill."
+        "bodyError": "Não foi possível carregar o corpo do skill.",
+        "rateUp": "Marcar como útil",
+        "rateDown": "Marcar como pouco útil"
       },
       "memory": {
         "empty": "Nenhuma memória ainda.",

@@ -317,4 +317,13 @@ describe("i18n parity", () => {
       expect(enKeys).toContain(k);
     }
   });
+
+  it("includes the M11 PR-F trust-feedback keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of ["agent.learning.skills.rateUp", "agent.learning.skills.rateDown"]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
 });
