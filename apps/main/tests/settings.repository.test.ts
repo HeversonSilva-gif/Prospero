@@ -23,6 +23,7 @@ describe("settings repository", () => {
       authMode: "oauth",
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
+      derivationsPerDayPerAgent: 3,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
@@ -46,6 +47,7 @@ describe("settings repository", () => {
       authMode: "oauth",
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
+      derivationsPerDayPerAgent: 3,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
@@ -69,6 +71,7 @@ describe("settings repository", () => {
       authMode: "oauth",
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
+      derivationsPerDayPerAgent: 3,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",

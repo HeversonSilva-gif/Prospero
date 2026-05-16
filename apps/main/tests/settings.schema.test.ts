@@ -28,6 +28,7 @@ describe("settings schema", () => {
       authMode: "oauth",
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
+      derivationsPerDayPerAgent: 3,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
@@ -49,6 +50,7 @@ describe("settings schema", () => {
       authMode: "oauth",
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
+      derivationsPerDayPerAgent: 3,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
@@ -70,6 +72,7 @@ describe("settings schema", () => {
       authMode: "oauth",
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
+      derivationsPerDayPerAgent: 3,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
