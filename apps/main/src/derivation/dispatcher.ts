@@ -29,6 +29,24 @@ export const jobForActivity = (row: ActivityEventRow): DerivationJob | null => {
       sourceEventId: row.id,
     };
   }
+  if (row.action === "goal.status_changed" && row.payload["to"] === "achieved") {
+    return {
+      trigger: "goal_achieved",
+      companyId: row.companyId,
+      agentId: row.agentId,
+      sourceEventId: row.id,
+      goalId: row.entityId,
+    };
+  }
+  if (row.action === "approval.rejected") {
+    return {
+      trigger: "approval_rejected",
+      companyId: row.companyId,
+      agentId: row.agentId,
+      sourceEventId: row.id,
+      approvalId: row.entityId,
+    };
+  }
   return null;
 };
 

@@ -66,3 +66,40 @@ describe("createDerivationDispatcher", () => {
     expect(jobs).toHaveLength(0);
   });
 });
+
+describe("createDerivationDispatcher — memory triggers", () => {
+  it("enqueues a goal_achieved job for a goal moved to achieved", async () => {
+    const { jobs, processJob } = collect();
+    const d = createDerivationDispatcher({ processJob });
+    d.onActivity(
+      row({
+        action: "goal.status_changed",
+        entityKind: "goal",
+        entityId: "g1",
+        payload: { from: "in_progress", to: "achieved" },
+      }),
+    );
+    await d.idle();
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]).toMatchObject({ trigger: "goal_achieved", goalId: "g1" });
+  });
+
+  it("ignores a goal status change that is not to achieved", async () => {
+    const { jobs, processJob } = collect();
+    const d = createDerivationDispatcher({ processJob });
+    d.onActivity(row({ action: "goal.status_changed", payload: { to: "in_progress" } }));
+    await d.idle();
+    expect(jobs).toHaveLength(0);
+  });
+
+  it("enqueues an approval_rejected job for approval.rejected", async () => {
+    const { jobs, processJob } = collect();
+    const d = createDerivationDispatcher({ processJob });
+    d.onActivity(
+      row({ action: "approval.rejected", entityKind: "approval", entityId: "ap1", payload: {} }),
+    );
+    await d.idle();
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]).toMatchObject({ trigger: "approval_rejected", approvalId: "ap1" });
+  });
+});
