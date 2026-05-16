@@ -1,14 +1,14 @@
 import type Database from "better-sqlite3";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import type { Skill, SkillSource } from "@prospero/shared";
+import type { Skill, SkillSource, SkillCandidateTrigger } from "@prospero/shared";
 import { createSkillCandidatesRepository } from "./skill-candidates-repository.js";
 import { createSkillsRepository } from "./skills-repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { getAgentMemoryDir, skillBodyPath } from "./memory-dir.js";
 
 // Maps the candidate's derivation trigger to the resulting skill's source.
-const SOURCE_BY_TRIGGER: Record<"issue_done" | "recovery", SkillSource> = {
+const SOURCE_BY_TRIGGER: Record<SkillCandidateTrigger, SkillSource> = {
   issue_done: "derived_from_issue",
   recovery: "derived_from_recovery",
 };
