@@ -2407,9 +2407,9 @@
               <code>claude-oauth-remote-docker</code> em 5 PRs (A–E): wire protocol, app
               <code>agent-runner</code> + imagem Docker, host adapter + MCP relay tunelado, Settings
               + seletor de localização per-agente, docs. Arquitetura SSH stdio, host-authoritative —
-              o SQLite nunca sai do host. <strong>1108 testes passing</strong> (+2 todo).
+              o SQLite nunca sai do host. <strong>1124 testes passing</strong> (+2 todo).
               <strong>14/14 milestones</strong> do v1 ✅.
-              <strong>V2 em andamento — M11 Agent Memory</strong>: PRs A/B/C/D mergeados, E/F
+              <strong>V2 em andamento — M11 Agent Memory</strong>: PRs A/B/C/D + E1 mergeados, E2/F
               pendentes.
             </div>
             <div>
@@ -2435,59 +2435,62 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M11 em andamento (A-D ✅)</div>
+            <div class="title">M11 em andamento (A-D + E1 ✅)</div>
             <ul class="bullets">
               <li>
                 <span><strong>14 / 14</strong> milestones do v1 · v1 fechado 2026-05-15</span>
               </li>
               <li>
-                <span><strong>1108</strong> testes passing + 2 todo · 0 lint/typecheck errors</span>
+                <span><strong>1124</strong> testes passing + 2 todo · 0 lint/typecheck errors</span>
               </li>
               <li>
                 <span
-                  ><strong>M11 PR-A/B/C ✅</strong> — capabilities rename, migration
-                  <code>0018</code> + repositórios + sanitizer, 9 MCP tools de memory/skills +
-                  injeção no system prompt, e a aba "Aprendizado" + badge 🎓 no header</span
+                  ><strong>M11 PR-A/B/C/D ✅</strong> — capabilities rename, schema + 9 MCP tools +
+                  injeção no system prompt, a aba "Aprendizado", e o motor de auto-derivação com a
+                  sub-tab "Candidates" (Aceitar / Editar / Rejeitar)</span
                 >
               </li>
               <li>
                 <span
-                  ><strong>M11 PR-D ✅</strong> — motor de auto-derivação (ao concluir um issue ou
-                  se recuperar de um erro, um <code>claude -p</code> headless propõe um skill) + a
-                  sub-tab "Candidates" pra você Aceitar / Editar / Rejeitar cada proposta</span
+                  ><strong>M11 PR-E1 ✅</strong> — herança por papel: o prompt de um agente já
+                  recebe os skills/memórias do papel dele; e o agente pode pedir pra promover um
+                  skill privado pra toda a empresa (você revisa e aprova no inbox)</span
                 >
               </li>
               <li>
-                <span>Restante do M11: PR-E org learning · PR-F decay/trust + nudges + docs</span>
+                <span>Restante do M11: PR-E2 org learning · PR-F decay/trust + nudges + docs</span>
               </li>
             </ul>
-            <div class="eta">M11 ~10-14d · A-D entregues</div>
+            <div class="eta">M11 ~10-14d · A-D + E1 entregues</div>
           </div>
 
           <div class="card" data-kind="next">
             <div class="kicker">próximo</div>
-            <div class="title">M11 PR-E — org learning</div>
+            <div class="title">M11 PR-E2 — memória da empresa</div>
             <ul class="bullets">
               <li>
                 <span
-                  >Herança por role: ao contratar um agente ele já herda os skills e memórias
-                  marcados com o <code>applies_to_role</code> dele</span
+                  >Trigger <code>goal.achieved</code> → o sistema deriva uma
+                  <strong>retrospectiva</strong> e grava como memória da empresa</span
                 >
               </li>
               <li>
                 <span
-                  ><code>skill_promote</code> — promover um skill privado pra company-shared, com
-                  aprovação via inbox</span
+                  >Trigger <code>approval.rejected</code> → deriva uma
+                  <strong>preferência</strong> (o que o usuário não quer) como memória do
+                  agente</span
                 >
               </li>
               <li>
                 <span
-                  >Triggers <code>goal.achieved</code> / <code>approval.rejected</code> → derivam
-                  uma memória (retrospectiva / preferência)</span
+                  >Card "Org Learnings" no <code>/dashboard</code> — o que a empresa aprendeu</span
                 >
               </li>
               <li>
-                <span>Card "Org Learnings" no <code>/dashboard</code></span>
+                <span
+                  >Terminate-modal: ao encerrar um agente, oferecer "promover skills
+                  privados?"</span
+                >
               </li>
             </ul>
             <div class="eta">depois: PR-F decay/trust + Settings + nudges + docs · fecha o M11</div>
@@ -4135,8 +4138,15 @@
                     accept→skill real + resolve do inbox
                   </li>
                   <li>
-                    ⏳ <strong>PR-E</strong> — org learning (herança por role +
-                    <code>skill_promote</code>)
+                    ✅ <strong>PR-E1</strong> — herança por <code>applies_to_role</code> no system
+                    prompt + <code>skill_promote</code> MCP tool + inbox
+                    <code>skill_promotion_requested</code> + modal de aprovação
+                  </li>
+                  <li>
+                    ⏳ <strong>PR-E2</strong> — triggers <code>goal.achieved</code>/<code
+                      >approval.rejected</code
+                    >
+                    → memória + card "Org Learnings" + terminate-modal "promover skills?"
                   </li>
                   <li>
                     ⏳ <strong>PR-F</strong> — decay/trust + Settings + nudges fallback (adiado de

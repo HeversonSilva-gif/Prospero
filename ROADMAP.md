@@ -129,18 +129,18 @@
 ### ▸ Agora (estado em 2026-05-16)
 
 - **14 / 14 milestones do v1 fechados** — **v1 entregue em 2026-05-15**
-- **V2 em andamento:** M11 Agent Memory — PRs **A/B/C/D ✅** (motor de auto-derivação + UI de revisão dos candidates); **E/F pendentes**
-- **1108 testes passing + 2 todo** · 0 lint/typecheck errors
-- HEAD `main`: M11 PR-D2 (revisão dos candidates) mergeado (2026-05-16)
+- **V2 em andamento:** M11 Agent Memory — PRs **A/B/C/D ✅ + E1 ✅** (herança por role + `skill_promote`); **E2/F pendentes**
+- **1124 testes passing + 2 todo** · 0 lint/typecheck errors
+- HEAD `main`: M11 PR-E1 (herança por role + promoção de skill) mergeado (2026-05-16)
 
 ### ▸ Próximo
 
 | Candidato | Escopo | Por quê |
 |---|---|---|
-| 🥇 **M11 PR-E** | Org learning — herança por role + `skill_promote` + card "Org Learnings" + triggers `goal.achieved`/`approval.rejected` → memória | Fluxo bidirecional ascendente; conhecimento institucional transfere entre agentes. |
+| 🥇 **M11 PR-E2** | Triggers `goal.achieved`/`approval.rejected` → memória (retrospectiva/preferência) + card "Org Learnings" no dashboard + terminate-modal "promover skills?" | Fecha o fluxo ascendente de memória e dá visibilidade ao que a empresa aprendeu. |
 | 🥈 **M11 PR-F** | Decay/trust + Settings (`user.md` + budget) + **nudges fallback** + docs | Fecha o M11. Os nudges foram adiados de D2 — dependem de um evento de compaction que ainda não existe. |
 
-**Recomendação:** M11 PR-E (segue a ordem de dependência da spec).
+**Recomendação:** M11 PR-E2 (fecha o PR-E antes de seguir pra PR-F).
 
 ### ▸ Horizonte (v1 = M10 fechado · V2 começa em M11)
 
@@ -181,13 +181,13 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 |---|---|
 | Milestones fechados | M1–M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6**, **M9**, **M10** (14/14 do v1 ✅) |
 | Concluído | **v1 fechado** 2026-05-15 — **M10 — 5/5 PRs** ✅ (A wire protocol · B agent-runner + Docker image · C host adapter + MCP relay · D Settings + UX · E docs + roadmap). |
-| Testes | **1108 passing + 2 todo** (841 main + 67 shared + 50 agent-runner + 150 renderer), 0 lint/typecheck errors |
+| Testes | **1124 passing + 2 todo** (855 main + 68 shared + 50 agent-runner + 151 renderer), 0 lint/typecheck errors |
 | Commits no main | ~647 |
 | LoC (apps + packages) | ~23k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
 | Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** Próximo: M11 (V2 anchor). |
-| V2 anchor | **M11 Agent Memory & Learning Loop — em andamento** (~10-14 dias, **âncora V2**). PRs **A/B/C/D ✅** mergeados (capabilities rename · schema+repos+sanitizer · MCP tools + injeção + tab Learning · motor de auto-derivação + UI de revisão dos candidates); **E/F pendentes** (org learning · decay/trust + nudges + docs). Spec: `docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md`. 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). |
+| V2 anchor | **M11 Agent Memory & Learning Loop — em andamento** (~10-14 dias, **âncora V2**). PRs **A/B/C/D ✅ + E1 ✅** mergeados (capabilities rename · schema+repos+sanitizer · MCP tools + injeção + tab Learning · motor de auto-derivação + UI de revisão · herança por role + `skill_promote`); **E2/F pendentes** (org learning restante · decay/trust + nudges + docs). Spec: `docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md`. 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). |
 
 ---
 
@@ -824,7 +824,7 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
 
 ---
 
-### 🔄 M11 — Agent Memory & Learning Loop — **V2 anchor · em andamento (PRs A-D ✅, E-F pendentes)**
+### 🔄 M11 — Agent Memory & Learning Loop — **V2 anchor · em andamento (PRs A-D + E1 ✅, E2-F pendentes)**
 
 **Origem:** pesquisa Hermes Agent ([NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent), 2026-05-12). Doc completo em [docs/hermes-memory-learning-system.md](docs/hermes-memory-learning-system.md). Substitui o item v2+ "Memory / Knowledge base" por implementação concreta — **inspirada** no closed learning loop do Hermes mas com **3 inflexões deliberadas** que aproveitam vantagens estruturais do nosso codebase (Activity stream, Issues, Goals, CEO-planner).
 
@@ -834,10 +834,11 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
 
 #### 📊 Progresso (em andamento desde 2026-05-15)
 
-Decomposto em **6 PRs (A-F)** — o PR-D foi dividido em **D1** (motor de
-derivação) e **D2** (UI de revisão dos candidates) na execução; os **nudges**
-saíram de D2 pra PR-F (dependem de um evento de compaction inexistente). O
-texto de planejamento abaixo é o original; a
+Decomposto em **6 PRs (A-F)** — na execução o **PR-D** foi dividido em **D1**
+(motor de derivação) + **D2** (UI de revisão dos candidates), e o **PR-E** em
+**E1** (herança por role + `skill_promote`) + **E2** (triggers de memória + Org
+Learnings); os **nudges** saíram de D2 pra PR-F (dependem de um evento de
+compaction inexistente). O texto de planejamento abaixo é o original; a
 **spec reconciliada** ([docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md](docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md))
 é a fonte de verdade — corrigiu vários pontos do plano abaixo: migrations `0017`
 (rename) + `0018` (schema), **não** "M11-01"; filesystem em `userData/memory/`,
@@ -853,7 +854,8 @@ heurística NLP; novo evento `agent.recovered`.
 | **C** | 9 MCP tools de memory/skills + injeção no system prompt + rate limiter (backend `34b7d8c`) · tab "Learning" Skills/Memory/History + IPC handlers + badge no header (UI `074d366`) | ✅ 2026-05-15/16 |
 | **D1** | Motor de auto-derivação — evento `agent.recovered`, dispatcher nos 2 triggers (`issue.done`/`recovered`), runner `claude -p` headless (Sonnet), worker (cap 3/dia/agente via `cost_event`, sanitizer), grava `skill_candidate` + inbox `skill_candidate_pending` | ✅ 2026-05-16 |
 | **D2** | Sub-tab "Candidates" (Accept/Edit/Reject) + IPC + accept→skill real + resolve do inbox item | ✅ 2026-05-16 |
-| **E** | Org learning — herança por `applies_to_role` + `skill_promote` + card "Org Learnings" + triggers `goal.achieved`/`approval.rejected` → memória | ⏳ pendente |
+| **E1** | Herança por `applies_to_role` no system prompt (`buildMemoryBlock`) + `skill_promote` MCP tool + inbox `skill_promotion_requested` + modal de aprovação | ✅ 2026-05-16 |
+| **E2** | Triggers `goal.achieved`→retrospectiva / `approval.rejected`→preferência + inbox `goal_retrospective_ready` + card "Org Learnings" + terminate-modal "promover skills?" | ⏳ pendente |
 | **F** | Decay/trust + Settings (`user.md` + budget de derivação) + **nudges fallback** (turn-complete/time-based/compaction — adiado de D2) + docs | ⏳ pendente |
 
 #### 🔀 As 3 inflexões vs Hermes
