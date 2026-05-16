@@ -248,4 +248,23 @@ describe("i18n parity", () => {
       expect(enKeys).toContain(k);
     }
   });
+
+  it("includes the M11 PR-C learning keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "agent.tabs.learning",
+      "agent.learning.badgeTitle",
+      "agent.learning.subtabs.skills",
+      "agent.learning.subtabs.memory",
+      "agent.learning.subtabs.history",
+      "agent.learning.skills.empty",
+      "agent.learning.memory.empty",
+      "agent.learning.memory.kind.retrospective",
+      "agent.learning.history.prompt",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
 });

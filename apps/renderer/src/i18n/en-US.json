@@ -310,7 +310,39 @@
     "notFound": "Agent not found.",
     "tabs": {
       "chat": "Chat",
-      "delegations": "Delegations"
+      "delegations": "Delegations",
+      "learning": "Learning"
+    },
+    "learning": {
+      "badgeTitle": "This agent's skills and memory",
+      "subtabs": {
+        "skills": "Skills",
+        "memory": "Memory",
+        "history": "History"
+      },
+      "skills": {
+        "empty": "No skills yet.",
+        "shared": "Shared",
+        "usesTitle": "Times used",
+        "trustTitle": "Trust",
+        "bodyError": "Could not load the skill body."
+      },
+      "memory": {
+        "empty": "No memory yet.",
+        "kind": {
+          "identity": "Identity",
+          "rule": "Rule",
+          "preference": "Preference",
+          "retrospective": "Retrospective"
+        }
+      },
+      "history": {
+        "placeholder": "Search past conversations...",
+        "search": "Search",
+        "searching": "Searching...",
+        "prompt": "Search this agent's conversation history.",
+        "empty": "No results for that search."
+      }
     },
     "delegations": {
       "empty": "No delegations to other agents yet.",

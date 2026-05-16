@@ -310,7 +310,39 @@
     "notFound": "Agente não encontrado.",
     "tabs": {
       "chat": "Chat",
-      "delegations": "Delegações"
+      "delegations": "Delegações",
+      "learning": "Aprendizado"
+    },
+    "learning": {
+      "badgeTitle": "Skills e memória deste agente",
+      "subtabs": {
+        "skills": "Skills",
+        "memory": "Memória",
+        "history": "Histórico"
+      },
+      "skills": {
+        "empty": "Nenhum skill ainda.",
+        "shared": "Compartilhado",
+        "usesTitle": "Vezes usado",
+        "trustTitle": "Confiança",
+        "bodyError": "Não foi possível carregar o corpo do skill."
+      },
+      "memory": {
+        "empty": "Nenhuma memória ainda.",
+        "kind": {
+          "identity": "Identidade",
+          "rule": "Regra",
+          "preference": "Preferência",
+          "retrospective": "Retrospectiva"
+        }
+      },
+      "history": {
+        "placeholder": "Buscar nas conversas passadas...",
+        "search": "Buscar",
+        "searching": "Buscando...",
+        "prompt": "Busque no histórico de conversas deste agente.",
+        "empty": "Nenhum resultado para essa busca."
+      }
     },
     "delegations": {
       "empty": "Sem delegações para outros agentes ainda.",
