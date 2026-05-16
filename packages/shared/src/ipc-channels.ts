@@ -91,6 +91,10 @@ export const IPC = {
   SETTINGS_GET_EXECUTOR_MODE: "settings:get-executor-mode",
   SETTINGS_SET_EXECUTOR_MODE: "settings:set-executor-mode",
   REMOTE_TEST_CONNECTION: "remote:test-connection",
+  SKILLS_LIST_FOR_AGENT: "skills:list-for-agent",
+  SKILLS_READ_BODY: "skills:read-body",
+  MEMORIES_LIST_FOR_AGENT: "memories:list-for-agent",
+  SESSION_SEARCH: "session:search",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

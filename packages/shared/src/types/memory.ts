@@ -64,3 +64,13 @@ export type SkillCandidate = {
   rejectReason: string | null;
   createdAt: number;
 };
+
+// A single full-text match from session_search — one past message the agent
+// participated in. Returned by the learning IPC + the session_search MCP tool.
+export type SessionSearchHit = {
+  messageId: string;
+  content: string;
+  createdAt: number;
+  senderKind: string;
+  senderId: string | null;
+};

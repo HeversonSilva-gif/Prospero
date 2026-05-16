@@ -24,4 +24,11 @@ describe("IPC channels", () => {
     expect(IPC.AGENTS_SET_REPORTS_TO).toBe("agents:set-reports-to");
     expect(IPC.AGENTS_STATS).toBe("agents:stats");
   });
+
+  it("exposes the M11 learning channels", () => {
+    expect(IPC.SKILLS_LIST_FOR_AGENT).toBe("skills:list-for-agent");
+    expect(IPC.SKILLS_READ_BODY).toBe("skills:read-body");
+    expect(IPC.MEMORIES_LIST_FOR_AGENT).toBe("memories:list-for-agent");
+    expect(IPC.SESSION_SEARCH).toBe("session:search");
+  });
 });
