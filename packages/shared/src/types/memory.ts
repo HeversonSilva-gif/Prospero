@@ -1,3 +1,5 @@
+import type { SenderKind } from "./message.js";
+
 // M11 procedural knowledge doc. The body lives on disk as a SKILL.md file
 // (body_path); only the L0 description is injected into the system prompt.
 export type SkillSource =
@@ -66,11 +68,11 @@ export type SkillCandidate = {
 };
 
 // A single full-text match from session_search — one past message the agent
-// participated in. Returned by the learning IPC + the session_search MCP tool.
+// participated in. Returned by the learning IPC (session:search).
 export type SessionSearchHit = {
   messageId: string;
   content: string;
   createdAt: number;
-  senderKind: string;
+  senderKind: SenderKind;
   senderId: string | null;
 };
