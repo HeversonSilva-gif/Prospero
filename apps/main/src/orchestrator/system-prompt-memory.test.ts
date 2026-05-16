@@ -164,3 +164,53 @@ describe("buildMemoryBlock — role inheritance", () => {
     expect(buildMemoryBlock(deps(s, "engineer")) ?? "").toContain("ENG-ROLE-MEMORY");
   });
 });
+
+describe("buildMemoryBlock — L0 trust filter", () => {
+  it("excludes skills and memories with trust below 0.2 from the L0 block", () => {
+    const s = setup();
+
+    // Trusted skill (trust 0.5, default) — must appear.
+    s.skillsRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "trusted-skill",
+      bodyPath: "p",
+      description: "trusted skill desc",
+      source: "user_authored",
+    });
+
+    // Distrusted skill (trust 0.1) — must NOT appear.
+    s.skillsRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "distrusted-skill",
+      bodyPath: "p",
+      description: "distrusted skill desc",
+      source: "user_authored",
+      trust: 0.1,
+    });
+
+    // Trusted memory (trust 0.5, default) — must appear.
+    s.memoriesRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      kind: "rule",
+      body: "trusted memory body",
+    });
+
+    // Distrusted memory (trust 0.1) — must NOT appear.
+    s.memoriesRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      kind: "rule",
+      body: "distrusted memory body",
+      trust: 0.1,
+    });
+
+    const block = buildMemoryBlock(deps(s)) ?? "";
+    expect(block).toContain("trusted-skill");
+    expect(block).not.toContain("distrusted-skill");
+    expect(block).toContain("trusted memory body");
+    expect(block).not.toContain("distrusted memory body");
+  });
+});

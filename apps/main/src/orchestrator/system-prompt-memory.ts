@@ -10,6 +10,10 @@ const COMPANY_CAP = 1536;
 const AGENT_CAP = 1024;
 const SKILLS_CAP = 4096;
 
+// M11 PR-F1: entries below this trust drop out of the L0 prompt budget.
+// They remain reachable on-demand via skill_read / memory_search.
+const MIN_L0_TRUST = 0.2;
+
 export type BuildMemoryBlockDeps = {
   memoriesRepo: MemoriesRepository;
   skillsRepo: SkillsRepository;
@@ -23,6 +27,7 @@ export type BuildMemoryBlockDeps = {
 const renderMemories = (rows: Memory[], cap: number): string => {
   let out = "";
   for (const m of rows) {
+    if (m.trust < MIN_L0_TRUST) continue;
     const line = `- ${m.body.trim()}\n`;
     if (out.length + line.length > cap) break;
     out += line;
@@ -32,9 +37,9 @@ const renderMemories = (rows: Memory[], cap: number): string => {
 
 // Renders skill L0 (name + description), highest use_count / trust first.
 const renderSkills = (skills: Skill[], cap: number): string => {
-  const sorted = [...skills].sort(
-    (a, b) => b.useCount - a.useCount || b.trust - a.trust || a.name.localeCompare(b.name),
-  );
+  const sorted = [...skills]
+    .filter((s) => s.trust >= MIN_L0_TRUST)
+    .sort((a, b) => b.useCount - a.useCount || b.trust - a.trust || a.name.localeCompare(b.name));
   let out = "";
   for (const s of sorted) {
     const line = `- ${s.name}: ${s.description.trim()}\n`;
