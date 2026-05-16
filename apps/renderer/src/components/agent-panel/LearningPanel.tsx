@@ -1,6 +1,6 @@
-import { useState, type FC } from "react";
+import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Skill, Memory, SessionSearchHit } from "@prospero/shared";
+import type { Skill, Memory, SessionSearchHit, SkillCandidate } from "@prospero/shared";
 
 interface Props {
   agentId: string;
@@ -8,9 +8,9 @@ interface Props {
   memories: Memory[];
 }
 
-type SubTab = "skills" | "memory" | "history";
+type SubTab = "skills" | "memory" | "history" | "candidates";
 
-const SUB_TABS: SubTab[] = ["skills", "memory", "history"];
+const SUB_TABS: SubTab[] = ["skills", "memory", "history", "candidates"];
 
 export const LearningPanel: FC<Props> = ({ agentId, skills, memories }) => {
   const { t } = useTranslation();
@@ -38,6 +38,7 @@ export const LearningPanel: FC<Props> = ({ agentId, skills, memories }) => {
         {sub === "skills" && <SkillsView skills={skills} />}
         {sub === "memory" && <MemoryView memories={memories} />}
         {sub === "history" && <HistoryView agentId={agentId} />}
+        {sub === "candidates" && <CandidatesView agentId={agentId} />}
       </div>
     </div>
   );
@@ -219,5 +220,182 @@ const HistoryView: FC<{ agentId: string }> = ({ agentId }) => {
         )}
       </div>
     </div>
+  );
+};
+
+// --- Candidates -----------------------------------------------------------
+
+const CandidatesView: FC<{ agentId: string }> = ({ agentId }) => {
+  const { t } = useTranslation();
+  const [candidates, setCandidates] = useState<SkillCandidate[] | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [errorId, setErrorId] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState("");
+  const [draftDesc, setDraftDesc] = useState("");
+  const [draftBody, setDraftBody] = useState("");
+
+  useEffect(() => {
+    void (async () => {
+      const list = await window.prospero.learning.listCandidates(agentId);
+      setCandidates(list);
+    })();
+  }, [agentId]);
+
+  const remove = (id: string): void => {
+    setCandidates((cur) => (cur ?? []).filter((c) => c.id !== id));
+    if (editingId === id) setEditingId(null);
+  };
+
+  const accept = (
+    c: SkillCandidate,
+    overrides?: { name: string; description: string; body: string },
+  ): void => {
+    setBusyId(c.id);
+    setErrorId(null);
+    void (async () => {
+      try {
+        await window.prospero.learning.acceptCandidate({
+          candidateId: c.id,
+          ...(overrides ?? {}),
+        });
+        remove(c.id);
+      } catch {
+        setErrorId(c.id);
+      } finally {
+        setBusyId(null);
+      }
+    })();
+  };
+
+  const reject = (c: SkillCandidate): void => {
+    setBusyId(c.id);
+    setErrorId(null);
+    void (async () => {
+      try {
+        await window.prospero.learning.rejectCandidate({ candidateId: c.id });
+        remove(c.id);
+      } catch {
+        setErrorId(c.id);
+      } finally {
+        setBusyId(null);
+      }
+    })();
+  };
+
+  const startEdit = (c: SkillCandidate): void => {
+    setEditingId(c.id);
+    setErrorId(null);
+    setDraftName(c.proposedName);
+    setDraftDesc(c.proposedDescription);
+    setDraftBody(c.proposedBody);
+  };
+
+  if (candidates === null) {
+    return <div className="flex h-full items-center justify-center text-sm text-ink-muted">…</div>;
+  }
+  if (candidates.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-ink-muted">
+        {t("agent.learning.candidates.empty")}
+      </div>
+    );
+  }
+
+  return (
+    <ul className="divide-y divide-surface-border">
+      {candidates.map((c) => (
+        <li key={c.id} className="px-6 py-3">
+          {editingId === c.id ? (
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                placeholder={t("agent.learning.candidates.nameLabel")}
+                className="text-sm px-2.5 py-1.5 bg-surface-soft border border-surface-border rounded"
+              />
+              <input
+                type="text"
+                value={draftDesc}
+                onChange={(e) => setDraftDesc(e.target.value)}
+                placeholder={t("agent.learning.candidates.descriptionLabel")}
+                className="text-sm px-2.5 py-1.5 bg-surface-soft border border-surface-border rounded"
+              />
+              <textarea
+                value={draftBody}
+                onChange={(e) => setDraftBody(e.target.value)}
+                placeholder={t("agent.learning.candidates.bodyLabel")}
+                rows={6}
+                className="text-xs font-mono px-2.5 py-1.5 bg-surface-soft border border-surface-border rounded"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={busyId === c.id}
+                  onClick={() =>
+                    accept(c, { name: draftName, description: draftDesc, body: draftBody })
+                  }
+                  className="text-xs px-3 py-1.5 bg-brand text-brand-fg rounded disabled:opacity-50"
+                >
+                  {t("agent.learning.candidates.save")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingId(null)}
+                  className="text-xs px-3 py-1.5 bg-surface-soft text-ink-muted rounded"
+                >
+                  {t("agent.learning.candidates.cancel")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-ink">{c.proposedName}</span>
+                <span className="text-[10px] px-1.5 py-0.5 bg-surface-soft rounded text-ink-muted">
+                  {t(`agent.learning.candidates.trigger.${c.trigger}`)}
+                </span>
+              </div>
+              <p className="text-xs text-ink-muted mt-0.5">{c.proposedDescription}</p>
+              <pre className="mt-1.5 text-xs text-ink-muted whitespace-pre-wrap font-mono">
+                {c.proposedBody}
+              </pre>
+              {errorId === c.id && (
+                <p className="text-xs text-semantic-danger mt-1">
+                  {t("agent.learning.candidates.error")}
+                </p>
+              )}
+              <div className="flex gap-2 mt-2">
+                <button
+                  type="button"
+                  disabled={busyId === c.id}
+                  onClick={() => accept(c)}
+                  className="text-xs px-3 py-1.5 bg-brand text-brand-fg rounded disabled:opacity-50"
+                >
+                  {t("agent.learning.candidates.accept")}
+                </button>
+                <button
+                  type="button"
+                  disabled={busyId === c.id}
+                  onClick={() => startEdit(c)}
+                  className="text-xs px-3 py-1.5 bg-surface-soft text-ink-muted rounded hover:bg-surface-border disabled:opacity-50"
+                >
+                  {t("agent.learning.candidates.edit")}
+                </button>
+                <button
+                  type="button"
+                  disabled={busyId === c.id}
+                  onClick={() => reject(c)}
+                  className="text-xs px-3 py-1.5 bg-surface-soft text-ink-muted rounded hover:bg-surface-border disabled:opacity-50"
+                >
+                  {t("agent.learning.candidates.reject")}
+                </button>
+              </div>
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 };
