@@ -342,12 +342,20 @@ const CandidatesView: FC<{ agentId: string }> = ({ agentId }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setEditingId(null)}
+                  onClick={() => {
+                    setEditingId(null);
+                    setErrorId(null);
+                  }}
                   className="text-xs px-3 py-1.5 bg-surface-soft text-ink-muted rounded"
                 >
                   {t("agent.learning.candidates.cancel")}
                 </button>
               </div>
+              {errorId === c.id && (
+                <p className="text-xs text-semantic-danger">
+                  {t("agent.learning.candidates.error")}
+                </p>
+              )}
             </div>
           ) : (
             <div>
