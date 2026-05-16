@@ -15,6 +15,8 @@ const newDb = (): Database.Database => {
   return db;
 };
 
+const seed = newDb;
+
 describe("skillsRepository", () => {
   let db: Database.Database;
   beforeEach(() => {
@@ -141,5 +143,65 @@ describe("skillsRepository", () => {
         source: "user_authored",
       }),
     ).not.toThrow();
+  });
+});
+
+describe("skills-repository listCompanyGlobal + promote", () => {
+  it("listCompanyGlobal returns only role-unscoped company-shared skills", () => {
+    const db = seed();
+    const skills = createSkillsRepository(db);
+    skills.create({
+      companyId: "c1",
+      agentId: null,
+      name: "global-skill",
+      bodyPath: "p1",
+      description: "everyone",
+      source: "user_authored",
+    });
+    skills.create({
+      companyId: "c1",
+      agentId: null,
+      name: "eng-skill",
+      bodyPath: "p2",
+      description: "engineers",
+      source: "user_authored",
+      appliesToRole: "engineer",
+    });
+    expect(skills.listCompanyGlobal("c1").map((s) => s.name)).toEqual(["global-skill"]);
+  });
+
+  it("promote flips a private skill to company-shared with a role", () => {
+    const db = seed();
+    const skills = createSkillsRepository(db);
+    const created = skills.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "deploy",
+      bodyPath: "p",
+      description: "d",
+      source: "agent_created",
+    });
+    const promoted = skills.promote(created.id, "engineer");
+    expect(promoted.agentId).toBeNull();
+    expect(promoted.promoted).toBe(true);
+    expect(promoted.appliesToRole).toBe("engineer");
+    expect(skills.listByAgent("a1")).toHaveLength(0);
+    expect(skills.listForRole("c1", "engineer").map((s) => s.name)).toEqual(["deploy"]);
+  });
+
+  it("promote with a null role makes the skill company-global", () => {
+    const db = seed();
+    const skills = createSkillsRepository(db);
+    const created = skills.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "x",
+      bodyPath: "p",
+      description: "d",
+      source: "agent_created",
+    });
+    const promoted = skills.promote(created.id, null);
+    expect(promoted.appliesToRole).toBeNull();
+    expect(skills.listCompanyGlobal("c1").map((s) => s.name)).toEqual(["x"]);
   });
 });

@@ -67,6 +67,7 @@ export type MemoriesRepository = {
   listByAgent(agentId: string): Memory[];
   listCompanyWide(companyId: string): Memory[];
   listForRole(companyId: string, role: string): Memory[];
+  listCompanyGlobal(companyId: string): Memory[];
   update(id: string, patch: UpdateMemoryPatch): Memory;
   softDelete(id: string): void;
   search(query: string, opts?: MemorySearchOptions): Memory[];
@@ -93,6 +94,9 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
   );
   const forRole = db.prepare(
     "SELECT * FROM memories WHERE company_id = ? AND agent_id IS NULL AND applies_to_role = ? AND soft_deleted = 0 ORDER BY importance DESC, created_at DESC",
+  );
+  const companyGlobal = db.prepare(
+    "SELECT * FROM memories WHERE company_id = ? AND agent_id IS NULL AND applies_to_role IS NULL AND soft_deleted = 0 ORDER BY importance DESC, created_at DESC",
   );
   const updateStmt = db.prepare(
     "UPDATE memories SET body = ?, importance = ?, trust = ?, pinned = ? WHERE id = ?",
@@ -136,6 +140,9 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
     },
     listForRole(companyId, role) {
       return (forRole.all(companyId, role) as MemoryRow[]).map(rowToMemory);
+    },
+    listCompanyGlobal(companyId) {
+      return (companyGlobal.all(companyId) as MemoryRow[]).map(rowToMemory);
     },
     update(id, patch) {
       const existing = byId.get(id) as MemoryRow | undefined;

@@ -63,6 +63,8 @@ export type SkillsRepository = {
   listByAgent(agentId: string): Skill[];
   listCompanyShared(companyId: string): Skill[];
   listForRole(companyId: string, role: string): Skill[];
+  listCompanyGlobal(companyId: string): Skill[];
+  promote(id: string, appliesToRole: string | null): Skill;
   update(id: string, patch: UpdateSkillPatch): Skill;
   recordUse(id: string): void;
   softDelete(id: string): void;
@@ -91,6 +93,12 @@ export const createSkillsRepository = (db: Database.Database): SkillsRepository 
   );
   const forRole = db.prepare(
     "SELECT * FROM skills WHERE company_id = ? AND agent_id IS NULL AND applies_to_role = ? AND soft_deleted = 0 ORDER BY use_count DESC, created_at DESC",
+  );
+  const companyGlobal = db.prepare(
+    "SELECT * FROM skills WHERE company_id = ? AND agent_id IS NULL AND applies_to_role IS NULL AND soft_deleted = 0 ORDER BY use_count DESC, created_at DESC",
+  );
+  const promoteStmt = db.prepare(
+    "UPDATE skills SET agent_id = NULL, promoted = 1, applies_to_role = ? WHERE id = ?",
   );
   const updateStmt = db.prepare(
     "UPDATE skills SET body_path = ?, description = ?, trust = ?, promoted = ?, version = version + 1 WHERE id = ?",
@@ -135,6 +143,16 @@ export const createSkillsRepository = (db: Database.Database): SkillsRepository 
     },
     listForRole(companyId, role) {
       return (forRole.all(companyId, role) as SkillRow[]).map(rowToSkill);
+    },
+    listCompanyGlobal(companyId) {
+      return (companyGlobal.all(companyId) as SkillRow[]).map(rowToSkill);
+    },
+    promote(id, appliesToRole) {
+      if ((byId.get(id) as SkillRow | undefined) === undefined) {
+        throw new Error(`skill not found: ${id}`);
+      }
+      promoteStmt.run(appliesToRole, id);
+      return getById(id)!;
     },
     update(id, patch) {
       const existing = byId.get(id) as SkillRow | undefined;
