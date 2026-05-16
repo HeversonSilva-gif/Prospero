@@ -1,18 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { Message, PermissionRequest, PermissionResolution } from "@prospero/shared";
+import type {
+  Message,
+  PermissionRequest,
+  PermissionResolution,
+  Skill,
+  Memory,
+} from "@prospero/shared";
 import { useAgentsStore } from "../stores/agents.js";
 import { ApprovalCard } from "../components/ApprovalCard.js";
 import { MessageList } from "../components/MessageList.js";
 import { DelegationsPanel } from "../components/DelegationsPanel.js";
+import { LearningPanel } from "../components/agent-panel/LearningPanel.js";
 import { Composer } from "../components/Composer.js";
 import { AgentConfigPanel } from "../components/agent-panel/AgentConfigPanel.js";
 import { AgentHeader } from "../components/agent-panel/AgentHeader.js";
 import { RunsModal } from "../components/agent-panel/RunsModal.js";
 import { IssueFormModal } from "../components/issues/IssueFormModal.js";
 
-type Tab = "chat" | "delegations";
+type Tab = "chat" | "delegations" | "learning";
 
 export const Agent = () => {
   const { t } = useTranslation();
@@ -20,6 +27,8 @@ export const Agent = () => {
   const agent = useAgentsStore((s) => s.agents.find((a) => a.id === agentId));
   const agents = useAgentsStore((s) => s.agents);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [memories, setMemories] = useState<Memory[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<PermissionRequest[]>([]);
   const [tab, setTab] = useState<Tab>("chat");
   const [showAssignTask, setShowAssignTask] = useState(false);
@@ -33,6 +42,20 @@ export const Agent = () => {
       setMessages(all);
     })();
   }, [agent]);
+
+  // Load the agent's M11 skills + memory entries. Re-fetched whenever the
+  // Learning tab is (re-)opened so it reflects what the agent has captured.
+  useEffect(() => {
+    if (agent === undefined) return;
+    void (async () => {
+      const [s, m] = await Promise.all([
+        window.prospero.learning.listSkills(agent.id),
+        window.prospero.learning.listMemories(agent.id),
+      ]);
+      setSkills(s);
+      setMemories(m);
+    })();
+  }, [agent, tab]);
 
   // Subscribe to agent events and refetch messages on new message-append
   useEffect(() => {
@@ -98,6 +121,9 @@ export const Agent = () => {
           agent={agent}
           onAssignTask={() => setShowAssignTask(true)}
           onOpenRuns={() => setShowRuns(true)}
+          skillCount={skills.length}
+          memoryCount={memories.length}
+          onOpenLearning={() => setTab("learning")}
         />
         <div className="flex border-b border-surface-border px-6">
           <button
@@ -127,15 +153,28 @@ export const Agent = () => {
               </span>
             )}
           </button>
+          <button
+            type="button"
+            onClick={() => setTab("learning")}
+            className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px ${
+              tab === "learning"
+                ? "border-brand text-brand"
+                : "border-transparent text-ink-muted hover:text-ink"
+            }`}
+          >
+            {t("agent.tabs.learning")}
+          </button>
         </div>
-        {tab === "chat" ? (
-          <MessageList messages={chatMessages} agents={agents} />
-        ) : (
+        {tab === "chat" && <MessageList messages={chatMessages} agents={agents} />}
+        {tab === "delegations" && (
           <DelegationsPanel
             messages={delegationMessages}
             currentAgentId={agent.id}
             agents={agents}
           />
+        )}
+        {tab === "learning" && (
+          <LearningPanel agentId={agent.id} skills={skills} memories={memories} />
         )}
         {pendingApprovals.map((req) => (
           <ApprovalCard

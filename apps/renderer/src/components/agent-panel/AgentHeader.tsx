@@ -19,9 +19,19 @@ interface Props {
   agent: Agent;
   onAssignTask: () => void;
   onOpenRuns: () => void;
+  skillCount: number;
+  memoryCount: number;
+  onOpenLearning: () => void;
 }
 
-export const AgentHeader: FC<Props> = ({ agent, onAssignTask, onOpenRuns }) => {
+export const AgentHeader: FC<Props> = ({
+  agent,
+  onAssignTask,
+  onOpenRuns,
+  skillCount,
+  memoryCount,
+  onOpenLearning,
+}) => {
   const { t } = useTranslation();
   const pause = useAgentsStore((s) => s.pause);
   const resume = useAgentsStore((s) => s.resume);
@@ -48,6 +58,14 @@ export const AgentHeader: FC<Props> = ({ agent, onAssignTask, onOpenRuns }) => {
       <span className="text-[10px] px-1.5 py-0.5 bg-surface-soft rounded text-ink-muted">
         {agent.role}
       </span>
+      <button
+        type="button"
+        onClick={onOpenLearning}
+        title={t("agent.learning.badgeTitle")}
+        className="text-[10px] px-1.5 py-0.5 bg-surface-soft rounded text-ink-muted hover:bg-surface-border"
+      >
+        🎓 {skillCount} · {memoryCount}
+      </button>
       {agent.currentAction !== null && agent.currentAction !== "" && (
         <span className="text-xs italic text-ink-soft truncate flex-1">{agent.currentAction}</span>
       )}
