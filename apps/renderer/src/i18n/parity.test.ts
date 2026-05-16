@@ -267,4 +267,24 @@ describe("i18n parity", () => {
       expect(enKeys).toContain(k);
     }
   });
+
+  it("includes the M11 PR-D2 candidates keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "agent.learning.subtabs.candidates",
+      "agent.learning.candidates.empty",
+      "agent.learning.candidates.accept",
+      "agent.learning.candidates.edit",
+      "agent.learning.candidates.reject",
+      "agent.learning.candidates.save",
+      "agent.learning.candidates.cancel",
+      "agent.learning.candidates.error",
+      "agent.learning.candidates.trigger.issue_done",
+      "agent.learning.candidates.trigger.recovery",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
 });

@@ -318,7 +318,8 @@
       "subtabs": {
         "skills": "Skills",
         "memory": "Memory",
-        "history": "History"
+        "history": "History",
+        "candidates": "Candidates"
       },
       "skills": {
         "empty": "No skills yet.",
@@ -342,6 +343,22 @@
         "searching": "Searching...",
         "prompt": "Search this agent's conversation history.",
         "empty": "No results for that search."
+      },
+      "candidates": {
+        "empty": "No skill candidates right now.",
+        "accept": "Accept",
+        "edit": "Edit",
+        "reject": "Reject",
+        "save": "Save & accept",
+        "cancel": "Cancel",
+        "nameLabel": "Name",
+        "descriptionLabel": "Description",
+        "bodyLabel": "Body (markdown)",
+        "error": "Could not process — a skill with that name may already exist. Edit the name and retry.",
+        "trigger": {
+          "issue_done": "From a completed issue",
+          "recovery": "From an error recovery"
+        }
       }
     },
     "delegations": {

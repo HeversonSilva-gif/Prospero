@@ -318,7 +318,8 @@
       "subtabs": {
         "skills": "Skills",
         "memory": "Memória",
-        "history": "Histórico"
+        "history": "Histórico",
+        "candidates": "Candidatos"
       },
       "skills": {
         "empty": "Nenhum skill ainda.",
@@ -342,6 +343,22 @@
         "searching": "Buscando...",
         "prompt": "Busque no histórico de conversas deste agente.",
         "empty": "Nenhum resultado para essa busca."
+      },
+      "candidates": {
+        "empty": "Nenhum candidato a skill no momento.",
+        "accept": "Aceitar",
+        "edit": "Editar",
+        "reject": "Rejeitar",
+        "save": "Salvar e aceitar",
+        "cancel": "Cancelar",
+        "nameLabel": "Nome",
+        "descriptionLabel": "Descrição",
+        "bodyLabel": "Corpo (markdown)",
+        "error": "Não foi possível processar — talvez já exista um skill com esse nome. Edite o nome e tente de novo.",
+        "trigger": {
+          "issue_done": "De um issue concluído",
+          "recovery": "De uma recuperação de erro"
+        }
       }
     },
     "delegations": {
