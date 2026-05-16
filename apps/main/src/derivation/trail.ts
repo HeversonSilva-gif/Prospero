@@ -71,3 +71,48 @@ export const buildRecoveryTrail = (
     messages: rows.reverse().map((m) => ({ sender: m.sender_kind, content: m.content })),
   };
 };
+
+export type GoalTrail = {
+  title: string;
+  description: string;
+  successCriteria: string;
+  issues: Array<{ title: string; status: string }>;
+};
+
+type GoalRow = { title: string; description: string | null; success_criteria: string | null };
+type GoalIssueRow = { title: string; status: string };
+
+// Assembles the trail for a `goal.achieved` retrospective: the goal plus the
+// issues that were created under it. Returns null if the goal is gone.
+export const buildGoalTrail = (db: Database.Database, goalId: string): GoalTrail | null => {
+  const goal = db
+    .prepare("SELECT title, description, success_criteria FROM goals WHERE id = ?")
+    .get(goalId) as GoalRow | undefined;
+  if (goal === undefined) return null;
+  const issues = db
+    .prepare("SELECT title, status FROM issues WHERE goal_id = ? ORDER BY created_at ASC")
+    .all(goalId) as GoalIssueRow[];
+  return {
+    title: goal.title,
+    description: goal.description ?? "",
+    successCriteria: goal.success_criteria ?? "",
+    issues,
+  };
+};
+
+export type ApprovalTrail = { kind: string; payloadJson: string; note: string };
+
+type ApprovalRow = { kind: string; payload_json: string; decision_note: string | null };
+
+// Assembles the trail for an `approval.rejected` preference derivation: what
+// the agent asked to do and why the user said no. Returns null if gone.
+export const buildApprovalTrail = (
+  db: Database.Database,
+  approvalId: string,
+): ApprovalTrail | null => {
+  const a = db
+    .prepare("SELECT kind, payload_json, decision_note FROM approvals WHERE id = ?")
+    .get(approvalId) as ApprovalRow | undefined;
+  if (a === undefined) return null;
+  return { kind: a.kind, payloadJson: a.payload_json, note: a.decision_note ?? "" };
+};

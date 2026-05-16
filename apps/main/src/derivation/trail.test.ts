@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations } from "../db/migrations.js";
-import { buildIssueTrail, buildRecoveryTrail } from "./trail.js";
+import {
+  buildIssueTrail,
+  buildRecoveryTrail,
+  buildGoalTrail,
+  buildApprovalTrail,
+} from "./trail.js";
 import { buildIssuePrompt, buildRecoveryPrompt } from "./prompts.js";
 
 const seed = (): Database.Database => {
@@ -59,6 +64,60 @@ describe("buildRecoveryTrail", () => {
 
   it("returns null for an unknown agent", () => {
     expect(buildRecoveryTrail(seed(), "nope", 10)).toBeNull();
+  });
+});
+
+describe("buildGoalTrail", () => {
+  it("returns the goal with its issues", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','Acme',0)").run();
+    db.prepare(
+      `INSERT INTO goals (id, company_id, title, description, level, status, success_criteria, created_at, updated_at)
+       VALUES ('g1','c1','Ship the redis fix','make it reliable','task','achieved','no flakes',0,0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO issues (id, company_id, title, description, status, priority, goal_id, created_at, updated_at)
+       VALUES ('i1','c1','Raise the pool','d','done','high','g1',0,0),
+              ('i2','c1','Add a retry','d','done','medium','g1',0,0)`,
+    ).run();
+    const trail = buildGoalTrail(db, "g1");
+    expect(trail?.title).toBe("Ship the redis fix");
+    expect(trail?.successCriteria).toBe("no flakes");
+    expect(trail?.issues.map((i) => i.title)).toEqual(["Raise the pool", "Add a retry"]);
+  });
+
+  it("returns null for an unknown goal", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    expect(buildGoalTrail(db, "nope")).toBeNull();
+  });
+});
+
+describe("buildApprovalTrail", () => {
+  it("returns the approval kind, payload, and the user's rejection note", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','Acme',0)").run();
+    db.prepare(
+      `INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json,
+         allowed_projects_json, mode, always_on, status, created_at, updated_at)
+       VALUES ('a1','c1','Eng','engineer','sp','[]','[]','supervised',0,'idle',0,0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO approvals (id, agent_id, kind, payload_json, status, decided_by, decision_note, created_at, resolved_at)
+       VALUES ('ap1','a1','tool_call','{"tool":"Bash"}','rejected','user','do not force-push',0,0)`,
+    ).run();
+    const trail = buildApprovalTrail(db, "ap1");
+    expect(trail?.kind).toBe("tool_call");
+    expect(trail?.payloadJson).toBe('{"tool":"Bash"}');
+    expect(trail?.note).toBe("do not force-push");
+  });
+
+  it("returns null for an unknown approval", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    expect(buildApprovalTrail(db, "nope")).toBeNull();
   });
 });
 
