@@ -24,8 +24,12 @@ export const SkillPromotionModal: FC<Props> = ({ skillId, onClose, onApproved })
       } catch {
         setBody("");
       }
-      const roleTemplates = await window.prospero.roles.list();
-      setRoles(roleTemplates.map((r) => r.id));
+      try {
+        const roleTemplates = await window.prospero.roles.list();
+        setRoles(roleTemplates.map((r) => r.id));
+      } catch {
+        setRoles([]);
+      }
     })();
   }, [skillId]);
 
