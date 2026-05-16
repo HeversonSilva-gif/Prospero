@@ -36,6 +36,7 @@ export const useSettingsStore = create<State>((set, get) => ({
     authMode: "oauth",
     defaultAgentMode: "supervised",
     defaultAlwaysOn: false,
+    derivationsPerDayPerAgent: 3,
     remoteExecution: {
       enabled: false,
       mode: "local-docker",

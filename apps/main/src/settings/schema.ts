@@ -15,8 +15,8 @@ export const RemoteExecutionSettingsSchema = z.object({
 });
 
 export const AppSettingsSchema = z.object({
-  language: z.enum(["pt-BR", "en-US"]),
-  theme: z.enum(["light", "dark"]),
+  language: z.enum(["pt-BR", "en-US"]).default("pt-BR"),
+  theme: z.enum(["light", "dark"]).default("light"),
   workspaceCwd: z.string().nullable().default(null),
   defaultModelForNewAgents: z.string().regex(MODEL_ID_REGEX).default(DEFAULT_CLAUDE_MODEL),
   executorMode: z.enum(["atomic", "narrated"]).default("atomic"),
@@ -24,6 +24,7 @@ export const AppSettingsSchema = z.object({
   authMode: z.enum(["oauth", "api-key"]).default("oauth"),
   defaultAgentMode: z.enum(["supervised", "auto"]).default("supervised"),
   defaultAlwaysOn: z.boolean().default(false),
+  derivationsPerDayPerAgent: z.number().int().min(0).default(3),
   remoteExecution: RemoteExecutionSettingsSchema.default({
     enabled: false,
     mode: "local-docker",
@@ -59,6 +60,9 @@ export const parseSettings = (raw: unknown): AppSettings => {
   }
   if (result.data.defaultAlwaysOn !== undefined) {
     merged.defaultAlwaysOn = result.data.defaultAlwaysOn;
+  }
+  if (result.data.derivationsPerDayPerAgent !== undefined) {
+    merged.derivationsPerDayPerAgent = result.data.derivationsPerDayPerAgent;
   }
   if (result.data.remoteExecution !== undefined) {
     merged.remoteExecution = result.data.remoteExecution;

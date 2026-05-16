@@ -43,6 +43,7 @@ export type AppSettings = {
   authMode: AuthMode;
   defaultAgentMode: AgentMode;
   defaultAlwaysOn: boolean;
+  derivationsPerDayPerAgent: number;
   remoteExecution: RemoteExecutionSettings;
 };
 
@@ -56,6 +57,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   authMode: "oauth",
   defaultAgentMode: "supervised",
   defaultAlwaysOn: false,
+  derivationsPerDayPerAgent: 3,
   remoteExecution: {
     enabled: false,
     mode: "local-docker",

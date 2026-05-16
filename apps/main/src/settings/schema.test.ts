@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSettings } from "./schema.js";
+import { AppSettingsSchema, parseSettings } from "./schema.js";
 
 describe("parseSettings activeCompanyId", () => {
   it("defaults to null when absent", () => {
@@ -53,6 +53,22 @@ describe("parseSettings defaultAlwaysOn", () => {
 
   it("preserves true", () => {
     expect(parseSettings({ defaultAlwaysOn: true }).defaultAlwaysOn).toBe(true);
+  });
+});
+
+describe("AppSettingsSchema", () => {
+  it("defaults derivationsPerDayPerAgent to 3", () => {
+    const parsed = AppSettingsSchema.parse({});
+    expect(parsed.derivationsPerDayPerAgent).toBe(3);
+  });
+
+  it("accepts an explicit derivationsPerDayPerAgent", () => {
+    const parsed = AppSettingsSchema.parse({ derivationsPerDayPerAgent: 5 });
+    expect(parsed.derivationsPerDayPerAgent).toBe(5);
+  });
+
+  it("rejects a negative derivationsPerDayPerAgent", () => {
+    expect(() => AppSettingsSchema.parse({ derivationsPerDayPerAgent: -1 })).toThrow();
   });
 });
 
