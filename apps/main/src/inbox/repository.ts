@@ -47,6 +47,7 @@ export type InboxRepository = {
   markRead(id: string): void;
   markReadByToolUseId(toolUseId: string): InboxItem | null;
   markReadByApprovalId(approvalId: string): InboxItem | null;
+  markReadByCandidateId(candidateId: string): void;
 };
 
 export const createInboxRepository = (db: Database.Database): InboxRepository => {
@@ -116,6 +117,18 @@ export const createInboxRepository = (db: Database.Database): InboxRepository =>
       if (row === undefined) return null;
       markReadStmt.run(Date.now(), row.id);
       return rowToItem({ ...row, read_at: Date.now() });
+    },
+    markReadByCandidateId(candidateId) {
+      // skill_candidate_pending items embed { candidateId } in payload_json.
+      // A naive substring match is adequate for v1 inbox sizes.
+      const row = db
+        .prepare(
+          `SELECT id FROM inbox_items
+            WHERE kind = 'skill_candidate_pending' AND read_at IS NULL AND payload_json LIKE ?
+            LIMIT 1`,
+        )
+        .get(`%${candidateId}%`) as { id: string } | undefined;
+      if (row !== undefined) markReadStmt.run(Date.now(), row.id);
     },
   };
 };
