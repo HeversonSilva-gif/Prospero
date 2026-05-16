@@ -88,10 +88,19 @@ const SkillsView: FC<{ skills: Skill[] }> = ({ skills }) => {
     <ul className="divide-y divide-surface-border">
       {skills.map((skill) => (
         <li key={skill.id}>
-          <button
-            type="button"
+          {/* A div, not a button — the row holds the 👍/👎 buttons, and a
+              button cannot nest interactive children (invalid HTML). */}
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => toggle(skill)}
-            className="w-full text-left px-6 py-3 hover:bg-surface-soft"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                toggle(skill);
+              }
+            }}
+            className="w-full cursor-pointer text-left px-6 py-3 hover:bg-surface-soft"
           >
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-ink">{skill.name}</span>
@@ -139,7 +148,7 @@ const SkillsView: FC<{ skills: Skill[] }> = ({ skills }) => {
               </button>
             </div>
             <p className="text-xs text-ink-muted mt-0.5">{skill.description}</p>
-          </button>
+          </div>
           {expandedId === skill.id && (
             <pre className="px-6 pb-3 text-xs text-ink-muted whitespace-pre-wrap font-mono">
               {bodies[skill.id] ?? "…"}
