@@ -72,6 +72,8 @@ export const defaultRunProcess: RunProcess = (args, env, stdin) =>
     child.stdout?.on("data", (d: Buffer) => {
       stdout += d.toString("utf8");
     });
+    // Drain stderr so a chatty process can never stall on a full pipe buffer.
+    child.stderr?.resume();
     child.on("error", reject);
     child.on("close", (code) => {
       resolve({ stdout, exitCode: code ?? 0 });
