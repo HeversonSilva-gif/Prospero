@@ -4,6 +4,7 @@ import { applyMigrations } from "../db/migrations.js";
 import { createDerivationWorker, type DerivationJob } from "./worker.js";
 import type { RunDerivationResult } from "./runner.js";
 import { createSkillCandidatesRepository } from "../memory/skill-candidates-repository.js";
+import { createMemoriesRepository } from "../memory/memories-repository.js";
 
 const ZERO_USAGE = { input: 100, output: 20, cacheCreation: 0, cacheRead: 0 };
 
@@ -210,5 +211,91 @@ describe("createDerivationWorker", () => {
     });
     await worker.processJob(issueJob);
     expect(createSkillCandidatesRepository(db).listPending("c1")).toHaveLength(0);
+  });
+});
+
+const memoryOutput = (body: string): RunDerivationResult => ({
+  text: `\`\`\`json\n{"body":"${body}"}\n\`\`\``,
+  usage: { input: 50, output: 10, cacheCreation: 0, cacheRead: 0 },
+});
+
+describe("createDerivationWorker — memory triggers", () => {
+  let db: Database.Database;
+  beforeEach(() => {
+    db = seed();
+    db.prepare(
+      `INSERT INTO goals (id, company_id, title, description, level, status, created_at, updated_at)
+       VALUES ('g1','c1','Ship it','d','task','achieved',0,0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO approvals (id, agent_id, kind, payload_json, status, decided_by, decision_note, created_at, resolved_at)
+       VALUES ('ap1','a1','tool_call','{"tool":"Bash"}','rejected','user','no force-push',0,0)`,
+    ).run();
+  });
+
+  it("goal_achieved writes a company-scoped retrospective memory + inbox notice", async () => {
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: () => Promise.resolve(memoryOutput("prefer docker compose for staging")),
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    await worker.processJob({
+      trigger: "goal_achieved",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      goalId: "g1",
+    });
+    const memories = createMemoriesRepository(db).listCompanyWide("c1");
+    expect(memories).toHaveLength(1);
+    expect(memories[0]?.kind).toBe("retrospective");
+    expect(memories[0]?.agentId).toBeNull();
+    expect(memories[0]?.body).toBe("prefer docker compose for staging");
+    const inbox = db
+      .prepare("SELECT kind, requires_action FROM inbox_items WHERE company_id = 'c1'")
+      .all() as Array<{ kind: string; requires_action: number }>;
+    expect(inbox).toHaveLength(1);
+    expect(inbox[0]?.kind).toBe("goal_retrospective_ready");
+    expect(inbox[0]?.requires_action).toBe(0);
+  });
+
+  it("approval_rejected writes an agent-scoped preference memory, no inbox", async () => {
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: () => Promise.resolve(memoryOutput("never force-push without asking")),
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    await worker.processJob({
+      trigger: "approval_rejected",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      approvalId: "ap1",
+    });
+    const memories = createMemoriesRepository(db).listByAgent("a1");
+    expect(memories).toHaveLength(1);
+    expect(memories[0]?.kind).toBe("preference");
+    expect(memories[0]?.body).toBe("never force-push without asking");
+    expect((db.prepare("SELECT COUNT(*) AS n FROM inbox_items").get() as { n: number }).n).toBe(0);
+  });
+
+  it("writes nothing when the memory derivation discards", async () => {
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: () => Promise.resolve({ text: "DISCARD", usage: memoryOutput("x").usage }),
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    await worker.processJob({
+      trigger: "goal_achieved",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      goalId: "g1",
+    });
+    expect(createMemoriesRepository(db).listCompanyWide("c1")).toHaveLength(0);
+    expect((db.prepare("SELECT COUNT(*) AS n FROM cost_events").get() as { n: number }).n).toBe(1);
   });
 });

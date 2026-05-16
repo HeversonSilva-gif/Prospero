@@ -1,9 +1,20 @@
 import type Database from "better-sqlite3";
 import type { RunDerivationResult } from "./runner.js";
-import { buildIssueTrail, buildRecoveryTrail } from "./trail.js";
-import { buildIssuePrompt, buildRecoveryPrompt } from "./prompts.js";
-import { parseDerivationOutput } from "./parse-output.js";
+import {
+  buildIssueTrail,
+  buildRecoveryTrail,
+  buildGoalTrail,
+  buildApprovalTrail,
+} from "./trail.js";
+import {
+  buildIssuePrompt,
+  buildRecoveryPrompt,
+  buildRetrospectivePrompt,
+  buildPreferencePrompt,
+} from "./prompts.js";
+import { parseDerivationOutput, parseMemoryDerivation } from "./parse-output.js";
 import { createSkillCandidatesRepository } from "../memory/skill-candidates-repository.js";
+import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { createCostsRepository } from "../costs/repository.js";
 import { createSettingsRepository } from "../settings/repository.js";
@@ -19,11 +30,13 @@ const RECOVERY_TRAIL_LIMIT = 12;
 
 // A unit of derivation work, enqueued by the dispatcher.
 export type DerivationJob = {
-  trigger: "issue_done" | "recovery";
+  trigger: "issue_done" | "recovery" | "goal_achieved" | "approval_rejected";
   companyId: string;
   agentId: string;
   sourceEventId: string;
   issueId?: string;
+  goalId?: string;
+  approvalId?: string;
 };
 
 export type DerivationWorkerDeps = {
@@ -83,13 +96,35 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
           return;
         }
         prompt = buildIssuePrompt(trail);
-      } else {
+      } else if (job.trigger === "recovery") {
         const trail = buildRecoveryTrail(db, job.agentId, RECOVERY_TRAIL_LIMIT);
         if (trail === null || trail.messages.length === 0) {
           log(`no recovery trail for agent ${job.agentId} — skipping`);
           return;
         }
         prompt = buildRecoveryPrompt(trail);
+      } else if (job.trigger === "goal_achieved") {
+        if (job.goalId === undefined) {
+          log("goal_achieved job has no goalId — skipping");
+          return;
+        }
+        const trail = buildGoalTrail(db, job.goalId);
+        if (trail === null) {
+          log(`goal ${job.goalId} not found — skipping`);
+          return;
+        }
+        prompt = buildRetrospectivePrompt(trail);
+      } else {
+        if (job.approvalId === undefined) {
+          log("approval_rejected job has no approvalId — skipping");
+          return;
+        }
+        const trail = buildApprovalTrail(db, job.approvalId);
+        if (trail === null) {
+          log(`approval ${job.approvalId} not found — skipping`);
+          return;
+        }
+        prompt = buildPreferencePrompt(trail);
       }
 
       const result = await deps.runDerivation({
@@ -119,41 +154,79 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
         occurredAt: deps.now(),
       });
 
-      const parsed = parseDerivationOutput(result.text);
-      if (parsed.kind === "discard") {
-        log(`agent ${job.agentId} ${job.trigger}: derivation discarded`);
+      if (job.trigger === "issue_done" || job.trigger === "recovery") {
+        const parsed = parseDerivationOutput(result.text);
+        if (parsed.kind === "discard") {
+          log(`agent ${job.agentId} ${job.trigger}: derivation discarded`);
+          return;
+        }
+        const bodyCheck = sanitizeMemoryBody(parsed.draft.body);
+        if (!bodyCheck.ok) {
+          log(`sanitizer rejected derived body: ${bodyCheck.reason} — dropping`);
+          return;
+        }
+        const descCheck = sanitizeMemoryBody(parsed.draft.description);
+        if (!descCheck.ok) {
+          log(`sanitizer rejected derived description: ${descCheck.reason} — dropping`);
+          return;
+        }
+        const candidate = createSkillCandidatesRepository(db).create({
+          companyId: job.companyId,
+          agentId: job.agentId,
+          sourceEventId: job.sourceEventId,
+          trigger: job.trigger,
+          proposedName: parsed.draft.name,
+          proposedDescription: parsed.draft.description,
+          proposedBody: parsed.draft.body,
+        });
+        createInboxRepository(db).create({
+          companyId: job.companyId,
+          kind: "skill_candidate_pending",
+          actorId: job.agentId,
+          title: `New skill candidate: ${parsed.draft.name}`,
+          preview: parsed.draft.description,
+          requiresAction: true,
+          payloadJson: JSON.stringify({ candidateId: candidate.id }),
+        });
         return;
       }
 
-      const bodyCheck = sanitizeMemoryBody(parsed.draft.body);
-      if (!bodyCheck.ok) {
-        log(`sanitizer rejected derived body: ${bodyCheck.reason} — dropping`);
+      // goal_achieved / approval_rejected → a memory row (no human review).
+      const parsedMemory = parseMemoryDerivation(result.text);
+      if (parsedMemory.kind === "discard") {
+        log(`agent ${job.agentId} ${job.trigger}: memory derivation discarded`);
         return;
       }
-      const descCheck = sanitizeMemoryBody(parsed.draft.description);
-      if (!descCheck.ok) {
-        log(`sanitizer rejected derived description: ${descCheck.reason} — dropping`);
+      const memCheck = sanitizeMemoryBody(parsedMemory.body);
+      if (!memCheck.ok) {
+        log(`sanitizer rejected derived memory: ${memCheck.reason} — dropping`);
         return;
       }
-
-      const candidate = createSkillCandidatesRepository(db).create({
-        companyId: job.companyId,
-        agentId: job.agentId,
-        sourceEventId: job.sourceEventId,
-        trigger: job.trigger,
-        proposedName: parsed.draft.name,
-        proposedDescription: parsed.draft.description,
-        proposedBody: parsed.draft.body,
-      });
-      createInboxRepository(db).create({
-        companyId: job.companyId,
-        kind: "skill_candidate_pending",
-        actorId: job.agentId,
-        title: `New skill candidate: ${parsed.draft.name}`,
-        preview: parsed.draft.description,
-        requiresAction: true,
-        payloadJson: JSON.stringify({ candidateId: candidate.id }),
-      });
+      if (job.trigger === "goal_achieved") {
+        createMemoriesRepository(db).create({
+          companyId: job.companyId,
+          agentId: null,
+          kind: "retrospective",
+          body: parsedMemory.body,
+          sourceEventId: job.sourceEventId,
+        });
+        createInboxRepository(db).create({
+          companyId: job.companyId,
+          kind: "goal_retrospective_ready",
+          title: "New goal retrospective",
+          preview: parsedMemory.body.slice(0, 200),
+          requiresAction: false,
+          payloadJson: JSON.stringify({ goalId: job.goalId }),
+        });
+      } else {
+        createMemoriesRepository(db).create({
+          companyId: job.companyId,
+          agentId: job.agentId,
+          kind: "preference",
+          body: parsedMemory.body,
+          sourceEventId: job.sourceEventId,
+        });
+      }
     } catch (err) {
       log(`job failed for agent ${job.agentId}: ${String(err)}`);
     }
