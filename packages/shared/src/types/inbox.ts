@@ -8,7 +8,8 @@ export type InboxKind =
   | "goal_executing"
   | "goal_error"
   | "agent_unresponsive"
-  | "skill_candidate_pending";
+  | "skill_candidate_pending"
+  | "skill_promotion_requested";
 
 export type InboxItem = {
   id: string;
