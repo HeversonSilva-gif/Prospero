@@ -2304,9 +2304,10 @@
               escreve retrospectiva ao completar um Goal. Inclui busca em conversas antigas.
               Inspirado mas com 3 inflexões deliberadas sobre o
               <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>
-              (NousResearch). → <strong>M11 — em andamento</strong> (âncora da V2; criação e leitura
-              manual de skills + a aba "Aprendizado" do agente já funcionam — a derivação automática
-              de skills vem nos próximos PRs)
+              (NousResearch). → <strong>M11 — em andamento</strong> (âncora da V2; a aba
+              "Aprendizado" do agente e a <strong>derivação automática</strong> de skills já
+              funcionam — ao concluir um issue o sistema já propõe um skill; falta a tela pra você
+              revisar e aceitar essas propostas, mais a herança entre funcionários)
             </li>
             <li>
               ✦ <strong>V2 — "1-person business"</strong> — depois que o v1 fechar, o produto muda
@@ -2406,9 +2407,9 @@
               <code>claude-oauth-remote-docker</code> em 5 PRs (A–E): wire protocol, app
               <code>agent-runner</code> + imagem Docker, host adapter + MCP relay tunelado, Settings
               + seletor de localização per-agente, docs. Arquitetura SSH stdio, host-authoritative —
-              o SQLite nunca sai do host. <strong>1054 testes passing</strong> (+2 todo).
+              o SQLite nunca sai do host. <strong>1095 testes passing</strong> (+2 todo).
               <strong>14/14 milestones</strong> do v1 ✅.
-              <strong>V2 em andamento — M11 Agent Memory</strong>: PRs A/B/C mergeados, D/E/F
+              <strong>V2 em andamento — M11 Agent Memory</strong>: PRs A/B/C + D1 mergeados, D2/E/F
               pendentes.
             </div>
             <div>
@@ -2434,69 +2435,62 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M11 em andamento (PRs A-C ✅)</div>
+            <div class="title">M11 em andamento (A-C + D1 ✅)</div>
             <ul class="bullets">
               <li>
                 <span><strong>14 / 14</strong> milestones do v1 · v1 fechado 2026-05-15</span>
               </li>
               <li>
-                <span><strong>1054</strong> testes passing + 2 todo · 0 lint/typecheck errors</span>
+                <span><strong>1095</strong> testes passing + 2 todo · 0 lint/typecheck errors</span>
               </li>
               <li>
                 <span
                   ><strong>M11 PR-A/B/C ✅</strong> — capabilities rename, migration
                   <code>0018</code> + repositórios + sanitizer, 9 MCP tools de memory/skills +
-                  injeção no system prompt, e a aba "Aprendizado" (Skills/Memória/Histórico) + badge
-                  🎓 no header do agente</span
+                  injeção no system prompt, e a aba "Aprendizado" + badge 🎓 no header</span
                 >
               </li>
               <li>
                 <span
-                  >O agente já cria, lê e busca skills e memória manualmente — tudo aparece no
-                  system prompt da próxima sessão</span
+                  ><strong>M11 PR-D1 ✅</strong> — motor de auto-derivação: ao concluir um issue ou
+                  se recuperar de um erro, um <code>claude -p</code> headless propõe um skill →
+                  <code>skill_candidate</code> + inbox pra revisão humana</span
                 >
               </li>
               <li>
                 <span
-                  >Restante do M11: PR-D auto-derivação · PR-E org learning · PR-F
-                  decay/trust/docs</span
+                  >Restante do M11: PR-D2 (UI de revisão dos candidates + nudges) · PR-E org
+                  learning · PR-F decay/trust/docs</span
                 >
               </li>
             </ul>
-            <div class="eta">M11 ~10-14d · 4 de 6 PRs entregues</div>
+            <div class="eta">M11 ~10-14d · A-C + D1 entregues</div>
           </div>
 
           <div class="card" data-kind="next">
             <div class="kicker">próximo</div>
-            <div class="title">M11 PR-D — auto-derivação</div>
+            <div class="title">M11 PR-D2 — revisão dos candidates</div>
             <ul class="bullets">
               <li>
                 <span
-                  >Hook no activity recorder em 4 triggers: <code>issue.done</code> /
-                  <code>agent.recovered</code> / <code>goal.achieved</code> /
-                  <code>approval.rejected</code></span
+                  >Sub-tab "Candidates" no <code>/agents/:id</code> — a fila de skill candidates que
+                  o motor D1 derivou, com Accept / Edit / Reject</span
                 >
               </li>
               <li>
                 <span
-                  >Novo evento <code>agent.recovered</code> emitido pelo orchestrator quando um turn
-                  conclui após erro</span
+                  >Aceitar um candidate cria um skill real (vira <code>SKILL.md</code> + linha na
+                  tabela <code>skills</code>)</span
                 >
+              </li>
+              <li>
+                <span>IPC handlers de list/accept/reject + refresh do badge 🎓</span>
               </li>
               <li>
                 <span
-                  >Derivation worker: <code>claude -p</code> headless (Sonnet), fila throttled, cap
-                  3/dia/agente</span
+                  >Nudges fallback (<code>turn-complete</code> / time-based / compaction) pra quando
+                  a derivação automática não disparou</span
                 >
-              </li>
-              <li>
-                <span
-                  >Cada <code>skill_candidate</code> vai pro inbox + sub-tab "Candidates"
-                  (Accept/Edit/Reject) — nada entra em <code>skills</code> sem review</span
-                >
-              </li>
-              <li>
-                <span>Nudges fallback em <code>turn-complete</code></span>
               </li>
             </ul>
             <div class="eta">depois: PR-E org learning · PR-F decay/trust + Settings + docs</div>
@@ -4134,8 +4128,14 @@
                     <code>074d366</code>)
                   </li>
                   <li>
-                    ⏳ <strong>PR-D</strong> — pipeline de auto-derivação +
-                    <code>agent.recovered</code> + sub-tab Candidates
+                    ✅ <strong>PR-D1</strong> — motor de auto-derivação: evento
+                    <code>agent.recovered</code>, dispatcher, runner
+                    <code>claude -p</code> headless, worker (cap 3/dia, <code>cost_event</code>) →
+                    grava <code>skill_candidate</code> + inbox
+                  </li>
+                  <li>
+                    ⏳ <strong>PR-D2</strong> — sub-tab "Candidates" (Accept/Edit/Reject) +
+                    accept→skill + nudges fallback
                   </li>
                   <li>
                     ⏳ <strong>PR-E</strong> — org learning (herança por role +
