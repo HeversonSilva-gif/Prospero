@@ -263,6 +263,10 @@ declare global {
         rejectCandidate: (input: { candidateId: string; reason?: string }) => Promise<{
           ok: true;
         }>;
+        approveSkillPromotion: (input: {
+          skillId: string;
+          appliesToRole: string | null;
+        }) => Promise<Skill>;
       };
       windowControls: {
         minimize: () => Promise<void>;

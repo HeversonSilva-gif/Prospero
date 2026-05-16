@@ -37,4 +37,8 @@ describe("IPC channels", () => {
     expect(IPC.SKILL_CANDIDATE_ACCEPT).toBe("skill-candidates:accept");
     expect(IPC.SKILL_CANDIDATE_REJECT).toBe("skill-candidates:reject");
   });
+
+  it("exposes the M11 skill-promote-approve channel", () => {
+    expect(IPC.SKILL_PROMOTE_APPROVE).toBe("skills:promote-approve");
+  });
 });

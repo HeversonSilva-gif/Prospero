@@ -362,6 +362,8 @@ contextBridge.exposeInMainWorld("prospero", {
     }) => ipcRenderer.invoke(IPC.SKILL_CANDIDATE_ACCEPT, input) as Promise<Skill>,
     rejectCandidate: (input: { candidateId: string; reason?: string }) =>
       ipcRenderer.invoke(IPC.SKILL_CANDIDATE_REJECT, input) as Promise<{ ok: true }>,
+    approveSkillPromotion: (input: { skillId: string; appliesToRole: string | null }) =>
+      ipcRenderer.invoke(IPC.SKILL_PROMOTE_APPROVE, input) as Promise<Skill>,
   },
   windowControls: {
     minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE) as Promise<void>,

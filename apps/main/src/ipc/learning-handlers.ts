@@ -7,6 +7,7 @@ import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { createSkillCandidatesRepository } from "../memory/skill-candidates-repository.js";
 import { acceptSkillCandidate, rejectSkillCandidate } from "../memory/review-candidate.js";
+import { createInboxRepository } from "../inbox/repository.js";
 
 // Turns raw search-box input into a safe FTS5 MATCH expression: each
 // whitespace-separated term is wrapped in double quotes (so special characters
@@ -41,6 +42,9 @@ export type LearningHandlers = {
   }): Skill;
   // Reject a candidate; optional reason is persisted.
   rejectCandidate(args: { candidateId: string; reason?: string }): { ok: true };
+  // Approve a pending skill-promotion request: promotes the skill to
+  // company-shared (optionally role-scoped) and resolves its inbox item.
+  approveSkillPromotion(args: { skillId: string; appliesToRole: string | null }): Skill;
 };
 
 type SessionRow = {
@@ -119,6 +123,19 @@ export const learningHandlers = (db: Database.Database, userDataDir: string): Le
       });
       return { ok: true };
     },
+
+    approveSkillPromotion({ skillId, appliesToRole }) {
+      const skill = createSkillsRepository(db).promote(skillId, appliesToRole);
+      const inboxRow = db
+        .prepare(
+          `SELECT id FROM inbox_items
+            WHERE kind = 'skill_promotion_requested' AND read_at IS NULL AND payload_json LIKE ?
+            LIMIT 1`,
+        )
+        .get(`%${skillId}%`) as { id: string } | undefined;
+      if (inboxRow !== undefined) createInboxRepository(db).markRead(inboxRow.id);
+      return skill;
+    },
   };
 };
 
@@ -143,5 +160,9 @@ export const registerLearningHandlers = (db: Database.Database): void => {
   );
   ipcMain.handle(IPC.SKILL_CANDIDATE_REJECT, (_e, args: { candidateId: string; reason?: string }) =>
     h.rejectCandidate(args),
+  );
+  ipcMain.handle(
+    IPC.SKILL_PROMOTE_APPROVE,
+    (_e, args: { skillId: string; appliesToRole: string | null }) => h.approveSkillPromotion(args),
   );
 };

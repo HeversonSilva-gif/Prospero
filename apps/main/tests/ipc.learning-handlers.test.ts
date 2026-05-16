@@ -8,6 +8,7 @@ import { createSkillsRepository } from "../src/memory/skills-repository.js";
 import { createMemoriesRepository } from "../src/memory/memories-repository.js";
 import { learningHandlers, toFtsMatchExpr } from "../src/ipc/learning-handlers.js";
 import { createSkillCandidatesRepository } from "../src/memory/skill-candidates-repository.js";
+import { createInboxRepository } from "../src/inbox/repository.js";
 
 const USERDATA = mkdtempSync(join(tmpdir(), "prospero-lh-ud-"));
 
@@ -198,5 +199,58 @@ describe("learningHandlers — candidates", () => {
     const h = learningHandlers(db, USERDATA);
     expect(h.rejectCandidate({ candidateId })).toEqual({ ok: true });
     expect(h.listCandidates({ agentId: "a1" })).toHaveLength(0);
+  });
+});
+
+describe("learningHandlers — skill promotion", () => {
+  let db: Database.Database;
+  beforeEach(() => {
+    db = seed();
+  });
+
+  it("approveSkillPromotion promotes the skill and resolves the inbox item", () => {
+    const skills = createSkillsRepository(db);
+    const skill = skills.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "deploy",
+      bodyPath: "p",
+      description: "d",
+      source: "agent_created",
+    });
+    createInboxRepository(db).create({
+      companyId: "c1",
+      kind: "skill_promotion_requested",
+      title: "Promote deploy",
+      requiresAction: true,
+      payloadJson: JSON.stringify({ skillId: skill.id }),
+    });
+    const h = learningHandlers(db, USERDATA);
+    const result = h.approveSkillPromotion({ skillId: skill.id, appliesToRole: "engineer" });
+    expect(result.agentId).toBeNull();
+    expect(result.promoted).toBe(true);
+    expect(result.appliesToRole).toBe("engineer");
+    const unread = (
+      db.prepare("SELECT COUNT(*) AS n FROM inbox_items WHERE read_at IS NULL").get() as {
+        n: number;
+      }
+    ).n;
+    expect(unread).toBe(0);
+  });
+
+  it("approveSkillPromotion accepts a null role (company-global)", () => {
+    const skill = createSkillsRepository(db).create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "x",
+      bodyPath: "p",
+      description: "d",
+      source: "agent_created",
+    });
+    const result = learningHandlers(db, USERDATA).approveSkillPromotion({
+      skillId: skill.id,
+      appliesToRole: null,
+    });
+    expect(result.appliesToRole).toBeNull();
   });
 });
