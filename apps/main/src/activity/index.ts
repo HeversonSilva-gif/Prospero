@@ -9,14 +9,28 @@
 // hatch if a test ever needs to stub the global instance.
 
 import type Database from "better-sqlite3";
+import type { ActivityEventRow } from "@prospero/shared";
 import { createRecorder, type Recorder } from "./recorder.js";
 import { broadcastActivityNew } from "../ipc/activity-broadcast.js";
 
 let _recorder: Recorder | null = null;
 
-export const initRecorder = (db: Database.Database): Recorder => {
+export const initRecorder = (
+  db: Database.Database,
+  onWritten?: (row: ActivityEventRow) => void,
+): Recorder => {
   const isDev = process.env.NODE_ENV !== "production";
-  _recorder = createRecorder(db, broadcastActivityNew, { devMode: isDev });
+  const broadcast = (row: ActivityEventRow): void => {
+    broadcastActivityNew(row);
+    if (onWritten !== undefined) {
+      try {
+        onWritten(row);
+      } catch (err) {
+        console.warn("[activity] onWritten observer failed", err);
+      }
+    }
+  };
+  _recorder = createRecorder(db, broadcast, { devMode: isDev });
   return _recorder;
 };
 

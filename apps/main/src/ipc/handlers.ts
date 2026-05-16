@@ -16,10 +16,12 @@ import { registerCostsHandlers } from "./costs-handlers.js";
 import { registerAgentsMdHandlers } from "./agents-md-handlers.js";
 import { registerLearningHandlers } from "./learning-handlers.js";
 import { initRecorder } from "../activity/index.js";
+import { initDerivation } from "../derivation/index.js";
 
 export const registerIpcHandlers = (db: Database.Database): void => {
   ipcMain.handle(IPC.PING, () => "pong");
-  initRecorder(db);
+  const derivation = initDerivation(db);
+  initRecorder(db, derivation.onActivity);
   registerSettingsHandlers(db);
   registerAuthHandlers(db);
   registerCompaniesHandlers(db);
