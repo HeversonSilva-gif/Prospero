@@ -1,4 +1,4 @@
-import type { IssueTrail, RecoveryTrail } from "./trail.js";
+import type { IssueTrail, RecoveryTrail, GoalTrail, ApprovalTrail } from "./trail.js";
 
 // Shared closing instruction for every derivation prompt. The worker's parser
 // (parse-output.ts) understands exactly this contract.
@@ -44,3 +44,54 @@ recovered, to extract a reusable skill about avoiding or fixing that error.
 
 ${renderEntries(trail.messages)}
 ${OUTPUT_CONTRACT}`;
+
+// Closing instruction for memory derivations (retrospective / preference).
+// The worker's parser (parseMemoryDerivation) understands exactly this contract.
+const MEMORY_OUTPUT_CONTRACT = `
+If there is nothing durable and reusable worth remembering, reply with exactly
+this single word and nothing else:
+
+DISCARD
+
+Otherwise reply with exactly one fenced JSON block and nothing else — one or two
+sentences, factual, max 500 characters:
+
+\`\`\`json
+{"body":"the durable fact, in one or two sentences"}
+\`\`\`
+
+Do not add commentary before or after the block.`;
+
+// Prompt for a `goal.achieved` retrospective — a company-level lesson.
+export const buildRetrospectivePrompt = (trail: GoalTrail): string =>
+  `A company just achieved a goal. Write a brief retrospective — the one durable
+lesson worth remembering company-wide for next time.
+
+## Goal: ${trail.title}
+
+${trail.description}
+
+Success criteria: ${trail.successCriteria}
+
+## Issues done for this goal
+
+${
+  trail.issues.length === 0
+    ? "(none)"
+    : trail.issues.map((i) => `- [${i.status}] ${i.title}`).join("\n")
+}
+${MEMORY_OUTPUT_CONTRACT}`;
+
+// Prompt for an `approval.rejected` preference — what the user does NOT want.
+export const buildPreferencePrompt = (trail: ApprovalTrail): string =>
+  `The user just REJECTED an action an agent asked to perform. Capture the
+user's preference as a short durable rule, so agents avoid this next time.
+
+## Rejected action (kind: ${trail.kind})
+
+${trail.payloadJson}
+
+## The user's reason
+
+${trail.note === "" ? "(none given)" : trail.note}
+${MEMORY_OUTPUT_CONTRACT}`;

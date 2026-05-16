@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseDerivationOutput } from "./parse-output.js";
+import { parseDerivationOutput, parseMemoryDerivation } from "./parse-output.js";
 
 describe("parseDerivationOutput", () => {
   it("parses a fenced JSON skill block", () => {
@@ -44,5 +44,31 @@ describe("parseDerivationOutput", () => {
       expect(out.draft.name).toBe("redis-pool");
       expect(out.draft.description.length).toBe(200);
     }
+  });
+});
+
+describe("parseMemoryDerivation", () => {
+  it("parses a fenced JSON memory block", () => {
+    const text = 'Here:\n```json\n{"body":"the staging deploy uses docker compose"}\n```';
+    expect(parseMemoryDerivation(text)).toEqual({
+      kind: "memory",
+      body: "the staging deploy uses docker compose",
+    });
+  });
+
+  it("treats a bare DISCARD as a discard", () => {
+    expect(parseMemoryDerivation("DISCARD")).toEqual({ kind: "discard" });
+  });
+
+  it("treats output with no JSON block as a discard", () => {
+    expect(parseMemoryDerivation("nothing reusable here")).toEqual({ kind: "discard" });
+  });
+
+  it("treats a block with an empty body as a discard", () => {
+    expect(parseMemoryDerivation('```json\n{"body":""}\n```')).toEqual({ kind: "discard" });
+  });
+
+  it("treats malformed JSON as a discard", () => {
+    expect(parseMemoryDerivation("```json\n{not json}\n```")).toEqual({ kind: "discard" });
   });
 });

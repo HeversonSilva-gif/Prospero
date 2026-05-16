@@ -42,3 +42,28 @@ export const parseDerivationOutput = (text: string): ParsedDerivation => {
     draft: { name, description: description.slice(0, 200), body },
   };
 };
+
+// A memory fragment extracted from a goal/approval derivation. Unlike a skill,
+// a memory is just a body — no name/description.
+export type ParsedMemory = { kind: "memory"; body: string } | { kind: "discard" };
+
+// Parses the runner's output for a memory derivation (retrospective /
+// preference). Anything that is not a well-formed JSON block with a non-empty
+// `body` — including the literal "DISCARD" — is a discard. Never throws.
+export const parseMemoryDerivation = (text: string): ParsedMemory => {
+  const match = JSON_BLOCK.exec(text);
+  if (match === null) return { kind: "discard" };
+  const inner = match[1];
+  if (inner === undefined) return { kind: "discard" };
+  let obj: unknown;
+  try {
+    obj = JSON.parse(inner.trim());
+  } catch {
+    return { kind: "discard" };
+  }
+  if (typeof obj !== "object" || obj === null) return { kind: "discard" };
+  const raw = (obj as Record<string, unknown>)["body"];
+  const body = typeof raw === "string" ? raw.trim() : "";
+  if (body === "") return { kind: "discard" };
+  return { kind: "memory", body };
+};

@@ -7,7 +7,12 @@ import {
   buildGoalTrail,
   buildApprovalTrail,
 } from "./trail.js";
-import { buildIssuePrompt, buildRecoveryPrompt } from "./prompts.js";
+import {
+  buildIssuePrompt,
+  buildRecoveryPrompt,
+  buildRetrospectivePrompt,
+  buildPreferencePrompt,
+} from "./prompts.js";
 
 const seed = (): Database.Database => {
   const db = new Database(":memory:");
@@ -144,6 +149,31 @@ describe("prompts", () => {
       messages: [{ sender: "agent", content: "second" }],
     });
     expect(p).toContain("second");
+    expect(p).toContain("DISCARD");
+  });
+});
+
+describe("memory prompts", () => {
+  it("buildRetrospectivePrompt embeds the goal and asks for DISCARD-or-JSON", () => {
+    const p = buildRetrospectivePrompt({
+      title: "Ship the redis fix",
+      description: "make it reliable",
+      successCriteria: "no flakes",
+      issues: [{ title: "Raise the pool", status: "done" }],
+    });
+    expect(p).toContain("Ship the redis fix");
+    expect(p).toContain("Raise the pool");
+    expect(p).toContain("DISCARD");
+    expect(p).toContain("```json");
+  });
+
+  it("buildPreferencePrompt embeds the rejected action and the note", () => {
+    const p = buildPreferencePrompt({
+      kind: "tool_call",
+      payloadJson: '{"tool":"Bash"}',
+      note: "do not force-push",
+    });
+    expect(p).toContain("do not force-push");
     expect(p).toContain("DISCARD");
   });
 });
