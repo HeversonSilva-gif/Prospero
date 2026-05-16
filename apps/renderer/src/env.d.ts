@@ -37,6 +37,7 @@ import type {
   Skill,
   Memory,
   SessionSearchHit,
+  SkillCandidate,
 } from "@prospero/shared";
 
 declare global {
@@ -252,6 +253,16 @@ declare global {
           query: string,
           limit?: number,
         ) => Promise<SessionSearchHit[]>;
+        listCandidates: (agentId: string) => Promise<SkillCandidate[]>;
+        acceptCandidate: (input: {
+          candidateId: string;
+          name?: string;
+          description?: string;
+          body?: string;
+        }) => Promise<Skill>;
+        rejectCandidate: (input: { candidateId: string; reason?: string }) => Promise<{
+          ok: true;
+        }>;
       };
       windowControls: {
         minimize: () => Promise<void>;

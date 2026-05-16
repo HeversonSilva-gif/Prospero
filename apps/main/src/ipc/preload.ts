@@ -38,6 +38,7 @@ import {
   type Skill,
   type Memory,
   type SessionSearchHit,
+  type SkillCandidate,
 } from "@prospero/shared";
 
 contextBridge.exposeInMainWorld("prospero", {
@@ -349,6 +350,18 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.SESSION_SEARCH, { agentId, query, limit }) as Promise<
         SessionSearchHit[]
       >,
+    listCandidates: (agentId: string) =>
+      ipcRenderer.invoke(IPC.SKILL_CANDIDATES_LIST_FOR_AGENT, { agentId }) as Promise<
+        SkillCandidate[]
+      >,
+    acceptCandidate: (input: {
+      candidateId: string;
+      name?: string;
+      description?: string;
+      body?: string;
+    }) => ipcRenderer.invoke(IPC.SKILL_CANDIDATE_ACCEPT, input) as Promise<Skill>,
+    rejectCandidate: (input: { candidateId: string; reason?: string }) =>
+      ipcRenderer.invoke(IPC.SKILL_CANDIDATE_REJECT, input) as Promise<{ ok: true }>,
   },
   windowControls: {
     minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE) as Promise<void>,
