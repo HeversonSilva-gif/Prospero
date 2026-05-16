@@ -10,7 +10,8 @@ export type InboxKind =
   | "agent_unresponsive"
   | "skill_candidate_pending"
   | "skill_promotion_requested"
-  | "goal_retrospective_ready";
+  | "goal_retrospective_ready"
+  | "memory_review_needed";
 
 export type InboxItem = {
   id: string;

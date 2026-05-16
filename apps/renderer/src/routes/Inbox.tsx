@@ -46,6 +46,7 @@ const KIND_BORDER: Record<InboxKind, string> = {
   skill_candidate_pending: "border-l-4 border-l-brand",
   skill_promotion_requested: "border-l-4 border-l-brand",
   goal_retrospective_ready: "border-l-4 border-l-brand",
+  memory_review_needed: "border-l-4 border-l-brand",
 };
 
 type FilterKey = "all" | InboxKind;
