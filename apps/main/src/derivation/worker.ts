@@ -114,7 +114,7 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
           return;
         }
         prompt = buildRetrospectivePrompt(trail);
-      } else {
+      } else if (job.trigger === "approval_rejected") {
         if (job.approvalId === undefined) {
           log("approval_rejected job has no approvalId — skipping");
           return;
@@ -125,6 +125,13 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
           return;
         }
         prompt = buildPreferencePrompt(trail);
+      } else {
+        // Exhaustiveness guard: a trigger added to DerivationJob without a
+        // branch here becomes a compile error rather than silently running
+        // the wrong path.
+        const unknown: never = job.trigger;
+        log(`unknown trigger: ${String(unknown)} — skipping`);
+        return;
       }
 
       const result = await deps.runDerivation({
