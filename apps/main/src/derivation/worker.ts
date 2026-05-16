@@ -12,6 +12,9 @@ import { sanitizeMemoryBody } from "../memory/sanitizer.js";
 
 // Model used for derivation — Sonnet, cheaper than the agents' Opus default (spec §2.1).
 const DERIVATION_MODEL = "claude-sonnet-4-6";
+// How many recent messages feed a recovery derivation prompt. ~12 messages is
+// enough context to spot the error-and-fix without bloating the prompt past a
+// couple thousand tokens (which would inflate the per-derivation cost).
 const RECOVERY_TRAIL_LIMIT = 12;
 
 // A unit of derivation work, enqueued by the dispatcher.
@@ -40,10 +43,12 @@ export type DerivationWorker = {
   processJob(job: DerivationJob): Promise<void>;
 };
 
-const startOfDay = (ms: number): number => {
+// Start of the UTC calendar day for a timestamp. The cap counts cost_events,
+// and the whole costs subsystem buckets by UTC midnight — keeping the same
+// boundary here makes the cap agree with what the /costs UI shows.
+const startOfDayUtc = (ms: number): number => {
   const d = new Date(ms);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 };
 
 export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWorker => {
@@ -60,7 +65,7 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
   const processJob = async (job: DerivationJob): Promise<void> => {
     try {
       const cap = createSettingsRepository(db).read().derivationsPerDayPerAgent;
-      const used = (capCountStmt.get(job.agentId, startOfDay(deps.now())) as { n: number }).n;
+      const used = (capCountStmt.get(job.agentId, startOfDayUtc(deps.now())) as { n: number }).n;
       if (used >= cap) {
         log(`cap reached for agent ${job.agentId} (${used}/${cap}) — skipping`);
         return;
