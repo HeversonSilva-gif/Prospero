@@ -9,7 +9,7 @@ import type { ActivityAction } from "@prospero/shared";
 const stringId = z.string().min(1);
 
 export const ActivityPayloads = {
-  // Agent (11)
+  // Agent (13)
   "agent.hired": z.object({
     name: z.string(),
     role: z.string(),
