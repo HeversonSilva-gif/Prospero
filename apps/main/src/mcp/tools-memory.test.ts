@@ -139,6 +139,35 @@ describe("memory tools", () => {
   });
 });
 
+describe("skill_promote tool", () => {
+  it("files a skill_promotion_requested inbox item for a private skill", async () => {
+    const ctx = newCtx();
+    await tool("skill_create").run(
+      { name: "deploy-runbook", description: "how to deploy", body: "1. build" },
+      ctx,
+    );
+    const out = JSON.parse(await tool("skill_promote").run({ name: "deploy-runbook" }, ctx)) as {
+      requested: boolean;
+      skillId: string;
+    };
+    expect(out.requested).toBe(true);
+    const inbox = ctx.db
+      .prepare("SELECT kind, payload_json FROM inbox_items WHERE company_id = 'c1'")
+      .all() as Array<{ kind: string; payload_json: string }>;
+    expect(inbox).toHaveLength(1);
+    expect(inbox[0]?.kind).toBe("skill_promotion_requested");
+    expect(JSON.parse(inbox[0]!.payload_json) as { skillId: string }).toEqual({
+      skillId: out.skillId,
+    });
+  });
+
+  it("rejects promoting a skill that does not exist", async () => {
+    await expect(tool("skill_promote").run({ name: "nope" }, newCtx())).rejects.toThrow(
+      /not found/i,
+    );
+  });
+});
+
 describe("session_search tool", () => {
   it("finds past messages by keyword", async () => {
     const ctx = newCtx();

@@ -98,6 +98,7 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
       "mcp__dashboard__skill_read",
       "mcp__dashboard__skill_create",
       "mcp__dashboard__skill_update",
+      "mcp__dashboard__skill_promote",
       "mcp__dashboard__memory_read",
       "mcp__dashboard__memory_add",
       "mcp__dashboard__memory_remove",

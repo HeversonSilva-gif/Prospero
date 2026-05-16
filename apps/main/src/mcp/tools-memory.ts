@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
+import { createInboxRepository } from "../inbox/repository.js";
 import { getAgentMemoryDir, skillBodyPath } from "../memory/memory-dir.js";
 import { sanitizeMemoryBody } from "../memory/sanitizer.js";
 import { createRateLimiter } from "./rate-limiter.js";
@@ -137,6 +138,35 @@ const skillUpdate: Tool = {
     writeFileSync(skill.bodyPath, body, "utf8");
     const updated = repo.update(skill.id, {});
     return JSON.stringify({ id: updated.id, name: updated.name, version: updated.version });
+  },
+};
+
+const skillPromote: Tool = {
+  name: "skill_promote",
+  description:
+    "Request that one of your private skills be promoted to company-shared, so other agents inherit it. Files a request for the user to review and approve — it does NOT promote the skill immediately.",
+  inputSchema: z.object({ name: z.string().min(1).max(120) }),
+  // eslint-disable-next-line @typescript-eslint/require-await
+  run: async (input, ctx) => {
+    const { name } = skillPromote.inputSchema.parse(input) as { name: string };
+    const skill = createSkillsRepository(ctx.db).getByName(ctx.companyId, ctx.agentId, name);
+    if (skill === null) throw new Error(`private skill not found: ${name}`);
+    if (skill.agentId === null) {
+      throw new Error(`skill "${name}" is already company-shared`);
+    }
+    if (!skillWriteLimiter.tryConsume(ctx.agentId)) {
+      throw new Error("skill write rate limit exceeded — try again shortly");
+    }
+    createInboxRepository(ctx.db).create({
+      companyId: ctx.companyId,
+      kind: "skill_promotion_requested",
+      actorId: ctx.agentId,
+      title: `Skill promotion requested: ${skill.name}`,
+      preview: skill.description,
+      requiresAction: true,
+      payloadJson: JSON.stringify({ skillId: skill.id }),
+    });
+    return JSON.stringify({ requested: true, skillId: skill.id });
   },
 };
 
@@ -283,6 +313,7 @@ export const memoryToolDefinitions: Tool[] = [
   skillRead,
   skillCreate,
   skillUpdate,
+  skillPromote,
   memoryRead,
   memoryAdd,
   memoryRemove,

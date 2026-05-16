@@ -23,7 +23,8 @@ describe("capability catalog", () => {
   });
 
   it("includes the memory capability with the 9 M11 tools", () => {
-    expect(CAPABILITY_CATALOG.memory.tools).toHaveLength(9);
+    expect(CAPABILITY_CATALOG.memory.tools).toHaveLength(10);
+    expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__skill_promote");
     expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__skill_search");
     expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__memory_add");
     expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__session_search");
