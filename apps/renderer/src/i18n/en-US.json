@@ -706,6 +706,14 @@
       "goal_proposed": "Proposed plans",
       "goal_executing": "Executing",
       "goal_error": "Goal failures"
+    },
+    "skillPromotion": {
+      "review": "Review",
+      "title": "Promote skill to the company",
+      "roleLabel": "Available to",
+      "allRoles": "All roles",
+      "approve": "Approve promotion",
+      "cancel": "Cancel"
     }
   },
   "approval": {

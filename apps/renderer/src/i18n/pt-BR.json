@@ -706,6 +706,14 @@
       "goal_proposed": "Planos propostos",
       "goal_executing": "Executando",
       "goal_error": "Falhas de objetivo"
+    },
+    "skillPromotion": {
+      "review": "Revisar",
+      "title": "Promover skill para a empresa",
+      "roleLabel": "Disponível para",
+      "allRoles": "Todos os papéis",
+      "approve": "Aprovar promoção",
+      "cancel": "Cancelar"
     }
   },
   "approval": {

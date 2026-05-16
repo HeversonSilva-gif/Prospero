@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { InboxItem, InboxKind, PermissionResolution } from "@prospero/shared";
 import { useInboxStore } from "../stores/inbox.js";
+import { useCompaniesStore } from "../stores/companies.js";
+import { SkillPromotionModal } from "../components/inbox/SkillPromotionModal.js";
 
 const GOAL_KINDS: InboxKind[] = ["goal_proposed", "goal_executing", "goal_error"];
 
@@ -11,6 +13,16 @@ const extractGoalId = (payloadJson: string | null): string | null => {
   try {
     const parsed = JSON.parse(payloadJson) as { goalId?: unknown };
     return typeof parsed.goalId === "string" ? parsed.goalId : null;
+  } catch {
+    return null;
+  }
+};
+
+const extractSkillId = (payloadJson: string | null): string | null => {
+  if (payloadJson === null) return null;
+  try {
+    const p = JSON.parse(payloadJson) as { skillId?: unknown };
+    return typeof p.skillId === "string" ? p.skillId : null;
   } catch {
     return null;
   }
@@ -49,6 +61,7 @@ export const Inbox: FC = () => {
   const items = useInboxStore((s) => s.items);
   const markRead = useInboxStore((s) => s.markRead);
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [promotionSkillId, setPromotionSkillId] = useState<string | null>(null);
 
   const filtered = filter === "all" ? items : items.filter((i) => i.kind === filter);
 
@@ -167,6 +180,21 @@ export const Inbox: FC = () => {
                     </div>
                   );
                 })()}
+              {item.kind === "skill_promotion_requested" &&
+                item.readAt === null &&
+                (() => {
+                  const sid = extractSkillId(item.payloadJson);
+                  if (sid === null) return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setPromotionSkillId(sid)}
+                      className="mt-2 text-xs text-brand hover:underline"
+                    >
+                      {t("inbox.skillPromotion.review")}
+                    </button>
+                  );
+                })()}
               {item.readAt === null && item.requiresAction === false && (
                 <button
                   onClick={() => void markRead(item.id)}
@@ -179,6 +207,17 @@ export const Inbox: FC = () => {
             </li>
           ))}
         </ul>
+      )}
+      {promotionSkillId !== null && (
+        <SkillPromotionModal
+          skillId={promotionSkillId}
+          onClose={() => setPromotionSkillId(null)}
+          onApproved={() => {
+            setPromotionSkillId(null);
+            const companyId = useCompaniesStore.getState().activeId;
+            if (companyId !== null) void useInboxStore.getState().load(companyId);
+          }}
+        />
       )}
     </div>
   );

@@ -287,4 +287,20 @@ describe("i18n parity", () => {
       expect(enKeys).toContain(k);
     }
   });
+
+  it("includes the M11 PR-E skill-promotion keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "inbox.skillPromotion.review",
+      "inbox.skillPromotion.title",
+      "inbox.skillPromotion.roleLabel",
+      "inbox.skillPromotion.allRoles",
+      "inbox.skillPromotion.approve",
+      "inbox.skillPromotion.cancel",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
 });
