@@ -6,7 +6,12 @@ import { useInboxStore } from "../stores/inbox.js";
 import { useCompaniesStore } from "../stores/companies.js";
 import { SkillPromotionModal } from "../components/inbox/SkillPromotionModal.js";
 
-const GOAL_KINDS: InboxKind[] = ["goal_proposed", "goal_executing", "goal_error"];
+const GOAL_KINDS: InboxKind[] = [
+  "goal_proposed",
+  "goal_executing",
+  "goal_error",
+  "goal_retrospective_ready",
+];
 
 const extractGoalId = (payloadJson: string | null): string | null => {
   if (payloadJson === null) return null;
@@ -40,6 +45,7 @@ const KIND_BORDER: Record<InboxKind, string> = {
   agent_unresponsive: "border-l-4 border-l-semantic-danger",
   skill_candidate_pending: "border-l-4 border-l-brand",
   skill_promotion_requested: "border-l-4 border-l-brand",
+  goal_retrospective_ready: "border-l-4 border-l-brand",
 };
 
 type FilterKey = "all" | InboxKind;
