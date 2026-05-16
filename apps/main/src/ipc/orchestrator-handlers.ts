@@ -294,6 +294,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       userDataDir: app.getPath("userData"),
       companyId: agent.companyId,
       agentId: agent.id,
+      role: agent.role,
     });
 
     void ensureAdapter(

@@ -16,6 +16,7 @@ export type BuildMemoryBlockDeps = {
   userDataDir: string;
   companyId: string;
   agentId: string;
+  role: string;
 };
 
 // Joins entry bodies (already importance-sorted by the repo) until the cap.
@@ -55,7 +56,13 @@ export const buildMemoryBlock = (deps: BuildMemoryBlockDeps): string | undefined
     if (text.length > 0) sections.push(`## About the user\n\n${text}`);
   }
 
-  const company = renderMemories(deps.memoriesRepo.listCompanyWide(deps.companyId), COMPANY_CAP);
+  const company = renderMemories(
+    [
+      ...deps.memoriesRepo.listCompanyGlobal(deps.companyId),
+      ...deps.memoriesRepo.listForRole(deps.companyId, deps.role),
+    ],
+    COMPANY_CAP,
+  );
   if (company.length > 0) sections.push(`## Company memory\n\n${company.trimEnd()}`);
 
   const agent = renderMemories(deps.memoriesRepo.listByAgent(deps.agentId), AGENT_CAP);
@@ -64,7 +71,8 @@ export const buildMemoryBlock = (deps: BuildMemoryBlockDeps): string | undefined
   const skills = renderSkills(
     [
       ...deps.skillsRepo.listByAgent(deps.agentId),
-      ...deps.skillsRepo.listCompanyShared(deps.companyId),
+      ...deps.skillsRepo.listForRole(deps.companyId, deps.role),
+      ...deps.skillsRepo.listCompanyGlobal(deps.companyId),
     ],
     SKILLS_CAP,
   );

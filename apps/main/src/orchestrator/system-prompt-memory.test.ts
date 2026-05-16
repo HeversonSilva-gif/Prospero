@@ -26,12 +26,13 @@ const setup = () => {
   };
 };
 
-const deps = (s: ReturnType<typeof setup>) => ({
+const deps = (s: ReturnType<typeof setup>, role = "engineer") => ({
   memoriesRepo: s.memoriesRepo,
   skillsRepo: s.skillsRepo,
   userDataDir: s.userDataDir,
   companyId: "c1",
   agentId: "a1",
+  role,
 });
 
 describe("buildMemoryBlock", () => {
@@ -104,5 +105,62 @@ describe("buildMemoryBlock", () => {
     s.skillsRepo.recordUse(s.skillsRepo.getByName("c1", "a1", "common")!.id);
     const block = buildMemoryBlock(deps(s)) ?? "";
     expect(block.indexOf("COMMON-DESC")).toBeLessThan(block.indexOf("RARE-DESC"));
+  });
+});
+
+describe("buildMemoryBlock — role inheritance", () => {
+  it("includes a skill scoped to the agent's role", () => {
+    const s = setup();
+    s.skillsRepo.create({
+      companyId: "c1",
+      agentId: null,
+      name: "eng-runbook",
+      bodyPath: "p",
+      description: "ENG-ROLE-SKILL",
+      source: "user_authored",
+      appliesToRole: "engineer",
+    });
+    const block = buildMemoryBlock(deps(s, "engineer")) ?? "";
+    expect(block).toContain("ENG-ROLE-SKILL");
+  });
+
+  it("excludes a skill scoped to a different role", () => {
+    const s = setup();
+    s.skillsRepo.create({
+      companyId: "c1",
+      agentId: null,
+      name: "design-runbook",
+      bodyPath: "p",
+      description: "DESIGN-ROLE-SKILL",
+      source: "user_authored",
+      appliesToRole: "designer",
+    });
+    const block = buildMemoryBlock(deps(s, "engineer")) ?? "";
+    expect(block).not.toContain("DESIGN-ROLE-SKILL");
+  });
+
+  it("includes a company-global (role-unscoped) skill for any role", () => {
+    const s = setup();
+    s.skillsRepo.create({
+      companyId: "c1",
+      agentId: null,
+      name: "global-runbook",
+      bodyPath: "p",
+      description: "GLOBAL-SKILL",
+      source: "user_authored",
+    });
+    expect(buildMemoryBlock(deps(s, "designer")) ?? "").toContain("GLOBAL-SKILL");
+  });
+
+  it("includes a memory scoped to the agent's role", () => {
+    const s = setup();
+    s.memoriesRepo.create({
+      companyId: "c1",
+      agentId: null,
+      kind: "rule",
+      body: "ENG-ROLE-MEMORY",
+      appliesToRole: "engineer",
+    });
+    expect(buildMemoryBlock(deps(s, "engineer")) ?? "").toContain("ENG-ROLE-MEMORY");
   });
 });

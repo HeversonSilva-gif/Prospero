@@ -31,6 +31,7 @@ describe("M11 memory injection — assembler to system prompt", () => {
       userDataDir: mkdtempSync(join(tmpdir(), "prospero-int-")),
       companyId: "c1",
       agentId: "a1",
+      role: "engineer",
     });
     expect(memoryBlock).toBeDefined();
     const prompt = composeSystemPrompt({
