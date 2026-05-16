@@ -9,6 +9,11 @@ import { createSkillCandidatesRepository } from "../memory/skill-candidates-repo
 import { acceptSkillCandidate, rejectSkillCandidate } from "../memory/review-candidate.js";
 import { createInboxRepository } from "../inbox/repository.js";
 
+// M11 PR-F1: a thumb up/down on a skill or memory.
+type RateDirection = "up" | "down";
+// Asymmetric, per spec §8: distrust accrues faster than trust.
+const TRUST_DELTA: Record<RateDirection, number> = { up: 0.05, down: -0.1 };
+
 // Turns raw search-box input into a safe FTS5 MATCH expression: each
 // whitespace-separated term is wrapped in double quotes (so special characters
 // can never break the query), and the quoted terms are joined by spaces, which
@@ -51,6 +56,9 @@ export type LearningHandlers = {
     topSkills: Skill[];
     recentRetrospectives: Memory[];
   };
+  // M11 PR-F1: user thumb up/down on a skill / memory — steers L0 trust.
+  rateSkill(args: { skillId: string; direction: RateDirection }): Skill;
+  rateMemory(args: { memoryId: string; direction: RateDirection }): Memory;
 };
 
 type SessionRow = {
@@ -151,6 +159,13 @@ export const learningHandlers = (db: Database.Database, userDataDir: string): Le
         .slice(0, 5);
       return { topSkills, recentRetrospectives };
     },
+
+    rateSkill({ skillId, direction }) {
+      return skillsRepo.bumpTrust(skillId, TRUST_DELTA[direction]);
+    },
+    rateMemory({ memoryId, direction }) {
+      return memoriesRepo.bumpTrust(memoryId, TRUST_DELTA[direction]);
+    },
   };
 };
 
@@ -181,4 +196,12 @@ export const registerLearningHandlers = (db: Database.Database): void => {
     (_e, args: { skillId: string; appliesToRole: string | null }) => h.approveSkillPromotion(args),
   );
   ipcMain.handle(IPC.LEARNING_ORG, (_e, args: { companyId: string }) => h.orgLearnings(args));
+  ipcMain.handle(
+    IPC.LEARNING_RATE_SKILL,
+    (_e, args: { skillId: string; direction: RateDirection }) => h.rateSkill(args),
+  );
+  ipcMain.handle(
+    IPC.LEARNING_RATE_MEMORY,
+    (_e, args: { memoryId: string; direction: RateDirection }) => h.rateMemory(args),
+  );
 };

@@ -369,6 +369,10 @@ contextBridge.exposeInMainWorld("prospero", {
         topSkills: Skill[];
         recentRetrospectives: Memory[];
       }>,
+    rateSkill: (skillId: string, direction: "up" | "down") =>
+      ipcRenderer.invoke(IPC.LEARNING_RATE_SKILL, { skillId, direction }) as Promise<Skill>,
+    rateMemory: (memoryId: string, direction: "up" | "down") =>
+      ipcRenderer.invoke(IPC.LEARNING_RATE_MEMORY, { memoryId, direction }) as Promise<Memory>,
   },
   windowControls: {
     minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE) as Promise<void>,

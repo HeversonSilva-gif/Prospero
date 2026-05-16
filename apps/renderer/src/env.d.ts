@@ -271,6 +271,8 @@ declare global {
           topSkills: Skill[];
           recentRetrospectives: Memory[];
         }>;
+        rateSkill: (skillId: string, direction: "up" | "down") => Promise<Skill>;
+        rateMemory: (memoryId: string, direction: "up" | "down") => Promise<Memory>;
       };
       windowControls: {
         minimize: () => Promise<void>;

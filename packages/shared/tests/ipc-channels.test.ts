@@ -45,4 +45,9 @@ describe("IPC channels", () => {
   it("exposes the M11 org-learnings channel", () => {
     expect(IPC.LEARNING_ORG).toBe("learning:org-learnings");
   });
+
+  it("exposes the M11 trust-feedback channels", () => {
+    expect(IPC.LEARNING_RATE_SKILL).toBe("learning:rate-skill");
+    expect(IPC.LEARNING_RATE_MEMORY).toBe("learning:rate-memory");
+  });
 });

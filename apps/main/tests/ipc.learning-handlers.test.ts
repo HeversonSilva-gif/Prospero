@@ -227,6 +227,36 @@ describe("learningHandlers — orgLearnings", () => {
   });
 });
 
+describe("learningHandlers — trust feedback", () => {
+  it("rateSkill up nudges trust by +0.05, down by -0.10", () => {
+    const db = seed();
+    const skill = createSkillsRepository(db).create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "s",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    const h = learningHandlers(db, USERDATA);
+    expect(h.rateSkill({ skillId: skill.id, direction: "up" }).trust).toBeCloseTo(0.55, 5);
+    expect(h.rateSkill({ skillId: skill.id, direction: "down" }).trust).toBeCloseTo(0.45, 5);
+  });
+
+  it("rateMemory up nudges trust by +0.05, down by -0.10", () => {
+    const db = seed();
+    const memory = createMemoriesRepository(db).create({
+      companyId: "c1",
+      agentId: "a1",
+      kind: "preference",
+      body: "b",
+    });
+    const h = learningHandlers(db, USERDATA);
+    expect(h.rateMemory({ memoryId: memory.id, direction: "up" }).trust).toBeCloseTo(0.55, 5);
+    expect(h.rateMemory({ memoryId: memory.id, direction: "down" }).trust).toBeCloseTo(0.45, 5);
+  });
+});
+
 describe("learningHandlers — skill promotion", () => {
   let db: Database.Database;
   beforeEach(() => {
