@@ -129,18 +129,17 @@
 ### ▸ Agora (estado em 2026-05-16)
 
 - **14 / 14 milestones do v1 fechados** — **v1 entregue em 2026-05-15**
-- **V2 em andamento:** M11 Agent Memory — PRs **A/B/C/D ✅ + E1 ✅** (herança por role + `skill_promote`); **E2/F pendentes**
-- **1124 testes passing + 2 todo** · 0 lint/typecheck errors
-- HEAD `main`: M11 PR-E1 (herança por role + promoção de skill) mergeado (2026-05-16)
+- **V2 em andamento:** M11 Agent Memory — PRs **A/B/C/D ✅ + E ✅** (herança por role + `skill_promote` + memória derivada da empresa); **F pendente**
+- **1146 testes passing + 2 todo** · 0 lint/typecheck errors
+- HEAD `main`: M11 PR-E2 (memória derivada `goal.achieved`/`approval.rejected` + card Org Learnings) mergeado (2026-05-16)
 
 ### ▸ Próximo
 
 | Candidato | Escopo | Por quê |
 |---|---|---|
-| 🥇 **M11 PR-E2** | Triggers `goal.achieved`/`approval.rejected` → memória (retrospectiva/preferência) + card "Org Learnings" no dashboard + terminate-modal "promover skills?" | Fecha o fluxo ascendente de memória e dá visibilidade ao que a empresa aprendeu. |
-| 🥈 **M11 PR-F** | Decay/trust + Settings (`user.md` + budget) + **nudges fallback** + docs | Fecha o M11. Os nudges foram adiados de D2 — dependem de um evento de compaction que ainda não existe. |
+| 🥇 **M11 PR-F** | Decay/trust + Settings (`user.md` + budget de derivação) + **nudges fallback** + terminate-modal "promover skills privados?" + docs | Fecha o M11 — último PR. Os nudges foram adiados de D2 e a terminate-modal de E2 (dependem, respectivamente, de um evento de compaction inexistente e da política de decay). |
 
-**Recomendação:** M11 PR-E2 (fecha o PR-E antes de seguir pra PR-F).
+**Recomendação:** M11 PR-F (fecha o M11).
 
 ### ▸ Horizonte (v1 = M10 fechado · V2 começa em M11)
 
@@ -824,7 +823,7 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
 
 ---
 
-### 🔄 M11 — Agent Memory & Learning Loop — **V2 anchor · em andamento (PRs A-D + E1 ✅, E2-F pendentes)**
+### 🔄 M11 — Agent Memory & Learning Loop — **V2 anchor · em andamento (PRs A-E ✅, F pendente)**
 
 **Origem:** pesquisa Hermes Agent ([NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent), 2026-05-12). Doc completo em [docs/hermes-memory-learning-system.md](docs/hermes-memory-learning-system.md). Substitui o item v2+ "Memory / Knowledge base" por implementação concreta — **inspirada** no closed learning loop do Hermes mas com **3 inflexões deliberadas** que aproveitam vantagens estruturais do nosso codebase (Activity stream, Issues, Goals, CEO-planner).
 
@@ -855,8 +854,8 @@ heurística NLP; novo evento `agent.recovered`.
 | **D1** | Motor de auto-derivação — evento `agent.recovered`, dispatcher nos 2 triggers (`issue.done`/`recovered`), runner `claude -p` headless (Sonnet), worker (cap 3/dia/agente via `cost_event`, sanitizer), grava `skill_candidate` + inbox `skill_candidate_pending` | ✅ 2026-05-16 |
 | **D2** | Sub-tab "Candidates" (Accept/Edit/Reject) + IPC + accept→skill real + resolve do inbox item | ✅ 2026-05-16 |
 | **E1** | Herança por `applies_to_role` no system prompt (`buildMemoryBlock`) + `skill_promote` MCP tool + inbox `skill_promotion_requested` + modal de aprovação | ✅ 2026-05-16 |
-| **E2** | Triggers `goal.achieved`→retrospectiva / `approval.rejected`→preferência + inbox `goal_retrospective_ready` + card "Org Learnings" + terminate-modal "promover skills?" | ⏳ pendente |
-| **F** | Decay/trust + Settings (`user.md` + budget de derivação) + **nudges fallback** (turn-complete/time-based/compaction — adiado de D2) + docs | ⏳ pendente |
+| **E2** | Triggers `goal.achieved`→retrospectiva (company scope) / `approval.rejected`→preferência (agent scope) estendendo o motor de derivação + migration `0021` (inbox `goal_retrospective_ready`) + IPC `orgLearnings` + card "Org Learnings" no `/dashboard` | ✅ 2026-05-16 (terminate-modal "promover skills?" adiada pra PR-F) |
+| **F** | Decay/trust + Settings (`user.md` + budget de derivação) + **nudges fallback** (turn-complete/time-based/compaction — adiado de D2) + terminate-modal "promover skills privados?" (adiada de E2) + docs | ⏳ pendente |
 
 #### 🔀 As 3 inflexões vs Hermes
 

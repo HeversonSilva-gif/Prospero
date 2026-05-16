@@ -2304,10 +2304,12 @@
               escreve retrospectiva ao completar um Goal. Inclui busca em conversas antigas.
               Inspirado mas com 3 inflexões deliberadas sobre o
               <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>
-              (NousResearch). → <strong>M11 — em andamento</strong> (âncora da V2; a aba
-              "Aprendizado" do agente e a <strong>derivação automática</strong> de skills já
-              funcionam — ao concluir um issue o sistema já propõe um skill; falta a tela pra você
-              revisar e aceitar essas propostas, mais a herança entre funcionários)
+              (NousResearch). → <strong>M11 — em andamento</strong> (âncora da V2; já funcionam: a
+              aba "Aprendizado", a <strong>derivação automática</strong> de skills com tela de
+              revisão, a <strong>herança entre funcionários</strong>, e a memória que a empresa
+              acumula sozinha — bater um Goal vira retrospectiva, recusar uma ação vira preferência,
+              e um card no dashboard mostra o que foi aprendido; falta só o ajuste fino de
+              decay/confiança e a tela de Settings)
             </li>
             <li>
               ✦ <strong>V2 — "1-person business"</strong> — depois que o v1 fechar, o produto muda
@@ -2333,7 +2335,7 @@
           <span class="index">/01</span>
           <h2>v1 progress</h2>
           <span class="note"
-            >M1—M10 · v1 fechado em 2026-05-15 · V2 em andamento — M11 Agent Memory (PRs A-C
+            >M1—M10 · v1 fechado em 2026-05-15 · V2 em andamento — M11 Agent Memory (PRs A-E
             mergeados)</span
           >
         </div>
@@ -2407,10 +2409,10 @@
               <code>claude-oauth-remote-docker</code> em 5 PRs (A–E): wire protocol, app
               <code>agent-runner</code> + imagem Docker, host adapter + MCP relay tunelado, Settings
               + seletor de localização per-agente, docs. Arquitetura SSH stdio, host-authoritative —
-              o SQLite nunca sai do host. <strong>1124 testes passing</strong> (+2 todo).
+              o SQLite nunca sai do host. <strong>1146 testes passing</strong> (+2 todo).
               <strong>14/14 milestones</strong> do v1 ✅.
-              <strong>V2 em andamento — M11 Agent Memory</strong>: PRs A/B/C/D + E1 mergeados, E2/F
-              pendentes.
+              <strong>V2 em andamento — M11 Agent Memory</strong>: PRs A/B/C/D + E mergeados, F
+              pendente.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -2435,13 +2437,13 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M11 em andamento (A-D + E1 ✅)</div>
+            <div class="title">M11 em andamento (A-E ✅)</div>
             <ul class="bullets">
               <li>
                 <span><strong>14 / 14</strong> milestones do v1 · v1 fechado 2026-05-15</span>
               </li>
               <li>
-                <span><strong>1124</strong> testes passing + 2 todo · 0 lint/typecheck errors</span>
+                <span><strong>1146</strong> testes passing + 2 todo · 0 lint/typecheck errors</span>
               </li>
               <li>
                 <span
@@ -2458,42 +2460,50 @@
                 >
               </li>
               <li>
-                <span>Restante do M11: PR-E2 org learning · PR-F decay/trust + nudges + docs</span>
+                <span
+                  ><strong>M11 PR-E2 ✅</strong> — memória que a empresa acumula sozinha: bater um
+                  Goal deriva uma retrospectiva (memória da empresa), recusar uma ação deriva uma
+                  preferência (memória do agente), e o card "Org Learnings" no dashboard mostra o
+                  que foi aprendido</span
+                >
+              </li>
+              <li>
+                <span>Restante do M11: só o PR-F — decay/trust + Settings + nudges + docs</span>
               </li>
             </ul>
-            <div class="eta">M11 ~10-14d · A-D + E1 entregues</div>
+            <div class="eta">M11 ~10-14d · A-E entregues</div>
           </div>
 
           <div class="card" data-kind="next">
             <div class="kicker">próximo</div>
-            <div class="title">M11 PR-E2 — memória da empresa</div>
+            <div class="title">M11 PR-F — decay/trust + Settings</div>
             <ul class="bullets">
               <li>
                 <span
-                  >Trigger <code>goal.achieved</code> → o sistema deriva uma
-                  <strong>retrospectiva</strong> e grava como memória da empresa</span
+                  >Decay/trust: skills/memórias pouco usadas perdem prioridade; as confiáveis
+                  sobem</span
                 >
               </li>
               <li>
                 <span
-                  >Trigger <code>approval.rejected</code> → deriva uma
-                  <strong>preferência</strong> (o que o usuário não quer) como memória do
+                  >Settings: editor do <code>user.md</code> + slider do orçamento de derivação por
                   agente</span
                 >
               </li>
               <li>
                 <span
-                  >Card "Org Learnings" no <code>/dashboard</code> — o que a empresa aprendeu</span
+                  ><strong>Nudges fallback</strong> (adiado de D2) — derivar skill em turn-complete
+                  / por tempo / na compaction</span
                 >
               </li>
               <li>
                 <span
-                  >Terminate-modal: ao encerrar um agente, oferecer "promover skills
+                  >Terminate-modal (adiada de E2): ao encerrar um agente, oferecer "promover skills
                   privados?"</span
                 >
               </li>
             </ul>
-            <div class="eta">depois: PR-F decay/trust + Settings + nudges + docs · fecha o M11</div>
+            <div class="eta">último PR do M11 — fecha o milestone</div>
           </div>
 
           <div class="card" data-kind="horizon">
@@ -4143,14 +4153,15 @@
                     <code>skill_promotion_requested</code> + modal de aprovação
                   </li>
                   <li>
-                    ⏳ <strong>PR-E2</strong> — triggers <code>goal.achieved</code>/<code
-                      >approval.rejected</code
-                    >
-                    → memória + card "Org Learnings" + terminate-modal "promover skills?"
+                    ✅ <strong>PR-E2</strong> — triggers <code>goal.achieved</code>→retrospectiva
+                    (company) / <code>approval.rejected</code>→preferência (agent) estendendo o
+                    motor de derivação + migration <code>0021</code> (inbox
+                    <code>goal_retrospective_ready</code>) + IPC <code>orgLearnings</code> + card
+                    "Org Learnings" no <code>/dashboard</code>
                   </li>
                   <li>
                     ⏳ <strong>PR-F</strong> — decay/trust + Settings + nudges fallback (adiado de
-                    D2) + docs
+                    D2) + terminate-modal "promover skills privados?" (adiada de E2) + docs
                   </li>
                 </ul>
               </div>
