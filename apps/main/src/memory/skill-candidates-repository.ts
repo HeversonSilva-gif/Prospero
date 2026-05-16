@@ -51,6 +51,7 @@ export type SkillCandidatesRepository = {
   create(input: CreateSkillCandidateInput): SkillCandidate;
   getById(id: string): SkillCandidate | null;
   listPending(companyId: string): SkillCandidate[];
+  listPendingByAgent(agentId: string): SkillCandidate[];
   updateStatus(
     id: string,
     status: "accepted" | "rejected",
@@ -76,6 +77,9 @@ export const createSkillCandidatesRepository = (
   const byId = db.prepare("SELECT * FROM skill_candidates WHERE id = ?");
   const pending = db.prepare(
     "SELECT * FROM skill_candidates WHERE company_id = ? AND status = 'pending' ORDER BY created_at DESC",
+  );
+  const pendingByAgent = db.prepare(
+    "SELECT * FROM skill_candidates WHERE agent_id = ? AND status = 'pending' ORDER BY created_at DESC",
   );
   const updateStatusStmt = db.prepare(
     "UPDATE skill_candidates SET status = ?, reviewed_by = ?, reviewed_at = ?, reject_reason = ? WHERE id = ?",
@@ -106,6 +110,9 @@ export const createSkillCandidatesRepository = (
     getById,
     listPending(companyId) {
       return (pending.all(companyId) as SkillCandidateRow[]).map(rowToCandidate);
+    },
+    listPendingByAgent(agentId) {
+      return (pendingByAgent.all(agentId) as SkillCandidateRow[]).map(rowToCandidate);
     },
     updateStatus(id, status, reviewedBy, rejectReason) {
       const existing = byId.get(id) as SkillCandidateRow | undefined;

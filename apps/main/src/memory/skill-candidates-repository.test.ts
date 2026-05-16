@@ -68,3 +68,60 @@ describe("skillCandidatesRepository", () => {
     expect(rejected.rejectReason).toBe("too vague");
   });
 });
+
+const seed = (): Database.Database => {
+  const db = new Database(":memory:");
+  applyMigrations(db);
+  db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','Acme',0)").run();
+  db.prepare(
+    `INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json,
+       allowed_projects_json, mode, always_on, status, created_at, updated_at)
+     VALUES ('a1','c1','Eng','engineer','sp','[]','[]','supervised',0,'idle',0,0),
+            ('a2','c1','Des','designer','sp','[]','[]','supervised',0,'idle',0,0)`,
+  ).run();
+  db.prepare(
+    `INSERT INTO activity_events (id, company_id, actor_kind, actor_id, action, entity_kind,
+       entity_id, agent_id, payload_json, created_at)
+     VALUES ('evt_1','c1','agent','a1','issue.status_changed','issue','i1','a1','{}',0),
+            ('evt_2','c1','agent','a2','issue.status_changed','issue','i2','a2','{}',0)`,
+  ).run();
+  return db;
+};
+
+describe("skill-candidates-repository listPendingByAgent", () => {
+  it("returns only the given agent's pending candidates, newest first", () => {
+    const db = seed();
+    const repo = createSkillCandidatesRepository(db);
+    const a = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      trigger: "issue_done",
+      proposedName: "older",
+      proposedDescription: "d",
+      proposedBody: "b",
+    });
+    const b = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      trigger: "issue_done",
+      proposedName: "newer",
+      proposedDescription: "d",
+      proposedBody: "b",
+    });
+    repo.create({
+      companyId: "c1",
+      agentId: "a2",
+      sourceEventId: "evt_2",
+      trigger: "issue_done",
+      proposedName: "other-agent",
+      proposedDescription: "d",
+      proposedBody: "b",
+    });
+    repo.updateStatus(a.id, "accepted", "user");
+    const pending = repo.listPendingByAgent("a1");
+    expect(pending.map((c) => c.proposedName)).toEqual(["newer"]);
+    expect(pending[0]?.id).toBe(b.id);
+  });
+});

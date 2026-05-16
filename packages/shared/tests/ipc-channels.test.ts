@@ -31,4 +31,10 @@ describe("IPC channels", () => {
     expect(IPC.MEMORIES_LIST_FOR_AGENT).toBe("memories:list-for-agent");
     expect(IPC.SESSION_SEARCH).toBe("session:search");
   });
+
+  it("exposes the M11 skill-candidate channels", () => {
+    expect(IPC.SKILL_CANDIDATES_LIST_FOR_AGENT).toBe("skill-candidates:list-for-agent");
+    expect(IPC.SKILL_CANDIDATE_ACCEPT).toBe("skill-candidates:accept");
+    expect(IPC.SKILL_CANDIDATE_REJECT).toBe("skill-candidates:reject");
+  });
 });
