@@ -20,6 +20,7 @@ import { createAgentsRepository } from "./agents/repository.js";
 import { createProjectsRepository } from "./projects/repository.js";
 import { getRecorder } from "./activity/index.js";
 import { startHeartbeat } from "./orchestrator/heartbeat.js";
+import { runMemoryMaintenance } from "./memory/maintenance.js";
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -60,6 +61,19 @@ process.on("uncaughtException", (err) => {
 void app.whenReady().then(() => {
   db = openDatabase(databasePath());
   registerIpcHandlers(db);
+
+  // M11 PR-F1: decay/prune the memory store once per session.
+  try {
+    const maintenance = runMemoryMaintenance(db, Date.now());
+    if (maintenance.ran) {
+      console.warn(
+        `[memory] maintenance: decayed ${maintenance.decayed}, ` +
+          `warned ${maintenance.warned}, pruned ${maintenance.pruned}`,
+      );
+    }
+  } catch (err) {
+    console.warn(`[memory] maintenance pass failed: ${String(err)}`);
+  }
 
   // Permission watcher (M5 spec §6.4)
   const agentsRepo = createAgentsRepository(db, getRecorder());
