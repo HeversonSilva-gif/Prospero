@@ -303,4 +303,18 @@ describe("i18n parity", () => {
       expect(enKeys).toContain(k);
     }
   });
+
+  it("includes the M11 PR-E org-learnings widget keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "dashboard.orgLearnings.title",
+      "dashboard.orgLearnings.skills",
+      "dashboard.orgLearnings.retrospectives",
+      "dashboard.orgLearnings.empty",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
 });

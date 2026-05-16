@@ -9,6 +9,7 @@ import { InboxUnreadWidget } from "../components/dashboard/InboxUnreadWidget.js"
 import { ActiveAgentsPanelWidget } from "../components/dashboard/ActiveAgentsPanelWidget.js";
 import { GoalsProgressWidget } from "../components/dashboard/GoalsProgressWidget.js";
 import { RecentActivityWidget } from "../components/dashboard/RecentActivityWidget.js";
+import { OrgLearningsWidget } from "../components/dashboard/OrgLearningsWidget.js";
 
 export const Dashboard = () => {
   const { t } = useTranslation();
@@ -68,6 +69,7 @@ export const Dashboard = () => {
         <CostsTodayWidget companyId={companyId} />
         <ActiveAgentsPanelWidget />
         <GoalsProgressWidget />
+        <OrgLearningsWidget companyId={companyId} />
       </div>
 
       <RecentActivityWidget companyId={companyId} />

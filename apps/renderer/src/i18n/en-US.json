@@ -247,6 +247,12 @@
       "viewDetails": "View details →",
       "tokens": "tokens",
       "noActivity": "No costs today yet."
+    },
+    "orgLearnings": {
+      "title": "Org learnings",
+      "skills": "Shared skills",
+      "retrospectives": "Recent retrospectives",
+      "empty": "The company hasn't accumulated learnings yet."
     }
   },
   "costs": {
