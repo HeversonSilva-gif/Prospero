@@ -20,4 +20,14 @@ describe("createRecoveryTracker", () => {
     expect(t.consumeRecovery("a2")).toBe(false);
     expect(t.consumeRecovery("a1")).toBe(true);
   });
+
+  // Both the onError and onExit orchestrator sites can call markErrored for
+  // the same failed run — double-marking must still yield a single recovery.
+  it("double markErrored still yields a single true consume", () => {
+    const t = createRecoveryTracker();
+    t.markErrored("a1");
+    t.markErrored("a1");
+    expect(t.consumeRecovery("a1")).toBe(true);
+    expect(t.consumeRecovery("a1")).toBe(false);
+  });
 });
