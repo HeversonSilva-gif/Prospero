@@ -180,7 +180,7 @@ export const createSkillsRepository = (db: Database.Database): SkillsRepository 
     bumpTrust(id, delta) {
       bumpTrustStmt.run(delta, id);
       const updated = getById(id);
-      if (updated === null) throw new Error(`skill ${id} not found`);
+      if (updated === null) throw new Error(`skill not found: ${id}`);
       return updated;
     },
   };

@@ -179,7 +179,7 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
     bumpTrust(id, delta) {
       bumpTrustStmt.run(delta, id);
       const updated = getById(id);
-      if (updated === null) throw new Error(`memory ${id} not found`);
+      if (updated === null) throw new Error(`memory not found: ${id}`);
       return updated;
     },
     search(query, opts = {}) {
