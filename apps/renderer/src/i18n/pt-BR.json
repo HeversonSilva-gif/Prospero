@@ -255,6 +255,29 @@
       "empty": "A empresa ainda não acumulou aprendizados."
     }
   },
+  "orgPlan": {
+    "pageTitle": "Projeto da organização",
+    "none": "Nenhuma proposta de organização aguardando revisão.",
+    "title": "Organização proposta",
+    "roles": "Papéis ({{count}})",
+    "agents": "Agentes ({{count}})",
+    "viewCharter": "Ver charter",
+    "collapse": "Recolher",
+    "reportsTo": "reporta a",
+    "approve": "Aprovar e criar",
+    "approving": "Criando…",
+    "reject": "Rejeitar",
+    "confirmReject": "Confirmar rejeição",
+    "rejectReasonPlaceholder": "Opcional — por que está rejeitando?",
+    "applied": {
+      "title": "Organização criada.",
+      "detail": "{{roles}} papel(éis) e {{agents}} agente(s) criados."
+    },
+    "validation": {
+      "agentRoleExcluded": "{{agent}} está incluído mas o papel {{role}} está excluído.",
+      "agentReportsToExcluded": "{{agent}} reporta a {{parent}}, que está excluído."
+    }
+  },
   "costs": {
     "title": "Custos",
     "subtitle": "Tokens consumidos por agente, projeto e adapter. Soft-stop quando estourar budget.",
@@ -717,6 +740,7 @@
     "reject": "Rejeitar",
     "markRead": "Marcar como lido",
     "openGoal": "Abrir objetivo",
+    "openOrgPlan": "Abrir proposta de organização",
     "goalError": {
       "recovery": {
         "resumeNarrated": "Retomar narrado",

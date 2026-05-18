@@ -255,6 +255,29 @@
       "empty": "The company hasn't accumulated learnings yet."
     }
   },
+  "orgPlan": {
+    "pageTitle": "Organization design",
+    "none": "No organization design is awaiting review.",
+    "title": "Proposed organization",
+    "roles": "Roles ({{count}})",
+    "agents": "Agents ({{count}})",
+    "viewCharter": "View charter",
+    "collapse": "Collapse",
+    "reportsTo": "reports to",
+    "approve": "Approve & create",
+    "approving": "Creating…",
+    "reject": "Reject",
+    "confirmReject": "Confirm reject",
+    "rejectReasonPlaceholder": "Optional — why are you rejecting this?",
+    "applied": {
+      "title": "Organization created.",
+      "detail": "{{roles}} role(s) and {{agents}} agent(s) were created."
+    },
+    "validation": {
+      "agentRoleExcluded": "{{agent}} is included but its role {{role}} is excluded.",
+      "agentReportsToExcluded": "{{agent}} reports to {{parent}}, which is excluded."
+    }
+  },
   "costs": {
     "title": "Costs",
     "subtitle": "Tokens consumed per agent, project, adapter. Soft-stop when budget is exceeded.",
@@ -717,6 +740,7 @@
     "reject": "Reject",
     "markRead": "Mark as read",
     "openGoal": "Open goal",
+    "openOrgPlan": "Open org plan",
     "goalError": {
       "recovery": {
         "resumeNarrated": "Resume narrated",
