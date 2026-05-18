@@ -35,7 +35,7 @@ A skill has two components:
 | `body_path` | `TEXT` | Absolute path to the `SKILL.md` file |
 | `version` | `INTEGER` | Incremented on each `skill_update` |
 | `applies_to_role` | `TEXT \| NULL` | Non-NULL for role-scoped shared skills |
-| `source` | `TEXT` | `agent_created`, `user_created`, or `derivation` |
+| `source` | `TEXT` | One of `agent_created`, `derived_from_issue`, `derived_from_recovery`, `user_authored` |
 | `trust` | `REAL` | `[0, 1]`, default `0.5` |
 | `use_count` | `INTEGER` | Incremented each time `skill_read` is called |
 | `promoted` | `INTEGER` | `1` when approved via the promotion flow |
