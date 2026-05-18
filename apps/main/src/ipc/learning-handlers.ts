@@ -180,7 +180,11 @@ export const learningHandlers = (db: Database.Database, userDataDir: string): Le
       return { content: existsSync(path) ? readFileSync(path, "utf8") : "" };
     },
     setUserMemory({ content }) {
-      writeFileSync(getUserMemoryPath(userDataDir), content, "utf8");
+      try {
+        writeFileSync(getUserMemoryPath(userDataDir), content, "utf8");
+      } catch (err) {
+        throw new Error(`Failed to save user memory: ${(err as NodeJS.ErrnoException).message}`);
+      }
       return { ok: true as const };
     },
     importClaudeCodeMemory() {
