@@ -681,6 +681,132 @@
           text-align: left;
         }
       }
+
+      /* ===== S6 jornada ===== */
+      .tl-track {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        position: relative;
+        margin-bottom: 28px;
+      }
+      .tl-track::before {
+        content: "";
+        position: absolute;
+        left: 12.5%;
+        right: 12.5%;
+        top: 11px;
+        height: 2.5px;
+        background: var(--line);
+      }
+      .tl-node {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font: inherit;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        position: relative;
+        padding: 0;
+      }
+      .tl-dot {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--surface);
+        border: 2.5px solid var(--ink-faint);
+      }
+      .tl-node[data-done] .tl-dot,
+      .tl-node.is-now .tl-dot {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .tl-node.is-now .tl-dot {
+        box-shadow: 0 0 0 0 rgba(255, 94, 58, 0.5);
+        animation: nowPulse 2.4s infinite;
+      }
+      @keyframes nowPulse {
+        to {
+          box-shadow: 0 0 0 16px rgba(255, 94, 58, 0);
+        }
+      }
+      .tl-here {
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--accent-dark);
+      }
+      .tl-name {
+        font-weight: 700;
+        font-size: 0.95rem;
+      }
+      .tl-node.active .tl-name {
+        color: var(--accent-dark);
+      }
+      .tl-detail {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: var(--shadow-sm);
+        padding: 24px;
+        margin-bottom: 40px;
+      }
+      .tl-detail h3 {
+        margin-bottom: 6px;
+      }
+      .tl-detail p {
+        color: var(--ink-soft);
+      }
+      .jcols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+      .jcol {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 26px;
+        box-shadow: var(--shadow-sm);
+      }
+      .jcol-next {
+        background: var(--accent-soft);
+        border-color: var(--accent-soft);
+      }
+      .jcol h3 {
+        margin-bottom: 14px;
+      }
+      .jlist {
+        list-style: none;
+      }
+      .jlist li {
+        padding: 10px 0 10px 24px;
+        position: relative;
+        color: var(--ink-soft);
+        font-size: 0.96rem;
+        border-top: 1px solid var(--line);
+      }
+      .jlist li::before {
+        content: "\2713";
+        position: absolute;
+        left: 0;
+        top: 10px;
+        color: var(--accent);
+        font-weight: 800;
+      }
+      .jcol-next .jlist li::before {
+        content: "\2192";
+      }
+      .jcol-next .jlist li {
+        border-color: #ffffff80;
+      }
+      @media (max-width: 760px) {
+        .jcols {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
@@ -900,6 +1026,76 @@
               Premissas: cerca de R$ 150 por agente/mês de uso · salário de referência de cerca de
               R$ 6.000/mês.
             </p>
+          </div>
+        </div>
+      </section>
+      <section id="jornada" class="section jornada">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <span class="kicker">A jornada</span>
+            <h2>Onde estamos. Para onde vamos.</h2>
+            <p class="lede">Clique numa fase da linha do tempo para ver o detalhe.</p>
+          </div>
+
+          <div class="tl reveal" data-delay="1">
+            <div class="tl-track" id="tlTrack">
+              <button class="tl-node" data-phase="0">
+                <span class="tl-dot"></span><span class="tl-name">O começo</span>
+              </button>
+              <button class="tl-node is-now" data-phase="1">
+                <span class="tl-dot"></span><span class="tl-here">você está aqui</span>
+                <span class="tl-name">Hoje</span>
+              </button>
+              <button class="tl-node" data-phase="2">
+                <span class="tl-dot"></span><span class="tl-name">Próximo</span>
+              </button>
+              <button class="tl-node" data-phase="3">
+                <span class="tl-dot"></span><span class="tl-name">A visão</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="tl-detail" id="tlDetail" aria-live="polite"></div>
+
+          <div class="jcols">
+            <div class="jcol reveal">
+              <h3>O que já funciona hoje</h3>
+              <ul class="jlist">
+                <li>
+                  Você monta sua empresa: contrata agentes, define papéis, desenha o organograma,
+                  agrupa em equipes e projetos.
+                </li>
+                <li>Você delega: cria tarefas e metas; um agente-CEO planeja, o time executa.</li>
+                <li>Um quadro acompanha tudo; você revisa e aprova.</li>
+                <li>Controle de custo: orçamento por agente, gasto ao vivo.</li>
+                <li>
+                  Memória e aprendizado: os agentes lembram, transformam o trabalho em habilidades
+                  reutilizáveis, e o conhecimento passa de um funcionário para outro.
+                </li>
+                <li>Roda na sua máquina ou num servidor; suporta várias empresas.</li>
+                <li>Segurança: caixa fechada, aprovação para ações sensíveis.</li>
+              </ul>
+            </div>
+            <div class="jcol jcol-next reveal" data-delay="1">
+              <h3>Para onde vamos</h3>
+              <ul class="jlist">
+                <li>Definir empresas e agentes de forma mais rica e reaproveitável.</li>
+                <li>
+                  Resultados garantidos: você define um padrão e a empresa garante que ele seja
+                  cumprido.
+                </li>
+                <li>
+                  Rotinas: trabalhos que se repetem passam a rodar sozinhos, no horário certo, sem
+                  você pedir.
+                </li>
+                <li>
+                  Manuais prontos: formas comprovadas de obter um resultado, prontas para reusar.
+                </li>
+                <li>
+                  O rumo: a empresa cada vez mais se conduz sozinha — você só dá direção e revisa.
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -1205,6 +1401,49 @@
           update();
         }
 
+        /* S6 — linha do tempo interativa */
+        function timeline() {
+          var track = document.getElementById("tlTrack");
+          var detail = document.getElementById("tlDetail");
+          if (!track || !detail) return;
+          var nodes = track.querySelectorAll(".tl-node");
+          var PHASES = [
+            {
+              title: "O começo",
+              body: "A ideia inicial: um time de IA que você gerencia conversando, como gerenciaria pessoas.",
+            },
+            {
+              title: "Hoje — você está aqui",
+              body: "A empresa completa funciona: você contrata, organiza, delega metas e revisa. E os agentes já têm memória e aprendem com cada trabalho.",
+            },
+            {
+              title: "Próximo",
+              body: "Definir empresas e agentes de forma mais rica e reaproveitável — montar um time bom fica ainda mais rápido.",
+            },
+            {
+              title: "A visão",
+              body: "A empresa de uma pessoa só: resultados garantidos, rotinas que rodam sozinhas e manuais prontos. A empresa quase se conduz sozinha — você só dá o rumo.",
+            },
+          ];
+          nodes.forEach(function (n) {
+            var i = parseInt(n.getAttribute("data-phase"), 10);
+            if (i <= 1) n.setAttribute("data-done", "");
+          });
+
+          function select(i) {
+            nodes.forEach(function (n) {
+              n.classList.toggle("active", parseInt(n.getAttribute("data-phase"), 10) === i);
+            });
+            detail.innerHTML = "<h3>" + PHASES[i].title + "</h3><p>" + PHASES[i].body + "</p>";
+          }
+          nodes.forEach(function (n) {
+            n.addEventListener("click", function () {
+              select(parseInt(n.getAttribute("data-phase"), 10));
+            });
+          });
+          select(1);
+        }
+
         /* interactive modules are appended here by Tasks 4, 5, 7, 8 */
 
         function init() {
@@ -1232,6 +1471,11 @@
             costSlider();
           } catch (e) {
             console.warn("costSlider failed", e);
+          }
+          try {
+            timeline();
+          } catch (e) {
+            console.warn("timeline failed", e);
           }
           /* interactive init() calls are added here by later tasks */
         }
