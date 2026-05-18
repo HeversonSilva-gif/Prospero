@@ -13,6 +13,7 @@ import { Dashboard } from "./routes/Dashboard.js";
 import { Settings } from "./routes/Settings.js";
 import { SetupWizard } from "./routes/SetupWizard.js";
 import { Agent as AgentRoute } from "./routes/Agent.js";
+import { OrgPlan } from "./routes/OrgPlan.js";
 import { Inbox } from "./routes/Inbox.js";
 import { Projects } from "./routes/Projects.js";
 import { useProjectsStore } from "./stores/projects.js";
@@ -347,6 +348,18 @@ export const App = () => {
               hasToken ? (
                 <Layout>
                   <Inbox />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/org-plan"
+            element={
+              hasToken ? (
+                <Layout>
+                  <OrgPlan />
                 </Layout>
               ) : (
                 <Navigate to="/setup" replace />

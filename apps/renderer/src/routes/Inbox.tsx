@@ -150,6 +150,17 @@ export const Inbox: FC = () => {
                     </Link>
                   );
                 })()}
+              {item.kind === "org_proposed" && (
+                <Link
+                  to="/org-plan"
+                  onClick={() => {
+                    if (item.readAt === null) void markRead(item.id);
+                  }}
+                  className="text-xs text-brand hover:underline font-semibold mt-2 inline-block"
+                >
+                  {t("inbox.openOrgPlan")} →
+                </Link>
+              )}
               {item.kind === "goal_error" &&
                 (() => {
                   const goalId = extractGoalId(item.payloadJson);
