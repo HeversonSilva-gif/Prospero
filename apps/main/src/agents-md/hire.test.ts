@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, mkdtempSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { runPostMigration0004 } from "../db/post-migrations/0004.js";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
+import { createRoleTemplatesRepository } from "../agents/role-templates-repository.js";
+import { roleCharterPath } from "../agents/role-library-dir.js";
 import { hireFromAgentsMd } from "./hire.js";
 import type { AgentsMdPayload } from "./schema.js";
 
@@ -22,6 +25,8 @@ const setupDb = (): Database.Database => {
   runPostMigration0004(db);
   return db;
 };
+
+const tmpUserData = (): string => mkdtempSync(join(tmpdir(), "prospero-amd-hire-"));
 
 const PAYLOAD: AgentsMdPayload = {
   company: "Acme",
@@ -40,6 +45,7 @@ describe("hireFromAgentsMd", () => {
     const summary = hireFromAgentsMd(db, PAYLOAD, {
       companyId: co.id,
       conflictModes: {},
+      userDataDir: tmpUserData(),
     });
 
     expect(summary.companyId).toBe(co.id);
@@ -56,6 +62,56 @@ describe("hireFromAgentsMd", () => {
     const bob = agents.find((a) => a.name === "Bob");
     const alice = agents.find((a) => a.name === "Alice");
     expect(bob?.reportsTo).toBe(alice?.id);
+  });
+
+  it("creates a role from the payload and writes its charter", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+    const userData = tmpUserData();
+    const summary = hireFromAgentsMd(
+      db,
+      {
+        company: "Acme",
+        projects: [],
+        roles: [
+          {
+            name: "Traffic Manager",
+            description: "runs ads",
+            model: "claude-sonnet-4-6",
+            capabilities: ["web"],
+            icon: "📈",
+            charter: "# Traffic Manager\n\n## Identity\n\nLeads media buying.\n",
+          },
+        ],
+        agents: [{ name: "Mara", role: "Traffic Manager" }],
+      },
+      { companyId: co.id, conflictModes: {}, userDataDir: userData },
+    );
+    expect(summary.created.roles).toBe(1);
+    expect(summary.created.agents).toBe(1);
+    const role = createRoleTemplatesRepository(db)
+      .listAll()
+      .find((r) => r.name === "Traffic Manager");
+    expect(role).toBeDefined();
+    expect(existsSync(roleCharterPath(userData, role!.id))).toBe(true);
+  });
+
+  it("skips a role whose name already exists", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+    const summary = hireFromAgentsMd(
+      db,
+      {
+        company: "Acme",
+        projects: [],
+        roles: [{ name: "Engineer", charter: "# x" }],
+        agents: [{ name: "Ann", role: "Engineer" }],
+      },
+      { companyId: co.id, conflictModes: {}, userDataDir: tmpUserData() },
+    );
+    expect(summary.created.roles).toBe(0);
+    expect(summary.skipped.roles).toEqual(["Engineer"]);
+    expect(summary.created.agents).toBe(1);
   });
 });
 
@@ -78,7 +134,7 @@ describe("hireFromAgentsMd conflict resolution", () => {
     const summary = hireFromAgentsMd(
       db,
       { company: "Acme", projects: [], agents: [{ name: "Alice", role: "engineer" }] },
-      { companyId: co.id, conflictModes: {} },
+      { companyId: co.id, conflictModes: {}, userDataDir: tmpUserData() },
     );
 
     expect(summary.created.agents).toBe(0);
@@ -105,7 +161,7 @@ describe("hireFromAgentsMd conflict resolution", () => {
     const summary = hireFromAgentsMd(
       db,
       { company: "Acme", projects: [], agents: [{ name: "Alice", role: "qa" }] },
-      { companyId: co.id, conflictModes: { Alice: "replace" } },
+      { companyId: co.id, conflictModes: { Alice: "replace" }, userDataDir: tmpUserData() },
     );
 
     expect(summary.replaced.agents).toEqual(["Alice"]);
@@ -124,7 +180,7 @@ describe("hireFromAgentsMd conflict resolution", () => {
     const summary = hireFromAgentsMd(
       db,
       { company: "Acme", projects: [], agents: [{ name: "Zed", role: "wizard" }] },
-      { companyId: co.id, conflictModes: {} },
+      { companyId: co.id, conflictModes: {}, userDataDir: tmpUserData() },
     );
 
     expect(summary.created.agents).toBe(0);
@@ -150,7 +206,7 @@ describe("hireFromAgentsMd conflict resolution", () => {
         projects: [{ name: "new-name", path: "D:/code/backend" }],
         agents: [{ name: "A", role: "engineer" }],
       },
-      { companyId: co.id, conflictModes: {} },
+      { companyId: co.id, conflictModes: {}, userDataDir: tmpUserData() },
     );
 
     expect(summary.created.projects).toBe(0);

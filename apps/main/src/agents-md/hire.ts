@@ -2,18 +2,24 @@ import type Database from "better-sqlite3";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
 import { createRoleTemplatesRepository } from "../agents/role-templates-repository.js";
+import { writeCharter } from "../agents/role-charter-store.js";
 import type { AgentsMdPayload, ConflictMode, HireSummary } from "./schema.js";
 
-// PR-F.2.2: import an AGENTS.md payload into an existing company.
+// PR-F.2.2 / M12 PR-D4: import an AGENTS.md payload into an existing company.
+//   * Roles keyed by name: a role whose name already exists is reused (skipped);
+//     otherwise it is created and its charter (if any) written to disk.
 //   * Projects keyed by path: a row with the same (company_id, path) is skipped.
 //   * Agents keyed by name within the company: existing name → consult
 //     conflictModes[name]. 'skip' leaves it; 'replace' terminates the old one
 //     (we never DELETE — preserves history) and creates a fresh row.
 //   * reports_to wired in a second pass by looking up the freshly-created name.
 
+const DEFAULT_MODEL = "claude-sonnet-4-6";
+
 export type HireOptions = {
   companyId: string;
   conflictModes: Record<string, ConflictMode>;
+  userDataDir: string;
 };
 
 const findRoleId = (
@@ -41,14 +47,36 @@ export const hireFromAgentsMd = (
 ): HireSummary => {
   const summary: HireSummary = {
     companyId: opts.companyId,
-    created: { projects: 0, agents: 0 },
-    skipped: { projects: [], agents: [] },
+    created: { projects: 0, roles: 0, agents: 0 },
+    skipped: { projects: [], roles: [], agents: [] },
     replaced: { agents: [] },
     warnings: [],
   };
 
   const projectsRepo = createProjectsRepository(db);
   const agentsRepo = createAgentsRepository(db);
+  const roleRepo = createRoleTemplatesRepository(db);
+
+  // Roles pass — create any role whose name is not already taken.
+  const existingRoleNames = new Set(roleRepo.listAll().map((r) => r.name.toLowerCase()));
+  for (const r of payload.roles ?? []) {
+    if (existingRoleNames.has(r.name.toLowerCase())) {
+      summary.skipped.roles.push(r.name);
+      continue;
+    }
+    const created = roleRepo.create({
+      name: r.name,
+      description: r.description ?? "",
+      icon: r.icon ?? null,
+      defaultModel: r.model ?? DEFAULT_MODEL,
+      defaultCapabilities: r.capabilities ?? [],
+    });
+    if (r.charter !== undefined && r.charter.trim() !== "") {
+      writeCharter(opts.userDataDir, created.id, r.charter);
+    }
+    existingRoleNames.add(r.name.toLowerCase());
+    summary.created.roles += 1;
+  }
 
   const existingProjects = projectsRepo.listByCompany(opts.companyId);
   const existingPaths = new Set(existingProjects.map((p) => p.path));

@@ -44,16 +44,16 @@ export type AgentsMdAgent = z.infer<typeof AgentsMdAgentSchema>;
 
 export type ConflictMode = "skip" | "replace";
 
-// `created.roles` / `skipped.roles` are added in M12 PR-D4 Task 4 alongside the
-// hire.ts changes that populate them, so every commit stays typecheck-clean.
 export type HireSummary = {
   companyId: string;
   created: {
     projects: number;
+    roles: number;
     agents: number;
   };
   skipped: {
     projects: string[];
+    roles: string[];
     agents: string[];
   };
   replaced: {

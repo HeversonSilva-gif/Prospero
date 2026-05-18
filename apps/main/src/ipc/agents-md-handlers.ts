@@ -43,6 +43,7 @@ export const registerAgentsMdHandlers = (db: Database.Database): void => {
       return hireFromAgentsMd(db, reparsed.data, {
         companyId: payload.companyId,
         conflictModes: payload.conflictModes ?? {},
+        userDataDir: app.getPath("userData"),
       });
     },
   );
