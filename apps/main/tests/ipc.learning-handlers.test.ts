@@ -331,6 +331,28 @@ describe("learningHandlers — promoteSkillsOnTerminate", () => {
       }),
     ).toEqual({ promoted: 0, softDeleted: 0 });
   });
+
+  it("ignores promote IDs that do not belong to the agent", () => {
+    const db = seed();
+    const repo = createSkillsRepository(db);
+    const skill = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "s",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    const out = learningHandlers(db, USERDATA).promoteSkillsOnTerminate({
+      agentId: "a1",
+      promoteSkillIds: ["skill_nonexistent"],
+    });
+    expect(out).toEqual({ promoted: 0, softDeleted: 1 });
+    const row = db.prepare("SELECT soft_deleted FROM skills WHERE id = ?").get(skill.id) as {
+      soft_deleted: number;
+    };
+    expect(row.soft_deleted).toBe(1);
+  });
 });
 
 describe("learningHandlers — skill promotion", () => {

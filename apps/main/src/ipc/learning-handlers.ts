@@ -89,6 +89,7 @@ export const learningHandlers = (db: Database.Database, userDataDir: string): Le
   const skillsRepo = createSkillsRepository(db);
   const memoriesRepo = createMemoriesRepository(db);
   const companyOfAgent = db.prepare("SELECT company_id FROM agents WHERE id = ?");
+  const agentRoleStmt = db.prepare("SELECT role FROM agents WHERE id = ?");
   const searchStmt = db.prepare(
     `SELECT m.id AS message_id, m.content AS content, m.created_at AS created_at,
             m.sender_kind AS sender_kind, m.sender_id AS sender_id
@@ -199,23 +200,24 @@ export const learningHandlers = (db: Database.Database, userDataDir: string): Le
       return { content: existsSync(path) ? readFileSync(path, "utf8") : "" };
     },
     promoteSkillsOnTerminate({ agentId, promoteSkillIds }) {
-      const agentRow = db.prepare("SELECT role FROM agents WHERE id = ?").get(agentId) as
-        | { role: string }
-        | undefined;
+      const agentRow = agentRoleStmt.get(agentId) as { role: string } | undefined;
       if (agentRow === undefined) throw new Error(`agent ${agentId} not found`);
-      const skillsRepo = createSkillsRepository(db);
       const promoteSet = new Set(promoteSkillIds);
       let promoted = 0;
       let softDeleted = 0;
-      for (const skill of skillsRepo.listByAgent(agentId)) {
-        if (promoteSet.has(skill.id)) {
-          skillsRepo.promote(skill.id, agentRow.role);
-          promoted += 1;
-        } else {
-          skillsRepo.softDelete(skill.id);
-          softDeleted += 1;
+      db.transaction(() => {
+        for (const skill of skillsRepo.listByAgent(agentId)) {
+          if (promoteSet.has(skill.id)) {
+            skillsRepo.promote(skill.id, agentRow.role);
+            promoted += 1;
+          } else {
+            // promoteSkillIds that don't match a private skill are silently ignored —
+            // stale IDs from the UI are harmless; the loop only touches listByAgent rows.
+            skillsRepo.softDelete(skill.id);
+            softDeleted += 1;
+          }
         }
-      }
+      })();
       return { promoted, softDeleted };
     },
   };
