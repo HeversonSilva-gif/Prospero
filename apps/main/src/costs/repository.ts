@@ -5,6 +5,7 @@
 
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
+import type { AgentRunRow } from "@prospero/shared";
 
 export type CostEventInsert = {
   companyId: string;
@@ -31,6 +32,7 @@ export type CostsRepository = {
   getAgentDailyTotal(agentId: string, day: Date): CostTotal;
   getIssueTotal(issueId: string): CostTotal;
   hasAgentRowsForDay(agentId: string, day: Date): boolean;
+  listRunsByAgent(agentId: string, limit?: number): AgentRunRow[];
 };
 
 const utcDayBounds = (day: Date): { start: number; end: number } => {
@@ -88,6 +90,16 @@ export const createCostsRepository = (db: Database.Database): CostsRepository =>
     LIMIT 1
   `);
 
+  const listRunsStmt = db.prepare(`
+    SELECT id, agent_id, occurred_at, model, adapter_name,
+           input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens,
+           cost_cents_estimate, issue_id, session_id
+    FROM cost_events
+    WHERE agent_id = ?
+    ORDER BY occurred_at DESC, id DESC
+    LIMIT ?
+  `);
+
   const insert = (input: CostEventInsert): CostEventRow => {
     const id = `cost_${randomUUID()}`;
     insertStmt.run({ id, ...input });
@@ -123,5 +135,37 @@ export const createCostsRepository = (db: Database.Database): CostsRepository =>
     return row !== undefined;
   };
 
-  return { insert, getAgentDailyTotal, getIssueTotal, hasAgentRowsForDay };
+  const listRunsByAgent = (agentId: string, limit?: number): AgentRunRow[] => {
+    const cap = Math.max(1, Math.min(500, limit ?? 100));
+    const rows = listRunsStmt.all(agentId, cap) as Array<{
+      id: string;
+      agent_id: string;
+      occurred_at: number;
+      model: string | null;
+      adapter_name: string;
+      input_tokens: number;
+      output_tokens: number;
+      cache_creation_tokens: number;
+      cache_read_tokens: number;
+      cost_cents_estimate: number;
+      issue_id: string | null;
+      session_id: string | null;
+    }>;
+    return rows.map((r) => ({
+      id: r.id,
+      agentId: r.agent_id,
+      occurredAt: r.occurred_at,
+      model: r.model,
+      adapterName: r.adapter_name,
+      inputTokens: r.input_tokens,
+      outputTokens: r.output_tokens,
+      cacheCreationTokens: r.cache_creation_tokens,
+      cacheReadTokens: r.cache_read_tokens,
+      costCentsEstimate: r.cost_cents_estimate,
+      issueId: r.issue_id,
+      sessionId: r.session_id,
+    }));
+  };
+
+  return { insert, getAgentDailyTotal, getIssueTotal, hasAgentRowsForDay, listRunsByAgent };
 };

@@ -54,3 +54,20 @@ export type CostBudgets = {
   rateLimitWindowTokens: number;
   rateLimitWindowHours: number;
 };
+
+// M12 PR-E1: a "run" is one turn — derived directly from a cost_events row.
+// There is no agent_runs table; the Runs tab is a read-model over cost_events.
+export type AgentRunRow = {
+  id: string;
+  agentId: string;
+  occurredAt: number;
+  model: string | null;
+  adapterName: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheCreationTokens: number;
+  cacheReadTokens: number;
+  costCentsEstimate: number;
+  issueId: string | null;
+  sessionId: string | null;
+};
