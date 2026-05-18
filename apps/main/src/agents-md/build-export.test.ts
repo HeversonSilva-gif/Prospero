@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, mkdtempSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { runPostMigration0004 } from "../db/post-migrations/0004.js";
 import { createCompaniesRepository } from "../companies/repository.js";
@@ -21,6 +22,8 @@ const setupDb = (): Database.Database => {
   runPostMigration0004(db);
   return db;
 };
+
+const tmpUserData = (): string => mkdtempSync(join(tmpdir(), "prospero-amd-export-"));
 
 describe("buildExportPayload", () => {
   it("collects active company projects + agents with reports_to as name", () => {
@@ -52,7 +55,7 @@ describe("buildExportPayload", () => {
     });
     agents.setReportsTo(bob.id, alice.id);
 
-    const payload = buildExportPayload(db, co.id);
+    const payload = buildExportPayload(db, co.id, tmpUserData());
     expect(payload.company).toBe("Acme");
     expect(payload.projects).toHaveLength(1);
     expect(payload.projects[0]?.path).toBe("D:/code/backend");
@@ -77,7 +80,29 @@ describe("buildExportPayload", () => {
     });
     agents.terminate(gone.id, "test");
 
-    const payload = buildExportPayload(db, co.id);
+    const payload = buildExportPayload(db, co.id, tmpUserData());
     expect(payload.agents).toEqual([]);
+  });
+
+  it("includes the roles used by live agents, with their charters", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+    const userData = tmpUserData();
+    createAgentsRepository(db).create({
+      companyId: co.id,
+      name: "Ann",
+      role: "role-engineer",
+      systemPrompt: "",
+      mode: "supervised",
+      alwaysOn: false,
+      templateId: "role-engineer",
+      model: "claude-sonnet-4-6",
+      capabilities: ["shell"],
+      actor: { kind: "user" },
+    });
+    const payload = buildExportPayload(db, co.id, userData);
+    const engineer = payload.roles?.find((r) => r.name === "Engineer");
+    expect(engineer).toBeDefined();
+    expect(engineer?.charter ?? "").toContain("Identity");
   });
 });

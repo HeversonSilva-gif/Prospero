@@ -1,4 +1,4 @@
-import { ipcMain } from "electron";
+import { app, ipcMain } from "electron";
 import type Database from "better-sqlite3";
 import { IPC } from "@prospero/shared";
 import { parseAgentsMd } from "../agents-md/parser.js";
@@ -51,7 +51,7 @@ export const registerAgentsMdHandlers = (db: Database.Database): void => {
     if (typeof payload.companyId !== "string" || payload.companyId.length === 0) {
       throw new Error("[agents-md:export] companyId required");
     }
-    const data = buildExportPayload(db, payload.companyId);
+    const data = buildExportPayload(db, payload.companyId, app.getPath("userData"));
     return { text: serializeAgentsMd(data) };
   });
 };
