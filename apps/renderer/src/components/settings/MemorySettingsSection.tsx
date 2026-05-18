@@ -15,15 +15,25 @@ export const MemorySettingsSection: FC = () => {
   const [userMemory, setUserMemory] = useState("");
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     void window.prospero.learning.getUserMemory().then((r) => setUserMemory(r.content));
   }, []);
 
   const onSave = async (): Promise<void> => {
-    await window.prospero.learning.setUserMemory(userMemory);
-    setDirty(false);
-    setSaved(true);
+    setSaveError(null);
+    setSaving(true);
+    try {
+      await window.prospero.learning.setUserMemory(userMemory);
+      setDirty(false);
+      setSaved(true);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const onImport = async (): Promise<void> => {
@@ -68,13 +78,14 @@ export const MemorySettingsSection: FC = () => {
         <button
           type="button"
           onClick={() => void onSave()}
-          disabled={!dirty}
+          disabled={!dirty || saving}
           className="px-3 py-1.5 text-sm font-semibold bg-brand text-brand-fg rounded disabled:opacity-50"
         >
           {t("settings.memory.save")}
         </button>
       </div>
       {saved && <p className="mt-1 text-xs text-semantic-success">{t("settings.memory.saved")}</p>}
+      {saveError !== null && <p className="mt-1 text-xs text-semantic-danger">{saveError}</p>}
       {overCap && (
         <p className="mt-1 text-xs text-semantic-danger">{t("settings.memory.overCap")}</p>
       )}
