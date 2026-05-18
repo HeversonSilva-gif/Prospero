@@ -654,6 +654,17 @@
       "exportSaved": "Salvo em {{path}}",
       "exportNoCompany": "Selecione uma empresa antes de exportar.",
       "exportError": "Falha ao exportar: {{error}}"
+    },
+    "memory": {
+      "title": "Memória e aprendizado",
+      "subtitle": "Edite o que os agentes sabem sobre você e ajuste o orçamento de derivação automática.",
+      "userMemoryLabel": "Sobre você (user.md)",
+      "import": "Importar do Claude Code",
+      "save": "Salvar",
+      "saved": "Salvo.",
+      "overCap": "O texto passou do limite e será cortado ao entrar no prompt do agente.",
+      "derivationBudgetLabel": "Orçamento de derivação",
+      "derivationBudgetHint": "Máximo de skills e memórias derivadas automaticamente por agente por dia."
     }
   },
   "wizard": {

@@ -326,4 +326,23 @@ describe("i18n parity", () => {
       expect(enKeys).toContain(k);
     }
   });
+
+  it("includes the M11 PR-F2 memory-settings keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "settings.memory.title",
+      "settings.memory.subtitle",
+      "settings.memory.userMemoryLabel",
+      "settings.memory.import",
+      "settings.memory.save",
+      "settings.memory.saved",
+      "settings.memory.overCap",
+      "settings.memory.derivationBudgetLabel",
+      "settings.memory.derivationBudgetHint",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
 });

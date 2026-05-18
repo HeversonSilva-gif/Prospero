@@ -19,6 +19,7 @@ type State = {
   setTheme: (theme: Theme) => Promise<void>;
   setWorkspaceCwd: (path: string | null) => Promise<void>;
   setModel: (model: string) => Promise<void>;
+  setDerivationsPerDay: (n: number) => Promise<void>;
   saveExecutorMode: (mode: ExecutorMode) => Promise<void>;
   setAuthMode: (mode: AuthMode) => Promise<void>;
   setRemoteExecution: (patch: Partial<RemoteExecutionSettings>) => Promise<void>;
@@ -73,6 +74,11 @@ export const useSettingsStore = create<State>((set, get) => ({
 
   setModel: async (model) => {
     const next = await window.prospero.settings.update({ defaultModelForNewAgents: model });
+    set({ settings: next });
+  },
+
+  setDerivationsPerDay: async (n) => {
+    const next = await window.prospero.settings.update({ derivationsPerDayPerAgent: n });
     set({ settings: next });
   },
 
