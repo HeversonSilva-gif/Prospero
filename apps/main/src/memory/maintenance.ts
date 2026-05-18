@@ -107,6 +107,8 @@ export const runMemoryMaintenance = (db: Database.Database, now: number): Mainte
   }
 
   // M11 PR-F2: hard-purge skills soft-deleted past the 30-day grace period.
+  // The skill's SKILL.md body file on disk is intentionally left behind — it is
+  // unreachable once the row is gone, and the 30-day grace bounds the leak.
   const purgeBefore = now - SKILL_PURGE_DAYS * DAY_MS;
   const purgedSkills = db
     .prepare(

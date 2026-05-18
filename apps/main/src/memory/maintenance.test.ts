@@ -155,4 +155,31 @@ describe("runMemoryMaintenance — skill purge", () => {
       (db.prepare("SELECT COUNT(*) AS n FROM skills WHERE id = ?").get(live.id) as { n: number }).n,
     ).toBe(1);
   });
+
+  it("never purges a skill whose soft_deleted_at is NULL (pre-migration row)", () => {
+    const db = seedWithAgent();
+    const repo = createSkillsRepository(db);
+    const legacy = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "legacy",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    // Simulate a row soft-deleted before migration 0023 added soft_deleted_at.
+    db.prepare("UPDATE skills SET soft_deleted = 1, soft_deleted_at = NULL WHERE id = ?").run(
+      legacy.id,
+    );
+    setLastRun(db, 0);
+    const result = runMemoryMaintenance(db, 100 * DAY);
+    expect(result.purgedSkills).toBe(0);
+    expect(
+      (
+        db.prepare("SELECT COUNT(*) AS n FROM skills WHERE id = ?").get(legacy.id) as {
+          n: number;
+        }
+      ).n,
+    ).toBe(1);
+  });
 });
