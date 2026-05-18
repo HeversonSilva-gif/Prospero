@@ -29,4 +29,28 @@ describe("serializeAgentsMd", () => {
     if (!parsed.ok) return;
     expect(parsed.data.projects).toEqual([]);
   });
+
+  it("round-trips a role with a multi-line charter", () => {
+    const payload: AgentsMdPayload = {
+      company: "Acme",
+      projects: [],
+      roles: [
+        {
+          name: "Engineer",
+          description: "writes code",
+          model: "claude-sonnet-4-6",
+          capabilities: ["shell"],
+          icon: "👩‍💻",
+          charter: "# Engineer — Role Charter\n\n## Identity\n\nWrites clean code.\n",
+        },
+      ],
+      agents: [{ name: "Ann", role: "Engineer" }],
+    };
+    const text = serializeAgentsMd(payload);
+    const reparsed = parseAgentsMd(text);
+    expect(reparsed.ok).toBe(true);
+    if (!reparsed.ok) return;
+    expect(reparsed.data.roles?.[0]?.name).toBe("Engineer");
+    expect(reparsed.data.roles?.[0]?.charter).toContain("## Identity");
+  });
 });
