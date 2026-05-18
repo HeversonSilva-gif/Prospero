@@ -1569,9 +1569,9 @@
         <button class="theme-toggle" onclick="toggleTheme()">theme</button>
         <div class="meta-row">
           <div class="left">
-            <span>v1 · 13 / 14</span>
-            <span>last-update 2026-05-14</span>
-            <span>branch · master</span>
+            <span>v1 ✅ · M11 ✅</span>
+            <span>last-update 2026-05-18</span>
+            <span>branch · main</span>
           </div>
           <div>roadmap.html</div>
         </div>
@@ -1588,19 +1588,19 @@
           <div class="stat">
             <div class="label">Milestones</div>
             <div class="value">
-              <span data-target="13">0</span> <span class="unit">/ 14 fechados</span>
+              <span data-target="14">0</span> <span class="unit">/ 14 v1 ✅ + M11 ✅</span>
             </div>
           </div>
           <div class="stat">
             <div class="label">Testes</div>
             <div class="value">
-              <span data-target="819">0</span> <span class="unit">passing</span>
+              <span data-target="1146">0</span> <span class="unit">passing</span>
             </div>
           </div>
           <div class="stat">
             <div class="label">Commits</div>
             <div class="value">
-              ~<span data-target="512">0</span> <span class="unit">no master</span>
+              ~<span data-target="670">0</span> <span class="unit">no main</span>
             </div>
           </div>
           <div class="stat">
@@ -1634,9 +1634,9 @@
               <strong>delega como se fosse uma empresa de verdade</strong>.
             </p>
             <div class="lp-summary">
-              <span class="lp-summary-pill"><strong>12</strong> categorias</span>
-              <span class="lp-summary-pill"><strong>57</strong> funcionalidades prontas</span>
-              <span class="lp-summary-pill"><strong>3</strong> entregas em 2026-05-14</span>
+              <span class="lp-summary-pill"><strong>13</strong> categorias</span>
+              <span class="lp-summary-pill"><strong>60+</strong> funcionalidades prontas</span>
+              <span class="lp-summary-pill"><strong>M11 ✅</strong> V2 anchor fechado</span>
               <span class="lp-summary-pill"><strong>4</strong> agentes em paralelo</span>
               <span class="lp-summary-pill"><strong>0</strong> servidores pra manter</span>
             </div>
@@ -2290,40 +2290,55 @@
               <li>App Electron com tray icon — sobrevive ao fechar janela</li>
             </ul>
           </div>
+
+          <div class="layperson-card new-tag reveal" data-delay="3">
+            <div class="lp-head">
+              <div class="lp-icon">🧠</div>
+              <div class="lp-title">
+                Memória &amp; Aprendizado<span class="new-badge">novo</span>
+              </div>
+              <div class="lp-count">M11 ✅</div>
+            </div>
+            <ul>
+              <li>
+                Os agentes <strong>lembram o que aprenderam entre sessões</strong> — sem reexplicar
+                preferências toda vez
+              </li>
+              <li>
+                Após cada tarefa concluída, o sistema <strong>extrai automaticamente</strong> um
+                "skill" (manual de como fazer aquilo); você revisa e aceita antes de virar
+                conhecimento oficial
+              </li>
+              <li>
+                Conhecimento <strong>transfere entre funcionários</strong>: demite o BackendEng e
+                contrata outro — o novato já chega sabendo o que a empresa aprendeu
+              </li>
+              <li>
+                CEO <strong>escreve retrospectiva</strong> ao completar um Goal; recusar uma ação
+                vira preferência do agente — ambos ficam guardados
+              </li>
+              <li>
+                Card <strong>"Org Learnings"</strong> no dashboard mostra o que foi aprendido pela
+                empresa; aba "Aprendizado" em cada agente mostra seus skills e memórias
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div class="layperson-future">
-          <div class="heading">🚧 O que ainda NÃO funciona (próximas releases)</div>
+          <div class="heading">✦ O que vem a seguir (V2 — próximas releases)</div>
           <ul>
             <li>
-              🧠 <strong>Empresa que aprende com a experiência (não só o funcionário)</strong> —
-              após cada issue concluído, o sistema <strong>extrai automaticamente</strong> um
-              "skill" (manual de como fazer aquilo) a partir do trabalho real, você revisa e aceita.
-              Conhecimento institucional <strong>transfere entre funcionários</strong>: se demite o
-              BackendEng e contrata outro, o novato já chega sabendo o que a empresa aprendeu. CEO
-              escreve retrospectiva ao completar um Goal. Inclui busca em conversas antigas.
-              Inspirado mas com 3 inflexões deliberadas sobre o
-              <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>
-              (NousResearch). → <strong>M11 — em andamento</strong> (âncora da V2; já funcionam: a
-              aba "Aprendizado", a <strong>derivação automática</strong> de skills com tela de
-              revisão, a <strong>herança entre funcionários</strong>, e a memória que a empresa
-              acumula sozinha — bater um Goal vira retrospectiva, recusar uma ação vira preferência,
-              e um card no dashboard mostra o que foi aprendido; falta só o ajuste fino de
-              decay/confiança e a tela de Settings)
-            </li>
-            <li>
-              ✦ <strong>V2 — "1-person business"</strong> — depois que o v1 fechar, o produto muda
-              de natureza: deixa de ser "chat com agentes" e vira "<strong
-                >delegação de outcomes que você só revisa</strong
-              >". Você abre o app uma vez por dia pra ver o que rodou enquanto dormia, não 20× pra
-              empurrar trabalho. A V2 entrega 4 capacidades sobre o M11:
-              <strong>Enforced Outcomes</strong> (issue só vira "pronto" quando passa em
-              testes/build/lint automaticamente), <strong>Routines</strong> (agentes acordam
-              sozinhos em horário definido — "toda segunda 7h auditar dependencies"),
-              <strong>Workflow Plays</strong> (playbooks prontos pro CEO escolher: "Migrar auth",
-              "Investigar incidente prod") e <strong>AI memory reviewer</strong> (quando o volume de
-              skills criadas crescer, um agente revisor pré-filtra; humano só vê os duvidosos). → V2
-              (depois do v1)
+              ✦ <strong>V2 — "1-person business"</strong> — o produto muda de natureza: deixa de ser
+              "chat com agentes" e vira "<strong>delegação de outcomes que você só revisa</strong>".
+              Você abre o app uma vez por dia pra ver o que rodou enquanto dormia, não 20× pra
+              empurrar trabalho. <strong>M11 ✅ (âncora da V2) já entregue</strong> — os agentes
+              agora lembram e aprendem entre sessões. A seguir, V2 entrega mais 4 capacidades:
+              <strong>M12 Agent &amp; Org Definition Layer</strong> (agentes bem-instruídos desde o
+              dia 1, CEO monta a empresa inteira), <strong>Enforced Outcomes</strong> (issue só vira
+              "pronto" após gates automáticos), <strong>Routines</strong> (agentes acordam sozinhos
+              em horário definido) e <strong>Workflow Plays</strong> (playbooks prontos pro CEO
+              escolher).
             </li>
           </ul>
         </div>
@@ -2335,8 +2350,8 @@
           <span class="index">/01</span>
           <h2>v1 progress</h2>
           <span class="note"
-            >M1—M10 · v1 fechado em 2026-05-15 · V2 em andamento — M11 Agent Memory (PRs A-E
-            mergeados)</span
+            >M1—M10 · v1 fechado em 2026-05-15 · V2 anchor fechado — M11 Agent Memory ✅ completo
+            (2026-05-18)</span
           >
         </div>
 
@@ -2402,6 +2417,10 @@
               <div class="dot"></div>
               <div class="label">M10</div>
             </div>
+            <div class="progress-step" data-status="done">
+              <div class="dot"></div>
+              <div class="label">M11</div>
+            </div>
           </div>
           <div class="progress-meta">
             <div>
@@ -2411,8 +2430,9 @@
               + seletor de localização per-agente, docs. Arquitetura SSH stdio, host-authoritative —
               o SQLite nunca sai do host. <strong>1146 testes passing</strong> (+2 todo).
               <strong>14/14 milestones</strong> do v1 ✅.
-              <strong>V2 em andamento — M11 Agent Memory</strong>: PRs A/B/C/D + E mergeados, F
-              pendente.
+              <strong>V2 anchor — M11 Agent Memory ✅ COMPLETO</strong> (2026-05-18): 6 PRs
+              mergeados — skills/memories 3 camadas × 2 níveis, derivação automática, herança por
+              role, org retrospectives, decay/trust, Settings Memory, nudges, terminate-modal.
             </div>
             <div>
               <strong>Distribuição:</strong> <span class="badge">hybrid</span> desktop default + VPS
@@ -2437,7 +2457,7 @@
         <div class="next-up">
           <div class="card" data-kind="now">
             <div class="kicker">agora</div>
-            <div class="title">M11 em andamento (A-E ✅)</div>
+            <div class="title">M11 ✅ — V2 anchor fechado</div>
             <ul class="bullets">
               <li>
                 <span><strong>14 / 14</strong> milestones do v1 · v1 fechado 2026-05-15</span>
@@ -2447,63 +2467,53 @@
               </li>
               <li>
                 <span
-                  ><strong>M11 PR-A/B/C/D ✅</strong> — capabilities rename, schema + 9 MCP tools +
-                  injeção no system prompt, a aba "Aprendizado", e o motor de auto-derivação com a
-                  sub-tab "Candidates" (Aceitar / Editar / Rejeitar)</span
+                  ><strong>M11 ✅ COMPLETO</strong> (2026-05-18) — 6 PRs: capabilities rename,
+                  schema + 9 MCP tools + tab Learning, motor de auto-derivação + Candidates, herança
+                  por role + org retrospectives, decay/trust, Settings Memory + nudges +
+                  terminate-modal + docs</span
                 >
               </li>
               <li>
                 <span
-                  ><strong>M11 PR-E1 ✅</strong> — herança por papel: o prompt de um agente já
-                  recebe os skills/memórias do papel dele; e o agente pode pedir pra promover um
-                  skill privado pra toda a empresa (você revisa e aprova no inbox)</span
+                  >Agentes agora <strong>lembram e aprendem entre sessões</strong>: skills
+                  auto-derivadas, memórias por role, retrospectivas de Goals, confiança adaptativa e
+                  nudges pra capturar know-how</span
                 >
-              </li>
-              <li>
-                <span
-                  ><strong>M11 PR-E2 ✅</strong> — memória que a empresa acumula sozinha: bater um
-                  Goal deriva uma retrospectiva (memória da empresa), recusar uma ação deriva uma
-                  preferência (memória do agente), e o card "Org Learnings" no dashboard mostra o
-                  que foi aprendido</span
-                >
-              </li>
-              <li>
-                <span>Restante do M11: só o PR-F — decay/trust + Settings + nudges + docs</span>
               </li>
             </ul>
-            <div class="eta">M11 ~10-14d · A-E entregues</div>
+            <div class="eta">M11 entregue · V2 anchor ✅ · próximo: M12</div>
           </div>
 
           <div class="card" data-kind="next">
             <div class="kicker">próximo</div>
-            <div class="title">M11 PR-F — decay/trust + Settings</div>
+            <div class="title">M12 — Agent &amp; Org Definition Layer</div>
             <ul class="bullets">
               <li>
                 <span
-                  >Decay/trust: skills/memórias pouco usadas perdem prioridade; as confiáveis
-                  sobem</span
+                  >Charter de role (8 seções) · biblioteca <code>/roles</code> com CRUD + rota
+                  nova</span
                 >
               </li>
               <li>
                 <span
-                  >Settings: editor do <code>user.md</code> + slider do orçamento de derivação por
-                  agente</span
+                  ><strong>CEO arquiteto</strong> — projeta org chart inteiro a partir de "quero uma
+                  agência X", revisão estilo GoalPlanReview</span
                 >
               </li>
               <li>
                 <span
-                  ><strong>Nudges fallback</strong> (adiado de D2) — derivar skill em turn-complete
-                  / por tempo / na compaction</span
+                  >Manual Operacional como <strong>skill bundled</strong> (progressive disclosure,
+                  apoia-se na infra do M11)</span
                 >
               </li>
               <li>
                 <span
-                  >Terminate-modal (adiada de E2): ao encerrar um agente, oferecer "promover skills
-                  privados?"</span
+                  >Aba <strong>Instructions</strong> com file-tree + editor ·
+                  <code>agent_runs</code> + budget per-agent + Run Policy</span
                 >
               </li>
             </ul>
-            <div class="eta">último PR do M11 — fecha o milestone</div>
+            <div class="eta">V2 logo após o M11 · ~18-24d estimados</div>
           </div>
 
           <div class="card" data-kind="horizon">
@@ -2511,8 +2521,8 @@
             <div class="title">v1 ✅ → V2 ✦</div>
             <div class="flow">
               M8.6 ✅ ──▶ M9 ✅ ──▶ M10 ✅ ──▶ v1 ✅ ──▶
-              <strong>M11 (V2 anchor · em andamento)</strong>
-              ──▶ V2 Tier 1
+              <strong>M11 ✅ (V2 anchor · fechado)</strong>
+              ──▶ M12 ──▶ V2 Tier 1
             </div>
             <ul class="bullets" style="margin-top: 12px">
               <li>
@@ -2528,9 +2538,9 @@
               <li><span>Hybrid distribution (M10) — local OU VPS Docker per-agent</span></li>
               <li>
                 <span
-                  ><strong>V2 anchor (M11)</strong> — memory 3 camadas × 2 níveis, bidirecional.
-                  Solo founder cria 1-person business apoiado numa empresa que compounda
-                  know-how</span
+                  ><strong>V2 anchor (M11 ✅)</strong> — memory 3 camadas × 2 níveis, bidirecional.
+                  Solo founder cria 1-person business apoiado numa empresa que compounda know-how —
+                  <strong>entregue 2026-05-18</strong></span
                 >
               </li>
               <li>
@@ -2540,7 +2550,9 @@
                 >
               </li>
             </ul>
-            <div class="eta">v1 ✅ entregue · V2 core (M11 + Tier 1): <strong>~30-39d</strong></div>
+            <div class="eta">
+              v1 ✅ entregue · M11 ✅ anchor fechado · V2 Tier 1 (M12+): <strong>~18-24d+</strong>
+            </div>
           </div>
         </div>
       </section>
@@ -2669,8 +2681,23 @@
             <div class="note">
               OAuth/API key auth (M9 PR-D) + language + theme + default model + Budgets (M8) +
               <strong>Executor mode</strong> Atomic/Narrated (M8.6) +
-              <strong>Defaults pra novos agentes</strong> (mode + always_on, M9 PR-C). Banner OAuth
-              expiry pendente PR-E.
+              <strong>Defaults pra novos agentes</strong> (mode + always_on, M9 PR-C) +
+              <strong>Memory panel</strong>: editor do <code>user.md</code>, import from Claude
+              Code, slider do budget de derivação (M11 PR-F2).
+            </div>
+          </div>
+          <div class="module" data-status="complete">
+            <div class="name">Memory &amp; Learning (M11)</div>
+            <div class="status-line"><span class="sq"></span>completo</div>
+            <div class="note">
+              <strong>M11 ✅ fechado</strong> (2026-05-18). 3 camadas × 2 níveis bidirecional:
+              <code>user.md</code> global + company memory + agent MEMORY.md + skills L0 com herança
+              por role. 9 MCP tools. Derivação automática de skills via
+              <code>issue.done</code>/<code>agent.recovered</code> + Candidates UI
+              (Accept/Edit/Reject). Org retrospectives de <code>goal.achieved</code>. Decay/trust
+              adaptativo. Nudges fallback (≥30 turns / ≥25 tools). Terminate-modal "promover skills
+              privados?". Docs: <code>memory-architecture.md</code>, <code>skills-format.md</code>,
+              <code>derivation-pipeline.md</code>.
             </div>
           </div>
         </div>
@@ -2688,12 +2715,12 @@
           <button class="filter-chip active" data-filter="all">
             all <span class="count">16</span>
           </button>
-          <button class="filter-chip" data-filter="done">done <span class="count">13</span></button>
+          <button class="filter-chip" data-filter="done">done <span class="count">14</span></button>
           <button class="filter-chip" data-filter="progress">
             in progress <span class="count">0</span>
           </button>
           <button class="filter-chip" data-filter="planned">
-            planned <span class="count">3</span>
+            planned <span class="count">2</span>
           </button>
         </div>
 
@@ -4067,11 +4094,11 @@
           </article>
 
           <!-- ──── M11 ──── -->
-          <article class="milestone" data-status="progress">
+          <article class="milestone" data-status="done">
             <div class="ms-rail">
               <div class="num">M11</div>
-              <div class="status-row"><span class="status-dot"></span>progress</div>
-              <div class="meta">em andamento · <strong>âncora V2</strong></div>
+              <div class="status-row"><span class="status-dot"></span>done</div>
+              <div class="meta">2026-05-18 · <strong>âncora V2 ✅</strong></div>
             </div>
             <div class="ms-body">
               <h3>Agent Memory &amp; Learning Loop</h3>
@@ -4160,8 +4187,17 @@
                     "Org Learnings" no <code>/dashboard</code>
                   </li>
                   <li>
-                    ⏳ <strong>PR-F</strong> — decay/trust + Settings + nudges fallback (adiado de
-                    D2) + terminate-modal "promover skills privados?" (adiada de E2) + docs
+                    ✅ <strong>PR-F1</strong> — decay/trust (boot maintenance +
+                    <code>importance *= age_decay(90d)</code>) + thumb up/down trust feedback UI +
+                    30-day skill purge
+                  </li>
+                  <li>
+                    ✅ <strong>PR-F2</strong> — Settings Memory panel (<code>user.md</code> editor +
+                    "Import from Claude Code" + derivation budget slider) + nudges fallback (≥30
+                    turns / ≥25 tool calls + near-full memory consolidation hint) + terminate-modal
+                    "promover skills privados?" checklist + docs
+                    (<code>memory-architecture.md</code>, <code>skills-format.md</code>,
+                    <code>derivation-pipeline.md</code>, SECURITY.md)
                   </li>
                 </ul>
               </div>

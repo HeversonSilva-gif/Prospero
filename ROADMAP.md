@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-15 — **M10 ✅ MERGEADO COMPLETO · v1 fechado (14/14 milestones).** 5 PRs (A–E): wire protocol (`packages/shared/src/wire/`), `apps/agent-runner/` + Dockerfile real, host adapter `ClaudeRemoteDockerAdapter` + connection manager + MCP relay, Settings `RemoteExecutionSection` + per-agent location selector + `agents:set-adapter`/`remote:test-connection` IPCs, e docs (SECURITY.md + `docs/m10-vps-setup-runbook.md`). Arquitetura: SSH stdio, host-authoritative, MCP tunelado. **973 testes** (63 shared + 50 agent-runner + 148 renderer + 712 main; +2 todo).
+> **Última atualização:** 2026-05-18 — **M11 ✅ MERGEADO COMPLETO · V2 anchor fechado.** 6 PRs (A–F): capabilities rename · schema + 9 MCP tools + tab Learning · motor de auto-derivação + Candidates UI · herança por role + `skill_promote` · org retrospectives + Org Learnings · decay/trust + Settings Memory + nudges fallback + terminate-modal promote + docs (`memory-architecture.md`, `skills-format.md`, `derivation-pipeline.md`, SECURITY.md). Arquitetura: 3 camadas × 2 níveis (individual + coletivo), fluxo bidirecional. **1146 testes** (ver PR-E2).
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 >
@@ -118,7 +118,7 @@
 
 - 📈 **Dashboard inicial com widgets dinâmicos** ✅ M9 PR-B (2026-05-14) — 7 widgets + Recent Activity timeline
 - 🏢 **Trocar entre empresas via dropdown da sidebar** ✅ M9 PR-A (2026-05-14)
-- 🧠 **Empresa que aprende com a experiência (não só o funcionário)** — após cada issue concluído, o sistema **extrai automaticamente** um "skill" (manual de como fazer aquilo) a partir do trabalho real, você revisa e aceita. Conhecimento institucional **transfere entre funcionários**: se demite o BackendEng e contrata outro, o novato já chega sabendo o que a empresa aprendeu. CEO escreve retrospectiva ao completar um Goal. Inclui busca em conversas antigas. → **M11 — em andamento** (âncora V2; criação/leitura manual de skills e a aba "Aprendizado" já funcionam, derivação automática vem nos próximos PRs)
+- ✅ **Empresa que aprende com a experiência (não só o funcionário)** — após cada issue concluído, o sistema **extrai automaticamente** um "skill" (manual de como fazer aquilo) a partir do trabalho real, você revisa e aceita. Conhecimento institucional **transfere entre funcionários**: se demite o BackendEng e contrata outro, o novato já chega sabendo o que a empresa aprendeu. CEO escreve retrospectiva ao completar um Goal. Inclui busca em conversas antigas. → **M11 ✅ COMPLETO** (âncora V2 fechada 2026-05-18; aba "Aprendizado", derivação automática, herança por role, org retrospectives, decay/trust, Settings Memory, nudges e promote-on-terminate todos entregues)
 
 ---
 
@@ -126,20 +126,20 @@
 
 > Quick view: onde estamos · o que vem a seguir · onde chegamos com v1 fechado.
 
-### ▸ Agora (estado em 2026-05-16)
+### ▸ Agora (estado em 2026-05-18)
 
 - **14 / 14 milestones do v1 fechados** — **v1 entregue em 2026-05-15**
-- **V2 em andamento:** M11 Agent Memory — PRs **A/B/C/D ✅ + E ✅** (herança por role + `skill_promote` + memória derivada da empresa); **F pendente**
+- **M11 ✅ COMPLETO** — V2 anchor fechado (2026-05-18). 6 PRs (A–F) mergeados. Settings Memory (`user.md` + budget), decay/trust, nudges fallback, terminate-modal promote-skills, docs.
 - **1146 testes passing + 2 todo** · 0 lint/typecheck errors
-- HEAD `main`: M11 PR-E2 (memória derivada `goal.achieved`/`approval.rejected` + card Org Learnings) mergeado (2026-05-16)
+- HEAD `main`: M11 PR-F2 (Settings + nudges + terminate-modal + docs) mergeado (2026-05-18)
 
 ### ▸ Próximo
 
 | Candidato | Escopo | Por quê |
 |---|---|---|
-| 🥇 **M11 PR-F** | Decay/trust + Settings (`user.md` + budget de derivação) + **nudges fallback** + terminate-modal "promover skills privados?" + docs | Fecha o M11 — último PR. Os nudges foram adiados de D2 e a terminate-modal de E2 (dependem, respectivamente, de um evento de compaction inexistente e da política de decay). |
+| 🥇 **M12 Agent & Org Definition Layer** | Charter de role (8 seções) · `/roles` biblioteca · CEO arquiteto · AGENTS.md charters · Manual Operacional como skill bundled · aba Instructions · `agent_runs` + budget per-agent + Run Policy | V2 logo após o M11 — agente bem-instruído fortalece Workflow Plays e Enforced Outcomes. Doc de design em `docs/m12-agent-org-definition-layer.md`. |
 
-**Recomendação:** M11 PR-F (fecha o M11).
+**Recomendação:** M12 Agent & Org Definition Layer (passo natural pós-M11).
 
 ### ▸ Horizonte (v1 = M10 fechado · V2 começa em M11)
 
@@ -178,15 +178,15 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 
 | Métrica | Valor |
 |---|---|
-| Milestones fechados | M1–M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6**, **M9**, **M10** (14/14 do v1 ✅) |
-| Concluído | **v1 fechado** 2026-05-15 — **M10 — 5/5 PRs** ✅ (A wire protocol · B agent-runner + Docker image · C host adapter + MCP relay · D Settings + UX · E docs + roadmap). |
-| Testes | **1124 passing + 2 todo** (855 main + 68 shared + 50 agent-runner + 151 renderer), 0 lint/typecheck errors |
-| Commits no main | ~647 |
+| Milestones fechados | M1–M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6**, **M9**, **M10** (14/14 do v1 ✅) + **M11** (V2 anchor ✅) |
+| Concluído | **M11 ✅ fechado** 2026-05-18 — **6/6 PRs** ✅ (A capabilities rename · B schema+repos · C MCP tools + Learning tab · D1/D2 derivation pipeline + Candidates UI · E1/E2 role inheritance + org retrospectives · F decay/trust + Settings Memory + nudges + terminate-modal + docs). **V2 anchor fechado.** |
+| Testes | **1146 passing + 2 todo**, 0 lint/typecheck errors |
+| Commits no main | ~670 |
 | LoC (apps + packages) | ~23k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
-| Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** Próximo: M11 (V2 anchor). |
-| V2 anchor | **M11 Agent Memory & Learning Loop — em andamento** (~10-14 dias, **âncora V2**). PRs **A/B/C/D ✅ + E1 ✅** mergeados (capabilities rename · schema+repos+sanitizer · MCP tools + injeção + tab Learning · motor de auto-derivação + UI de revisão · herança por role + `skill_promote`); **E2/F pendentes** (org learning restante · decay/trust + nudges + docs). Spec: `docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md`. 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). |
+| Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** M11 (V2 anchor) também fechado. Próximo: M12. |
+| V2 anchor | **M11 Agent Memory & Learning Loop — ✅ COMPLETO** (2026-05-18, 6 PRs). Arquitetura: 3 camadas × 2 níveis, fluxo bidirecional. Spec: `docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md`. Docs: `docs/memory-architecture.md` + `docs/skills-format.md` + `docs/derivation-pipeline.md`. 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). Próximo V2: M12 Agent & Org Definition Layer. |
 
 ---
 
@@ -327,7 +327,7 @@ M9  (Dashboard + Multi-empresa + Reviews UX + API key)
   ↓
 M10 (VPS Docker Remote Adapter) ─── v1 ✅
   ↓
-M11 (Agent Memory & Learning Loop — âncora V2 · em andamento) ─── V2
+M11 (Agent Memory & Learning Loop — âncora V2 ✅) ─── V2
 ```
 
 **Antes de cada milestone, consultar Paperclip** (`reference_paperclip` memory) pra UX/código.
@@ -823,7 +823,7 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
 
 ---
 
-### 🔄 M11 — Agent Memory & Learning Loop — **V2 anchor · em andamento (PRs A-E ✅, F pendente)**
+### ✅ M11 — Agent Memory & Learning Loop — **V2 anchor · COMPLETO (2026-05-18)**
 
 **Origem:** pesquisa Hermes Agent ([NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent), 2026-05-12). Doc completo em [docs/hermes-memory-learning-system.md](docs/hermes-memory-learning-system.md). Substitui o item v2+ "Memory / Knowledge base" por implementação concreta — **inspirada** no closed learning loop do Hermes mas com **3 inflexões deliberadas** que aproveitam vantagens estruturais do nosso codebase (Activity stream, Issues, Goals, CEO-planner).
 
@@ -831,14 +831,15 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
 
 **Arquitetura: matriz 3 camadas × 2 níveis (Hermes-style, simétrico).** As 3 camadas cognitivas do Hermes (declarativa, procedural, episódica) replicadas em 2 níveis (individual + coletivo), com fluxo bidirecional (descendente via inheritance, ascendente via `skill_promote` + `memory_add({applies_to_role})` + retrospectivas CEO).
 
-#### 📊 Progresso (em andamento desde 2026-05-15)
+#### 📊 Progresso — ✅ TODOS OS PRs MERGEADOS (2026-05-18)
 
 Decomposto em **6 PRs (A-F)** — na execução o **PR-D** foi dividido em **D1**
 (motor de derivação) + **D2** (UI de revisão dos candidates), e o **PR-E** em
 **E1** (herança por role + `skill_promote`) + **E2** (triggers de memória + Org
-Learnings); os **nudges** saíram de D2 pra PR-F (dependem de um evento de
-compaction inexistente). O texto de planejamento abaixo é o original; a
-**spec reconciliada** ([docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md](docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md))
+Learnings); o **PR-F** foi dividido em **F1** (decay/trust/purge) + **F2**
+(Settings Memory + nudges + terminate-modal + docs). O texto de planejamento
+abaixo é o original; a **spec reconciliada**
+([docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md](docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md))
 é a fonte de verdade — corrigiu vários pontos do plano abaixo: migrations `0017`
 (rename) + `0018` (schema), **não** "M11-01"; filesystem em `userData/memory/`,
 **não** `~/.prospero/`; a tab Learning é a **3ª** tab de `/agents/:id`, não a 4ª;
@@ -855,7 +856,8 @@ heurística NLP; novo evento `agent.recovered`.
 | **D2** | Sub-tab "Candidates" (Accept/Edit/Reject) + IPC + accept→skill real + resolve do inbox item | ✅ 2026-05-16 |
 | **E1** | Herança por `applies_to_role` no system prompt (`buildMemoryBlock`) + `skill_promote` MCP tool + inbox `skill_promotion_requested` + modal de aprovação | ✅ 2026-05-16 |
 | **E2** | Triggers `goal.achieved`→retrospectiva (company scope) / `approval.rejected`→preferência (agent scope) estendendo o motor de derivação + migration `0021` (inbox `goal_retrospective_ready`) + IPC `orgLearnings` + card "Org Learnings" no `/dashboard` | ✅ 2026-05-16 (terminate-modal "promover skills?" adiada pra PR-F) |
-| **F** | Decay/trust + Settings (`user.md` + budget de derivação) + **nudges fallback** (turn-complete/time-based/compaction — adiado de D2) + terminate-modal "promover skills privados?" (adiada de E2) + docs | ⏳ pendente |
+| **F1** | Decay/trust (boot maintenance + `importance *= age_decay(90d) * access_boost`) + thumb up/down trust feedback UI (±0.05/−0.10) + 30-day skill purge | ✅ 2026-05-18 |
+| **F2** | Settings Memory panel (`user.md` editor + "Import from Claude Code" + derivation budget slider) + nudges fallback (≥30 turns / ≥25 tool calls → skill hint; near-full memory → consolidation hint) + terminate-modal "promover skills privados?" checklist + docs (`memory-architecture.md`, `skills-format.md`, `derivation-pipeline.md`, SECURITY.md) | ✅ 2026-05-18 |
 
 #### 🔀 As 3 inflexões vs Hermes
 
