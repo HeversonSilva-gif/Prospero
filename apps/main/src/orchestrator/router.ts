@@ -35,7 +35,7 @@ export const createRouter = (opts: RouterOptions): Router => {
   };
 
   // Prepends and consumes a parked nudge, if any.
-  const withNudge = (s: State, content: string): string => {
+  const consumeNudge = (s: State, content: string): string => {
     if (s.pendingNudge === null) return content;
     const out = `${s.pendingNudge}\n\n${content}`;
     s.pendingNudge = null;
@@ -48,7 +48,7 @@ export const createRouter = (opts: RouterOptions): Router => {
       const formatted = formatSender(sender, content);
       if (s.currentTurnThreadId === null) {
         s.currentTurnThreadId = threadId;
-        opts.writeStdin(agentId, withNudge(s, formatted));
+        opts.writeStdin(agentId, consumeNudge(s, formatted));
       } else {
         s.queue.push({ threadId, content: formatted, sender });
       }
@@ -60,7 +60,7 @@ export const createRouter = (opts: RouterOptions): Router => {
         s.currentTurnThreadId = null;
       } else {
         s.currentTurnThreadId = next.threadId;
-        opts.writeStdin(agentId, withNudge(s, next.content));
+        opts.writeStdin(agentId, consumeNudge(s, next.content));
       }
     },
     getCurrentThread(agentId) {
