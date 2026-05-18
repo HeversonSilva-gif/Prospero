@@ -604,6 +604,83 @@
           grid-template-columns: 1fr;
         }
       }
+
+      /* ===== S5 cost calc ===== */
+      .conta {
+        background: var(--surface-2);
+      }
+      .calc {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: var(--shadow-sm);
+        padding: 28px;
+      }
+      .calc-control label {
+        font-weight: 700;
+      }
+      .calc-control strong {
+        color: var(--accent-dark);
+      }
+      .calc-control input[type="range"] {
+        width: 100%;
+        margin-top: 12px;
+        accent-color: var(--accent);
+      }
+      .calc-bars {
+        margin-top: 26px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .calc-row {
+        display: grid;
+        grid-template-columns: 200px 1fr 130px;
+        align-items: center;
+        gap: 14px;
+      }
+      .calc-label em {
+        color: var(--ink-faint);
+        font-style: normal;
+        font-size: 0.85em;
+      }
+      .calc-track {
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        height: 26px;
+        overflow: hidden;
+      }
+      .calc-fill {
+        height: 100%;
+        width: 0;
+        border-radius: 20px;
+        transition: width 320ms ease;
+      }
+      .calc-fill-us {
+        background: var(--accent);
+      }
+      .calc-fill-them {
+        background: var(--ink-faint);
+      }
+      .calc-val {
+        font-weight: 800;
+        text-align: right;
+      }
+      .calc-note {
+        margin-top: 18px;
+        font-size: 0.85rem;
+        color: var(--ink-faint);
+      }
+      @media (max-width: 720px) {
+        .calc-row {
+          grid-template-columns: 1fr;
+          gap: 6px;
+        }
+        .calc-val {
+          text-align: left;
+        }
+      }
     </style>
   </head>
   <body>
@@ -784,6 +861,45 @@
               <strong data-count="100" data-suffix="%">0%</strong>
               <span>offline — sem nuvem obrigatória</span>
             </div>
+          </div>
+        </div>
+      </section>
+      <section id="conta" class="section conta">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <span class="kicker">A conta fecha</span>
+            <h2>Faça as contas você mesmo.</h2>
+            <p class="lede">
+              Um time de IA custa uma fração de contratações humanas — e cresce na hora que você
+              precisar. Arraste para ver.
+            </p>
+          </div>
+          <div class="calc reveal" data-delay="1">
+            <div class="calc-control">
+              <label for="calcRange">Tamanho do time: <strong id="calcN">3</strong> agentes</label>
+              <input id="calcRange" type="range" min="1" max="8" value="3" />
+            </div>
+            <div class="calc-bars">
+              <div class="calc-row">
+                <span class="calc-label">Com Prospero <em>(estimativa)</em></span>
+                <div class="calc-track">
+                  <div class="calc-fill calc-fill-us" id="calcUsBar"></div>
+                </div>
+                <span class="calc-val" id="calcUsVal">R$ 450/mês</span>
+              </div>
+              <div class="calc-row">
+                <span class="calc-label">Equipe humana equivalente</span>
+                <div class="calc-track">
+                  <div class="calc-fill calc-fill-them" id="calcThemBar"></div>
+                </div>
+                <span class="calc-val" id="calcThemVal">R$ 18.000/mês</span>
+              </div>
+            </div>
+            <p class="calc-note">
+              Valores ilustrativos — servem para sentir a ordem de grandeza, não são preço.
+              Premissas: cerca de R$ 150 por agente/mês de uso · salário de referência de cerca de
+              R$ 6.000/mês.
+            </p>
           </div>
         </div>
       </section>
@@ -1062,6 +1178,33 @@
           renderEmpty();
         }
 
+        /* S5 — slider de escala e custo */
+        function costSlider() {
+          var range = document.getElementById("calcRange");
+          if (!range) return;
+          var nEl = document.getElementById("calcN");
+          var usBar = document.getElementById("calcUsBar");
+          var themBar = document.getElementById("calcThemBar");
+          var usVal = document.getElementById("calcUsVal");
+          var themVal = document.getElementById("calcThemVal");
+
+          function brl(v) {
+            return "R$ " + v.toLocaleString("pt-BR") + "/mês";
+          }
+          function update() {
+            var n = parseInt(range.value, 10);
+            var us = n * COST.perAgent;
+            var them = n * COST.perHuman;
+            nEl.textContent = n;
+            usVal.textContent = brl(us);
+            themVal.textContent = brl(them);
+            usBar.style.width = (us / them) * 100 + "%";
+            themBar.style.width = "100%";
+          }
+          range.addEventListener("input", update);
+          update();
+        }
+
         /* interactive modules are appended here by Tasks 4, 5, 7, 8 */
 
         function init() {
@@ -1084,6 +1227,11 @@
             delegationSim();
           } catch (e) {
             console.warn("delegationSim failed", e);
+          }
+          try {
+            costSlider();
+          } catch (e) {
+            console.warn("costSlider failed", e);
           }
           /* interactive init() calls are added here by later tasks */
         }
