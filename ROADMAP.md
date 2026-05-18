@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-18 — **M11 ✅ MERGEADO COMPLETO · V2 anchor fechado.** 6 PRs (A–F): capabilities rename · schema + 9 MCP tools + tab Learning · motor de auto-derivação + Candidates UI · herança por role + `skill_promote` · org retrospectives + Org Learnings · decay/trust + Settings Memory + nudges fallback + terminate-modal promote + docs (`memory-architecture.md`, `skills-format.md`, `derivation-pipeline.md`, SECURITY.md). Arquitetura: 3 camadas × 2 níveis (individual + coletivo), fluxo bidirecional. **1146 testes** (ver PR-E2).
+> **Última atualização:** 2026-05-18 — **M11 ✅ MERGEADO COMPLETO · V2 anchor fechado.** 6 PRs (A–F): capabilities rename · schema + 9 MCP tools + tab Learning · motor de auto-derivação + Candidates UI · herança por role + `skill_promote` · org retrospectives + Org Learnings · decay/trust + Settings Memory + nudges fallback + terminate-modal promote + docs (`memory-architecture.md`, `skills-format.md`, `derivation-pipeline.md`, SECURITY.md). Arquitetura: 3 camadas × 2 níveis (individual + coletivo), fluxo bidirecional. **1198 testes**.
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 >
@@ -130,7 +130,7 @@
 
 - **14 / 14 milestones do v1 fechados** — **v1 entregue em 2026-05-15**
 - **M11 ✅ COMPLETO** — V2 anchor fechado (2026-05-18). 6 PRs (A–F) mergeados. Settings Memory (`user.md` + budget), decay/trust, nudges fallback, terminate-modal promote-skills, docs.
-- **1146 testes passing + 2 todo** · 0 lint/typecheck errors
+- **1198 testes passing + 2 todo** · 0 lint/typecheck errors
 - HEAD `main`: M11 PR-F2 (Settings + nudges + terminate-modal + docs) mergeado (2026-05-18)
 
 ### ▸ Próximo
@@ -180,8 +180,8 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 |---|---|
 | Milestones fechados | M1–M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6**, **M9**, **M10** (14/14 do v1 ✅) + **M11** (V2 anchor ✅) |
 | Concluído | **M11 ✅ fechado** 2026-05-18 — **6/6 PRs** ✅ (A capabilities rename · B schema+repos · C MCP tools + Learning tab · D1/D2 derivation pipeline + Candidates UI · E1/E2 role inheritance + org retrospectives · F decay/trust + Settings Memory + nudges + terminate-modal + docs). **V2 anchor fechado.** |
-| Testes | **1146 passing + 2 todo**, 0 lint/typecheck errors |
-| Commits no main | ~670 |
+| Testes | **1198 passing + 2 todo**, 0 lint/typecheck errors |
+| Commits no main | ~710 |
 | LoC (apps + packages) | ~23k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
