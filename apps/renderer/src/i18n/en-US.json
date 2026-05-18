@@ -403,6 +403,7 @@
         "config": "Config",
         "instructions": "Instructions",
         "issues": "Issues",
+        "runs": "Runs",
         "stats": "Stats"
       }
     },
@@ -477,7 +478,6 @@
       "pause": "Pause",
       "resume": "Resume",
       "assignTask": "Assign Task",
-      "runs": "Runs",
       "menu": {
         "copyId": "Copy Agent ID",
         "resetSession": "Reset session",
@@ -503,11 +503,14 @@
       "promoteHint": "Checked skills become shared on the agent's role. Unchecked ones are removed after 30 days."
     },
     "runs": {
-      "title": "Run history",
-      "empty": "No runs yet.",
+      "empty": "No runs recorded yet.",
       "session": "Session {{n}}",
-      "turn": "{{when}} · {{tools}} tool calls",
-      "close": "Close"
+      "tokensIn": "Tokens in",
+      "tokensOut": "Tokens out",
+      "tokensCache": "Cache tokens",
+      "adapter": "Adapter",
+      "activity": "Turn activity",
+      "noActivity": "No activity recorded for this turn."
     },
     "instructions": {
       "title": "Instruction files",

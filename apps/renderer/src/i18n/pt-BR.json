@@ -403,6 +403,7 @@
         "config": "Config",
         "instructions": "Instruções",
         "issues": "Issues",
+        "runs": "Execuções",
         "stats": "Stats"
       }
     },
@@ -477,7 +478,6 @@
       "pause": "Pausar",
       "resume": "Retomar",
       "assignTask": "Atribuir tarefa",
-      "runs": "Runs",
       "menu": {
         "copyId": "Copiar ID do agente",
         "resetSession": "Resetar sessão",
@@ -503,11 +503,14 @@
       "promoteHint": "Skills marcados viram compartilhados no papel do agente. Os não marcados são removidos após 30 dias."
     },
     "runs": {
-      "title": "Histórico de runs",
-      "empty": "Nenhuma run ainda.",
+      "empty": "Nenhuma execução registrada ainda.",
       "session": "Sessão {{n}}",
-      "turn": "{{when}} · {{tools}} chamadas de tool",
-      "close": "Fechar"
+      "tokensIn": "Tokens entrada",
+      "tokensOut": "Tokens saída",
+      "tokensCache": "Tokens cache",
+      "adapter": "Adapter",
+      "activity": "Atividade do turno",
+      "noActivity": "Nenhuma atividade registrada neste turno."
     },
     "instructions": {
       "title": "Arquivos de instrução",

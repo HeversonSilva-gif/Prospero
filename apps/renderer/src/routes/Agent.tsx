@@ -16,7 +16,6 @@ import { LearningPanel } from "../components/agent-panel/LearningPanel.js";
 import { Composer } from "../components/Composer.js";
 import { AgentConfigPanel } from "../components/agent-panel/AgentConfigPanel.js";
 import { AgentHeader } from "../components/agent-panel/AgentHeader.js";
-import { RunsModal } from "../components/agent-panel/RunsModal.js";
 import { IssueFormModal } from "../components/issues/IssueFormModal.js";
 
 type Tab = "chat" | "delegations" | "learning";
@@ -32,7 +31,6 @@ export const Agent = () => {
   const [pendingApprovals, setPendingApprovals] = useState<PermissionRequest[]>([]);
   const [tab, setTab] = useState<Tab>("chat");
   const [showAssignTask, setShowAssignTask] = useState(false);
-  const [showRuns, setShowRuns] = useState(false);
 
   // Load all messages for this agent across all threads
   useEffect(() => {
@@ -120,7 +118,6 @@ export const Agent = () => {
         <AgentHeader
           agent={agent}
           onAssignTask={() => setShowAssignTask(true)}
-          onOpenRuns={() => setShowRuns(true)}
           skillCount={skills.length}
           memoryCount={memories.length}
           onOpenLearning={() => setTab("learning")}
@@ -194,7 +191,6 @@ export const Agent = () => {
           onClose={() => setShowAssignTask(false)}
         />
       )}
-      {showRuns && <RunsModal agentId={agent.id} onClose={() => setShowRuns(false)} />}
     </div>
   );
 };

@@ -4,9 +4,10 @@ import type { Agent } from "@prospero/shared";
 import { ConfigTab } from "./ConfigTab.js";
 import { InstructionsTab } from "./InstructionsTab.js";
 import { IssuesTab } from "./IssuesTab.js";
+import { RunsTab } from "./RunsTab.js";
 import { StatsTab } from "./StatsTab.js";
 
-type Tab = "config" | "instructions" | "issues" | "stats";
+type Tab = "config" | "instructions" | "issues" | "runs" | "stats";
 
 type Props = { agent: Agent };
 
@@ -16,7 +17,7 @@ export const AgentConfigPanel: FC<Props> = ({ agent }) => {
   return (
     <aside className="w-80 border-l border-surface-border bg-surface-card flex flex-col">
       <nav className="flex border-b border-surface-border">
-        {(["config", "instructions", "issues", "stats"] as const).map((k) => (
+        {(["config", "instructions", "issues", "runs", "stats"] as const).map((k) => (
           <button
             key={k}
             type="button"
@@ -35,6 +36,7 @@ export const AgentConfigPanel: FC<Props> = ({ agent }) => {
         {tab === "config" && <ConfigTab agent={agent} />}
         {tab === "instructions" && <InstructionsTab agentId={agent.id} />}
         {tab === "issues" && <IssuesTab agentId={agent.id} companyId={agent.companyId} />}
+        {tab === "runs" && <RunsTab agentId={agent.id} companyId={agent.companyId} />}
         {tab === "stats" && <StatsTab agentId={agent.id} />}
       </div>
     </aside>

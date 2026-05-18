@@ -18,7 +18,6 @@ const STATUS_DOT: Record<AgentStatus, string> = {
 interface Props {
   agent: Agent;
   onAssignTask: () => void;
-  onOpenRuns: () => void;
   skillCount: number;
   memoryCount: number;
   onOpenLearning: () => void;
@@ -27,7 +26,6 @@ interface Props {
 export const AgentHeader: FC<Props> = ({
   agent,
   onAssignTask,
-  onOpenRuns,
   skillCount,
   memoryCount,
   onOpenLearning,
@@ -90,13 +88,6 @@ export const AgentHeader: FC<Props> = ({
           </button>
         </>
       )}
-      <button
-        type="button"
-        onClick={onOpenRuns}
-        className="text-xs px-2 py-1 bg-surface-soft text-ink-muted rounded hover:bg-surface-border"
-      >
-        📜 {t("agent.header.runs")}
-      </button>
       <OverflowMenu
         onCopyId={() => void navigator.clipboard.writeText(agent.id)}
         onResetSession={() => void resetSession(agent.id)}
