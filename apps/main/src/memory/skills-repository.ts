@@ -18,6 +18,7 @@ type SkillRow = {
   promoted: number;
   created_at: number;
   soft_deleted: number;
+  soft_deleted_at: number | null;
 };
 
 const rowToSkill = (r: SkillRow): Skill => ({
