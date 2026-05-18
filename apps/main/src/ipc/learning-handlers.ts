@@ -68,6 +68,13 @@ export type LearningHandlers = {
   // Loads the user's Claude Code memory (~/.claude/CLAUDE.md) so it can be
   // reviewed and saved into user.md. Returns "" when there is no such file.
   importClaudeCodeMemory(): { content: string };
+  // M11 PR-F2: on agent termination, promote the chosen private skills to the
+  // agent's role (so future hires for that role inherit them) and soft-delete
+  // the agent's remaining private skills.
+  promoteSkillsOnTerminate(args: { agentId: string; promoteSkillIds: string[] }): {
+    promoted: number;
+    softDeleted: number;
+  };
 };
 
 type SessionRow = {
@@ -191,6 +198,26 @@ export const learningHandlers = (db: Database.Database, userDataDir: string): Le
       const path = join(homedir(), ".claude", "CLAUDE.md");
       return { content: existsSync(path) ? readFileSync(path, "utf8") : "" };
     },
+    promoteSkillsOnTerminate({ agentId, promoteSkillIds }) {
+      const agentRow = db.prepare("SELECT role FROM agents WHERE id = ?").get(agentId) as
+        | { role: string }
+        | undefined;
+      if (agentRow === undefined) throw new Error(`agent ${agentId} not found`);
+      const skillsRepo = createSkillsRepository(db);
+      const promoteSet = new Set(promoteSkillIds);
+      let promoted = 0;
+      let softDeleted = 0;
+      for (const skill of skillsRepo.listByAgent(agentId)) {
+        if (promoteSet.has(skill.id)) {
+          skillsRepo.promote(skill.id, agentRow.role);
+          promoted += 1;
+        } else {
+          skillsRepo.softDelete(skill.id);
+          softDeleted += 1;
+        }
+      }
+      return { promoted, softDeleted };
+    },
   };
 };
 
@@ -232,4 +259,8 @@ export const registerLearningHandlers = (db: Database.Database): void => {
   ipcMain.handle(IPC.MEMORY_USER_GET, () => h.getUserMemory());
   ipcMain.handle(IPC.MEMORY_USER_SET, (_e, args: { content: string }) => h.setUserMemory(args));
   ipcMain.handle(IPC.MEMORY_USER_IMPORT_CC, () => h.importClaudeCodeMemory());
+  ipcMain.handle(
+    IPC.SKILLS_PROMOTE_ON_TERMINATE,
+    (_e, args: { agentId: string; promoteSkillIds: string[] }) => h.promoteSkillsOnTerminate(args),
+  );
 };

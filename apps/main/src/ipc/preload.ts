@@ -378,6 +378,11 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.MEMORY_USER_SET, { content }) as Promise<{ ok: true }>,
     importClaudeCodeMemory: () =>
       ipcRenderer.invoke(IPC.MEMORY_USER_IMPORT_CC) as Promise<{ content: string }>,
+    promoteSkillsOnTerminate: (agentId: string, promoteSkillIds: string[]) =>
+      ipcRenderer.invoke(IPC.SKILLS_PROMOTE_ON_TERMINATE, { agentId, promoteSkillIds }) as Promise<{
+        promoted: number;
+        softDeleted: number;
+      }>,
   },
   windowControls: {
     minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE) as Promise<void>,

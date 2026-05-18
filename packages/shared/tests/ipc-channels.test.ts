@@ -56,4 +56,8 @@ describe("IPC channels", () => {
     expect(IPC.MEMORY_USER_SET).toBe("memory:user-set");
     expect(IPC.MEMORY_USER_IMPORT_CC).toBe("memory:user-import-cc");
   });
+
+  it("exposes the M11 terminate-promote channel", () => {
+    expect(IPC.SKILLS_PROMOTE_ON_TERMINATE).toBe("skills:promote-on-terminate");
+  });
 });

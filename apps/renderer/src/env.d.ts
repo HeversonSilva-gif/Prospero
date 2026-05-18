@@ -276,6 +276,10 @@ declare global {
         getUserMemory: () => Promise<{ content: string }>;
         setUserMemory: (content: string) => Promise<{ ok: true }>;
         importClaudeCodeMemory: () => Promise<{ content: string }>;
+        promoteSkillsOnTerminate: (
+          agentId: string,
+          promoteSkillIds: string[],
+        ) => Promise<{ promoted: number; softDeleted: number }>;
       };
       windowControls: {
         minimize: () => Promise<void>;

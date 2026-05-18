@@ -281,6 +281,58 @@ describe("learningHandlers — user memory", () => {
   });
 });
 
+describe("learningHandlers — promoteSkillsOnTerminate", () => {
+  it("promotes the chosen skills to the agent's role and soft-deletes the rest", () => {
+    const db = seed();
+    const role = (db.prepare("SELECT role FROM agents WHERE id = 'a1'").get() as { role: string })
+      .role;
+    const repo = createSkillsRepository(db);
+    const keep = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "keeper",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    const drop = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "dropper",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+
+    const out = learningHandlers(db, USERDATA).promoteSkillsOnTerminate({
+      agentId: "a1",
+      promoteSkillIds: [keep.id],
+    });
+    expect(out).toEqual({ promoted: 1, softDeleted: 1 });
+
+    const promoted = repo.getById(keep.id);
+    expect(promoted?.agentId).toBeNull();
+    expect(promoted?.promoted).toBe(true);
+    expect(promoted?.appliesToRole).toBe(role);
+
+    // getById does not filter soft_deleted, so query the flag directly
+    const dropRow = db.prepare("SELECT soft_deleted FROM skills WHERE id = ?").get(drop.id) as {
+      soft_deleted: number;
+    };
+    expect(dropRow.soft_deleted).toBe(1);
+  });
+
+  it("returns zeros when the agent has no private skills", () => {
+    const db = seed();
+    expect(
+      learningHandlers(db, USERDATA).promoteSkillsOnTerminate({
+        agentId: "a1",
+        promoteSkillIds: [],
+      }),
+    ).toEqual({ promoted: 0, softDeleted: 0 });
+  });
+});
+
 describe("learningHandlers — skill promotion", () => {
   let db: Database.Database;
   beforeEach(() => {

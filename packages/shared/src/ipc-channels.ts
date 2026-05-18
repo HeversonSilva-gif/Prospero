@@ -105,6 +105,7 @@ export const IPC = {
   MEMORY_USER_GET: "memory:user-get",
   MEMORY_USER_SET: "memory:user-set",
   MEMORY_USER_IMPORT_CC: "memory:user-import-cc",
+  SKILLS_PROMOTE_ON_TERMINATE: "skills:promote-on-terminate",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
