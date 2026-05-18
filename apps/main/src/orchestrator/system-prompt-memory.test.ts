@@ -41,8 +41,10 @@ describe("buildMemoryBlock", () => {
     s = setup();
   });
 
-  it("returns undefined when there is nothing to inject", () => {
-    expect(buildMemoryBlock(deps(s))).toBeUndefined();
+  it("always includes the operating manual, even with no memory or skills", () => {
+    const block = buildMemoryBlock(deps(s)) ?? "";
+    expect(block).toContain("## Your skills");
+    expect(block).toContain("operating-manual");
   });
 
   it("includes an agent memory entry", () => {
