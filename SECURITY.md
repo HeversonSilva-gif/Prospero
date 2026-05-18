@@ -128,6 +128,38 @@ locus.
 - **Setup:** see `docs/m10-vps-setup-runbook.md` for VPS provisioning and the
   local-Docker smoke checklist.
 
+## Memory and skills as injection vectors
+
+Memory entries and skill bodies are injected verbatim into every agent system
+prompt (`buildMemoryBlock` in `apps/main/src/orchestrator/system-prompt-memory.ts`).
+A hostile string stored in memory or a skill body would appear in the system
+prompt of every future session, making these write paths critical injection
+vectors.
+
+**Shared sanitizer.** `apps/main/src/memory/sanitizer.ts` runs on all write
+paths before any string is persisted: the agent-facing MCP tools
+(`skill_create`, `skill_update`, `memory_add`), and the derivation pipeline
+output. The pipeline produces LLM-generated text and is treated as equally
+untrusted as agent input. The sanitizer blocks prompt-injection phrases
+("ignore previous instructions", system-prompt disclosure requests, XML-style
+instruction tags) and the same shell-command and sensitive-path blocklists used
+by `gate.ts`.
+
+**Skill candidates require human review.** Derivation-produced skill candidates
+go through an Accept / Edit / Reject step in the Inbox before a `skills` row
+and `SKILL.md` file are created. The user is the reviewer; the sanitizer has
+already run on the candidate body before it appears in the review UI.
+
+**Pinned memories and promoted skills are read-only to agents.** `memory_remove`
+rejects pinned entries. `skill_update` rejects promoted skills. Only the user
+can modify these through the Settings or Inbox UI.
+
+**`user.md` is the trusted authoring path.** The file is written by the user
+via the Settings Memory editor, and the sanitizer does not run on it — the user
+is the trusted author. The content is hard-truncated at 1 024 characters at
+injection time, so an unexpectedly large file cannot inflate the system prompt
+beyond that bound.
+
 ## Approvals and artifacts storage (foundation)
 
 M7.5 PR-B introduced two new persistence surfaces; both intentionally avoid
