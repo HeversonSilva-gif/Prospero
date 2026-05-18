@@ -37,6 +37,11 @@ const agent = (over: Partial<Agent> = {}): Agent => ({
   pausedAt: null,
   terminatedAt: null,
   pauseReason: null,
+  budgetTokensLimit: null,
+  budgetUsdLimit: null,
+  budgetPeriod: "daily",
+  canHire: true,
+  canAssign: true,
   ...over,
 });
 

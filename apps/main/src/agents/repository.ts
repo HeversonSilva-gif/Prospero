@@ -6,6 +6,7 @@ import {
   type AgentMode,
   type AgentStatus,
   type Actor,
+  type BudgetPeriod,
 } from "@prospero/shared";
 import type { Recorder } from "../activity/recorder.js";
 
@@ -29,6 +30,12 @@ type Row = {
   paused_at: number | null;
   terminated_at: number | null;
   pause_reason: string | null;
+  budget_tokens_limit: number | null;
+  budget_usd_limit: number | null;
+  budget_period: string;
+  budget_warned_period: string | null;
+  can_hire: number;
+  can_assign: number;
   created_at: number;
   updated_at: number;
 };
@@ -53,6 +60,11 @@ const rowToAgent = (r: Row): Agent => ({
   pausedAt: r.paused_at,
   terminatedAt: r.terminated_at,
   pauseReason: r.pause_reason,
+  budgetTokensLimit: r.budget_tokens_limit,
+  budgetUsdLimit: r.budget_usd_limit,
+  budgetPeriod: r.budget_period as BudgetPeriod,
+  canHire: r.can_hire === 1,
+  canAssign: r.can_assign === 1,
 });
 
 export type CreateAgentInput = {

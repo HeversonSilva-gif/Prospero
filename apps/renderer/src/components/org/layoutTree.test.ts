@@ -22,6 +22,11 @@ const mkAgent = (id: string, reportsTo: string | null): Agent => ({
   pausedAt: null,
   terminatedAt: null,
   pauseReason: null,
+  budgetTokensLimit: null,
+  budgetUsdLimit: null,
+  budgetPeriod: "daily",
+  canHire: true,
+  canAssign: true,
 });
 
 describe("layoutTree", () => {

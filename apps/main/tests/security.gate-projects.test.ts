@@ -22,6 +22,11 @@ const fakeAgent = (mode: "supervised" | "auto" = "auto"): Agent => ({
   pausedAt: null,
   terminatedAt: null,
   pauseReason: null,
+  budgetTokensLimit: null,
+  budgetUsdLimit: null,
+  budgetPeriod: "daily",
+  canHire: true,
+  canAssign: true,
 });
 
 describe("evaluatePermission with project allowlist", () => {

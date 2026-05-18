@@ -25,6 +25,11 @@ const agent: Agent = {
   pausedAt: null,
   terminatedAt: null,
   pauseReason: null,
+  budgetTokensLimit: null,
+  budgetUsdLimit: null,
+  budgetPeriod: "daily",
+  canHire: true,
+  canAssign: true,
 };
 
 describe(

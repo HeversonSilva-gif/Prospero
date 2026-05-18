@@ -22,6 +22,11 @@ const baseAgent = (): Agent => ({
   pausedAt: null,
   terminatedAt: null,
   pauseReason: null,
+  budgetTokensLimit: null,
+  budgetUsdLimit: null,
+  budgetPeriod: "daily",
+  canHire: true,
+  canAssign: true,
 });
 
 describe("buildSpawnEnv", () => {
@@ -47,6 +52,11 @@ describe("buildSpawnEnv", () => {
         pausedAt: null,
         terminatedAt: null,
         pauseReason: null,
+        budgetTokensLimit: null,
+        budgetUsdLimit: null,
+        budgetPeriod: "daily",
+        canHire: true,
+        canAssign: true,
       },
       "sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_xyz123",
       "/tmp/db/prospero.db",

@@ -22,6 +22,11 @@ const agent = (mode: "supervised" | "auto"): Agent => ({
   pausedAt: null,
   terminatedAt: null,
   pauseReason: null,
+  budgetTokensLimit: null,
+  budgetUsdLimit: null,
+  budgetPeriod: "daily",
+  canHire: true,
+  canAssign: true,
 });
 
 const WS = "C:\\Workspace";

@@ -1,4 +1,5 @@
 export type AgentMode = "supervised" | "auto";
+export type BudgetPeriod = "daily" | "monthly";
 export type AgentStatus =
   | "idle"
   | "thinking"
@@ -35,6 +36,11 @@ export type Agent = {
   pausedAt: number | null;
   terminatedAt: number | null;
   pauseReason: string | null;
+  budgetTokensLimit: number | null;
+  budgetUsdLimit: number | null; // cents
+  budgetPeriod: BudgetPeriod;
+  canHire: boolean;
+  canAssign: boolean;
 };
 
 export type AgentStats = {

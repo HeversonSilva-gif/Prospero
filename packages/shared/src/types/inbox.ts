@@ -12,7 +12,8 @@ export type InboxKind =
   | "skill_promotion_requested"
   | "goal_retrospective_ready"
   | "memory_review_needed"
-  | "org_proposed";
+  | "org_proposed"
+  | "budget_warning";
 
 export type InboxItem = {
   id: string;

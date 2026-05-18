@@ -26,6 +26,11 @@ const baseAgent: Agent = {
   pausedAt: null,
   terminatedAt: null,
   pauseReason: null,
+  budgetTokensLimit: null,
+  budgetUsdLimit: null,
+  budgetPeriod: "daily",
+  canHire: true,
+  canAssign: true,
 };
 
 const baseCtx = (): SpawnContext => ({
