@@ -13,7 +13,6 @@ import { useSettingsStore } from "../../stores/settings.js";
 import { AgentProjectsEditor } from "./AgentProjectsEditor.js";
 import { ChangeRoleModal } from "./ChangeRoleModal.js";
 import { categorizeCapabilities } from "./capabilityCategorize.js";
-import { InstructionsFullScreenModal } from "./InstructionsFullScreenModal.js";
 
 type Props = { agent: Agent };
 
@@ -21,7 +20,6 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
   const { t } = useTranslation();
   const setModel = useAgentsStore((s) => s.setModel);
   const setRole = useAgentsStore((s) => s.setRole);
-  const setSystemPrompt = useAgentsStore((s) => s.setSystemPrompt);
   const setReportsTo = useAgentsStore((s) => s.setReportsTo);
   const setMode = useAgentsStore((s) => s.setMode);
   const setAlwaysOn = useAgentsStore((s) => s.setAlwaysOn);
@@ -37,9 +35,6 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
   const [modelPreset, setModelPreset] = useState<string>("");
   const [customModel, setCustomModel] = useState<string>("");
   const [modelError, setModelError] = useState<string | null>(null);
-  const [persona, setPersona] = useState(agent.systemPrompt);
-  const [personaSavedAt, setPersonaSavedAt] = useState<number | null>(null);
-  const [showInstructionsExpand, setShowInstructionsExpand] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -49,7 +44,6 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
   }, []);
 
   useEffect(() => {
-    setPersona(agent.systemPrompt);
     if ((CLAUDE_MODEL_PRESETS as readonly string[]).includes(agent.model)) {
       setModelPreset(agent.model);
       setCustomModel("");
@@ -57,7 +51,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
       setModelPreset("custom");
       setCustomModel(agent.model);
     }
-  }, [agent.id, agent.systemPrompt, agent.model]);
+  }, [agent.id, agent.model]);
 
   const currentRole = useMemo(
     () => roles.find((r) => r.id === agent.templateId) ?? null,
@@ -98,18 +92,6 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
     await setModel(agent.id, v);
   };
 
-  // Debounced persona save (500ms).
-  useEffect(() => {
-    if (persona === agent.systemPrompt) return;
-    const handle = setTimeout(() => {
-      void (async () => {
-        await setSystemPrompt(agent.id, persona);
-        setPersonaSavedAt(Date.now());
-      })();
-    }, 500);
-    return () => clearTimeout(handle);
-  }, [persona, agent.id, agent.systemPrompt, setSystemPrompt]);
-
   return (
     <div className="p-4 space-y-5 text-xs">
       <section>
@@ -128,6 +110,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
             {t("agent.config.role.change")}
           </button>
         </div>
+        <p className="text-[10px] text-ink-soft mt-1">{t("agent.config.role.instructionsHint")}</p>
       </section>
 
       <section>
@@ -322,32 +305,6 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
       </section>
 
       <section>
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="text-[10px] uppercase text-ink-soft font-semibold">
-            {t("agent.config.persona.label")}
-          </h3>
-          <button
-            type="button"
-            onClick={() => setShowInstructionsExpand(true)}
-            className="text-[10px] text-ink-soft hover:text-brand underline"
-          >
-            {t("agent.instructions.expand")}
-          </button>
-        </div>
-        <textarea
-          value={persona}
-          onChange={(e) => setPersona(e.target.value)}
-          rows={6}
-          className="w-full px-2 py-1.5 border border-surface-border rounded bg-surface text-xs font-mono leading-relaxed"
-        />
-        {personaSavedAt !== null && (
-          <p className="text-[10px] text-semantic-success mt-1">
-            {t("agent.config.persona.saved")}
-          </p>
-        )}
-      </section>
-
-      <section>
         <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
           {t("agent.config.projects.label")}
         </h3>
@@ -362,18 +319,6 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
             await setRole(agent.id, roleId, { preserveModel });
             setShowRoleModal(false);
           }}
-        />
-      )}
-
-      {showInstructionsExpand && (
-        <InstructionsFullScreenModal
-          initialValue={persona}
-          onSave={(v) => {
-            setPersona(v);
-            void setSystemPrompt(agent.id, v);
-            setPersonaSavedAt(Date.now());
-          }}
-          onClose={() => setShowInstructionsExpand(false)}
         />
       )}
     </div>

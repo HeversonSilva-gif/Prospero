@@ -2,10 +2,11 @@ import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import type { Agent } from "@prospero/shared";
 import { ConfigTab } from "./ConfigTab.js";
+import { InstructionsTab } from "./InstructionsTab.js";
 import { IssuesTab } from "./IssuesTab.js";
 import { StatsTab } from "./StatsTab.js";
 
-type Tab = "config" | "issues" | "stats";
+type Tab = "config" | "instructions" | "issues" | "stats";
 
 type Props = { agent: Agent };
 
@@ -15,7 +16,7 @@ export const AgentConfigPanel: FC<Props> = ({ agent }) => {
   return (
     <aside className="w-80 border-l border-surface-border bg-surface-card flex flex-col">
       <nav className="flex border-b border-surface-border">
-        {(["config", "issues", "stats"] as const).map((k) => (
+        {(["config", "instructions", "issues", "stats"] as const).map((k) => (
           <button
             key={k}
             type="button"
@@ -32,6 +33,7 @@ export const AgentConfigPanel: FC<Props> = ({ agent }) => {
       </nav>
       <div className="flex-1 overflow-y-auto">
         {tab === "config" && <ConfigTab agent={agent} />}
+        {tab === "instructions" && <InstructionsTab agentId={agent.id} />}
         {tab === "issues" && <IssuesTab agentId={agent.id} companyId={agent.companyId} />}
         {tab === "stats" && <StatsTab agentId={agent.id} />}
       </div>
