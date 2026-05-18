@@ -94,6 +94,28 @@ describe("skill tools", () => {
     expect(readFileSync(created.bodyPath, "utf8")).toBe("v2 body");
     expect(createSkillsRepository(ctx.db).getById(created.id)?.version).toBe(2);
   });
+
+  it("skill_read serves the bundled operating manual with no DB row", async () => {
+    const out = JSON.parse(await tool("skill_read").run({ name: "operating-manual" }, ctx)) as {
+      name: string;
+      body: string;
+    };
+    expect(out.name).toBe("operating-manual");
+    expect(out.body.toLowerCase()).toContain("issue lifecycle");
+  });
+
+  it("skill_create rejects the reserved operating-manual name", async () => {
+    await expect(
+      tool("skill_create").run({ name: "operating-manual", description: "x", body: "y" }, ctx),
+    ).rejects.toThrow(/reserved/i);
+  });
+
+  it("skill_search surfaces the operating manual when the query matches", async () => {
+    const out = JSON.parse(await tool("skill_search").run({ query: "operating" }, ctx)) as {
+      skills: Array<{ name: string }>;
+    };
+    expect(out.skills.some((sk) => sk.name === "operating-manual")).toBe(true);
+  });
 });
 
 describe("memory tools", () => {

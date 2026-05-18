@@ -7,6 +7,11 @@ import { createInboxRepository } from "../inbox/repository.js";
 import { getAgentMemoryDir, skillBodyPath } from "../memory/memory-dir.js";
 import { sanitizeMemoryBody } from "../memory/sanitizer.js";
 import { createRateLimiter } from "./rate-limiter.js";
+import {
+  OPERATING_MANUAL,
+  OPERATING_MANUAL_NAME,
+  OPERATING_MANUAL_DESCRIPTION,
+} from "../orchestrator/operating-manual.js";
 import type { ToolContext } from "./tools.js";
 
 type Tool = {
@@ -49,6 +54,18 @@ const skillSearch: Tool = {
         description: s.description,
         shared: s.agentId === null,
       }));
+    // The bundled operating manual has no DB row — surface it like any skill.
+    if (
+      OPERATING_MANUAL_NAME.includes(q) ||
+      OPERATING_MANUAL_DESCRIPTION.toLowerCase().includes(q)
+    ) {
+      skills.unshift({
+        id: OPERATING_MANUAL_NAME,
+        name: OPERATING_MANUAL_NAME,
+        description: OPERATING_MANUAL_DESCRIPTION,
+        shared: true,
+      });
+    }
     return JSON.stringify({ skills });
   },
 };
@@ -64,7 +81,13 @@ const skillRead: Tool = {
     const repo = createSkillsRepository(ctx.db);
     const skill =
       repo.getByName(ctx.companyId, ctx.agentId, name) ?? repo.getByName(ctx.companyId, null, name);
-    if (skill === null) throw new Error(`skill not found: ${name}`);
+    if (skill === null) {
+      // The operating manual is a bundled document, not a row — serve it here.
+      if (name === OPERATING_MANUAL_NAME) {
+        return JSON.stringify({ name: OPERATING_MANUAL_NAME, version: 1, body: OPERATING_MANUAL });
+      }
+      throw new Error(`skill not found: ${name}`);
+    }
     const body = readFileSync(skill.bodyPath, "utf8");
     repo.recordUse(skill.id);
     return JSON.stringify({ name: skill.name, version: skill.version, body });
@@ -91,6 +114,9 @@ const skillCreate: Tool = {
       description: string;
       body: string;
     };
+    if (name === OPERATING_MANUAL_NAME) {
+      throw new Error(`"${OPERATING_MANUAL_NAME}" is a reserved bundled skill name`);
+    }
     assertSane(body);
     assertSane(description);
     if (!skillWriteLimiter.tryConsume(ctx.agentId)) {
