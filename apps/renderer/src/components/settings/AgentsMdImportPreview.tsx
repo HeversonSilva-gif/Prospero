@@ -4,6 +4,14 @@ import { useTranslation } from "react-i18next";
 type ParsedData = {
   company: string;
   projects: { name: string; path: string }[];
+  roles?: {
+    name: string;
+    description?: string;
+    model?: string;
+    capabilities?: string[];
+    icon?: string;
+    charter?: string;
+  }[];
   agents: {
     name: string;
     role: string;
@@ -42,6 +50,7 @@ export const AgentsMdImportPreview = ({
         <p className="text-xs text-ink-muted mb-4">
           {t("settings.agentsMd.previewSubtitle", {
             projects: data.projects.length,
+            roles: data.roles?.length ?? 0,
             agents: data.agents.length,
           })}
         </p>

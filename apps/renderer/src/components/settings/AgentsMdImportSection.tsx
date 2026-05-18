@@ -7,6 +7,14 @@ import { AgentsMdImportPreview } from "./AgentsMdImportPreview.js";
 type Parsed = {
   company: string;
   projects: { name: string; path: string }[];
+  roles?: {
+    name: string;
+    description?: string;
+    model?: string;
+    capabilities?: string[];
+    icon?: string;
+    charter?: string;
+  }[];
   agents: {
     name: string;
     role: string;
@@ -28,6 +36,7 @@ export const AgentsMdImportSection = () => {
   const [parsed, setParsed] = useState<Parsed | null>(null);
   const [summary, setSummary] = useState<{
     projects: number;
+    roles: number;
     agents: number;
     warnings: string[];
   } | null>(null);
@@ -67,6 +76,7 @@ export const AgentsMdImportSection = () => {
       const result = await window.prospero.agentsMd.hire(activeCompanyId, parsed, conflictModes);
       setSummary({
         projects: result.created.projects,
+        roles: result.created.roles,
         agents: result.created.agents,
         warnings: result.warnings,
       });
@@ -148,6 +158,7 @@ export const AgentsMdImportSection = () => {
           <p className="text-semantic-success">
             {t("settings.agentsMd.summarySuccess", {
               projects: summary.projects,
+              roles: summary.roles,
               agents: summary.agents,
             })}
           </p>

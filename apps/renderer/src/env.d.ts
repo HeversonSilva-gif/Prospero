@@ -83,6 +83,14 @@ declare global {
               data: {
                 company: string;
                 projects: { name: string; path: string }[];
+                roles?: {
+                  name: string;
+                  description?: string;
+                  model?: string;
+                  capabilities?: string[];
+                  icon?: string;
+                  charter?: string;
+                }[];
                 agents: {
                   name: string;
                   role: string;
@@ -101,8 +109,8 @@ declare global {
           conflictModes: Record<string, "skip" | "replace">,
         ) => Promise<{
           companyId: string;
-          created: { projects: number; agents: number };
-          skipped: { projects: string[]; agents: string[] };
+          created: { projects: number; roles: number; agents: number };
+          skipped: { projects: string[]; roles: string[]; agents: string[] };
           replaced: { agents: string[] };
           warnings: string[];
         }>;
