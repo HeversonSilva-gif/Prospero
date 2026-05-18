@@ -378,6 +378,7 @@
     "panel": {
       "tabs": {
         "config": "Config",
+        "instructions": "Instructions",
         "issues": "Issues",
         "stats": "Stats"
       }
@@ -385,6 +386,7 @@
     "config": {
       "role": {
         "label": "Role",
+        "instructionsHint": "Persona and detailed instructions now live in the Instructions tab.",
         "change": "Change...",
         "modalTitle": "Change agent role",
         "modalWarning": "Changing the role restarts the agent. Capabilities and model are updated per template.",
@@ -485,10 +487,14 @@
       "close": "Close"
     },
     "instructions": {
-      "expand": "Expand",
-      "modalTitle": "Edit instructions",
-      "applyNote": "Changes take effect on the next turn. Use Reset session to apply now.",
-      "close": "Close"
+      "title": "Instruction files",
+      "add": "Add file",
+      "addPrompt": "New instruction file name (e.g. tone.md):",
+      "delete": "Delete file",
+      "confirmDelete": "Delete the instruction file \"{{filename}}\"?",
+      "entryBadge": "entry",
+      "saved": "Saved",
+      "applyNote": "Changes apply on the agent's next turn."
     },
     "new": {
       "title": "Hire new agent",

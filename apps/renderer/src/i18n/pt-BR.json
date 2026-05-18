@@ -378,6 +378,7 @@
     "panel": {
       "tabs": {
         "config": "Config",
+        "instructions": "Instruções",
         "issues": "Issues",
         "stats": "Stats"
       }
@@ -385,6 +386,7 @@
     "config": {
       "role": {
         "label": "Papel",
+        "instructionsHint": "Persona e instruções detalhadas agora ficam na aba Instruções.",
         "change": "Mudar...",
         "modalTitle": "Mudar papel do agente",
         "modalWarning": "Trocar o papel reinicia o agente. Capacidades e modelo serão atualizados conforme o template.",
@@ -485,10 +487,14 @@
       "close": "Fechar"
     },
     "instructions": {
-      "expand": "Expandir",
-      "modalTitle": "Editar instruções",
-      "applyNote": "Mudanças entram no próximo turn. Use Resetar sessão pra aplicar agora.",
-      "close": "Fechar"
+      "title": "Arquivos de instrução",
+      "add": "Adicionar arquivo",
+      "addPrompt": "Nome do novo arquivo de instrução (ex.: tom.md):",
+      "delete": "Excluir arquivo",
+      "confirmDelete": "Excluir o arquivo de instrução \"{{filename}}\"?",
+      "entryBadge": "entrada",
+      "saved": "Salvo",
+      "applyNote": "As mudanças valem a partir do próximo turno do agente."
     },
     "new": {
       "title": "Contratar agente",
