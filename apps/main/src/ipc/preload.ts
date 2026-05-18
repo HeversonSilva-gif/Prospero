@@ -296,6 +296,26 @@ contextBridge.exposeInMainWorld("prospero", {
     saveCharter: (id: string, body: string) =>
       ipcRenderer.invoke(IPC.ROLES_SAVE_CHARTER, { id, body }) as Promise<{ ok: true }>,
   },
+  instructions: {
+    list: (agentId: string) =>
+      ipcRenderer.invoke(IPC.INSTRUCTIONS_LIST, { agentId }) as Promise<{
+        files: Array<{ filename: string; isEntry: boolean }>;
+      }>,
+    read: (agentId: string, filename: string) =>
+      ipcRenderer.invoke(IPC.INSTRUCTIONS_READ, { agentId, filename }) as Promise<{
+        body: string;
+      }>,
+    write: (agentId: string, filename: string, body: string) =>
+      ipcRenderer.invoke(IPC.INSTRUCTIONS_WRITE, { agentId, filename, body }) as Promise<{
+        ok: true;
+      }>,
+    add: (agentId: string, filename: string) =>
+      ipcRenderer.invoke(IPC.INSTRUCTIONS_ADD, { agentId, filename }) as Promise<{ ok: true }>,
+    delete: (agentId: string, filename: string) =>
+      ipcRenderer.invoke(IPC.INSTRUCTIONS_DELETE, { agentId, filename }) as Promise<{
+        ok: true;
+      }>,
+  },
   activity: {
     query: (params: ActivityQueryParams) =>
       ipcRenderer.invoke(IPC.ACTIVITY_QUERY, params) as Promise<ActivityEventRow[]>,

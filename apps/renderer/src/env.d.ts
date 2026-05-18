@@ -231,6 +231,15 @@ declare global {
         getCharter: (id: string) => Promise<{ body: string }>;
         saveCharter: (id: string, body: string) => Promise<{ ok: true }>;
       };
+      instructions: {
+        list: (agentId: string) => Promise<{
+          files: Array<{ filename: string; isEntry: boolean }>;
+        }>;
+        read: (agentId: string, filename: string) => Promise<{ body: string }>;
+        write: (agentId: string, filename: string, body: string) => Promise<{ ok: true }>;
+        add: (agentId: string, filename: string) => Promise<{ ok: true }>;
+        delete: (agentId: string, filename: string) => Promise<{ ok: true }>;
+      };
       activity: {
         query: (params: ActivityQueryParams) => Promise<ActivityEventRow[]>;
         onNew: (cb: (row: ActivityEventRow) => void) => () => void;
