@@ -67,7 +67,9 @@ export type SkillsRepository = {
   promote(id: string, appliesToRole: string | null): Skill;
   update(id: string, patch: UpdateSkillPatch): Skill;
   recordUse(id: string): void;
-  softDelete(id: string): void;
+  // M11 PR-F2: `now` (default Date.now()) is stored as soft_deleted_at so the
+  // maintenance pass can hard-purge the row after a 30-day grace period.
+  softDelete(id: string, now?: number): void;
   // M11 PR-F1: atomically add `delta` to trust, clamped to [0, 1].
   bumpTrust(id: string, delta: number): Skill;
 };
@@ -108,7 +110,9 @@ export const createSkillsRepository = (db: Database.Database): SkillsRepository 
   const recordUseStmt = db.prepare(
     "UPDATE skills SET use_count = use_count + 1, last_used = ? WHERE id = ?",
   );
-  const softDeleteStmt = db.prepare("UPDATE skills SET soft_deleted = 1 WHERE id = ?");
+  const softDeleteStmt = db.prepare(
+    "UPDATE skills SET soft_deleted = 1, soft_deleted_at = ? WHERE id = ?",
+  );
   const bumpTrustStmt = db.prepare(
     "UPDATE skills SET trust = MAX(0, MIN(1, trust + ?)) WHERE id = ?",
   );
@@ -174,8 +178,8 @@ export const createSkillsRepository = (db: Database.Database): SkillsRepository 
     recordUse(id) {
       recordUseStmt.run(Date.now(), id);
     },
-    softDelete(id) {
-      softDeleteStmt.run(id);
+    softDelete(id, now = Date.now()) {
+      softDeleteStmt.run(now, id);
     },
     bumpTrust(id, delta) {
       bumpTrustStmt.run(delta, id);

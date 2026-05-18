@@ -223,3 +223,43 @@ describe("skills-repository — trust feedback", () => {
     expect(repo.bumpTrust(s.id, -10).trust).toBe(0);
   });
 });
+
+describe("skills-repository — soft-delete timestamp", () => {
+  it("softDelete records soft_deleted_at", () => {
+    const db = seed();
+    const repo = createSkillsRepository(db);
+    const s = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "x",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    repo.softDelete(s.id, 123456);
+    const row = db
+      .prepare("SELECT soft_deleted, soft_deleted_at FROM skills WHERE id = ?")
+      .get(s.id) as { soft_deleted: number; soft_deleted_at: number | null };
+    expect(row.soft_deleted).toBe(1);
+    expect(row.soft_deleted_at).toBe(123456);
+  });
+
+  it("softDelete defaults the timestamp to now", () => {
+    const db = seed();
+    const repo = createSkillsRepository(db);
+    const s = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "y",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    const before = Date.now();
+    repo.softDelete(s.id);
+    const row = db.prepare("SELECT soft_deleted_at FROM skills WHERE id = ?").get(s.id) as {
+      soft_deleted_at: number;
+    };
+    expect(row.soft_deleted_at).toBeGreaterThanOrEqual(before);
+  });
+});
