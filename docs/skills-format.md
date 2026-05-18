@@ -80,6 +80,21 @@ Promoted skills are read-only to the agent — `skill_update` rejects them.
 
 ---
 
+## The bundled operating manual
+
+One skill is not stored in the `skills` table at all: `operating-manual`. It is
+a compiled-in document (`apps/main/src/orchestrator/operating-manual.ts`)
+shipped with the app — the company-wide playbook for the issue lifecycle,
+artifacts, delegation, cost discipline, and goal-plan mechanics.
+
+It behaves like a company-global skill from an agent's point of view:
+`buildMemoryBlock` injects its L0 entry into every agent's `## Your skills`
+block, and `skill_read` serves its body on demand. It has no row, no
+`body_path`, and no per-company state. The name `operating-manual` is
+**reserved** — `skill_create` rejects it so a real skill cannot shadow it.
+
+---
+
 ## Body cap and sanitizer
 
 The body of a skill is capped at **16 384 characters** (16 KB) by the Zod

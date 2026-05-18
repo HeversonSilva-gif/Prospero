@@ -79,5 +79,12 @@ with `record_artifact`. Examples:
 If you mark an issue done without an artifact, `update_issue` returns a soft
 warning — it doesn't block, but the user sees the gap.
 
+# The operating manual
+
+A company-wide skill named `operating-manual` is always available to you — it
+is the full playbook for how this company operates: the issue lifecycle, when
+to record artifacts, the delegation protocol, cost discipline, and goal-plan
+mechanics. Before any non-trivial task, `skill_read` it and follow it.
+
 ---
 
