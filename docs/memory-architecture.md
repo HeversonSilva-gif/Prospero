@@ -110,5 +110,6 @@ Source: `apps/main/src/ipc/learning-handlers.ts`, constant `TRUST_DELTA`.
 Settings → Memory exposes a plain-text editor backed by two IPCs:
 `memory:user-read` (reads `user.md` from disk) and `memory:user-write` (writes
 it). The file is written verbatim — no sanitizer runs on user-authored content.
-Changes take effect at the next agent spawn; agents already running are not
-affected.
+See SECURITY.md, "Memory and skills as injection vectors", for why the
+sanitizer is deliberately not run on `user.md`. Changes take effect at the next
+agent spawn; agents already running are not affected.

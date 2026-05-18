@@ -8,7 +8,7 @@ Local orchestrator for Claude Code agents using the Claude Max OAuth login — n
 
 An Electron app that lets you run multiple Claude Code agents (CEO, engineers, QA, etc.) hierarchically on your machine. Inspired by [Paperclip](https://github.com/paperclipai/paperclip), but designed to use your existing Claude Max subscription via OAuth instead of an Anthropic API key.
 
-Each agent accumulates persistent cross-session memory (facts, rules, preferences) and skills (reusable procedural how-tos). When an issue is closed or an agent recovers from an error, a background pipeline derives a reviewable skill candidate automatically — you accept, edit, or reject it. Goals that are marked achieved produce a company-wide retrospective that every future agent can read. Skills can be promoted from a single agent to a role or company-wide scope so organisational knowledge outlives any one agent.
+Each agent accumulates persistent cross-session memory (facts, rules, preferences) and skills (reusable procedural how-tos). When an issue is closed or an agent recovers from an error, a background pipeline derives a reviewable skill candidate automatically — you accept, edit, or reject it. Goals that are marked achieved produce a company-wide retrospective that every future agent can read. Skills can be promoted from a single agent to a role or company-wide scope so organizational knowledge outlives any one agent.
 
 ## Why
 

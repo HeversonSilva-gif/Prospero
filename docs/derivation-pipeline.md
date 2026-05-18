@@ -1,8 +1,8 @@
 # Derivation pipeline
 
 The derivation pipeline converts completed agent work into reviewable skill
-candidates and company memory entries. It runs asynchronously, costs are
-tracked, and a daily per-agent cap prevents runaway spend.
+candidates and company memory entries. It runs asynchronously and is capped to
+a configurable number of runs per agent per day.
 
 ---
 

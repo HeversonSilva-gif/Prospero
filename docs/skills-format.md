@@ -4,8 +4,8 @@
 
 ## What a skill is
 
-A skill encodes procedural know-how — a reusable how-to that an agent can load
-on demand when starting a task. Skills are not the M7 "capabilities" (tool
+A skill encodes reusable procedural knowledge that an agent can load on demand
+when starting a task. Skills are not the M7 "capabilities" (tool
 bundles — see `apps/main/src/mcp/`). M11 PR-A renamed that concept from
 "skill" to "capability" in the UI and codebase specifically to free the word
 "skill" for the procedural-memory concept described here.

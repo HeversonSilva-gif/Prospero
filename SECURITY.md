@@ -133,8 +133,8 @@ locus.
 Memory entries and skill bodies are injected verbatim into every agent system
 prompt (`buildMemoryBlock` in `apps/main/src/orchestrator/system-prompt-memory.ts`).
 A hostile string stored in memory or a skill body would appear in the system
-prompt of every future session, making these write paths critical injection
-vectors.
+prompt of every future session, making these write paths a critical attack
+surface.
 
 **Shared sanitizer.** `apps/main/src/memory/sanitizer.ts` runs on all write
 paths before any string is persisted: the agent-facing MCP tools
