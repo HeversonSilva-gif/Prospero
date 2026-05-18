@@ -16,6 +16,7 @@ import { registerCostsHandlers } from "./costs-handlers.js";
 import { registerAgentsMdHandlers } from "./agents-md-handlers.js";
 import { registerLearningHandlers } from "./learning-handlers.js";
 import { registerInstructionsHandlers } from "./instructions-handlers.js";
+import { registerOrgPlanHandlers } from "./org-plan-handlers.js";
 import { initRecorder } from "../activity/index.js";
 import { initDerivation } from "../derivation/index.js";
 
@@ -38,4 +39,5 @@ export const registerIpcHandlers = (db: Database.Database): void => {
   registerAgentsMdHandlers(db);
   registerLearningHandlers(db);
   registerInstructionsHandlers(db);
+  registerOrgPlanHandlers(db);
 };

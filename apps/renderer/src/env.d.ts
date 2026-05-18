@@ -23,6 +23,8 @@ import type {
   IssuePriority,
   RoleTemplate,
   RoleDetail,
+  OrgPlan,
+  ApplyOrgPlanResult,
   ActivityEventRow,
   ActivityQueryParams,
   CostsQueryInput,
@@ -240,6 +242,15 @@ declare global {
         write: (agentId: string, filename: string, body: string) => Promise<{ ok: true }>;
         add: (agentId: string, filename: string) => Promise<{ ok: true }>;
         delete: (agentId: string, filename: string) => Promise<{ ok: true }>;
+      };
+      orgPlan: {
+        getCurrent: () => Promise<OrgPlan | null>;
+        approve: (input: {
+          orgPlanId: string;
+          includeRoleIndexes?: number[];
+          includeAgentIndexes?: number[];
+        }) => Promise<ApplyOrgPlanResult>;
+        reject: (input: { orgPlanId: string; reason?: string }) => Promise<{ ok: true }>;
       };
       activity: {
         query: (params: ActivityQueryParams) => Promise<ActivityEventRow[]>;

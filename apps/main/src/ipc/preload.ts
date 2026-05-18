@@ -24,6 +24,8 @@ import {
   type IssuePriority,
   type RoleTemplate,
   type RoleDetail,
+  type OrgPlan,
+  type ApplyOrgPlanResult,
   type ActivityEventRow,
   type ActivityQueryParams,
   type CostsQueryInput,
@@ -319,6 +321,16 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.INSTRUCTIONS_DELETE, { agentId, filename }) as Promise<{
         ok: true;
       }>,
+  },
+  orgPlan: {
+    getCurrent: () => ipcRenderer.invoke(IPC.ORG_PLAN_GET_CURRENT) as Promise<OrgPlan | null>,
+    approve: (input: {
+      orgPlanId: string;
+      includeRoleIndexes?: number[];
+      includeAgentIndexes?: number[];
+    }) => ipcRenderer.invoke(IPC.ORG_PLAN_APPROVE, input) as Promise<ApplyOrgPlanResult>,
+    reject: (input: { orgPlanId: string; reason?: string }) =>
+      ipcRenderer.invoke(IPC.ORG_PLAN_REJECT, input) as Promise<{ ok: true }>,
   },
   activity: {
     query: (params: ActivityQueryParams) =>
