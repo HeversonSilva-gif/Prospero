@@ -103,3 +103,37 @@ describe("createCostsRepository.listRunsByAgent", () => {
     expect(repo.listRunsByAgent(agentId, 9999)).toHaveLength(3);
   });
 });
+
+describe("getAgentPeriodTotal", () => {
+  it("sums daily and monthly windows for an agent", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+    const agentId = makeAgent(db, co.id, "Alice");
+    const repo = createCostsRepository(db);
+
+    const insertAt = (occurredAt: number): void => {
+      repo.insert({
+        companyId: co.id,
+        agentId,
+        projectId: null,
+        issueId: null,
+        adapterName: "claude-api-key-local",
+        model: "claude-sonnet-4-6",
+        sessionId: null,
+        inputTokens: 100,
+        outputTokens: 0,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+        costCentsEstimate: 7,
+        occurredAt,
+      });
+    };
+
+    insertAt(Date.UTC(2026, 4, 18, 9)); // in-day + in-month
+    insertAt(Date.UTC(2026, 4, 3, 9)); // earlier same month, not same day
+
+    const now = new Date(Date.UTC(2026, 4, 18, 12));
+    expect(repo.getAgentPeriodTotal(agentId, "daily", now)).toEqual({ tokens: 100, cents: 7 });
+    expect(repo.getAgentPeriodTotal(agentId, "monthly", now)).toEqual({ tokens: 200, cents: 14 });
+  });
+});

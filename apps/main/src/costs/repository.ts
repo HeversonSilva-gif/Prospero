@@ -5,7 +5,8 @@
 
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
-import type { AgentRunRow } from "@prospero/shared";
+import type { AgentRunRow, BudgetPeriod } from "@prospero/shared";
+import { utcMonthBounds } from "./period.js";
 
 export type CostEventInsert = {
   companyId: string;
@@ -33,6 +34,7 @@ export type CostsRepository = {
   getIssueTotal(issueId: string): CostTotal;
   hasAgentRowsForDay(agentId: string, day: Date): boolean;
   listRunsByAgent(agentId: string, limit?: number): AgentRunRow[];
+  getAgentPeriodTotal(agentId: string, period: BudgetPeriod, now: Date): CostTotal;
 };
 
 const utcDayBounds = (day: Date): { start: number; end: number } => {
@@ -167,5 +169,24 @@ export const createCostsRepository = (db: Database.Database): CostsRepository =>
     }));
   };
 
-  return { insert, getAgentDailyTotal, getIssueTotal, hasAgentRowsForDay, listRunsByAgent };
+  const getAgentPeriodTotal = (agentId: string, period: BudgetPeriod, now: Date): CostTotal => {
+    const { start, end } = period === "monthly" ? utcMonthBounds(now) : utcDayBounds(now);
+    const row = sumAgentDayStmt.get(agentId, start, end) as {
+      input_tokens: number;
+      output_tokens: number;
+      cache_creation_tokens: number;
+      cache_read_tokens: number;
+      cost_cents_estimate: number;
+    };
+    return { tokens: totalTokens(row), cents: row.cost_cents_estimate };
+  };
+
+  return {
+    insert,
+    getAgentDailyTotal,
+    getIssueTotal,
+    hasAgentRowsForDay,
+    listRunsByAgent,
+    getAgentPeriodTotal,
+  };
 };

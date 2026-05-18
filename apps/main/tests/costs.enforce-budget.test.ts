@@ -9,6 +9,7 @@ const makeDeps = (overrides: Partial<EnforceBudgetDeps> = {}): EnforceBudgetDeps
     getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
     hasAgentRowsForDay: vi.fn().mockReturnValue(false),
     listRunsByAgent: vi.fn().mockReturnValue([]),
+    getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
   },
   budgetsRepo: {
     read: vi.fn().mockReturnValue({
