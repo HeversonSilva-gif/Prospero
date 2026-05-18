@@ -329,6 +329,110 @@
           grid-template-columns: 1fr;
         }
       }
+
+      /* ===== S2 org chart ===== */
+      .org-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 22px;
+      }
+      .org-hire {
+        font: inherit;
+        font-weight: 700;
+        font-size: 0.9rem;
+        padding: 9px 16px;
+        border-radius: 20px;
+        border: 1.5px solid var(--accent);
+        background: var(--accent-soft);
+        color: var(--accent-dark);
+        cursor: pointer;
+        transition: transform 120ms ease;
+      }
+      .org-hire:hover {
+        transform: translateY(-2px);
+      }
+      .org-hire:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .org-count {
+        font-weight: 800;
+        color: var(--ink);
+        margin-left: auto;
+      }
+      .org-reset {
+        font: inherit;
+        font-size: 0.85rem;
+        background: none;
+        border: none;
+        color: var(--ink-faint);
+        cursor: pointer;
+        text-decoration: underline;
+      }
+      .org-stage {
+        position: relative;
+        min-height: 320px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: var(--shadow-sm);
+        overflow-x: auto;
+        padding: 28px 16px;
+      }
+      .org-svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+      .org-node {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        width: 116px;
+        background: var(--surface);
+        border: 2px solid var(--accent);
+        border-radius: 14px;
+        padding: 10px;
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+      }
+      .org-node.ceo {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      .org-node .role {
+        font-weight: 800;
+        font-size: 0.9rem;
+      }
+      .org-node .who {
+        font-size: 0.78rem;
+        color: var(--ink-soft);
+      }
+      .org-node.ceo .who {
+        color: #ffffffcc;
+      }
+      @keyframes nodePop {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.6);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+      .org-node.pop {
+        animation: nodePop 360ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .org-note {
+        margin-top: 16px;
+        color: var(--ink-soft);
+        font-size: 0.95rem;
+      }
     </style>
   </head>
   <body>
@@ -392,6 +496,33 @@
                 <li>O trabalho anda mesmo sem você presente</li>
               </ul>
             </div>
+          </div>
+        </div>
+      </section>
+      <section id="time" class="section time">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <span class="kicker">Monte seu time</span>
+            <h2>Sozinho, você comanda<br />uma empresa inteira.</h2>
+            <p class="lede">
+              Você contrata funcionários de IA, dá a cada um um papel, e os organiza num organograma
+              — com chefia e equipes. Clique para contratar e veja a empresa nascer.
+            </p>
+          </div>
+          <div class="org reveal" data-delay="1">
+            <div class="org-bar">
+              <button class="org-hire" data-role="Engenheiro">+ Engenheiro</button>
+              <button class="org-hire" data-role="Designer">+ Designer</button>
+              <button class="org-hire" data-role="Redator">+ Redator</button>
+              <button class="org-hire" data-role="Analista">+ Analista</button>
+              <span class="org-count" id="orgCount">1 funcionário</span>
+              <button class="org-reset" id="orgReset">recomeçar</button>
+            </div>
+            <div class="org-stage" id="orgStage" aria-live="polite"></div>
+            <p class="org-note">
+              Demitiu alguém? Contrate outro para o mesmo papel — ele herda tudo que o time já
+              aprendeu.
+            </p>
           </div>
         </div>
       </section>
@@ -466,6 +597,94 @@
           });
         }
 
+        /* S2 — organograma vivo */
+        function orgChart() {
+          var stage = document.getElementById("orgStage");
+          if (!stage) return;
+          var countEl = document.getElementById("orgCount");
+          var resetBtn = document.getElementById("orgReset");
+          var hireBtns = document.querySelectorAll(".org-hire");
+          var MAX = 9;
+          var NAMES = ["Ana", "Bru", "Caio", "Duda", "Edu", "Fê", "Gus", "Iris", "Joca"];
+          var hires = [];
+
+          function render() {
+            var total = hires.length + 1;
+            countEl.textContent = total + (total === 1 ? " funcionário" : " funcionários");
+            hireBtns.forEach(function (b) {
+              b.disabled = hires.length >= MAX;
+            });
+            stage.innerHTML = "";
+
+            var w = Math.max(stage.clientWidth, hires.length * 140 + 40);
+            var topY = 60;
+            var botY = 230;
+            var ceoX = w / 2;
+
+            var svg =
+              '<svg class="org-svg" viewBox="0 0 ' +
+              w +
+              ' 300" preserveAspectRatio="xMidYMin meet">';
+            hires.forEach(function (_, i) {
+              var x = hires.length === 1 ? ceoX : 70 + (i * (w - 140)) / (hires.length - 1);
+              svg +=
+                '<path d="M ' +
+                ceoX +
+                " " +
+                (topY + 26) +
+                " C " +
+                ceoX +
+                " " +
+                (topY + 90) +
+                ", " +
+                x +
+                " " +
+                (botY - 90) +
+                ", " +
+                x +
+                " " +
+                (botY - 26) +
+                '" fill="none" stroke="#f0e4d6" stroke-width="2.5"/>';
+            });
+            svg += "</svg>";
+            stage.innerHTML = svg;
+
+            addNode("CEO", "Você", ceoX, topY, true, false);
+            hires.forEach(function (h, i) {
+              var x = hires.length === 1 ? ceoX : 70 + (i * (w - 140)) / (hires.length - 1);
+              addNode(h.role, h.who, x, botY, false, h.fresh);
+              h.fresh = false;
+            });
+          }
+
+          function addNode(role, who, x, y, isCeo, fresh) {
+            var n = document.createElement("div");
+            n.className = "org-node" + (isCeo ? " ceo" : "") + (fresh && !REDUCED ? " pop" : "");
+            n.style.left = x + "px";
+            n.style.top = y + "px";
+            n.innerHTML = '<div class="role">' + role + '</div><div class="who">' + who + "</div>";
+            stage.appendChild(n);
+          }
+
+          hireBtns.forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              if (hires.length >= MAX) return;
+              hires.push({
+                role: btn.getAttribute("data-role"),
+                who: NAMES[hires.length % NAMES.length],
+                fresh: true,
+              });
+              render();
+            });
+          });
+          resetBtn.addEventListener("click", function () {
+            hires = [];
+            render();
+          });
+          window.addEventListener("resize", render);
+          render();
+        }
+
         /* interactive modules are appended here by Tasks 4, 5, 7, 8 */
 
         function init() {
@@ -478,6 +697,11 @@
             counters();
           } catch (e) {
             console.warn("counters failed", e);
+          }
+          try {
+            orgChart();
+          } catch (e) {
+            console.warn("orgChart failed", e);
           }
           /* interactive init() calls are added here by later tasks */
         }
