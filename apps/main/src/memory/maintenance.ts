@@ -20,6 +20,9 @@ const PRUNE_IMPORTANCE = 0.1;
 const WARN_IMPORTANCE = 0.2;
 // A memory is "stale" when it has not been touched in this many days.
 const STALE_DAYS = 30;
+// A skill soft-deleted (e.g. by the terminate-promote cascade) is hard-removed
+// once it has sat soft-deleted this many days.
+const SKILL_PURGE_DAYS = 30;
 // The settings key holding the last pass's wall-clock time (ms, as a string).
 const LAST_RUN_KEY = "memory_maintenance_last_run";
 
@@ -28,6 +31,7 @@ export type MaintenanceResult = {
   decayed: number;
   warned: number;
   pruned: number;
+  purgedSkills: number;
 };
 
 const readLastRun = (db: Database.Database): number | null => {
@@ -52,13 +56,13 @@ export const runMemoryMaintenance = (db: Database.Database, now: number): Mainte
 
   // Throttle: at most one pass per ~day.
   if (lastRun !== null && now - lastRun < MIN_INTERVAL_MS) {
-    return { ran: false, decayed: 0, warned: 0, pruned: 0 };
+    return { ran: false, decayed: 0, warned: 0, pruned: 0, purgedSkills: 0 };
   }
 
   // First-ever run: record the baseline, decay nothing (elapsed is unknown).
   if (lastRun === null) {
     writeLastRun(db, now);
-    return { ran: true, decayed: 0, warned: 0, pruned: 0 };
+    return { ran: true, decayed: 0, warned: 0, pruned: 0, purgedSkills: 0 };
   }
 
   const elapsedDays = (now - lastRun) / DAY_MS;
@@ -102,6 +106,14 @@ export const runMemoryMaintenance = (db: Database.Database, now: number): Mainte
     }
   }
 
+  // M11 PR-F2: hard-purge skills soft-deleted past the 30-day grace period.
+  const purgeBefore = now - SKILL_PURGE_DAYS * DAY_MS;
+  const purgedSkills = db
+    .prepare(
+      "DELETE FROM skills WHERE soft_deleted = 1 AND soft_deleted_at IS NOT NULL AND soft_deleted_at < ?",
+    )
+    .run(purgeBefore).changes;
+
   writeLastRun(db, now);
-  return { ran: true, decayed, warned, pruned };
+  return { ran: true, decayed, warned, pruned, purgedSkills };
 };

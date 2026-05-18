@@ -68,7 +68,8 @@ void app.whenReady().then(() => {
     if (maintenance.ran) {
       console.warn(
         `[memory] maintenance: decayed ${maintenance.decayed}, ` +
-          `warned ${maintenance.warned}, pruned ${maintenance.pruned}`,
+          `warned ${maintenance.warned}, pruned ${maintenance.pruned}, ` +
+          `purged ${maintenance.purgedSkills} skills`,
       );
     }
   } catch (err) {

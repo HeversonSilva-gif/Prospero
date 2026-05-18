@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations } from "../db/migrations.js";
 import { createMemoriesRepository } from "./memories-repository.js";
+import { createSkillsRepository } from "./skills-repository.js";
 import { runMemoryMaintenance } from "./maintenance.js";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -92,5 +93,66 @@ describe("runMemoryMaintenance", () => {
     expect(row.soft_deleted).toBe(1);
     const n = (db.prepare("SELECT COUNT(*) AS n FROM inbox_items").get() as { n: number }).n;
     expect(n).toBe(1);
+  });
+});
+
+describe("runMemoryMaintenance — skill purge", () => {
+  const seedWithAgent = (): Database.Database => {
+    const db = seed();
+    db.prepare(
+      `INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json,
+         allowed_projects_json, mode, always_on, status, created_at, updated_at)
+       VALUES ('a1','c1','Eng','engineer','sp','[]','[]','supervised',0,'idle',0,0)`,
+    ).run();
+    return db;
+  };
+
+  it("hard-deletes skills soft-deleted more than 30 days ago, keeps recent ones", () => {
+    const db = seedWithAgent();
+    const repo = createSkillsRepository(db);
+    const mk = (name: string) =>
+      repo.create({
+        companyId: "c1",
+        agentId: "a1",
+        name,
+        bodyPath: "p",
+        description: "d",
+        source: "user_authored",
+      });
+    const old = mk("old");
+    const recent = mk("recent");
+    repo.softDelete(old.id, 0); // soft-deleted at t=0
+    repo.softDelete(recent.id, 100 * DAY); // soft-deleted "recently"
+    setLastRun(db, 0);
+
+    // now = 100 days: `old` is 100d stale (>30d), `recent` is 0d stale
+    const result = runMemoryMaintenance(db, 100 * DAY);
+    expect(result.purgedSkills).toBe(1);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS n FROM skills WHERE id = ?").get(old.id) as { n: number }).n,
+    ).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS n FROM skills WHERE id = ?").get(recent.id) as { n: number })
+        .n,
+    ).toBe(1);
+  });
+
+  it("never purges a live (non-soft-deleted) skill", () => {
+    const db = seedWithAgent();
+    const repo = createSkillsRepository(db);
+    const live = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "live",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    setLastRun(db, 0);
+    const result = runMemoryMaintenance(db, 100 * DAY);
+    expect(result.purgedSkills).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS n FROM skills WHERE id = ?").get(live.id) as { n: number }).n,
+    ).toBe(1);
   });
 });
