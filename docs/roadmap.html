@@ -267,6 +267,68 @@
           order: -1;
         }
       }
+
+      /* ===== S1 virada ===== */
+      .virada {
+        background: var(--surface-2);
+      }
+      .virada-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+      .vcard {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 28px;
+        box-shadow: var(--shadow-sm);
+      }
+      .vcard-after {
+        border-color: var(--accent-soft);
+        box-shadow: var(--shadow-lg);
+      }
+      .vcard-tag {
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+      }
+      .vcard-after .vcard-tag {
+        color: var(--accent-dark);
+      }
+      .vcard h3 {
+        margin: 6px 0 14px;
+        font-size: 1.5rem;
+      }
+      .vlist {
+        list-style: none;
+      }
+      .vlist li {
+        padding: 9px 0 9px 26px;
+        position: relative;
+        color: var(--ink-soft);
+        border-top: 1px solid var(--line);
+      }
+      .vlist li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 16px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--ink-faint);
+      }
+      .vcard-after .vlist li::before {
+        background: var(--accent);
+      }
+      @media (max-width: 760px) {
+        .virada-cards {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
@@ -300,6 +362,38 @@
           </div>
         </div>
         <div class="scroll-cue reveal" data-delay="2" aria-hidden="true">role para descobrir</div>
+      </section>
+      <section id="virada" class="section virada">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <span class="kicker">A virada de chave</span>
+            <h2>Você não precisa fazer.<br />Você precisa decidir.</h2>
+            <p class="lede">
+              A maior parte do seu dia some em executar tarefa. O Prospero inverte isso: você define
+              o rumo, o time executa, e você só revisa o que voltou.
+            </p>
+          </div>
+          <div class="virada-cards">
+            <div class="vcard vcard-before reveal">
+              <span class="vcard-tag">Você hoje</span>
+              <h3>Executando</h3>
+              <ul class="vlist">
+                <li>Faz cada tarefa com a própria mão</li>
+                <li>O dia acaba e a lista só cresceu</li>
+                <li>Para o trabalho andar, você precisa estar nele</li>
+              </ul>
+            </div>
+            <div class="vcard vcard-after reveal" data-delay="1">
+              <span class="vcard-tag">Você com o Prospero</span>
+              <h3>Decidindo</h3>
+              <ul class="vlist">
+                <li>Pede um objetivo e segue a sua vida</li>
+                <li>Acorda com o trabalho pronto para revisar</li>
+                <li>O trabalho anda mesmo sem você presente</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </section>
       <!-- sections inserted here by later tasks -->
     </main>
