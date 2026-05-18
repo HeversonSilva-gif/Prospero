@@ -115,7 +115,12 @@ export const AgentHeader: FC<Props> = ({
           onConfirm={(reason, promoteSkillIds) => {
             void window.prospero.learning
               .promoteSkillsOnTerminate(agent.id, promoteSkillIds)
-              .then(() => terminate(agent.id, reason));
+              .then(() => terminate(agent.id, reason))
+              .catch((err: unknown) => {
+                console.error("[terminate] promoteSkillsOnTerminate failed:", err);
+                // promotion failed — terminate anyway, the user confirmed it
+                void terminate(agent.id, reason);
+              });
             setShowTerminate(false);
           }}
           onCancel={() => setShowTerminate(false)}
