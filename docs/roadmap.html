@@ -29,6 +29,7 @@
         --shadow-sm: 0 6px 18px rgba(42, 37, 33, 0.07);
         --shadow-lg: 0 18px 44px rgba(42, 37, 33, 0.12);
         --wrap: 1120px;
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
       }
 
       /* ===== reset ===== */
@@ -125,9 +126,9 @@
         cursor: pointer;
         text-decoration: none;
         transition:
-          transform 140ms ease,
-          box-shadow 140ms ease,
-          background 140ms ease;
+          transform 220ms var(--ease),
+          box-shadow 220ms var(--ease),
+          background 220ms var(--ease);
       }
       .btn-primary {
         background: var(--accent);
@@ -152,10 +153,10 @@
       /* ===== scroll-reveal infra ===== */
       .reveal {
         opacity: 0;
-        transform: translateY(16px);
+        transform: translateY(20px);
         transition:
-          opacity 620ms ease,
-          transform 620ms ease;
+          opacity 760ms var(--ease),
+          transform 760ms var(--ease);
       }
       .reveal.in {
         opacity: 1;
@@ -498,9 +499,16 @@
         margin-bottom: 8px;
         font-size: 0.86rem;
         font-weight: 600;
-        transition:
-          transform 420ms ease,
-          opacity 420ms ease;
+        transition: transform 520ms var(--ease);
+        animation: simIn 420ms var(--ease) both;
+      }
+      @keyframes simIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
       }
       .sim-task .who {
         display: block;
@@ -655,7 +663,7 @@
         height: 100%;
         width: 0;
         border-radius: 20px;
-        transition: width 320ms ease;
+        transition: width 460ms var(--ease);
       }
       .calc-fill-us {
         background: var(--accent);
@@ -752,6 +760,7 @@
         box-shadow: var(--shadow-sm);
         padding: 24px;
         margin-bottom: 40px;
+        transition: opacity 240ms var(--ease);
       }
       .tl-detail h3 {
         margin-bottom: 6px;
@@ -1228,85 +1237,150 @@
           var countEl = document.getElementById("orgCount");
           var resetBtn = document.getElementById("orgReset");
           var hireBtns = document.querySelectorAll(".org-hire");
+          var SVGNS = "http://www.w3.org/2000/svg";
           var MAX = 9;
           var NAMES = ["Ana", "Bru", "Caio", "Duda", "Edu", "Fê", "Gus", "Iris", "Joca"];
+          var TOP_Y = 60;
+          var BOT_Y = 230;
           var hires = [];
+          var ceo = null;
+          var svg = null;
+          var raf = null;
 
-          function render() {
+          function stageW() {
+            return Math.max(stage.clientWidth, hires.length * 150 + 40);
+          }
+
+          function targetX(i) {
+            var w = stageW();
+            if (hires.length <= 1) return w / 2;
+            return 70 + (i * (w - 140)) / (hires.length - 1);
+          }
+
+          // Redraws the CEO→report connectors to follow the nodes' live x.
+          function drawLinks() {
+            svg.setAttribute("viewBox", "0 0 " + stageW() + " 300");
+            while (svg.firstChild) svg.removeChild(svg.firstChild);
+            hires.forEach(function (h) {
+              var path = document.createElementNS(SVGNS, "path");
+              path.setAttribute(
+                "d",
+                "M " +
+                  ceo.x +
+                  " " +
+                  (TOP_Y + 26) +
+                  " C " +
+                  ceo.x +
+                  " " +
+                  (TOP_Y + 90) +
+                  ", " +
+                  h.x +
+                  " " +
+                  (BOT_Y - 90) +
+                  ", " +
+                  h.x +
+                  " " +
+                  (BOT_Y - 26),
+              );
+              path.setAttribute("fill", "none");
+              path.setAttribute("stroke", "#ecdcc9");
+              path.setAttribute("stroke-width", "2.5");
+              svg.appendChild(path);
+            });
+          }
+
+          function settle(node, x) {
+            node.x = x;
+            node.el.style.left = x + "px";
+          }
+
+          // Eases every node from its current x to the new layout x, redrawing
+          // the connectors each frame so they stay glued to the nodes.
+          function animate() {
+            var goals = [{ node: ceo, x: stageW() / 2 }];
+            hires.forEach(function (h, i) {
+              goals.push({ node: h, x: targetX(i) });
+            });
+            if (REDUCED) {
+              goals.forEach(function (g) {
+                settle(g.node, g.x);
+              });
+              drawLinks();
+              return;
+            }
+            var from = goals.map(function (g) {
+              return g.node.x;
+            });
+            var t0 = null;
+            if (raf) cancelAnimationFrame(raf);
+            function frame(ts) {
+              if (t0 === null) t0 = ts;
+              var p = Math.min((ts - t0) / 470, 1);
+              var e = 1 - Math.pow(1 - p, 3);
+              goals.forEach(function (g, i) {
+                settle(g.node, from[i] + (g.x - from[i]) * e);
+              });
+              drawLinks();
+              if (p < 1) raf = requestAnimationFrame(frame);
+            }
+            raf = requestAnimationFrame(frame);
+          }
+
+          function makeNode(role, who, isCeo, fresh) {
+            var n = document.createElement("div");
+            n.className = "org-node" + (isCeo ? " ceo" : "") + (fresh && !REDUCED ? " pop" : "");
+            n.style.top = (isCeo ? TOP_Y : BOT_Y) + "px";
+            n.innerHTML = '<div class="role">' + role + '</div><div class="who">' + who + "</div>";
+            stage.appendChild(n);
+            return n;
+          }
+
+          function sync() {
             var total = hires.length + 1;
             countEl.textContent = total + (total === 1 ? " funcionário" : " funcionários");
             hireBtns.forEach(function (b) {
               b.disabled = hires.length >= MAX;
             });
-            stage.innerHTML = "";
-
-            var w = Math.max(stage.clientWidth, hires.length * 140 + 40);
-            var topY = 60;
-            var botY = 230;
-            var ceoX = w / 2;
-
-            var svg =
-              '<svg class="org-svg" viewBox="0 0 ' +
-              w +
-              ' 300" preserveAspectRatio="xMidYMin meet">';
-            hires.forEach(function (_, i) {
-              var x = hires.length === 1 ? ceoX : 70 + (i * (w - 140)) / (hires.length - 1);
-              svg +=
-                '<path d="M ' +
-                ceoX +
-                " " +
-                (topY + 26) +
-                " C " +
-                ceoX +
-                " " +
-                (topY + 90) +
-                ", " +
-                x +
-                " " +
-                (botY - 90) +
-                ", " +
-                x +
-                " " +
-                (botY - 26) +
-                '" fill="none" stroke="#f0e4d6" stroke-width="2.5"/>';
-            });
-            svg += "</svg>";
-            stage.innerHTML = svg;
-
-            addNode("CEO", "Você", ceoX, topY, true, false);
-            hires.forEach(function (h, i) {
-              var x = hires.length === 1 ? ceoX : 70 + (i * (w - 140)) / (hires.length - 1);
-              addNode(h.role, h.who, x, botY, false, h.fresh);
-              h.fresh = false;
-            });
           }
 
-          function addNode(role, who, x, y, isCeo, fresh) {
-            var n = document.createElement("div");
-            n.className = "org-node" + (isCeo ? " ceo" : "") + (fresh && !REDUCED ? " pop" : "");
-            n.style.left = x + "px";
-            n.style.top = y + "px";
-            n.innerHTML = '<div class="role">' + role + '</div><div class="who">' + who + "</div>";
-            stage.appendChild(n);
+          function build() {
+            if (raf) cancelAnimationFrame(raf);
+            stage.innerHTML = "";
+            svg = document.createElementNS(SVGNS, "svg");
+            svg.setAttribute("class", "org-svg");
+            svg.setAttribute("preserveAspectRatio", "xMidYMin meet");
+            stage.appendChild(svg);
+            ceo = { el: makeNode("CEO", "Você", true, false), x: stageW() / 2 };
+            ceo.el.style.left = ceo.x + "px";
           }
 
           hireBtns.forEach(function (btn) {
             btn.addEventListener("click", function () {
               if (hires.length >= MAX) return;
-              hires.push({
+              var h = {
                 role: btn.getAttribute("data-role"),
                 who: NAMES[hires.length % NAMES.length],
-                fresh: true,
-              });
-              render();
+                x: ceo.x,
+              };
+              // a new report is born under the CEO, then glides into place
+              h.el = makeNode(h.role, h.who, false, true);
+              h.el.style.left = ceo.x + "px";
+              hires.push(h);
+              sync();
+              animate();
             });
           });
           resetBtn.addEventListener("click", function () {
             hires = [];
-            render();
+            build();
+            sync();
+            animate();
           });
-          window.addEventListener("resize", render);
-          render();
+          window.addEventListener("resize", animate);
+
+          build();
+          sync();
+          animate();
         }
 
         /* S3 — simulador de delegação */
@@ -1353,62 +1427,82 @@
             board.innerHTML = '<div class="sim-empty">Escolha uma meta acima para começar.</div>';
           }
 
-          function renderBoard(goal, colOf) {
-            var html =
-              '<div class="sim-goalcard">Meta: ' + goal.label + '</div><div class="sim-cols">';
-            COLS.forEach(function (c, ci) {
-              html += '<div class="sim-col"><h4>' + c + "</h4>";
-              goal.tasks.forEach(function (t, ti) {
-                if (colOf[ti] === ci) {
-                  html +=
-                    '<div class="sim-task">' +
-                    t +
-                    '<span class="who">' +
-                    WHO[ti % WHO.length] +
-                    "</span></div>";
-                }
-              });
-              html += "</div>";
-            });
-            html += "</div>";
-            if (
-              colOf.every(function (c) {
-                return c === 3;
-              })
-            ) {
-              html += '<div class="sim-done">&#10003; Entregue para a sua revisão.</div>';
+          // FLIP: move a task card to a new column and slide it there smoothly.
+          function flip(el, col) {
+            if (REDUCED) {
+              col.appendChild(el);
+              return;
             }
-            board.innerHTML = html;
+            var first = el.getBoundingClientRect();
+            col.appendChild(el);
+            var last = el.getBoundingClientRect();
+            var dx = first.left - last.left;
+            var dy = first.top - last.top;
+            if (!dx && !dy) return;
+            el.style.transition = "none";
+            el.style.transform = "translate(" + dx + "px," + dy + "px)";
+            requestAnimationFrame(function () {
+              el.style.transition = "transform 520ms var(--ease)";
+              el.style.transform = "";
+            });
           }
 
           function run(key) {
             clearTimers();
             var goal = GOALS[key];
-            var colOf = goal.tasks.map(function () {
-              return 0;
+
+            // build the board once; task cards are persistent elements
+            var html =
+              '<div class="sim-goalcard">Meta: ' + goal.label + '</div><div class="sim-cols">';
+            COLS.forEach(function (c) {
+              html += '<div class="sim-col"><h4>' + c + "</h4></div>";
+            });
+            html +=
+              '</div><div class="sim-done" id="simDone" hidden>' +
+              "&#10003; Entregue para a sua revisão.</div>";
+            board.innerHTML = html;
+
+            var cols = board.querySelectorAll(".sim-col");
+            var doneEl = board.querySelector("#simDone");
+            var taskEls = goal.tasks.map(function (t, ti) {
+              var el = document.createElement("div");
+              el.className = "sim-task";
+              el.style.animationDelay = ti * 70 + "ms";
+              el.innerHTML = t + '<span class="who">' + WHO[ti % WHO.length] + "</span>";
+              cols[0].appendChild(el);
+              return el;
             });
 
             if (REDUCED) {
-              colOf = goal.tasks.map(function () {
-                return 3;
+              taskEls.forEach(function (el) {
+                cols[3].appendChild(el);
               });
-              renderBoard(goal, colOf);
+              doneEl.hidden = false;
               return;
             }
-            renderBoard(goal, colOf);
-            var step = 620;
-            var t = 1;
+
+            var step = 640;
+            var moves = goal.tasks.length * 3;
+            var done = 0;
+            var slot = 1;
             goal.tasks.forEach(function (_, ti) {
               for (var target = 1; target <= 3; target++) {
                 (function (taskIndex, col, delay) {
                   timers.push(
                     setTimeout(function () {
-                      colOf[taskIndex] = col;
-                      renderBoard(goal, colOf);
+                      flip(taskEls[taskIndex], cols[col]);
+                      done += 1;
+                      if (done === moves) {
+                        timers.push(
+                          setTimeout(function () {
+                            doneEl.hidden = false;
+                          }, 600),
+                        );
+                      }
                     }, delay),
                   );
-                })(ti, target, t * step);
-                t++;
+                })(ti, target, slot * step);
+                slot += 1;
               }
             });
           }
@@ -1485,7 +1579,17 @@
             nodes.forEach(function (n) {
               n.classList.toggle("active", parseInt(n.getAttribute("data-phase"), 10) === i);
             });
-            detail.innerHTML = "<h3>" + PHASES[i].title + "</h3><p>" + PHASES[i].body + "</p>";
+            var html = "<h3>" + PHASES[i].title + "</h3><p>" + PHASES[i].body + "</p>";
+            if (REDUCED) {
+              detail.innerHTML = html;
+              return;
+            }
+            // brief cross-fade so the panel content changes gently
+            detail.style.opacity = "0";
+            window.setTimeout(function () {
+              detail.innerHTML = html;
+              detail.style.opacity = "1";
+            }, 200);
           }
           nodes.forEach(function (n) {
             n.addEventListener("click", function () {
