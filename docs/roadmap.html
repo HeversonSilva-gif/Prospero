@@ -433,6 +433,105 @@
         color: var(--ink-soft);
         font-size: 0.95rem;
       }
+
+      /* ===== S3 delegation sim ===== */
+      .delegar {
+        background: var(--surface-2);
+      }
+      .sim-goals {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 22px;
+      }
+      .sim-goal {
+        font: inherit;
+        font-weight: 700;
+        font-size: 0.92rem;
+        padding: 11px 18px;
+        border-radius: 22px;
+        border: 1.5px solid var(--accent);
+        background: var(--surface);
+        color: var(--accent-dark);
+        cursor: pointer;
+        transition: transform 120ms ease;
+      }
+      .sim-goal:hover {
+        transform: translateY(-2px);
+      }
+      .sim-goal.active {
+        background: var(--accent);
+        color: #fff;
+      }
+      .sim-board {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: var(--shadow-sm);
+        padding: 22px;
+        min-height: 300px;
+      }
+      .sim-cols {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+      }
+      .sim-col {
+        background: var(--surface-2);
+        border-radius: 12px;
+        padding: 12px;
+        min-height: 220px;
+      }
+      .sim-col h4 {
+        font-size: 0.78rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+        margin-bottom: 10px;
+      }
+      .sim-task {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--accent);
+        border-radius: 9px;
+        padding: 9px 11px;
+        margin-bottom: 8px;
+        font-size: 0.86rem;
+        font-weight: 600;
+        transition:
+          transform 420ms ease,
+          opacity 420ms ease;
+      }
+      .sim-task .who {
+        display: block;
+        font-weight: 700;
+        font-size: 0.72rem;
+        color: var(--accent-dark);
+        margin-top: 3px;
+      }
+      .sim-goalcard {
+        background: var(--accent-soft);
+        border: 1px dashed var(--accent);
+        border-radius: 12px;
+        padding: 14px 16px;
+        font-weight: 800;
+        margin-bottom: 16px;
+      }
+      .sim-done {
+        margin-top: 16px;
+        font-weight: 800;
+        color: var(--accent-dark);
+      }
+      .sim-empty {
+        color: var(--ink-faint);
+        text-align: center;
+        padding: 60px 0;
+      }
+      @media (max-width: 720px) {
+        .sim-cols {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
     </style>
   </head>
   <body>
@@ -523,6 +622,28 @@
               Demitiu alguém? Contrate outro para o mesmo papel — ele herda tudo que o time já
               aprendeu.
             </p>
+          </div>
+        </div>
+      </section>
+      <section id="delegar" class="section delegar">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <span class="kicker">Delegue uma meta</span>
+            <h2>Peça o resultado.<br />O time faz o resto.</h2>
+            <p class="lede">
+              Você escreve um objetivo. Um agente-CEO o divide em tarefas, o time executa, um quadro
+              acompanha tudo, e você revisa no fim. Escolha uma meta e veja acontecer.
+            </p>
+          </div>
+          <div class="sim reveal" data-delay="1">
+            <div class="sim-goals" id="simGoals">
+              <button class="sim-goal" data-goal="site">Quero um site para minha loja</button>
+              <button class="sim-goal" data-goal="relatorio">
+                Quero um relatório de vendas do mês
+              </button>
+              <button class="sim-goal" data-goal="app">Quero um app de lista de tarefas</button>
+            </div>
+            <div class="sim-board" id="simBoard" aria-live="polite"></div>
           </div>
         </div>
       </section>
@@ -685,6 +806,122 @@
           render();
         }
 
+        /* S3 — simulador de delegação */
+        function delegationSim() {
+          var board = document.getElementById("simBoard");
+          if (!board) return;
+          var goalBtns = document.querySelectorAll(".sim-goal");
+          var COLS = ["A fazer", "Fazendo", "Revisão", "Pronto"];
+          var WHO = ["Ana", "Bru", "Caio", "Duda", "Edu"];
+          var GOALS = {
+            site: {
+              label: "Um site para minha loja",
+              tasks: [
+                "Estrutura das páginas",
+                "Design visual",
+                "Catálogo de produtos",
+                "Carrinho e checkout",
+                "Publicação",
+              ],
+            },
+            relatorio: {
+              label: "Um relatório de vendas do mês",
+              tasks: [
+                "Coletar os dados",
+                "Analisar tendências",
+                "Gerar os gráficos",
+                "Escrever o resumo",
+                "Revisão final",
+              ],
+            },
+            app: {
+              label: "Um app de lista de tarefas",
+              tasks: ["Definir as telas", "Programar a lógica", "Testar", "Empacotar o app"],
+            },
+          };
+          var timers = [];
+
+          function clearTimers() {
+            timers.forEach(clearTimeout);
+            timers = [];
+          }
+
+          function renderEmpty() {
+            board.innerHTML = '<div class="sim-empty">Escolha uma meta acima para começar.</div>';
+          }
+
+          function renderBoard(goal, colOf) {
+            var html =
+              '<div class="sim-goalcard">Meta: ' + goal.label + '</div><div class="sim-cols">';
+            COLS.forEach(function (c, ci) {
+              html += '<div class="sim-col"><h4>' + c + "</h4>";
+              goal.tasks.forEach(function (t, ti) {
+                if (colOf[ti] === ci) {
+                  html +=
+                    '<div class="sim-task">' +
+                    t +
+                    '<span class="who">' +
+                    WHO[ti % WHO.length] +
+                    "</span></div>";
+                }
+              });
+              html += "</div>";
+            });
+            html += "</div>";
+            if (
+              colOf.every(function (c) {
+                return c === 3;
+              })
+            ) {
+              html += '<div class="sim-done">&#10003; Entregue para a sua revisão.</div>';
+            }
+            board.innerHTML = html;
+          }
+
+          function run(key) {
+            clearTimers();
+            var goal = GOALS[key];
+            var colOf = goal.tasks.map(function () {
+              return 0;
+            });
+
+            if (REDUCED) {
+              colOf = goal.tasks.map(function () {
+                return 3;
+              });
+              renderBoard(goal, colOf);
+              return;
+            }
+            renderBoard(goal, colOf);
+            var step = 620;
+            var t = 1;
+            goal.tasks.forEach(function (_, ti) {
+              for (var target = 1; target <= 3; target++) {
+                (function (taskIndex, col, delay) {
+                  timers.push(
+                    setTimeout(function () {
+                      colOf[taskIndex] = col;
+                      renderBoard(goal, colOf);
+                    }, delay),
+                  );
+                })(ti, target, t * step);
+                t++;
+              }
+            });
+          }
+
+          goalBtns.forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              goalBtns.forEach(function (b) {
+                b.classList.remove("active");
+              });
+              btn.classList.add("active");
+              run(btn.getAttribute("data-goal"));
+            });
+          });
+          renderEmpty();
+        }
+
         /* interactive modules are appended here by Tasks 4, 5, 7, 8 */
 
         function init() {
@@ -702,6 +939,11 @@
             orgChart();
           } catch (e) {
             console.warn("orgChart failed", e);
+          }
+          try {
+            delegationSim();
+          } catch (e) {
+            console.warn("delegationSim failed", e);
           }
           /* interactive init() calls are added here by later tasks */
         }
