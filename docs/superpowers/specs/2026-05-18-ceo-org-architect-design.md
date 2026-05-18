@@ -43,7 +43,7 @@ the user trim the proposal before applying.
 
 ```
 User → chat → CEO:  "set up a traffic agency"
-  CEO (has the org-architect capability) calls submit_org_plan({...})
+  CEO (taught by a CEO-only system-prompt block) calls submit_org_plan({...})
     → validates payload (zod + DAG + per-charter sanitizer)
     → inserts an org_plans row (status 'proposed'); supersedes any prior 'proposed' plan
     → creates an `org_proposed` inbox item pointing at the plan
@@ -120,8 +120,8 @@ A shared `OrgPlan` type (renderer-facing, camelCase) is added to
 
 ## 5. `submit_org_plan` MCP tool
 
-A new tool, registered in the MCP layer next to `submit_goal_plan`, gated by the
-`org-architect` capability.
+A new tool, registered in the MCP server next to `submit_goal_plan`. Like the
+goal tools it carries **no capability gate** — see §6.
 
 **Input:** `{ summary: string, roles: ProposedRole[], agents: ProposedAgent[] }`.
 
@@ -142,17 +142,27 @@ inbox item with `payloadJson = { orgPlanId }`. Returns `{ orgPlanId }`.
 
 ---
 
-## 6. The `org-architect` capability
+## 6. Exposing `submit_org_plan` to the CEO
 
-A new capability id `org-architect` in `CAPABILITY_CATALOG`
-(`packages/shared/src/capabilities.ts`) that resolves to the
-`mcp__dashboard__submit_org_plan` tool.
+This faithfully mirrors how `submit_goal_plan` reaches the CEO — **no capability
+is involved**. A capability would be security theatre here: the spawn security
+gate (`apps/main/src/security/gate.ts`) only restricts filesystem and shell
+tools and auto-allows every other dashboard MCP tool, so a capability could not
+actually prevent a non-CEO agent from calling `submit_org_plan` — it would only
+toggle the auto-approve round-trip. The goal tools (`submit_goal_plan` etc.) are
+in no capability for exactly this reason.
 
-Granted to the CEO three ways so both new and existing companies get it:
-- Added to the `role-ceo` seed role template's default capabilities.
-- A post-migration adds `org-architect` to the `capabilities_json` of every
-  existing agent whose role is CEO.
-- (New CEOs hired from the CEO role template inherit it from the template.)
+Instead:
+- `submit_org_plan` is registered in the MCP server (a new `orgToolDefinitions`
+  array, mirroring `goalsToolDefinitions`). It is technically reachable by any
+  agent, but only the CEO is **taught** to use it.
+- A new CEO-only system-prompt block — `orgArchitectSystemPromptBlock`,
+  mirroring `goalsSystemPromptBlock` — explains when and how to call
+  `submit_org_plan`. It is injected in `build-args.ts` under the existing
+  `isCeo` condition, alongside `goalsBlock`.
+
+No migration grants anything, no `CAPABILITY_CATALOG` change. The real safety
+gate is the user's approval in the review screen — see §11.
 
 ---
 
@@ -218,9 +228,9 @@ implementation time.
 
 - **PR-D2 (backend):** the `org_plans` migration + `org_proposed` inbox kind,
   the `org_plans` repository, `OrgPlanPayloadSchema`, the `submit_org_plan` MCP
-  tool, the `org-architect` capability + its post-migration, the `applyOrgPlan`
-  executor, and the three IPC handlers. Verified by unit/integration tests
-  (payload validation, DAG check, executor two-pass round-trip, supersede).
+  tool, the CEO `orgArchitectSystemPromptBlock`, the `applyOrgPlan` executor,
+  and the three IPC handlers. Verified by unit/integration tests (payload
+  validation, DAG check, executor two-pass round-trip, supersede).
 - **PR-D3 (UI):** the Org Plan Review screen, the renderer store, inbox
   wiring, i18n.
 
@@ -230,10 +240,13 @@ This split mirrors M8.5 (Goals: PR-A backend, PR-B UI).
 
 ## 11. Security
 
-- `submit_org_plan` is gated by the `org-architect` capability (CEO-only).
+- `submit_org_plan` is CEO-only by instruction (only the CEO gets the
+  system-prompt block teaching it), exactly as the goal tools are. The real
+  safety gate is **explicit user approval** — see below — not tool access.
 - Every proposed charter passes `sanitizeMemoryBody` at submit time — LLM output
   treated as an injection vector (design doc §12).
-- No hire happens without explicit user approval in the review screen.
+- No role or agent is created without explicit user approval in the review
+  screen.
 - The org plan is **purely additive** — it cannot edit or delete existing roles
   or agents, so a malicious or buggy proposal cannot destroy company state.
 - `applyOrgPlan` runs in a single transaction — a partial failure rolls back
