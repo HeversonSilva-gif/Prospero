@@ -24,6 +24,9 @@ export type SpawnContext = {
   // M11: pre-assembled memory & skills system-prompt block. The host builds it
   // at spawn time via buildMemoryBlock (it needs DB access build-args lacks).
   memoryBlock?: string;
+  // M12 PR-C: pre-assembled instruction bundle (charter + extras), read from
+  // the agent's on-disk bundle by the host at spawn time via composeInstructions.
+  instructionsBlock?: string;
 };
 
 export type AssistantContentBlock =

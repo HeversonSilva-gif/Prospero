@@ -60,6 +60,9 @@ export class ClaudeRemoteDockerAdapter implements AgentAdapter {
     const args = buildClaudeArgs(this.ctx.agent, null, {
       ...(this.ctx.narratedActive === true ? { narratedActive: true } : {}),
       ...(this.ctx.memoryBlock !== undefined ? { memoryBlock: this.ctx.memoryBlock } : {}),
+      ...(this.ctx.instructionsBlock !== undefined
+        ? { instructionsBlock: this.ctx.instructionsBlock }
+        : {}),
     });
     const mcpServerJsPath = resolveMcpServerPath(this.ctx.mcpServerJsPath);
     const mcpEnv = {

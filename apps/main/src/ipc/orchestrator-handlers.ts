@@ -18,6 +18,7 @@ import { createMessagesRepository } from "../messages/repository.js";
 import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { buildMemoryBlock, agentMemoryNearFull } from "../orchestrator/system-prompt-memory.js";
+import { composeInstructions } from "../agents/instruction-bundle.js";
 import { createRecoveryTracker } from "../orchestrator/recovery-tracker.js";
 import { createNudgeTracker } from "../orchestrator/nudge.js";
 import { loadDecryptedToken } from "../auth/token-storage.js";
@@ -299,6 +300,10 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       role: agent.role,
     });
 
+    // M12 PR-C: assemble the agent's instruction bundle (charter + extras) from
+    // disk — same host-side pattern as buildMemoryBlock.
+    const instructionsBlock = composeInstructions(app.getPath("userData"), agent);
+
     void ensureAdapter(
       {
         agent,
@@ -309,6 +314,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         permissionsDir: getPermissionsDir(app.getPath("userData")),
         eventsDir,
         ...(memoryBlock !== undefined ? { memoryBlock } : {}),
+        instructionsBlock,
       },
       {
         onEvent: (ev: ParsedEvent) => {

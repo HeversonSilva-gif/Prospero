@@ -14,7 +14,7 @@ import { buildNarratedBlock } from "../../system-prompt-narrated.js";
 export const buildClaudeArgs = (
   agent: Agent,
   mcpConfigPath: string | null,
-  opts: { narratedActive?: boolean; memoryBlock?: string } = {},
+  opts: { narratedActive?: boolean; memoryBlock?: string; instructionsBlock?: string } = {},
 ): string[] => {
   const allowedTools = resolveCapabilityTools(agent.capabilities);
   const isCeo = agent.role === "ceo" || agent.role === "CEO";
@@ -22,7 +22,9 @@ export const buildClaudeArgs = (
   const args = [
     "--system-prompt",
     composeSystemPrompt({
-      agentPersona: agent.systemPrompt,
+      // M12 PR-C: the instruction bundle replaces the legacy system_prompt
+      // string. Fall back to system_prompt if the host did not pass a bundle.
+      agentPersona: opts.instructionsBlock ?? agent.systemPrompt,
       capabilities: agent.capabilities,
       ...(isCeo ? { goalsBlock: goalsSystemPromptBlock } : {}),
       ...(narratedBlock !== undefined ? { narratedBlock } : {}),
