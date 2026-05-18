@@ -89,4 +89,17 @@ describe("createCostsRepository.listRunsByAgent", () => {
     expect(runs).toHaveLength(1);
     expect(runs[0]!.agentId).toBe(a);
   });
+
+  it("clamps the limit to the [1, 500] range", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+    const agentId = makeAgent(db, co.id, "Alice");
+    const repo = createCostsRepository(db);
+    for (let i = 0; i < 3; i++) repo.insert(turn({ companyId: co.id, agentId, occurredAt: i }));
+
+    // limit 0 clamps up to 1 — never returns zero rows for a bad input
+    expect(repo.listRunsByAgent(agentId, 0)).toHaveLength(1);
+    // limit far above 500 still returns all available rows, not an error
+    expect(repo.listRunsByAgent(agentId, 9999)).toHaveLength(3);
+  });
 });
