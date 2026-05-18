@@ -67,6 +67,16 @@ const rowToAgent = (r: Row): Agent => ({
   canAssign: r.can_assign === 1,
 });
 
+// Internal enforcement view of an agent's budget — includes budget_warned_period,
+// which is NOT part of the public Agent type.
+export type AgentBudgetState = {
+  tokensLimit: number | null;
+  usdLimit: number | null;
+  period: BudgetPeriod;
+  warnedPeriod: string | null;
+  adapterName: string;
+};
+
 export type CreateAgentInput = {
   companyId: string;
   name: string;
@@ -99,6 +109,13 @@ export type AgentsRepository = {
   setMode(id: string, mode: AgentMode): void;
   setAlwaysOn(id: string, alwaysOn: boolean): void;
   setCapabilities(id: string, capabilities: string[]): void;
+  setBudget(
+    id: string,
+    input: { tokensLimit: number | null; usdLimit: number | null; period: BudgetPeriod },
+  ): void;
+  setBudgetWarnedPeriod(id: string, periodKey: string): void;
+  setPermissions(id: string, input: { canHire: boolean; canAssign: boolean }): void;
+  getBudgetState(id: string): AgentBudgetState | null;
   pause(id: string, reason?: string): void;
   resume(id: string): void;
   terminate(id: string, reason?: string): void;
@@ -350,6 +367,43 @@ export const createAgentsRepository = (
         agentId: id,
         payload: { added, removed },
       });
+    },
+    setBudget(id, { tokensLimit, usdLimit, period }) {
+      const row = byId.get(id) as Row | undefined;
+      if (row === undefined) return;
+      if (tokensLimit !== null && !(Number.isInteger(tokensLimit) && tokensLimit > 0)) {
+        throw new Error("budget_tokens_limit must be a positive integer or null");
+      }
+      if (usdLimit !== null && !(Number.isInteger(usdLimit) && usdLimit > 0)) {
+        throw new Error("budget_usd_limit must be a positive integer or null");
+      }
+      db.prepare(
+        "UPDATE agents SET budget_tokens_limit = ?, budget_usd_limit = ?, budget_period = ?, budget_warned_period = NULL, updated_at = ? WHERE id = ?",
+      ).run(tokensLimit, usdLimit, period, Date.now(), id);
+    },
+    setBudgetWarnedPeriod(id, periodKey) {
+      db.prepare("UPDATE agents SET budget_warned_period = ? WHERE id = ?").run(periodKey, id);
+    },
+    setPermissions(id, { canHire, canAssign }) {
+      const row = byId.get(id) as Row | undefined;
+      if (row === undefined) return;
+      db.prepare("UPDATE agents SET can_hire = ?, can_assign = ?, updated_at = ? WHERE id = ?").run(
+        canHire ? 1 : 0,
+        canAssign ? 1 : 0,
+        Date.now(),
+        id,
+      );
+    },
+    getBudgetState(id) {
+      const row = byId.get(id) as Row | undefined;
+      if (row === undefined) return null;
+      return {
+        tokensLimit: row.budget_tokens_limit,
+        usdLimit: row.budget_usd_limit,
+        period: row.budget_period as BudgetPeriod,
+        warnedPeriod: row.budget_warned_period,
+        adapterName: row.adapter_name,
+      };
     },
     pause(id, reason) {
       const row = byId.get(id) as Row | undefined;

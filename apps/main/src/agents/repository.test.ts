@@ -146,3 +146,89 @@ describe("setReportsTo", () => {
     expect(() => repo.setReportsTo(ceo.id, eng.id)).toThrow(/cycle/i);
   });
 });
+
+describe("budget + run policy", () => {
+  it("new agents default to daily period, can_hire/can_assign true, null limits", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput());
+    expect(a.budgetTokensLimit).toBeNull();
+    expect(a.budgetUsdLimit).toBeNull();
+    expect(a.budgetPeriod).toBe("daily");
+    expect(a.canHire).toBe(true);
+    expect(a.canAssign).toBe(true);
+  });
+
+  it("setBudget round-trips limits and period", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput());
+    repo.setBudget(a.id, { tokensLimit: 50_000, usdLimit: 1_200, period: "monthly" });
+    const updated = repo.getById(a.id);
+    expect(updated?.budgetTokensLimit).toBe(50_000);
+    expect(updated?.budgetUsdLimit).toBe(1_200);
+    expect(updated?.budgetPeriod).toBe("monthly");
+  });
+
+  it("setBudget accepts null limits (unset)", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput());
+    repo.setBudget(a.id, { tokensLimit: 10, usdLimit: 10, period: "daily" });
+    repo.setBudget(a.id, { tokensLimit: null, usdLimit: null, period: "daily" });
+    const updated = repo.getById(a.id);
+    expect(updated?.budgetTokensLimit).toBeNull();
+    expect(updated?.budgetUsdLimit).toBeNull();
+  });
+
+  it("setBudget rejects a non-positive token limit", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput());
+    expect(() => repo.setBudget(a.id, { tokensLimit: 0, usdLimit: null, period: "daily" })).toThrow(
+      /positive integer/i,
+    );
+  });
+
+  it("setPermissions round-trips can_hire/can_assign", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput());
+    repo.setPermissions(a.id, { canHire: false, canAssign: false });
+    const updated = repo.getById(a.id);
+    expect(updated?.canHire).toBe(false);
+    expect(updated?.canAssign).toBe(false);
+  });
+
+  it("getBudgetState reflects setBudget and starts with a null warnedPeriod", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput());
+    repo.setBudget(a.id, { tokensLimit: 999, usdLimit: null, period: "monthly" });
+    const state = repo.getBudgetState(a.id);
+    expect(state).toEqual({
+      tokensLimit: 999,
+      usdLimit: null,
+      period: "monthly",
+      warnedPeriod: null,
+      adapterName: "claude-oauth-local",
+    });
+  });
+
+  it("setBudgetWarnedPeriod records the key; setBudget clears it", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput());
+    repo.setBudget(a.id, { tokensLimit: 999, usdLimit: null, period: "daily" });
+    repo.setBudgetWarnedPeriod(a.id, "2026-05-18");
+    expect(repo.getBudgetState(a.id)?.warnedPeriod).toBe("2026-05-18");
+    repo.setBudget(a.id, { tokensLimit: 500, usdLimit: null, period: "daily" });
+    expect(repo.getBudgetState(a.id)?.warnedPeriod).toBeNull();
+  });
+
+  it("getBudgetState returns null for an unknown agent", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    expect(repo.getBudgetState("nope")).toBeNull();
+  });
+});
