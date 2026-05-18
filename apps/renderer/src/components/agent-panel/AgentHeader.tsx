@@ -1,6 +1,6 @@
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Agent, AgentStatus } from "@prospero/shared";
+import type { Agent, AgentStatus, Skill } from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 import { OverflowMenu } from "./OverflowMenu.js";
 import { TerminateConfirmModal } from "./TerminateConfirmModal.js";
@@ -38,6 +38,7 @@ export const AgentHeader: FC<Props> = ({
   const terminate = useAgentsStore((s) => s.terminate);
   const resetSession = useAgentsStore((s) => s.resetSession);
   const [showTerminate, setShowTerminate] = useState(false);
+  const [privateSkills, setPrivateSkills] = useState<Skill[]>([]);
 
   const isPaused = agent.status === "paused";
   const isTerminated = agent.status === "terminated";
@@ -99,14 +100,22 @@ export const AgentHeader: FC<Props> = ({
       <OverflowMenu
         onCopyId={() => void navigator.clipboard.writeText(agent.id)}
         onResetSession={() => void resetSession(agent.id)}
-        onTerminate={() => setShowTerminate(true)}
+        onTerminate={() => {
+          void window.prospero.learning
+            .listSkills(agent.id)
+            .then((all) => setPrivateSkills(all.filter((s) => s.agentId !== null)));
+          setShowTerminate(true);
+        }}
       />
 
       {showTerminate && (
         <TerminateConfirmModal
           agentName={agent.name}
-          onConfirm={(reason) => {
-            void terminate(agent.id, reason);
+          skills={privateSkills}
+          onConfirm={(reason, promoteSkillIds) => {
+            void window.prospero.learning
+              .promoteSkillsOnTerminate(agent.id, promoteSkillIds)
+              .then(() => terminate(agent.id, reason));
             setShowTerminate(false);
           }}
           onCancel={() => setShowTerminate(false)}

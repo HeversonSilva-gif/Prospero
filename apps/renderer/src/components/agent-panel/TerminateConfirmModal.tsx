@@ -1,15 +1,26 @@
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
+import type { Skill } from "@prospero/shared";
 
 interface Props {
   agentName: string;
-  onConfirm: (reason: string | undefined) => void;
+  skills: Skill[];
+  onConfirm: (reason: string | undefined, promoteSkillIds: string[]) => void;
   onCancel: () => void;
 }
 
-export const TerminateConfirmModal: FC<Props> = ({ agentName, onConfirm, onCancel }) => {
+export const TerminateConfirmModal: FC<Props> = ({ agentName, skills, onConfirm, onCancel }) => {
   const { t } = useTranslation();
   const [reason, setReason] = useState("");
+  const [promoteIds, setPromoteIds] = useState<Set<string>>(new Set());
+  const toggle = (id: string): void => {
+    setPromoteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -42,6 +53,27 @@ export const TerminateConfirmModal: FC<Props> = ({ agentName, onConfirm, onCance
           onChange={(e) => setReason(e.target.value)}
           className="w-full text-sm border border-surface-border rounded px-2 py-1 mb-4 h-20"
         />
+        {skills.length > 0 && (
+          <div className="mt-3">
+            <p className="text-sm font-medium text-ink">{t("agent.terminate.promoteTitle")}</p>
+            <p className="text-xs text-ink-muted mb-2">{t("agent.terminate.promoteHint")}</p>
+            <ul className="flex flex-col gap-1 max-h-40 overflow-y-auto">
+              {skills.map((s) => (
+                <li key={s.id}>
+                  <label className="flex items-center gap-2 text-sm text-ink">
+                    <input
+                      type="checkbox"
+                      checked={promoteIds.has(s.id)}
+                      onChange={() => toggle(s.id)}
+                    />
+                    <span className="font-medium">{s.name}</span>
+                    <span className="text-xs text-ink-muted">{s.description}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="flex gap-2 justify-end">
           <button
             type="button"
@@ -52,7 +84,9 @@ export const TerminateConfirmModal: FC<Props> = ({ agentName, onConfirm, onCance
           </button>
           <button
             type="button"
-            onClick={() => onConfirm(reason.trim() === "" ? undefined : reason.trim())}
+            onClick={() =>
+              onConfirm(reason.trim() === "" ? undefined : reason.trim(), [...promoteIds])
+            }
             className="text-xs px-3 py-1 bg-semantic-danger text-white rounded font-semibold"
           >
             {t("agent.terminate.confirm")}
