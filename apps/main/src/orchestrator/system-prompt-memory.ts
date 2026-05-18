@@ -90,3 +90,11 @@ export const buildMemoryBlock = (deps: BuildMemoryBlockDeps): string | undefined
   if (sections.length === 0) return undefined;
   return `\n---\n\n# Memory & skills\n\n${sections.join("\n\n")}\n`;
 };
+
+// M11 PR-F2: true when the agent's rendered declarative memory has filled past
+// 90% of its system-prompt cap — the consolidation-nudge trigger. Mirrors the
+// agent slot of buildMemoryBlock (low-trust entries are excluded, as in L0).
+export const agentMemoryNearFull = (memoriesRepo: MemoriesRepository, agentId: string): boolean => {
+  const rendered = renderMemories(memoriesRepo.listByAgent(agentId), AGENT_CAP);
+  return rendered.length > AGENT_CAP * 0.9;
+};

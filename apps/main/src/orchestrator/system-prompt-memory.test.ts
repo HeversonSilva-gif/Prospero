@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { applyMigrations } from "../db/migrations.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { createSkillsRepository } from "../memory/skills-repository.js";
-import { buildMemoryBlock } from "./system-prompt-memory.js";
+import { buildMemoryBlock, agentMemoryNearFull } from "./system-prompt-memory.js";
 
 const setup = () => {
   const db = new Database(":memory:");
@@ -212,5 +212,28 @@ describe("buildMemoryBlock — L0 trust filter", () => {
     expect(block).not.toContain("distrusted-skill");
     expect(block).toContain("trusted memory body");
     expect(block).not.toContain("distrusted memory body");
+  });
+});
+
+describe("agentMemoryNearFull", () => {
+  it("is false for an agent with little memory", () => {
+    const s = setup();
+    s.memoriesRepo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "short entry" });
+    expect(agentMemoryNearFull(s.memoriesRepo, "a1")).toBe(false);
+  });
+
+  it("is true once the agent's memory fills past 90% of the cap", () => {
+    const s = setup();
+    // AGENT_CAP = 1024; each rendered line is "- <body>\n" = 2 + body.length + 1 chars.
+    // With body = 80 chars, each line = 83 chars. 13 lines = 1079 chars > 921.6 (0.9 * 1024).
+    for (let i = 0; i < 20; i++) {
+      s.memoriesRepo.create({
+        companyId: "c1",
+        agentId: "a1",
+        kind: "rule",
+        body: `mem${String(i).padStart(3, "0")}${"x".repeat(76)}`,
+      });
+    }
+    expect(agentMemoryNearFull(s.memoriesRepo, "a1")).toBe(true);
   });
 });

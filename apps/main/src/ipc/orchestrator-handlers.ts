@@ -17,8 +17,9 @@ import { tryGetRecorder } from "../activity/index.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
-import { buildMemoryBlock } from "../orchestrator/system-prompt-memory.js";
+import { buildMemoryBlock, agentMemoryNearFull } from "../orchestrator/system-prompt-memory.js";
 import { createRecoveryTracker } from "../orchestrator/recovery-tracker.js";
+import { createNudgeTracker } from "../orchestrator/nudge.js";
 import { loadDecryptedToken } from "../auth/token-storage.js";
 import { loadDecryptedApiKey } from "../auth/api-key-storage.js";
 import { getActiveAuthMode } from "../auth/auth-mode.js";
@@ -154,6 +155,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   );
 
   const recoveryTracker = createRecoveryTracker();
+  const nudgeTracker = createNudgeTracker();
 
   const router = createRouter({
     writeStdin: (agentId, content) => {
@@ -312,6 +314,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         onEvent: (ev: ParsedEvent) => {
           if (ev.kind === "session-init") {
             agents.setSessionId(agent.id, ev.sessionId);
+            nudgeTracker.clear(agent.id);
             broadcast({
               kind: "session-id-changed",
               agentId: agent.id,
@@ -414,8 +417,12 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
                 });
               }
             }
+            const toolUseCount = collectedToolCalls.size;
             collectedToolCalls.clear();
             router.onTurnComplete(agent.id);
+            const memoryNearFull = agentMemoryNearFull(createMemoriesRepository(db), agent.id);
+            const nudge = nudgeTracker.recordTurn(agent.id, { toolUseCount, memoryNearFull });
+            if (nudge !== null) router.setPendingNudge(agent.id, nudge);
             const stillBusy = router.getCurrentThread(agent.id) !== null;
             const status = stillBusy ? "thinking" : "idle";
             agents.updateStatus(agent.id, { status, currentAction: null });
