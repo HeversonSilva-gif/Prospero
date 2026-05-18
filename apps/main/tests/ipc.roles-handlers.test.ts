@@ -1,15 +1,25 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import Database from "better-sqlite3";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { applyMigrations } from "../src/db/migrations.js";
 import { runPostMigration0004 } from "../src/db/post-migrations/0004.js";
 
 type Handler = (e: unknown, ...args: unknown[]) => unknown;
 const handlers = new Map<string, Handler>();
+// registerRolesHandlers resolves userData for the on-disk charter store; the
+// roles:list / roles:get tests below never touch it, but the mock must expose
+// app.getPath so the call doesn't throw.
+const fakeUserData = mkdtempSync(join(tmpdir(), "prospero-roles-handlers-"));
 vi.mock("electron", () => ({
   ipcMain: {
     handle: (channel: string, h: Handler) => {
       handlers.set(channel, h);
     },
+  },
+  app: {
+    getPath: () => fakeUserData,
   },
 }));
 
