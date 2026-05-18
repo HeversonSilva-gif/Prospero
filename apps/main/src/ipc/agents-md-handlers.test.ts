@@ -1,7 +1,8 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import Database from "better-sqlite3";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, mkdtempSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { runPostMigration0004 } from "../db/post-migrations/0004.js";
 import { createCompaniesRepository } from "../companies/repository.js";
@@ -9,11 +10,17 @@ import { createCompaniesRepository } from "../companies/repository.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const handlers = new Map<string, (...args: unknown[]) => unknown>();
+// The hire + export handlers resolve userData for the on-disk charter store
+// (M12 PR-D4), so the electron mock must expose app.getPath.
+const fakeUserData = mkdtempSync(join(tmpdir(), "prospero-amd-handlers-"));
 vi.mock("electron", () => ({
   ipcMain: {
     handle: (ch: string, fn: (...args: unknown[]) => unknown): void => {
       handlers.set(ch, fn);
     },
+  },
+  app: {
+    getPath: () => fakeUserData,
   },
   dialog: { showSaveDialog: vi.fn() },
   BrowserWindow: { fromWebContents: () => null },
