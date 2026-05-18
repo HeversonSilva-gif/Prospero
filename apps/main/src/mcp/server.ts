@@ -10,6 +10,7 @@ import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { toolDefinitions, type ToolContext } from "./tools.js";
 import { goalsToolDefinitions } from "./tools-goals.js";
+import { orgToolDefinitions } from "./tools-org.js";
 import { issuesToolDefinitions } from "./tools-issues.js";
 import { memoryToolDefinitions } from "./tools-memory.js";
 
@@ -79,6 +80,7 @@ const register = (server.registerTool as unknown as RegisterTool).bind(server);
 const allToolDefinitions = [
   ...toolDefinitions,
   ...goalsToolDefinitions,
+  ...orgToolDefinitions,
   ...issuesToolDefinitions,
   ...memoryToolDefinitions,
 ];
