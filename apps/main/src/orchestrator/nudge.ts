@@ -68,6 +68,8 @@ export const createNudgeTracker = (): NudgeTracker => {
       // Memory pressure wins, and only fires once per session.
       if (input.memoryNearFull && !s.consolidationSent) {
         s.consolidationSent = true;
+        s.turns = 0;
+        s.tools = 0;
         return NUDGE_CONSOLIDATION_HINT;
       }
 

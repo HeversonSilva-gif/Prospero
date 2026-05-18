@@ -31,6 +31,8 @@ describe("createNudgeTracker", () => {
     expect(t.recordTurn("a1", { toolUseCount: TOOL_THRESHOLD, memoryNearFull: false })).toBe(
       NUDGE_SKILL_HINT,
     );
+    // tool counter reset — the next turn does not re-fire
+    expect(t.recordTurn("a1", quiet)).toBeNull();
   });
 
   it("returns the consolidation hint once when memory is near full", () => {
@@ -40,6 +42,14 @@ describe("createNudgeTracker", () => {
     );
     // does not repeat on the next near-full turn
     expect(t.recordTurn("a1", { toolUseCount: 0, memoryNearFull: true })).toBeNull();
+  });
+
+  it("consolidation hint resets the work counters — no immediate follow-up skill hint", () => {
+    const t = createNudgeTracker();
+    // tools at threshold AND memory near full on the same turn -> consolidation fires
+    t.recordTurn("a1", { toolUseCount: TOOL_THRESHOLD, memoryNearFull: true });
+    // the work counters must have been reset -> the next quiet turn is null
+    expect(t.recordTurn("a1", quiet)).toBeNull();
   });
 
   it("tracks each agent independently", () => {
