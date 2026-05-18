@@ -11,7 +11,8 @@ export type InboxKind =
   | "skill_candidate_pending"
   | "skill_promotion_requested"
   | "goal_retrospective_ready"
-  | "memory_review_needed";
+  | "memory_review_needed"
+  | "org_proposed";
 
 export type InboxItem = {
   id: string;
