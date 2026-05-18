@@ -925,7 +925,13 @@
     "charter.saving": "Salvando…",
     "charter.saved": "Salvo",
     "charter.complete": "As 8 seções estão presentes.",
-    "charter.missing": "Seções faltando: {{sections}}"
+    "charter.missing": "Seções faltando: {{sections}}",
+    "charter.generate": "Gerar com IA",
+    "charter.genHint": "Descreva o papel em uma frase — a IA monta o charter de 8 seções pra você revisar.",
+    "charter.genPlaceholder": "ex.: pesquisa concorrentes e entrega os achados ao revisor",
+    "charter.genSubmit": "Gerar",
+    "charter.generating": "Gerando…",
+    "charter.genCancel": "Cancelar"
   },
   "activity": {
     "title": "Atividade",

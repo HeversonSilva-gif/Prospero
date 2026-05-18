@@ -925,7 +925,13 @@
     "charter.saving": "Saving…",
     "charter.saved": "Saved",
     "charter.complete": "All 8 sections present.",
-    "charter.missing": "Missing sections: {{sections}}"
+    "charter.missing": "Missing sections: {{sections}}",
+    "charter.generate": "Generate with AI",
+    "charter.genHint": "Describe the role in a sentence — AI will draft the 8-section charter for you to review.",
+    "charter.genPlaceholder": "e.g. researches competitors and hands findings to the reviewer",
+    "charter.genSubmit": "Generate",
+    "charter.generating": "Generating…",
+    "charter.genCancel": "Cancel"
   },
   "activity": {
     "title": "Activity",
