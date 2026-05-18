@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FC } from "react";
+import { useEffect, useMemo, useRef, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import type { AgentRunRow, ActivityEventRow } from "@prospero/shared";
 import { groupRunsBySession } from "../../lib/runs/groupRunsBySession.js";
@@ -14,6 +14,10 @@ export const RunsTab: FC<Props> = ({ agentId, companyId }) => {
   const [runs, setRuns] = useState<AgentRunRow[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityEventRow[]>([]);
+
+  // Guards the async activity fetch in `toggle` — a slow query for a run the
+  // user already collapsed (or swapped away from) must not overwrite state.
+  const activeRunIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,10 +45,12 @@ export const RunsTab: FC<Props> = ({ agentId, companyId }) => {
 
   const toggle = (run: AgentRunRow): void => {
     if (expandedId === run.id) {
+      activeRunIdRef.current = null;
       setExpandedId(null);
       setActivity([]);
       return;
     }
+    activeRunIdRef.current = run.id;
     setExpandedId(run.id);
     setActivity([]);
     const fromExclusive = (prevByRunId.get(run.id) ?? 0) + 1;
@@ -54,7 +60,7 @@ export const RunsTab: FC<Props> = ({ agentId, companyId }) => {
         filters: { agentId, sinceMs: fromExclusive, untilMs: run.occurredAt },
         limit: 200,
       });
-      setActivity(rows);
+      if (activeRunIdRef.current === run.id) setActivity(rows);
     })();
   };
 
