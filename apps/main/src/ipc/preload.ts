@@ -274,6 +274,27 @@ contextBridge.exposeInMainWorld("prospero", {
     list: () =>
       ipcRenderer.invoke(IPC.ROLES_LIST) as Promise<Array<RoleTemplate & { agentCount: number }>>,
     get: (id: string) => ipcRenderer.invoke(IPC.ROLES_GET, { id }) as Promise<RoleDetail | null>,
+    create: (input: {
+      name: string;
+      description: string;
+      icon: string | null;
+      defaultModel: string;
+      defaultCapabilities: string[];
+    }) => ipcRenderer.invoke(IPC.ROLES_CREATE, input) as Promise<RoleTemplate>,
+    update: (input: {
+      id: string;
+      name?: string;
+      description?: string;
+      icon?: string | null;
+      defaultModel?: string;
+      defaultCapabilities?: string[];
+    }) => ipcRenderer.invoke(IPC.ROLES_UPDATE, input) as Promise<RoleTemplate>,
+    delete: (id: string) => ipcRenderer.invoke(IPC.ROLES_DELETE, { id }) as Promise<{ ok: true }>,
+    clone: (id: string) => ipcRenderer.invoke(IPC.ROLES_CLONE, { id }) as Promise<RoleTemplate>,
+    getCharter: (id: string) =>
+      ipcRenderer.invoke(IPC.ROLES_GET_CHARTER, { id }) as Promise<{ body: string }>,
+    saveCharter: (id: string, body: string) =>
+      ipcRenderer.invoke(IPC.ROLES_SAVE_CHARTER, { id, body }) as Promise<{ ok: true }>,
   },
   activity: {
     query: (params: ActivityQueryParams) =>

@@ -211,6 +211,25 @@ declare global {
       roles: {
         list: () => Promise<Array<RoleTemplate & { agentCount: number }>>;
         get: (id: string) => Promise<RoleDetail | null>;
+        create: (input: {
+          name: string;
+          description: string;
+          icon: string | null;
+          defaultModel: string;
+          defaultCapabilities: string[];
+        }) => Promise<RoleTemplate>;
+        update: (input: {
+          id: string;
+          name?: string;
+          description?: string;
+          icon?: string | null;
+          defaultModel?: string;
+          defaultCapabilities?: string[];
+        }) => Promise<RoleTemplate>;
+        delete: (id: string) => Promise<{ ok: true }>;
+        clone: (id: string) => Promise<RoleTemplate>;
+        getCharter: (id: string) => Promise<{ body: string }>;
+        saveCharter: (id: string, body: string) => Promise<{ ok: true }>;
       };
       activity: {
         query: (params: ActivityQueryParams) => Promise<ActivityEventRow[]>;
