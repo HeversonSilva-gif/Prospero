@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import Database from "better-sqlite3";
-import { applyMigrations } from "./migrations.js";
+import { applyMigrations } from "../src/db/migrations.js";
 
-describe("migrations", () => {
+describe("migration 0023 — skills.soft_deleted_at column", () => {
   it("0023 adds the skills.soft_deleted_at column", () => {
     const db = new Database(":memory:");
     applyMigrations(db);
