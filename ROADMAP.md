@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-18 — **M11 ✅ MERGEADO COMPLETO · V2 anchor fechado.** 6 PRs (A–F): capabilities rename · schema + 9 MCP tools + tab Learning · motor de auto-derivação + Candidates UI · herança por role + `skill_promote` · org retrospectives + Org Learnings · decay/trust + Settings Memory + nudges fallback + terminate-modal promote + docs (`memory-architecture.md`, `skills-format.md`, `derivation-pipeline.md`, SECURITY.md). Arquitetura: 3 camadas × 2 níveis (individual + coletivo), fluxo bidirecional. **1198 testes**.
+> **Última atualização:** 2026-05-18 — **M11 ✅ MERGEADO COMPLETO · V2 anchor fechado.** 6 PRs (A–F): capabilities rename · schema + 9 MCP tools + tab Learning · motor de auto-derivação + Candidates UI · herança por role + `skill_promote` · org retrospectives + Org Learnings · decay/trust + Settings Memory + nudges fallback + terminate-modal promote + docs (`memory-architecture.md`, `skills-format.md`, `derivation-pipeline.md`, SECURITY.md). Arquitetura: 3 camadas × 2 níveis (individual + coletivo), fluxo bidirecional. **M12 iniciado 2026-05-18** — PR-A entregue: `role_templates` vira biblioteca editável (criar/clonar/editar/excluir em `/roles`) + charter de 8 seções por papel + 5 charters-exemplo. **1232 testes**.
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 >
@@ -32,6 +32,7 @@
 - Modelos seedados: CEO, Engenheiro Backend, Engenheiro Frontend, DevOps, QA, Product Manager, Designer, Security Engineer
 - Ver quem reporta a quem num **organograma visual** (arrastar pra mudar hierarquia)
 - **Pausar, retomar ou demitir** agente a qualquer momento — não gasta tokens parado
+- **Criar e editar cargos próprios** (página Papéis) — além dos exemplos prontos (CEO, Engenheiro, QA, Designer, PM), você cria, clona e apaga cargos pra qualquer ramo de negócio. Cada cargo tem um **charter**: um documento de 8 seções (identidade, missão, fluxo de trabalho, lentes do ofício, padrão de qualidade, colaboração, limites de segurança, definição de "feito") que descreve a fundo como aquele funcionário trabalha — editável num editor próprio (2026-05-18)
 
 ### 💬 Comunicação
 - Conversar com cada agente em **chat 1-1** (como mensagear no Slack/Teams)
@@ -130,16 +131,17 @@
 
 - **14 / 14 milestones do v1 fechados** — **v1 entregue em 2026-05-15**
 - **M11 ✅ COMPLETO** — V2 anchor fechado (2026-05-18). 6 PRs (A–F) mergeados. Settings Memory (`user.md` + budget), decay/trust, nudges fallback, terminate-modal promote-skills, docs.
-- **1198 testes passing + 2 todo** · 0 lint/typecheck errors
-- HEAD `main`: M11 PR-F2 (Settings + nudges + terminate-modal + docs) mergeado (2026-05-18)
+- **M12 iniciado** — PR-A mergeado (2026-05-18): `role_templates` vira biblioteca editável, rota `/roles` com criar/clonar/editar/excluir, charter de 8 seções por papel (arquivo markdown em disco) + 5 charters-exemplo. Plano: `docs/superpowers/plans/2026-05-18-m12-pr-a-role-authoring.md`.
+- **1232 testes passing + 2 todo** · 0 lint/typecheck errors
+- HEAD `main`: M12 PR-A (role authoring + charter library) mergeado (2026-05-18)
 
 ### ▸ Próximo
 
 | Candidato | Escopo | Por quê |
 |---|---|---|
-| 🥇 **M12 Agent & Org Definition Layer** | Charter de role (8 seções) · `/roles` biblioteca · CEO arquiteto · AGENTS.md charters · Manual Operacional como skill bundled · aba Instructions · `agent_runs` + budget per-agent + Run Policy | V2 logo após o M11 — agente bem-instruído fortalece Workflow Plays e Enforced Outcomes. Doc de design em `docs/m12-agent-org-definition-layer.md`. |
+| 🥇 **M12 Agent & Org Definition Layer** (em andamento) | ✅ PR-A charter de role (8 seções) + `/roles` biblioteca editável · ⬜ PR-B Manual Operacional como skill bundled · ⬜ PR-C aba Instructions + `composeSystemPrompt` lê o charter · ⬜ PR-D CEO arquiteto + AGENTS.md charters · ⬜ PR-E `agent_runs` + budget per-agent + Run Policy · ⬜ PR-F consolidação | V2 logo após o M11 — agente bem-instruído fortalece Workflow Plays e Enforced Outcomes. Doc de design em `docs/m12-agent-org-definition-layer.md`. |
 
-**Recomendação:** M12 Agent & Org Definition Layer (passo natural pós-M11).
+**Recomendação:** seguir o M12 — PR-B (Manual Operacional como skill bundled).
 
 ### ▸ Horizonte (v1 = M10 fechado · V2 começa em M11)
 
@@ -180,12 +182,13 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 |---|---|
 | Milestones fechados | M1–M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6**, **M9**, **M10** (14/14 do v1 ✅) + **M11** (V2 anchor ✅) |
 | Concluído | **M11 ✅ fechado** 2026-05-18 — **6/6 PRs** ✅ (A capabilities rename · B schema+repos · C MCP tools + Learning tab · D1/D2 derivation pipeline + Candidates UI · E1/E2 role inheritance + org retrospectives · F decay/trust + Settings Memory + nudges + terminate-modal + docs). **V2 anchor fechado.** |
-| Testes | **1198 passing + 2 todo**, 0 lint/typecheck errors |
-| Commits no main | ~710 |
+| Em andamento | **M12 Agent & Org Definition Layer** — PR-A ✅ mergeado 2026-05-18 (biblioteca de papéis editável + charter de 8 seções). Restam PR-B a PR-F. |
+| Testes | **1232 passing + 2 todo**, 0 lint/typecheck errors |
+| Commits no main | ~722 |
 | LoC (apps + packages) | ~23k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
-| Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** M11 (V2 anchor) também fechado. Próximo: M12. |
+| Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** M11 (V2 anchor) também fechado. **M12 em andamento** (PR-A ✅). |
 | V2 anchor | **M11 Agent Memory & Learning Loop — ✅ COMPLETO** (2026-05-18, 6 PRs). Arquitetura: 3 camadas × 2 níveis, fluxo bidirecional. Spec: `docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md`. Docs: `docs/memory-architecture.md` + `docs/skills-format.md` + `docs/derivation-pipeline.md`. 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). Próximo V2: M12 Agent & Org Definition Layer. |
 
 ---
