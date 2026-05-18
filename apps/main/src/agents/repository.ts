@@ -382,6 +382,10 @@ export const createAgentsRepository = (
       ).run(tokensLimit, usdLimit, period, Date.now(), id);
     },
     setBudgetWarnedPeriod(id, periodKey) {
+      const row = byId.get(id) as Row | undefined;
+      if (row === undefined) return;
+      // Intentionally omits updated_at — internal enforcement marker, not a
+      // user-visible config change.
       db.prepare("UPDATE agents SET budget_warned_period = ? WHERE id = ?").run(periodKey, id);
     },
     setPermissions(id, { canHire, canAssign }) {

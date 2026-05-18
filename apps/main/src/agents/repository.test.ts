@@ -190,6 +190,15 @@ describe("budget + run policy", () => {
     );
   });
 
+  it("setBudget rejects a non-positive usd limit", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput());
+    expect(() => repo.setBudget(a.id, { tokensLimit: null, usdLimit: 0, period: "daily" })).toThrow(
+      /positive integer/i,
+    );
+  });
+
   it("setPermissions round-trips can_hire/can_assign", () => {
     const db = setupDb();
     const repo = createAgentsRepository(db);
