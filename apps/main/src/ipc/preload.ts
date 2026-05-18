@@ -373,6 +373,11 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.LEARNING_RATE_SKILL, { skillId, direction }) as Promise<Skill>,
     rateMemory: (memoryId: string, direction: "up" | "down") =>
       ipcRenderer.invoke(IPC.LEARNING_RATE_MEMORY, { memoryId, direction }) as Promise<Memory>,
+    getUserMemory: () => ipcRenderer.invoke(IPC.MEMORY_USER_GET) as Promise<{ content: string }>,
+    setUserMemory: (content: string) =>
+      ipcRenderer.invoke(IPC.MEMORY_USER_SET, { content }) as Promise<{ ok: true }>,
+    importClaudeCodeMemory: () =>
+      ipcRenderer.invoke(IPC.MEMORY_USER_IMPORT_CC) as Promise<{ content: string }>,
   },
   windowControls: {
     minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE) as Promise<void>,

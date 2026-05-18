@@ -31,3 +31,8 @@ export const getAgentMemoryDir = (
 // agent). Pure — does not create directories; the skill writer (PR-C) does.
 export const skillBodyPath = (scopeDir: string, skillName: string): string =>
   join(scopeDir, "skills", skillName, "SKILL.md");
+
+// Absolute path of the global USER.md — the "About the user" system-prompt
+// slot. The only memory file managed directly under the memory root.
+export const getUserMemoryPath = (userDataDir: string): string =>
+  join(getMemoryRootDir(userDataDir), "user.md");

@@ -257,6 +257,30 @@ describe("learningHandlers — trust feedback", () => {
   });
 });
 
+describe("learningHandlers — user memory", () => {
+  it("getUserMemory returns empty string when user.md does not exist", () => {
+    const dir = mkdtempSync(join(tmpdir(), "prospero-um-"));
+    try {
+      const db = seed();
+      expect(learningHandlers(db, dir).getUserMemory()).toEqual({ content: "" });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("setUserMemory then getUserMemory round-trips the content", () => {
+    const dir = mkdtempSync(join(tmpdir(), "prospero-um-"));
+    try {
+      const db = seed();
+      const h = learningHandlers(db, dir);
+      expect(h.setUserMemory({ content: "the user prefers PT-BR" })).toEqual({ ok: true });
+      expect(h.getUserMemory()).toEqual({ content: "the user prefers PT-BR" });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("learningHandlers — skill promotion", () => {
   let db: Database.Database;
   beforeEach(() => {

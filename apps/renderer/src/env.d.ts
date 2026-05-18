@@ -273,6 +273,9 @@ declare global {
         }>;
         rateSkill: (skillId: string, direction: "up" | "down") => Promise<Skill>;
         rateMemory: (memoryId: string, direction: "up" | "down") => Promise<Memory>;
+        getUserMemory: () => Promise<{ content: string }>;
+        setUserMemory: (content: string) => Promise<{ ok: true }>;
+        importClaudeCodeMemory: () => Promise<{ content: string }>;
       };
       windowControls: {
         minimize: () => Promise<void>;

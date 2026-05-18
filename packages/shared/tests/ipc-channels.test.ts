@@ -50,4 +50,10 @@ describe("IPC channels", () => {
     expect(IPC.LEARNING_RATE_SKILL).toBe("learning:rate-skill");
     expect(IPC.LEARNING_RATE_MEMORY).toBe("learning:rate-memory");
   });
+
+  it("exposes the M11 user-memory channels", () => {
+    expect(IPC.MEMORY_USER_GET).toBe("memory:user-get");
+    expect(IPC.MEMORY_USER_SET).toBe("memory:user-set");
+    expect(IPC.MEMORY_USER_IMPORT_CC).toBe("memory:user-import-cc");
+  });
 });

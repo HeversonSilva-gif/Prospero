@@ -102,6 +102,9 @@ export const IPC = {
   LEARNING_ORG: "learning:org-learnings",
   LEARNING_RATE_SKILL: "learning:rate-skill",
   LEARNING_RATE_MEMORY: "learning:rate-memory",
+  MEMORY_USER_GET: "memory:user-get",
+  MEMORY_USER_SET: "memory:user-set",
+  MEMORY_USER_IMPORT_CC: "memory:user-import-cc",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

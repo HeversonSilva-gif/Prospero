@@ -1,7 +1,10 @@
 import { app, ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { IPC } from "@prospero/shared";
+import { getUserMemoryPath } from "../memory/memory-dir.js";
 import type { Skill, Memory, SessionSearchHit, SenderKind, SkillCandidate } from "@prospero/shared";
 import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
@@ -59,6 +62,12 @@ export type LearningHandlers = {
   // M11 PR-F1: user thumb up/down on a skill / memory — steers L0 trust.
   rateSkill(args: { skillId: string; direction: RateDirection }): Skill;
   rateMemory(args: { memoryId: string; direction: RateDirection }): Memory;
+  // M11 PR-F2: the global user.md memory file ("About the user" prompt slot).
+  getUserMemory(): { content: string };
+  setUserMemory(args: { content: string }): { ok: true };
+  // Loads the user's Claude Code memory (~/.claude/CLAUDE.md) so it can be
+  // reviewed and saved into user.md. Returns "" when there is no such file.
+  importClaudeCodeMemory(): { content: string };
 };
 
 type SessionRow = {
@@ -166,6 +175,18 @@ export const learningHandlers = (db: Database.Database, userDataDir: string): Le
     rateMemory({ memoryId, direction }) {
       return memoriesRepo.bumpTrust(memoryId, TRUST_DELTA[direction]);
     },
+    getUserMemory() {
+      const path = getUserMemoryPath(userDataDir);
+      return { content: existsSync(path) ? readFileSync(path, "utf8") : "" };
+    },
+    setUserMemory({ content }) {
+      writeFileSync(getUserMemoryPath(userDataDir), content, "utf8");
+      return { ok: true as const };
+    },
+    importClaudeCodeMemory() {
+      const path = join(homedir(), ".claude", "CLAUDE.md");
+      return { content: existsSync(path) ? readFileSync(path, "utf8") : "" };
+    },
   };
 };
 
@@ -204,4 +225,7 @@ export const registerLearningHandlers = (db: Database.Database): void => {
     IPC.LEARNING_RATE_MEMORY,
     (_e, args: { memoryId: string; direction: RateDirection }) => h.rateMemory(args),
   );
+  ipcMain.handle(IPC.MEMORY_USER_GET, () => h.getUserMemory());
+  ipcMain.handle(IPC.MEMORY_USER_SET, (_e, args: { content: string }) => h.setUserMemory(args));
+  ipcMain.handle(IPC.MEMORY_USER_IMPORT_CC, () => h.importClaudeCodeMemory());
 };

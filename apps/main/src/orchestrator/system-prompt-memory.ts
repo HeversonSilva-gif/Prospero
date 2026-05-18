@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { MemoriesRepository } from "../memory/memories-repository.js";
 import type { SkillsRepository } from "../memory/skills-repository.js";
 import type { Memory, Skill } from "@prospero/shared";
+import { getUserMemoryPath } from "../memory/memory-dir.js";
 
 // Per-section character caps (spec §6). Total ≈ 7.5 KB additional system prompt.
 const USER_CAP = 1024;
@@ -55,7 +55,7 @@ const renderSkills = (skills: Skill[], cap: number): string => {
 export const buildMemoryBlock = (deps: BuildMemoryBlockDeps): string | undefined => {
   const sections: string[] = [];
 
-  const userMd = join(deps.userDataDir, "memory", "user.md");
+  const userMd = getUserMemoryPath(deps.userDataDir);
   if (existsSync(userMd)) {
     const text = readFileSync(userMd, "utf8").trim().slice(0, USER_CAP);
     if (text.length > 0) sections.push(`## About the user\n\n${text}`);
