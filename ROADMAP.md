@@ -6,7 +6,7 @@
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
 > **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
 > **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
-> **Última atualização:** 2026-05-18 — **M11 ✅ MERGEADO COMPLETO · V2 anchor fechado.** 6 PRs (A–F): capabilities rename · schema + 9 MCP tools + tab Learning · motor de auto-derivação + Candidates UI · herança por role + `skill_promote` · org retrospectives + Org Learnings · decay/trust + Settings Memory + nudges fallback + terminate-modal promote + docs (`memory-architecture.md`, `skills-format.md`, `derivation-pipeline.md`, SECURITY.md). Arquitetura: 3 camadas × 2 níveis (individual + coletivo), fluxo bidirecional. **M12 em andamento 2026-05-18** — PR-A: `role_templates` vira biblioteca editável (criar/clonar/editar/excluir em `/roles`) + charter de 8 seções por papel. PR-B: Manual Operacional ("como esta empresa opera") entregue como skill embutida — todo agente o recebe com progressive disclosure (linha no prompt + corpo sob demanda). PR-C: cada agente ganha um bundle de instruções editável em disco (charter + extras), aba Instructions no Agent Studio, e o charter passa a ser injetado de verdade no prompt do agente. PR-D1: gerar um charter de 8 seções a partir de uma descrição em linguagem natural, via uma chamada one-shot ao Claude (reusa o runner headless do M11). PR-D2 + PR-D3: o CEO projeta a empresa inteira — propõe papéis (com charter), agentes e hierarquia via `submit_org_plan`; a proposta cai numa tela de revisão (acessível pelo inbox) onde você inclui/exclui papéis e agentes e aprova; aprovar cria tudo numa transação two-pass. **1289 testes**.
+> **Última atualização:** 2026-05-18 — **M11 ✅ MERGEADO COMPLETO · V2 anchor fechado.** 6 PRs (A–F): capabilities rename · schema + 9 MCP tools + tab Learning · motor de auto-derivação + Candidates UI · herança por role + `skill_promote` · org retrospectives + Org Learnings · decay/trust + Settings Memory + nudges fallback + terminate-modal promote + docs (`memory-architecture.md`, `skills-format.md`, `derivation-pipeline.md`, SECURITY.md). Arquitetura: 3 camadas × 2 níveis (individual + coletivo), fluxo bidirecional. **M12 em andamento 2026-05-18** — PR-A: `role_templates` vira biblioteca editável (criar/clonar/editar/excluir em `/roles`) + charter de 8 seções por papel. PR-B: Manual Operacional ("como esta empresa opera") entregue como skill embutida — todo agente o recebe com progressive disclosure (linha no prompt + corpo sob demanda). PR-C: cada agente ganha um bundle de instruções editável em disco (charter + extras), aba Instructions no Agent Studio, e o charter passa a ser injetado de verdade no prompt do agente. PR-D1: gerar um charter de 8 seções a partir de uma descrição em linguagem natural, via uma chamada one-shot ao Claude (reusa o runner headless do M11). PR-D2 + PR-D3: o CEO projeta a empresa inteira — propõe papéis (com charter), agentes e hierarquia via `submit_org_plan`; a proposta cai numa tela de revisão (acessível pelo inbox) onde você inclui/exclui papéis e agentes e aprova; aprovar cria tudo numa transação two-pass. PR-D4: o `AGENTS.md` passa a carregar os papéis e seus charters — uma empresa inteira (papéis + charters + agentes) vira um arquivo único, versionável e re-importável. **1296 testes**.
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
 >
@@ -24,7 +24,7 @@
 - **Arquivar projetos** que terminaram (somem da lista por padrão, toggle "Mostrar arquivados" recupera)
 - **Exportar empresa inteira em JSON** (Settings → Exportar empresa) — backup com agentes/issues/threads/mensagens/inbox/custos/activity
 - **Importar empresa de JSON** (Settings → Importar empresa) — restaura o backup como uma empresa nova com IDs frescos. Se já existir uma com o mesmo nome, vira "(imported)"
-- **Descrever o time inteiro num `AGENTS.md`** (Settings → Importar de AGENTS.md) — YAML com `company` + `projects` + `agents` (nome, role, reports_to). "Hire all" cria tudo de uma vez. Conflito de nome → modal Skip/Replace por agente. Reverso: "Exportar AGENTS.md" gera o arquivo da empresa ativa
+- **Descrever o time inteiro num `AGENTS.md`** (Settings → Importar de AGENTS.md) — YAML com `company` + `projects` + `roles` (cada papel com seu charter completo) + `agents` (nome, role, reports_to). "Hire all" cria tudo de uma vez — papéis que ainda não existem são criados com seus charters. Conflito de nome → modal Skip/Replace por agente. Reverso: "Exportar AGENTS.md" gera o arquivo da empresa ativa — uma empresa inteira vira um arquivo único, versionável (2026-05-18)
 
 ### 👥 Time de agentes Claude
 - "Contratar" agentes Claude — cada um vira tipo um funcionário com persona, função e habilidades próprias
@@ -135,17 +135,17 @@
 
 - **14 / 14 milestones do v1 fechados** — **v1 entregue em 2026-05-15**
 - **M11 ✅ COMPLETO** — V2 anchor fechado (2026-05-18). 6 PRs (A–F) mergeados. Settings Memory (`user.md` + budget), decay/trust, nudges fallback, terminate-modal promote-skills, docs.
-- **M12 em andamento** — PR-A (biblioteca de papéis), PR-B (Manual Operacional embutido), PR-C (bundle de instruções por agente), PR-D1 (geração de charter por IA), PR-D2 (CEO arquiteto de organização — backend) e PR-D3 (tela de revisão do org plan — UI) mergeados 2026-05-18. PR-D dividido em D1/D2-backend/D3-UI/D4. Planos em `docs/superpowers/plans/2026-05-18-m12-pr-*.md`.
-- **1289 testes passing + 2 todo** · 0 lint/typecheck errors
-- HEAD `main`: M12 PR-D3 (org plan review UI) mergeado (2026-05-18)
+- **M12 em andamento** — PR-A..D4 mergeados 2026-05-18: biblioteca de papéis · Manual Operacional · bundle de instruções por agente · geração de charter por IA · CEO arquiteto de organização (backend + UI) · charters no `AGENTS.md`. PR-D dividido em D1/D2-backend/D3-UI/D4. Planos em `docs/superpowers/plans/2026-05-18-m12-pr-*.md`.
+- **1296 testes passing + 2 todo** · 0 lint/typecheck errors
+- HEAD `main`: M12 PR-D4 (charters no AGENTS.md) mergeado (2026-05-18)
 
 ### ▸ Próximo
 
 | Candidato | Escopo | Por quê |
 |---|---|---|
-| 🥇 **M12 Agent & Org Definition Layer** (em andamento) | ✅ PR-A charter de role + `/roles` · ✅ PR-B Manual Operacional embutido · ✅ PR-C bundle de instruções por agente · ✅ PR-D1 geração de charter por IA · ✅ PR-D2 CEO arquiteto de organização (backend) · ✅ PR-D3 tela de revisão do org plan (UI) · ⬜ PR-D4 charters no `AGENTS.md` · ⬜ PR-E `agent_runs` + budget per-agent + Run Policy · ⬜ PR-F consolidação | V2 logo após o M11 — agente bem-instruído fortalece Workflow Plays e Enforced Outcomes. Doc de design em `docs/m12-agent-org-definition-layer.md`. |
+| 🥇 **M12 Agent & Org Definition Layer** (em andamento) | ✅ PR-A charter de role + `/roles` · ✅ PR-B Manual Operacional embutido · ✅ PR-C bundle de instruções por agente · ✅ PR-D1 geração de charter por IA · ✅ PR-D2 CEO arquiteto de organização (backend) · ✅ PR-D3 tela de revisão do org plan (UI) · ✅ PR-D4 charters no `AGENTS.md` · ⬜ PR-E `agent_runs` + budget per-agent + Run Policy · ⬜ PR-F consolidação | V2 logo após o M11 — agente bem-instruído fortalece Workflow Plays e Enforced Outcomes. Doc de design em `docs/m12-agent-org-definition-layer.md`. |
 
-**Recomendação:** seguir o M12 — PR-D4 (estender o `AGENTS.md` para carregar os charters).
+**Recomendação:** seguir o M12 — PR-E (`agent_runs` + budget per-agent + Run Policy).
 
 ### ▸ Horizonte (v1 = M10 fechado · V2 começa em M11)
 
@@ -186,9 +186,9 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 |---|---|
 | Milestones fechados | M1–M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6**, **M9**, **M10** (14/14 do v1 ✅) + **M11** (V2 anchor ✅) |
 | Concluído | **M11 ✅ fechado** 2026-05-18 — **6/6 PRs** ✅ (A capabilities rename · B schema+repos · C MCP tools + Learning tab · D1/D2 derivation pipeline + Candidates UI · E1/E2 role inheritance + org retrospectives · F decay/trust + Settings Memory + nudges + terminate-modal + docs). **V2 anchor fechado.** |
-| Em andamento | **M12 Agent & Org Definition Layer** — PR-A ✅ + PR-B ✅ + PR-C ✅ + PR-D1 ✅ + PR-D2 ✅ + PR-D3 ✅ mergeados 2026-05-18 (biblioteca de papéis · Manual Operacional · bundle de instruções · geração de charter por IA · CEO arquiteto de organização backend + tela de revisão). PR-D dividido em D1/D2-backend/D3-UI/D4; restam PR-D4, PR-E, PR-F. |
-| Testes | **1289 passing + 2 todo**, 0 lint/typecheck errors |
-| Commits no main | ~764 |
+| Em andamento | **M12 Agent & Org Definition Layer** — PR-A..D4 ✅ mergeados 2026-05-18 (biblioteca de papéis · Manual Operacional · bundle de instruções · geração de charter por IA · CEO arquiteto de organização backend + UI · charters no `AGENTS.md`). PR-D dividido em D1/D2-backend/D3-UI/D4; restam PR-E, PR-F. |
+| Testes | **1296 passing + 2 todo**, 0 lint/typecheck errors |
+| Commits no main | ~775 |
 | LoC (apps + packages) | ~23k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
