@@ -41,6 +41,7 @@ import {
   type Memory,
   type SessionSearchHit,
   type SkillCandidate,
+  type AgentRunRow,
 } from "@prospero/shared";
 
 contextBridge.exposeInMainWorld("prospero", {
@@ -374,6 +375,10 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.on(IPC.AGENT_EVENT, handler);
       return () => ipcRenderer.off(IPC.AGENT_EVENT, handler);
     },
+  },
+  runs: {
+    list: (agentId: string, limit?: number) =>
+      ipcRenderer.invoke(IPC.RUNS_LIST, { agentId, limit }) as Promise<AgentRunRow[]>,
   },
   goals: {
     list: (args: { companyId: string; status?: GoalStatus }) =>

@@ -40,6 +40,7 @@ import type {
   Memory,
   SessionSearchHit,
   SkillCandidate,
+  AgentRunRow,
 } from "@prospero/shared";
 
 declare global {
@@ -272,6 +273,9 @@ declare global {
         onNew: (
           cb: (payload: { agentId: string; deltaTokens: number; deltaCents: number }) => void,
         ) => () => void;
+      };
+      runs: {
+        list: (agentId: string, limit?: number) => Promise<AgentRunRow[]>;
       };
       goals: {
         list: (args: { companyId: string; status?: GoalStatus }) => Promise<Goal[]>;
