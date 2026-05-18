@@ -60,4 +60,8 @@ describe("IPC channels", () => {
   it("exposes the M11 terminate-promote channel", () => {
     expect(IPC.SKILLS_PROMOTE_ON_TERMINATE).toBe("skills:promote-on-terminate");
   });
+
+  it("exposes the M12 PR-E runs channel", () => {
+    expect(IPC.RUNS_LIST).toBe("runs:list");
+  });
 });

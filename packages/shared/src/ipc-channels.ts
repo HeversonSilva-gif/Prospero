@@ -94,6 +94,7 @@ export const IPC = {
   COSTS_GET_BUDGETS: "costs:get-budgets",
   COSTS_SET_BUDGETS: "costs:set-budgets",
   COSTS_NEW: "costs:new",
+  RUNS_LIST: "runs:list",
   GOALS_LIST: "goals:list",
   GOALS_GET: "goals:get",
   GOALS_CREATE: "goals:create",
