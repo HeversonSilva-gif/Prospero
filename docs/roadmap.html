@@ -807,6 +807,43 @@
           grid-template-columns: 1fr;
         }
       }
+
+      /* ===== S7 fechamento ===== */
+      .fim {
+        background: var(--accent);
+        color: #fff;
+        text-align: center;
+      }
+      .fim-wrap {
+        max-width: 720px;
+      }
+      .fim-kicker {
+        color: #ffffffcc;
+      }
+      .fim h2 {
+        margin: 12px 0 18px;
+      }
+      .fim-lede {
+        font-size: 1.15rem;
+        color: #fff;
+        opacity: 0.92;
+      }
+      .fim-btn {
+        margin-top: 28px;
+        background: #fff;
+        color: var(--accent-dark);
+      }
+      .fim-btn:hover {
+        transform: translateY(-2px);
+      }
+      .foot {
+        background: var(--bg);
+        border-top: 1px solid var(--line);
+        padding: 28px 24px;
+        text-align: center;
+        color: var(--ink-faint);
+        font-size: 0.85rem;
+      }
     </style>
   </head>
   <body>
@@ -1099,8 +1136,22 @@
           </div>
         </div>
       </section>
-      <!-- sections inserted here by later tasks -->
+      <section id="fim" class="section fim">
+        <div class="wrap fim-wrap reveal">
+          <span class="kicker fim-kicker">Prospero</span>
+          <h2>Pare de executar.<br />Comece a comandar.</h2>
+          <p class="fim-lede">
+            Você não precisa de mais horas no dia. Precisa de um time. O Prospero é a sua empresa de
+            funcionários de IA — você dá o rumo, eles fazem o trabalho, você revisa o resultado.
+          </p>
+          <button class="btn fim-btn" id="fimCta">Voltar ao início &uarr;</button>
+        </div>
+      </section>
     </main>
+
+    <footer class="foot">
+      <div class="wrap">Prospero · construído localmente · funciona offline</div>
+    </footer>
 
     <script>
       (function () {
@@ -1444,7 +1495,23 @@
           select(1);
         }
 
-        /* interactive modules are appended here by Tasks 4, 5, 7, 8 */
+        /* S7 — CTA de fechamento */
+        function closingCta() {
+          var btn = document.getElementById("fimCta");
+          if (!btn) return;
+          if (LINKS.cta) {
+            btn.textContent = "Conheça o Prospero →";
+            btn.addEventListener("click", function () {
+              window.open(LINKS.cta, "_blank", "noopener");
+            });
+          } else {
+            btn.addEventListener("click", function () {
+              document.getElementById("inicio").scrollIntoView({
+                behavior: REDUCED ? "auto" : "smooth",
+              });
+            });
+          }
+        }
 
         function init() {
           try {
@@ -1477,7 +1544,11 @@
           } catch (e) {
             console.warn("timeline failed", e);
           }
-          /* interactive init() calls are added here by later tasks */
+          try {
+            closingCta();
+          } catch (e) {
+            console.warn("closingCta failed", e);
+          }
         }
 
         if (document.readyState === "loading") {
