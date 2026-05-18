@@ -58,6 +58,7 @@ export const IPC = {
   ROLES_CLONE: "roles:clone",
   ROLES_GET_CHARTER: "roles:get-charter",
   ROLES_SAVE_CHARTER: "roles:save-charter",
+  ROLES_GENERATE_CHARTER: "roles:generate-charter",
   INSTRUCTIONS_LIST: "instructions:list",
   INSTRUCTIONS_READ: "instructions:read",
   INSTRUCTIONS_WRITE: "instructions:write",

@@ -8,6 +8,10 @@ import {
   deleteCharterDir,
   copyCharter,
 } from "../agents/role-charter-store.js";
+import { generateCharter } from "../agents/charter-generation.js";
+import { runDerivation, defaultRunProcess } from "../derivation/runner.js";
+import { buildAuthEnv } from "../derivation/index.js";
+import { createSettingsRepository } from "../settings/repository.js";
 
 type RoleSummary = RoleTemplate & { agentCount: number };
 
@@ -91,6 +95,18 @@ export const registerRolesHandlers = (db: Database.Database): void => {
       writeCharter(userDataDir, payload.id, payload.body);
       repo.touch(payload.id);
       return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.ROLES_GENERATE_CHARTER,
+    async (_e, payload: { description: string }): Promise<{ charter: string }> => {
+      const env = buildAuthEnv(db);
+      const companyId = createSettingsRepository(db).read().activeCompanyId;
+      return generateCharter(
+        { db, runDerivation: (i) => runDerivation({ runProcess: defaultRunProcess }, i) },
+        { description: payload.description, env, companyId },
+      );
     },
   );
 };

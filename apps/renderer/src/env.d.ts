@@ -230,6 +230,7 @@ declare global {
         clone: (id: string) => Promise<RoleTemplate>;
         getCharter: (id: string) => Promise<{ body: string }>;
         saveCharter: (id: string, body: string) => Promise<{ ok: true }>;
+        generateCharter: (description: string) => Promise<{ charter: string }>;
       };
       instructions: {
         list: (agentId: string) => Promise<{

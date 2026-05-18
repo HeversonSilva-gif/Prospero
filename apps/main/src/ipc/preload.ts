@@ -295,6 +295,10 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.ROLES_GET_CHARTER, { id }) as Promise<{ body: string }>,
     saveCharter: (id: string, body: string) =>
       ipcRenderer.invoke(IPC.ROLES_SAVE_CHARTER, { id, body }) as Promise<{ ok: true }>,
+    generateCharter: (description: string) =>
+      ipcRenderer.invoke(IPC.ROLES_GENERATE_CHARTER, { description }) as Promise<{
+        charter: string;
+      }>,
   },
   instructions: {
     list: (agentId: string) =>

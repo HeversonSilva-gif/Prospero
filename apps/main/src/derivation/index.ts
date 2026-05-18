@@ -10,7 +10,9 @@ import { loadDecryptedApiKey } from "../auth/api-key-storage.js";
 // Resolves the auth env for the headless runner from the app's configured
 // auth mode. Returns {} if no credential is configured — the run will then
 // fail and be dropped silently, which is acceptable for a background job.
-const buildAuthEnv = (db: Database.Database): Record<string, string> => {
+// Exported (M12 PR-D1): the charter-generation handler reuses it to resolve
+// the headless-call auth env from the app's configured auth mode.
+export const buildAuthEnv = (db: Database.Database): Record<string, string> => {
   const mode = createSettingsRepository(db).read().authMode;
   if (mode === "api-key") {
     const key = loadDecryptedApiKey(db);
