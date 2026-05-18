@@ -190,11 +190,118 @@
       }
 
       /* ===== per-section CSS is appended below by later tasks ===== */
+
+      /* ===== S0 hero ===== */
+      .hero {
+        min-height: 88vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1.3fr 0.7fr;
+        gap: 48px;
+        align-items: center;
+      }
+      .hero-copy h1 {
+        margin: 14px 0 18px;
+      }
+      .hero-copy .hl {
+        color: var(--accent);
+      }
+      .hero-actions {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-top: 28px;
+        flex-wrap: wrap;
+      }
+      .hero-svg {
+        width: 100%;
+        max-width: 320px;
+      }
+      .hero-link {
+        stroke: var(--line);
+        stroke-width: 2.5;
+      }
+      .hero-node {
+        fill: var(--surface);
+        stroke: var(--accent);
+        stroke-width: 2.5;
+      }
+      .hero-ceo {
+        fill: var(--accent);
+      }
+      .hero-pulse {
+        fill: var(--accent);
+        opacity: 0;
+        animation: heroPulse 6s ease-in-out infinite;
+      }
+      @keyframes heroPulse {
+        0% {
+          transform: translateY(0);
+          opacity: 0.9;
+        }
+        60% {
+          opacity: 0.5;
+        }
+        100% {
+          transform: translateY(106px);
+          opacity: 0;
+        }
+      }
+      .scroll-cue {
+        text-align: center;
+        margin-top: 56px;
+        font-size: 0.8rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+      }
+      @media (max-width: 760px) {
+        .hero-grid {
+          grid-template-columns: 1fr;
+        }
+        .hero-art {
+          order: -1;
+        }
+      }
     </style>
   </head>
   <body>
     <main>
-      <!-- sections inserted here by Tasks 2–9 -->
+      <section id="inicio" class="section hero">
+        <div class="wrap hero-grid">
+          <div class="hero-copy reveal">
+            <span class="kicker">Seu time de IA</span>
+            <h1>Delegue <span class="hl">o resultado</span>,<br />não a tarefa.</h1>
+            <p class="lede">
+              Você monta uma empresa de funcionários de IA, pede um objetivo, e recebe o trabalho
+              pronto para revisar.
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="#virada">Ver como funciona &darr;</a>
+              <a class="link" href="#jornada">ou pule para a jornada</a>
+            </div>
+          </div>
+          <div class="hero-art reveal" data-delay="1" aria-hidden="true">
+            <!-- ambient org motif: a CEO node pulsing work down to two reports -->
+            <svg viewBox="0 0 220 180" class="hero-svg" role="img" aria-label="Organograma">
+              <line class="hero-link" x1="110" y1="54" x2="110" y2="92" />
+              <line class="hero-link" x1="60" y1="92" x2="160" y2="92" />
+              <line class="hero-link" x1="60" y1="92" x2="60" y2="120" />
+              <line class="hero-link" x1="160" y1="92" x2="160" y2="120" />
+              <circle class="hero-node hero-ceo" cx="110" cy="36" r="22" />
+              <circle class="hero-node" cx="60" cy="142" r="20" />
+              <circle class="hero-node" cx="160" cy="142" r="20" />
+              <circle class="hero-pulse" cx="110" cy="36" r="6" />
+            </svg>
+          </div>
+        </div>
+        <div class="scroll-cue reveal" data-delay="2" aria-hidden="true">role para descobrir</div>
+      </section>
+      <!-- sections inserted here by later tasks -->
     </main>
 
     <script>
