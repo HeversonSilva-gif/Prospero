@@ -5,6 +5,7 @@ import type { AgentStats } from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 import { useCostsQuery } from "../../hooks/useCostsQuery.js";
 import { formatCents, formatTokens } from "../../lib/costs/formatCents.js";
+import { BudgetSection } from "./BudgetSection.js";
 
 type Props = { agentId: string };
 
@@ -113,6 +114,7 @@ export const StatsTab: FC<Props> = ({ agentId }) => {
       <Link to="/costs" className="text-xs text-brand hover:underline block">
         {t("agent.stats.viewInCosts")}
       </Link>
+      <BudgetSection agentId={agentId} />
     </div>
   );
 };
