@@ -74,7 +74,7 @@ describe("checkDeterministic", () => {
     expect(r.detail).toContain("timeout");
   });
 
-  it("metric check compares the numeric field with the operator", async () => {
+  it("metric check passes when the field satisfies the operator", async () => {
     const c = mkCriterion({
       checkType: "metric",
       checkSpec: {
@@ -91,6 +91,20 @@ describe("checkDeterministic", () => {
       callMetricTool: () => Promise.resolve({ data: { cpa: 30 } }),
     };
     expect((await checkDeterministic(c, passCtx)).status).toBe("passed");
+  });
+
+  it("metric check fails when the field violates the operator", async () => {
+    const c = mkCriterion({
+      checkType: "metric",
+      checkSpec: {
+        checkType: "metric",
+        tool: "fake_metric",
+        params: {},
+        field: "data.cpa",
+        operator: "lt",
+        threshold: 50,
+      },
+    });
     const failCtx: VerifyContext = {
       ...baseCtx(db),
       callMetricTool: () => Promise.resolve({ data: { cpa: 80 } }),
@@ -153,5 +167,41 @@ describe("checkDeterministic", () => {
     });
     const r = await checkDeterministic(c, baseCtx(db));
     expect(r.status).toBe("failed");
+  });
+
+  it("artifact_exists check matches a refPattern", async () => {
+    const issue = createIssuesRepository(db).create({
+      companyId,
+      title: "I",
+      projectId: null,
+      description: null,
+      assigneeId: null,
+      priority: "medium",
+      parentId: null,
+      createdBy: null,
+    });
+    db.prepare("UPDATE issues SET goal_id = ? WHERE id = ?").run(goalId, issue.id);
+    createArtifactsRepository(db).create({
+      issueId: issue.id,
+      kind: "file_path",
+      ref: "out/report.md",
+      contentPreview: null,
+      createdBy: null,
+    });
+    const c = mkCriterion({
+      checkType: "artifact_exists",
+      checkSpec: { checkType: "artifact_exists", artifactKind: "file_path", refPattern: "\\.md$" },
+    });
+    expect((await checkDeterministic(c, baseCtx(db))).status).toBe("passed");
+  });
+
+  it("artifact_exists check fails an invalid refPattern cleanly", async () => {
+    const c = mkCriterion({
+      checkType: "artifact_exists",
+      checkSpec: { checkType: "artifact_exists", artifactKind: "file_path", refPattern: "[" },
+    });
+    const r = await checkDeterministic(c, baseCtx(db));
+    expect(r.status).toBe("failed");
+    expect(r.detail).toContain("invalid refPattern");
   });
 });

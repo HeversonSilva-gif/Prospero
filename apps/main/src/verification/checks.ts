@@ -119,9 +119,21 @@ const checkArtifact = (
   spec: ArtifactCheckSpec,
   ctx: VerifyContext,
 ): CriterionResult => {
+  let re: RegExp | null = null;
+  if (spec.refPattern !== undefined) {
+    try {
+      re = new RegExp(spec.refPattern);
+    } catch {
+      return {
+        criterionId: c.id,
+        status: "failed",
+        detail: `invalid refPattern: ${spec.refPattern}`,
+        resultJson: { error: "invalid_regex" },
+      };
+    }
+  }
   const issues = createIssuesRepository(ctx.db).listByGoal(c.goalId);
   const artifactsRepo = createArtifactsRepository(ctx.db);
-  const re = spec.refPattern !== undefined ? new RegExp(spec.refPattern) : null;
   for (const issue of issues) {
     for (const artifact of artifactsRepo.listByIssue(issue.id)) {
       if (artifact.kind === spec.artifactKind && (re === null || re.test(artifact.ref))) {
