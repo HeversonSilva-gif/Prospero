@@ -1,0 +1,496 @@
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
+
+  .pm-win {
+    --bg: #ffffff;
+    --soft: #f5f5fa;
+    --border: #e8e8e8;
+    --border2: #d4d4da;
+    --text: #070c27;
+    --muted: #48484a;
+    --soft-text: #969696;
+    --blue: #1d5dd7;
+    --blue-dark: #001d5a;
+    --blue-bg: #eaf2fe;
+    --blue-soft: #bee0fe;
+    --green: #16a34a;
+    --green-bg: #dcfce7;
+    --yellow: #ffc520;
+    --yellow-bg: #fef9c3;
+    --red: #e83838;
+    --red-bg: #fee2e2;
+    font-family: "Poppins", system-ui, sans-serif;
+    width: 100%;
+    max-width: 760px;
+    margin: 14px auto 4px;
+    border: 1px solid var(--border2);
+    border-radius: 11px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(7, 12, 39, 0.13);
+    background: var(--bg);
+    color: var(--text);
+  }
+  .pm-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 38px;
+    padding: 0 12px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .pm-bar .co {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .pm-dots {
+    display: flex;
+    gap: 7px;
+  }
+  .pm-dots i {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    display: block;
+  }
+  .pm-body {
+    display: flex;
+    height: 438px;
+  }
+  .pm-side {
+    width: 194px;
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .pm-nav {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 11px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .pm-nav .ic {
+    font-size: 18px;
+  }
+  .pm-nav.on {
+    background: var(--blue-bg);
+    color: var(--blue);
+    font-weight: 600;
+  }
+  .pm-main {
+    flex: 1;
+    background: var(--soft);
+    padding: 22px 24px;
+    overflow: hidden;
+  }
+  .pm-h {
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .pm-sub {
+    font-size: 13px;
+    color: var(--soft-text);
+    margin-top: 2px;
+  }
+  .pm-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  .pm-card-h {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .pm-badge {
+    background: var(--yellow);
+    color: #3a2e00;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 1px 8px;
+  }
+  .pm-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    background: var(--soft);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 11px;
+    margin-top: 9px;
+  }
+  .pm-row .em {
+    font-size: 19px;
+  }
+  .pm-row .tx {
+    flex: 1;
+    line-height: 1.32;
+  }
+  .pm-row .t1 {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .pm-row .t2 {
+    font-size: 11.5px;
+    color: var(--soft-text);
+  }
+  .pm-btn {
+    background: var(--blue);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 7px 14px;
+    white-space: nowrap;
+  }
+  .pm-chips {
+    display: flex;
+    gap: 8px;
+    margin-top: 11px;
+    flex-wrap: wrap;
+  }
+  .pm-chip {
+    font-size: 11.5px;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 6px 10px;
+  }
+  .pm-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* Concept B — hub */
+  .pm-hub {
+    background: var(--soft);
+    padding: 26px 28px;
+    height: 438px;
+  }
+  .pm-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 20px;
+  }
+  .pm-tile {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 19px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .pm-tile .circ {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 23px;
+  }
+  .pm-tile .tt {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .pm-tile .ss {
+    font-size: 12.5px;
+    color: var(--soft-text);
+    line-height: 1.4;
+  }
+
+  /* Concept C — chat */
+  .pm-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 18px 20px;
+    background: var(--soft);
+  }
+  .pm-msg {
+    font-size: 13px;
+    line-height: 1.45;
+    border-radius: 13px;
+    padding: 11px 14px;
+    max-width: 78%;
+    margin-bottom: 10px;
+  }
+  .pm-msg.ai {
+    background: var(--blue-bg);
+    color: var(--text);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .pm-msg.me {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .pm-input {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 13px;
+    padding: 11px 13px;
+  }
+  .pm-input .ph {
+    flex: 1;
+    font-size: 13px;
+    color: var(--soft-text);
+  }
+  .pm-send {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+  }
+  .pm-rail {
+    width: 188px;
+    background: var(--bg);
+    border-left: 1px solid var(--border);
+    padding: 16px 14px;
+  }
+  .pm-rail .rh {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--soft-text);
+    margin-bottom: 12px;
+  }
+  .pm-agent {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 13px;
+  }
+  .pm-agent .av {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--blue-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .pm-agent .an {
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .pm-agent .aa {
+    font-size: 10.5px;
+    color: var(--soft-text);
+  }
+</style>
+
+<h2>Os 3 esqueletos — agora com a cara real do app</h2>
+<p class="subtitle">
+  Mesma fonte (Poppins), mesmas cores e cantos do Prospero. É bem perto de como ficaria de verdade.
+  Role para ver os três e clique no que te agradar.
+</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>A · Barra simples — a barra lateral de hoje, enxugada</h3>
+      <div class="pm-win">
+        <div class="pm-bar">
+          <span class="co">🏢 Minha Empresa ⌄</span>
+          <span class="pm-dots"
+            ><i style="background: #e8e8e8"></i><i style="background: #e8e8e8"></i
+            ><i style="background: #e8e8e8"></i
+          ></span>
+        </div>
+        <div class="pm-body">
+          <div class="pm-side">
+            <div class="pm-nav on"><span class="ic">🏠</span> Início</div>
+            <div class="pm-nav"><span class="ic">✨</span> Pedir algo</div>
+            <div class="pm-nav"><span class="ic">👥</span> Minha equipe</div>
+            <div class="pm-nav" style="margin-top: auto"><span class="ic">⚙️</span> Ajustes</div>
+          </div>
+          <div class="pm-main">
+            <div class="pm-h">Bom dia 👋</div>
+            <div class="pm-sub">Sua empresa trabalhou enquanto você dormia.</div>
+            <div class="pm-card">
+              <div class="pm-card-h">
+                <span class="pm-dot" style="background: #ffc520"></span> Precisa de você
+                <span class="pm-badge">2</span>
+              </div>
+              <div class="pm-row">
+                <span class="em">⚠️</span>
+                <span class="tx"
+                  ><div class="t1">Uma tarefa não passou no teste</div>
+                  <div class="t2">Site novo — a Ana precisa de uma decisão sua</div></span
+                >
+                <span class="pm-btn">Ver</span>
+              </div>
+              <div class="pm-row">
+                <span class="em">✅</span>
+                <span class="tx"
+                  ><div class="t1">Aprovar o texto da campanha</div>
+                  <div class="t2">O Bruno terminou e quer seu OK</div></span
+                >
+                <span class="pm-btn">Ver</span>
+              </div>
+            </div>
+            <div class="pm-chips">
+              <span class="pm-chip" style="background: #dcfce7; color: #16a34a"
+                >✓ 3 concluídas</span
+              >
+              <span class="pm-chip" style="background: #f5f5fa; color: #48484a"
+                >▶ 4 em andamento</span
+              >
+              <span class="pm-chip" style="background: #f5f5fa; color: #48484a"
+                >💰 R$ 2,10 hoje</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      <p>
+        Familiar e baixo risco. Mas ainda é uma barra lateral — continua com cara de "software".
+      </p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>B · Início central — uma tela inicial de cartões, como um celular</h3>
+      <div class="pm-win">
+        <div class="pm-bar">
+          <span class="co">🏢 Minha Empresa ⌄</span>
+          <span class="pm-dots"
+            ><i style="background: #e8e8e8"></i><i style="background: #e8e8e8"></i
+            ><i style="background: #e8e8e8"></i
+          ></span>
+        </div>
+        <div class="pm-hub">
+          <div class="pm-h">Bom dia, Heverson 👋</div>
+          <div class="pm-sub">Aqui está sua empresa hoje. Toque num cartão.</div>
+          <div class="pm-grid">
+            <div class="pm-tile">
+              <div class="circ" style="background: #fef9c3">⚠️</div>
+              <div class="tt">Precisa de você</div>
+              <div class="ss">2 coisas esperando sua decisão.</div>
+            </div>
+            <div class="pm-tile">
+              <div class="circ" style="background: #eaf2fe">✨</div>
+              <div class="tt">Pedir algo novo</div>
+              <div class="ss">Diga o que você quer que a empresa faça.</div>
+            </div>
+            <div class="pm-tile">
+              <div class="circ" style="background: #dcfce7">👥</div>
+              <div class="tt">Minha equipe</div>
+              <div class="ss">4 funcionários — 1 trabalhando agora.</div>
+            </div>
+            <div class="pm-tile">
+              <div class="circ" style="background: #f5f5fa">▶️</div>
+              <div class="tt">O que está rodando</div>
+              <div class="ss">4 tarefas em andamento. 3 prontas hoje.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p>
+        Tão simples quanto a tela de um celular. Cada cartão diz o que dá pra fazer — ensina
+        sozinho. Um toque sempre volta pro Início.
+      </p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>C · Conversa primeiro — você fala, o assistente faz</h3>
+      <div class="pm-win">
+        <div class="pm-bar">
+          <span class="co">🏢 Minha Empresa ⌄</span>
+          <span class="pm-dots"
+            ><i style="background: #e8e8e8"></i><i style="background: #e8e8e8"></i
+            ><i style="background: #e8e8e8"></i
+          ></span>
+        </div>
+        <div class="pm-body">
+          <div class="pm-chat">
+            <div class="pm-msg ai">
+              Bom dia! Esta noite sua empresa terminou 3 tarefas. 2 coisas precisam de uma decisão
+              sua — quer ver agora?
+            </div>
+            <div class="pm-msg me">Quero abrir uma loja online de velas artesanais</div>
+            <div class="pm-msg ai">
+              Ótimo! Vou montar uma equipe pra isso e te mostrar um plano antes de começar. Pode
+              levar uns minutos. 🕯️
+            </div>
+            <div class="pm-input">
+              <span class="ph">Peça ou pergunte qualquer coisa…</span>
+              <span class="pm-send">➤</span>
+            </div>
+          </div>
+          <div class="pm-rail">
+            <div class="rh">Rodando agora</div>
+            <div class="pm-agent">
+              <span class="av">👩</span
+              ><span
+                ><div class="an">Ana</div>
+                <div class="aa">escrevendo textos</div></span
+              >
+            </div>
+            <div class="pm-agent">
+              <span class="av">👨</span
+              ><span
+                ><div class="an">Bruno</div>
+                <div class="aa">pesquisando</div></span
+              >
+            </div>
+            <div class="pm-agent">
+              <span class="av">🧑</span
+              ><span
+                ><div class="an">Caio</div>
+                <div class="aa">aguardando você</div></span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      <p>
+        O mais natural pra quem nunca usou um computador — conversar é universal. Mas exige saber o
+        que pedir; sozinho, pode dar um branco.
+      </p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top: 18px">
+  Continuo achando o <strong>B</strong> o melhor ponto de partida — simples como um celular e os
+  cartões guiam o usuário. Mas agora dá pra sentir os três de verdade. Clique no que te agrada e me
+  conte; depois sigo página por página dentro do escolhido.
+</p>

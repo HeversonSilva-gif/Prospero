@@ -1,0 +1,504 @@
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
+
+  .pm-win {
+    --bg: #fff;
+    --soft: #f5f5fa;
+    --border: #e8e8e8;
+    --border2: #d4d4da;
+    --text: #070c27;
+    --muted: #48484a;
+    --soft-text: #969696;
+    --blue: #1d5dd7;
+    --blue-bg: #eaf2fe;
+    --green: #16a34a;
+    --yellow: #ffc520;
+    font-family: "Poppins", system-ui, sans-serif;
+    width: 100%;
+    max-width: 830px;
+    margin: 16px auto 4px;
+    border: 1px solid var(--border2);
+    border-radius: 11px;
+    overflow: hidden;
+    box-shadow: 0 10px 32px rgba(7, 12, 39, 0.14);
+    background: var(--bg);
+    color: var(--text);
+  }
+  .pm-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 37px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .pm-co {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .pm-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .pm-dots i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #e8e8e8;
+  }
+  .pm-body {
+    display: flex;
+    height: 496px;
+  }
+  .pm-side {
+    width: 170px;
+    border-right: 1px solid var(--border);
+    padding: 13px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .pm-nav {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 10px;
+    border-radius: 9px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .pm-nav.on {
+    background: var(--blue-bg);
+    color: var(--blue);
+    font-weight: 600;
+  }
+  .pm-main {
+    flex: 1;
+    display: flex;
+    min-width: 0;
+  }
+
+  /* project list */
+  .pm-plist {
+    width: 166px;
+    border-right: 1px solid var(--border);
+    padding: 12px 9px;
+    display: flex;
+    flex-direction: column;
+  }
+  .pm-pl-lbl {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--soft-text);
+    padding: 0 6px 8px;
+  }
+  .pm-pi {
+    padding: 9px;
+    border-radius: 8px;
+    margin-bottom: 2px;
+  }
+  .pm-pi.on {
+    background: var(--blue-bg);
+  }
+  .pm-pi .nm {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .pm-pi.on .nm {
+    color: var(--blue);
+  }
+  .pm-pi .mt {
+    font-size: 9px;
+    color: var(--soft-text);
+    margin-top: 2px;
+  }
+  .pm-bar2 {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 5px;
+    overflow: hidden;
+  }
+  .pm-bar2 i {
+    display: block;
+    height: 100%;
+    background: var(--green);
+  }
+  .pm-newp {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--soft-text);
+    padding: 8px 7px;
+    margin-top: auto;
+  }
+
+  /* kanban area */
+  .pm-kbarea {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .pm-khead {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .pm-ktitle {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .pm-folder {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--soft);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 8px;
+  }
+  .pm-kb {
+    flex: 1;
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    background: var(--soft);
+    overflow: hidden;
+  }
+  .pm-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: rgba(120, 120, 120, 0.05);
+    border-radius: 9px;
+    padding: 8px 7px;
+  }
+  .pm-colh {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    padding: 0 2px;
+  }
+  .pm-cdot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+  .pm-cct {
+    color: var(--soft-text);
+  }
+  .pm-task {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 6px;
+  }
+  .pm-task.rev {
+    border-color: #f0d27a;
+    background: #fffdf3;
+  }
+  .pm-tt {
+    font-size: 10.5px;
+    line-height: 1.35;
+  }
+  .pm-tm {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .pm-tav {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #f5f5fa;
+    color: #48484a;
+    font-size: 7.5px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pm-tag {
+    font-size: 8px;
+    color: var(--soft-text);
+  }
+  .pm-wait {
+    font-size: 8px;
+    color: var(--soft-text);
+    font-style: italic;
+    margin-top: 6px;
+  }
+  .pm-revbtn {
+    display: inline-block;
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #9a7b00;
+    background: #fbeeb6;
+    border-radius: 4px;
+    padding: 2px 7px;
+    margin-top: 6px;
+  }
+  .pm-addt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border: 1.4px dashed var(--border2);
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--soft-text);
+  }
+</style>
+
+<h2>Projetos — layout B, revisado com os seus 3 pontos</h2>
+<p class="subtitle">
+  Lista de projetos fixa à esquerda + Kanban à direita. Agora com 4 colunas (entra Revisão), Kanban
+  editável (+ Adicionar tarefa), e a pasta do projeto à mostra.
+</p>
+
+<div class="pm-win">
+  <div class="pm-bar">
+    <span class="pm-co">Minha Empresa</span><span class="pm-dots"><i></i><i></i><i></i></span>
+  </div>
+  <div class="pm-body">
+    <div class="pm-side">
+      <div class="pm-nav">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M3 10.7 12 3l9 7.7" />
+          <path d="M5.5 9.8V20h13V9.8" /></svg
+        >Início
+      </div>
+      <div class="pm-nav">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 3.5 13.8 9.2 19.5 11l-5.7 1.8L12 18.5l-1.8-5.7L4.5 11l5.7-1.8z" /></svg
+        >Pedir algo
+      </div>
+      <div class="pm-nav on">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="3.5" y="4.5" width="7" height="7" rx="1.5" />
+          <rect x="13.5" y="4.5" width="7" height="7" rx="1.5" />
+          <rect x="3.5" y="14.5" width="7" height="5" rx="1.5" />
+          <rect x="13.5" y="14.5" width="7" height="5" rx="1.5" /></svg
+        >Projetos
+      </div>
+      <div class="pm-nav">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="9" cy="8" r="3.3" />
+          <path d="M3.8 19c0-3 2.3-5.2 5.2-5.2S14.2 16 14.2 19" />
+          <path d="M15.6 5.3A3.2 3.2 0 0 1 17 11" /></svg
+        >Minha equipe
+      </div>
+      <div class="pm-nav" style="margin-top: auto">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="4" y1="7" x2="20" y2="7" />
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <line x1="4" y1="17" x2="20" y2="17" /></svg
+        >Ajustes
+      </div>
+    </div>
+
+    <div class="pm-main">
+      <div class="pm-plist">
+        <div class="pm-pl-lbl">Meus projetos</div>
+        <div class="pm-pi on">
+          <div class="nm">Loja de Velas</div>
+          <div class="mt">5 de 8 tarefas</div>
+          <div class="pm-bar2"><i style="width: 62%"></i></div>
+        </div>
+        <div class="pm-pi">
+          <div class="nm">Curso Online</div>
+          <div class="mt">2 de 9 tarefas</div>
+          <div class="pm-bar2"><i style="width: 22%"></i></div>
+        </div>
+        <div class="pm-pi">
+          <div class="nm">Redes Sociais</div>
+          <div class="mt">3 de 4 tarefas</div>
+          <div class="pm-bar2"><i style="width: 75%"></i></div>
+        </div>
+        <div class="pm-newp">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" /></svg
+          >Novo projeto
+        </div>
+      </div>
+
+      <div class="pm-kbarea">
+        <div class="pm-khead">
+          <span class="pm-ktitle">Loja de Velas</span>
+          <span class="pm-folder">
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.9"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M3 7.5a2 2 0 0 1 2-2h4l2 2.2h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+              />
+            </svg>
+            Pasta: Documentos/Loja-de-Velas
+          </span>
+        </div>
+        <div class="pm-kb">
+          <div class="pm-col">
+            <div class="pm-colh">
+              <span class="pm-cdot" style="background: #969696"></span>A FAZER
+              <span class="pm-cct">2</span>
+            </div>
+            <div class="pm-task">
+              <div class="pm-tt">Configurar formas de pagamento</div>
+              <div class="pm-wait">aguardando um agente pegar</div>
+            </div>
+            <div class="pm-task">
+              <div class="pm-tt">Tirar fotos dos produtos</div>
+              <div class="pm-wait">aguardando um agente pegar</div>
+            </div>
+            <div class="pm-addt">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" /></svg
+              >Adicionar tarefa
+            </div>
+          </div>
+
+          <div class="pm-col">
+            <div class="pm-colh">
+              <span class="pm-cdot" style="background: #1d5dd7"></span>FAZENDO
+              <span class="pm-cct">2</span>
+            </div>
+            <div class="pm-task">
+              <div class="pm-tt">Criar a marca e o logo</div>
+              <div class="pm-tm">
+                <span class="pm-tav">BR</span><span class="pm-tag">Bruno</span>
+              </div>
+            </div>
+            <div class="pm-task">
+              <div class="pm-tt">Montar a página inicial</div>
+              <div class="pm-tm">
+                <span class="pm-tav">CA</span><span class="pm-tag">Caio</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pm-col">
+            <div class="pm-colh">
+              <span class="pm-cdot" style="background: #ffc520"></span>REVISÃO
+              <span class="pm-cct">1</span>
+            </div>
+            <div class="pm-task rev">
+              <div class="pm-tt">Texto dos 6 produtos prontos</div>
+              <div class="pm-tm"><span class="pm-tav">AN</span><span class="pm-tag">Ana</span></div>
+              <span class="pm-revbtn">Precisa do seu OK</span>
+            </div>
+          </div>
+
+          <div class="pm-col">
+            <div class="pm-colh">
+              <span class="pm-cdot" style="background: #16a34a"></span>CONCLUÍDO
+              <span class="pm-cct">3</span>
+            </div>
+            <div class="pm-task"><div class="pm-tt">Definir o nome da loja</div></div>
+            <div class="pm-task"><div class="pm-tt">Pesquisar concorrentes</div></div>
+            <div class="pm-task"><div class="pm-tt">Escolher a plataforma</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top: 16px">
+  O que mudou: <strong>4 colunas</strong> (Revisão em amarelo — "precisa do seu OK");
+  <strong>"+ Adicionar tarefa"</strong> em A fazer (você cria, um agente pega — note "aguardando um
+  agente"); a <strong>pasta do projeto</strong> no topo (Documentos/Loja-de-Velas); e "Novo projeto"
+  embaixo da lista (criar = escolher uma pasta). Está assim que você imaginou? Ajusto o que precisar
+  antes de fechar com a tela de Ajustes.
+</p>
