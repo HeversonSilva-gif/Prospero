@@ -38,6 +38,8 @@ export default {
           "danger-bg": "#fee2e2",
           purple: "#7c3aed",
           "purple-bg": "#ede9fe",
+          info: "#2563eb",
+          "info-bg": "#dbeafe",
         },
       },
     },
