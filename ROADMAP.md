@@ -138,16 +138,17 @@
 - **14 / 14 milestones do v1 fechados** — **v1 entregue em 2026-05-15**
 - **M11 ✅ COMPLETO** — V2 anchor fechado (2026-05-18). 6 PRs (A–F) mergeados. Settings Memory (`user.md` + budget), decay/trust, nudges fallback, terminate-modal promote-skills, docs.
 - **M12 ✅ COMPLETO** — todos os 6 PRs (A–F) mergeados. PR-A..E2 mergeados 2026-05-18: biblioteca de papéis · Manual Operacional · bundle de instruções por agente · geração de charter por IA · CEO arquiteto de organização (backend + UI) · charters no `AGENTS.md` · aba Runs · budget por agente + Run Policy. **PR-F mergeado 2026-05-19**: Agent Studio redesenhado — dois modos (Conversa / Estúdio), 6 abas full-width, primitivos de UI compartilhados, doc `docs/agent-studio.md`.
-- **1329 testes passing + 2 todo** · 0 lint/typecheck errors
-- HEAD `main`: M12 PR-F (Agent Studio redesign + docs) mergeado (2026-05-19)
+- **M13 🔄 EM ANDAMENTO** — Espinha de Outcome & Verificação. **PR-A (ISA) mergeado 2026-05-19**: cada objetivo ganha uma definição estruturada do que significa estar "pronto" — um documento de 8 seções em disco, uma lista de critérios verificáveis, um painel de edição na tela do objetivo e geração assistida por IA. Faltam PR-B a F (motor de verificação, TELOS, Algorithm, zonas de contenção).
+- **1391 testes passing + 2 todo** · 0 lint/typecheck errors
+- HEAD `main`: M13 PR-A (ISA — Ideal State Artifact) mergeado (2026-05-19)
 
 ### ▸ Próximo
 
 | Candidato | Escopo | Por quê |
 |---|---|---|
-| 🥇 **M12 Agent & Org Definition Layer** ✅ COMPLETO | ✅ PR-A charter de role + `/roles` · ✅ PR-B Manual Operacional embutido · ✅ PR-C bundle de instruções por agente · ✅ PR-D1 geração de charter por IA · ✅ PR-D2 CEO arquiteto de organização (backend) · ✅ PR-D3 tela de revisão do org plan (UI) · ✅ PR-D4 charters no `AGENTS.md` · ✅ PR-E1 aba Runs (histórico de sessões) · ✅ PR-E2 budget por agente + Run Policy · ✅ PR-F Agent Studio redesenhado (dois modos, 6 abas full-width, UI primitivos) | V2 logo após o M11 — agente bem-instruído fortalece Workflow Plays e Enforced Outcomes. Doc de design em `docs/m12-agent-org-definition-layer.md`. |
+| 🥇 **M13 Espinha de Outcome & Verificação** 🔄 EM ANDAMENTO | ✅ PR-A ISA (definição estruturada de "pronto" + critérios verificáveis + geração por IA) · PR-B motor de verificação · PR-C TELOS (norte da empresa) · PR-D The Algorithm · PR-E zonas de contenção · PR-F consolidação | Concretiza a aposta "Enforced Outcomes" da V2 — torna o "feito" um fato verificável, não uma opinião. Doc de design em `docs/superpowers/specs/2026-05-18-m13-outcome-verification-spine-design.md`. |
 
-**Recomendação:** iniciar o próximo milestone V2 — Enforced Outcomes, Routines, ou Workflow Plays.
+**Recomendação:** seguir o M13 — PR-B (motor de verificação) é o próximo PR.
 
 ### ▸ Horizonte (v1 = M10 fechado · V2 começa em M11)
 
@@ -188,13 +189,13 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 |---|---|
 | Milestones fechados | M1–M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6**, **M9**, **M10** (14/14 do v1 ✅) + **M11** (V2 anchor ✅) |
 | Concluído | **M11 ✅ fechado** 2026-05-18 — **6/6 PRs** ✅ (A capabilities rename · B schema+repos · C MCP tools + Learning tab · D1/D2 derivation pipeline + Candidates UI · E1/E2 role inheritance + org retrospectives · F decay/trust + Settings Memory + nudges + terminate-modal + docs). **V2 anchor fechado.** **M12 ✅ fechado** 2026-05-19 — **6/6 PRs** ✅ (A biblioteca de papéis + charters · B Manual Operacional embutido · C bundle de instruções por agente · D1/D2-backend/D3-UI/D4 geração de charter + CEO arquiteto de org + AGENTS.md com charters · E1/E2 aba Runs + budget + Run Policy · F Agent Studio redesenhado). |
-| Concluído recentemente | **M12 ✅ Agent & Org Definition Layer — COMPLETO** (2026-05-19) — todos os 6 PRs (A–F) mergeados. PR-A..E2 mergeados 2026-05-18; PR-F (Agent Studio redesenhado) mergeado 2026-05-19. |
-| Testes | **1329 passing + 2 todo**, 0 lint/typecheck errors |
-| Commits no main | ~775 |
+| Concluído recentemente | **M13 PR-A — Espinha de Outcome & Verificação (ISA)** mergeado 2026-05-19 — primeiro de 6 PRs do M13. Cada objetivo agora tem um "Artefato de Estado Ideal": documento de 8 seções + critérios verificáveis, painel de edição na tela do objetivo, geração por IA. |
+| Testes | **1391 passing + 2 todo**, 0 lint/typecheck errors |
+| Commits no main | ~810 |
 | LoC (apps + packages) | ~23k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
-| Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** M11 (V2 anchor) também fechado. **M12 em andamento** (PR-A ✅). |
+| Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** M11 + M12 fechados. **M13 em andamento** (PR-A ✅, faltam PR-B a F). |
 | V2 anchor | **M11 Agent Memory & Learning Loop — ✅ COMPLETO** (2026-05-18, 6 PRs). Arquitetura: 3 camadas × 2 níveis, fluxo bidirecional. Spec: `docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md`. Docs: `docs/memory-architecture.md` + `docs/skills-format.md` + `docs/derivation-pipeline.md`. 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). Próximo V2: M12 Agent & Org Definition Layer. |
 
 ---
