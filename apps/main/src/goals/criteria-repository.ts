@@ -16,6 +16,13 @@ export type GoalCriteriaRepository = {
   listByGoal(goalId: string): GoalCriterion[];
   update(id: string, input: UpdateCriterionInput): GoalCriterion;
   delete(id: string): void;
+  applyResult(result: {
+    criterionId: string;
+    status: CriterionStatus;
+    detail: string;
+    resultJson: unknown;
+  }): void;
+  setJudgment(id: string, status: CriterionStatus, verifiedBy: string | null): void;
 };
 
 type CriterionRow = {
@@ -85,6 +92,18 @@ export const createGoalCriteriaRepository = (db: Database.Database): GoalCriteri
     WHERE id = @id
   `);
   const deleteStmt = db.prepare("DELETE FROM goal_criteria WHERE id = ?");
+  const applyResultStmt = db.prepare(`
+    UPDATE goal_criteria SET
+      status = @status, last_checked_at = @checkedAt,
+      last_result_json = @resultJson, updated_at = @updatedAt
+    WHERE id = @id
+  `);
+  const setJudgmentStmt = db.prepare(`
+    UPDATE goal_criteria SET
+      status = @status, verified_by = @verifiedBy,
+      last_checked_at = @checkedAt, updated_at = @updatedAt
+    WHERE id = @id
+  `);
 
   const getById = (id: string): GoalCriterion | null => {
     const row = getByIdStmt.get(id) as CriterionRow | undefined;
@@ -123,6 +142,22 @@ export const createGoalCriteriaRepository = (db: Database.Database): GoalCriteri
     });
   };
 
+  const applyResult: GoalCriteriaRepository["applyResult"] = (result) => {
+    const now = Date.now();
+    applyResultStmt.run({
+      id: result.criterionId,
+      status: result.status,
+      checkedAt: now,
+      resultJson: JSON.stringify(result.resultJson),
+      updatedAt: now,
+    });
+  };
+
+  const setJudgment: GoalCriteriaRepository["setJudgment"] = (id, status, verifiedBy) => {
+    const now = Date.now();
+    setJudgmentStmt.run({ id, status, verifiedBy, checkedAt: now, updatedAt: now });
+  };
+
   const update = (id: string, input: UpdateCriterionInput): GoalCriterion => {
     // checkType/checkSpec may be null here — better-sqlite3 maps JS null to SQL
     // NULL, which correctly clears the columns for a judgment criterion.
@@ -147,5 +182,7 @@ export const createGoalCriteriaRepository = (db: Database.Database): GoalCriteri
     delete: (id) => {
       deleteStmt.run(id);
     },
+    applyResult,
+    setJudgment,
   };
 };

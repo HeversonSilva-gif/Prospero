@@ -102,4 +102,29 @@ describe("goalCriteriaRepository", () => {
     repo.delete(c.id);
     expect(repo.getById(c.id)).toBeNull();
   });
+
+  it("applyResult persists status, timestamp and result json", () => {
+    const repo = createGoalCriteriaRepository(db);
+    const c = repo.create({ goalId, statement: "tests pass", kind: "deterministic" });
+    repo.applyResult({
+      criterionId: c.id,
+      status: "failed",
+      detail: "exit 1",
+      resultJson: { exitCode: 1 },
+    });
+    const fetched = repo.getById(c.id);
+    expect(fetched?.status).toBe("failed");
+    expect(fetched?.lastCheckedAt).not.toBeNull();
+    expect(fetched?.lastResultJson).toBe(JSON.stringify({ exitCode: 1 }));
+  });
+
+  it("setJudgment persists status and verifiedBy", () => {
+    const repo = createGoalCriteriaRepository(db);
+    const c = repo.create({ goalId, statement: "on brand", kind: "judgment" });
+    repo.setJudgment(c.id, "passed", null);
+    const fetched = repo.getById(c.id);
+    expect(fetched?.status).toBe("passed");
+    expect(fetched?.verifiedBy).toBeNull();
+    expect(fetched?.lastCheckedAt).not.toBeNull();
+  });
 });
