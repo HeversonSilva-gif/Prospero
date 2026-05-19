@@ -48,6 +48,8 @@ import {
   type GoalCriterion,
   type IsaDraft,
   type UpdateCriterionInput,
+  type TelosInterviewAnswers,
+  type TelosDraft,
 } from "@prospero/shared";
 
 contextBridge.exposeInMainWorld("prospero", {
@@ -448,6 +450,14 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.ISA_CRITERION_DELETE, args) as Promise<void>,
     criterionJudge: (args: { criterionId: string; verdict: CriterionStatus }) =>
       ipcRenderer.invoke(IPC.ISA_CRITERION_JUDGE, args) as Promise<void>,
+  },
+  telos: {
+    get: (args: { companyId: string }) =>
+      ipcRenderer.invoke(IPC.TELOS_GET, args) as Promise<{ body: string | null }>,
+    save: (args: { companyId: string; body: string }) =>
+      ipcRenderer.invoke(IPC.TELOS_SAVE, args) as Promise<void>,
+    synthesize: (args: { companyId: string; answers: TelosInterviewAnswers }) =>
+      ipcRenderer.invoke(IPC.TELOS_SYNTHESIZE, args) as Promise<TelosDraft>,
   },
   remote: {
     testConnection: () =>

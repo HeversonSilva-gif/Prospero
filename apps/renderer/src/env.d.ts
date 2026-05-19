@@ -47,6 +47,8 @@ import type {
   GoalCriterion,
   IsaDraft,
   UpdateCriterionInput,
+  TelosInterviewAnswers,
+  TelosDraft,
 } from "@prospero/shared";
 
 declare global {
@@ -322,6 +324,14 @@ declare global {
         }) => Promise<GoalCriterion>;
         criterionDelete: (args: { id: string }) => Promise<void>;
         criterionJudge: (args: { criterionId: string; verdict: CriterionStatus }) => Promise<void>;
+      };
+      telos: {
+        get: (args: { companyId: string }) => Promise<{ body: string | null }>;
+        save: (args: { companyId: string; body: string }) => Promise<void>;
+        synthesize: (args: {
+          companyId: string;
+          answers: TelosInterviewAnswers;
+        }) => Promise<TelosDraft>;
       };
       remote: {
         testConnection: () => Promise<{ ok: boolean; message: string }>;
