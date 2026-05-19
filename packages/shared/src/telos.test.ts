@@ -47,4 +47,8 @@ describe("telos module", () => {
     const crlf = TELOS_SKELETON.replace(/\n/g, "\r\n");
     expect(getTelosSection(crlf, "Principles")).toBe("_Describe this section._");
   });
+
+  it("getTelosSection reads the last section (no trailing heading)", () => {
+    expect(getTelosSection(TELOS_SKELETON, "Non-goals")).toBe("_Describe this section._");
+  });
 });
