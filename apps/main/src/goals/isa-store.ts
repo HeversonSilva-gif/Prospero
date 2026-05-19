@@ -35,6 +35,8 @@ export const writeIsa = (userDataDir: string, goal: Goal, body: string): void =>
   writeFileSync(goalIsaPath(userDataDir, goal.companyId, goal.id), body, "utf8");
 };
 
-// Whether a goal's isa.md has been materialized.
+// Whether a goal's isa.md has been materialized. Takes raw ids instead of a
+// Goal so callers with only IPC-level ids (companyId + goalId) need not
+// hydrate the full Goal object.
 export const isaExists = (userDataDir: string, companyId: string, goalId: string): boolean =>
   existsSync(goalIsaPath(userDataDir, companyId, goalId));

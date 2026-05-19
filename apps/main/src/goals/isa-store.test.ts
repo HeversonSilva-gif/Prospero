@@ -61,6 +61,13 @@ describe("isa-store", () => {
     expect(readFileSync(goalIsaPath(root, "company_1", "goal_1"), "utf8")).toBe("# edited\n");
   });
 
+  it("ensureIsa leaves the Vision placeholder when successCriteria is whitespace-only", () => {
+    const root = newTmp();
+    const goal = makeGoal({ successCriteria: "   " });
+    ensureIsa(root, goal);
+    expect(getIsaSection(readIsa(root, goal), "Vision")).toBe("_Describe this section._");
+  });
+
   it("isaExists reflects materialization", () => {
     const root = newTmp();
     const goal = makeGoal();
