@@ -49,6 +49,8 @@ const KIND_BORDER: Record<InboxKind, string> = {
   memory_review_needed: "border-l-4 border-l-brand",
   org_proposed: "border-l-4 border-l-brand",
   budget_warning: "border-l-4 border-l-semantic-warning",
+  verification_failed: "border-l-4 border-l-semantic-danger",
+  verification_review: "border-l-4 border-l-semantic-warning",
 };
 
 type FilterKey = "all" | InboxKind;
@@ -213,6 +215,38 @@ export const Inbox: FC = () => {
                     >
                       {t("inbox.skillPromotion.review")}
                     </button>
+                  );
+                })()}
+              {item.kind === "verification_failed" &&
+                (() => {
+                  const goalId = extractGoalId(item.payloadJson);
+                  if (goalId === null) return null;
+                  return (
+                    <Link
+                      to={`/goals/${goalId}`}
+                      onClick={() => {
+                        if (item.readAt === null) void markRead(item.id);
+                      }}
+                      className="text-xs text-brand hover:underline font-semibold mt-2 inline-block"
+                    >
+                      {t("inbox.verificationFailed.open")} →
+                    </Link>
+                  );
+                })()}
+              {item.kind === "verification_review" &&
+                (() => {
+                  const goalId = extractGoalId(item.payloadJson);
+                  if (goalId === null) return null;
+                  return (
+                    <Link
+                      to={`/goals/${goalId}`}
+                      onClick={() => {
+                        if (item.readAt === null) void markRead(item.id);
+                      }}
+                      className="text-xs text-brand hover:underline font-semibold mt-2 inline-block"
+                    >
+                      {t("inbox.verificationReview.open")} →
+                    </Link>
                   );
                 })()}
               {item.readAt === null && item.requiresAction === false && (
