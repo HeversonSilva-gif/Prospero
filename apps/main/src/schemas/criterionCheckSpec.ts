@@ -18,7 +18,7 @@ const metricCheckSpec = z.object({
   params: z.record(z.unknown()),
   field: z.string().min(1).max(200),
   operator: z.enum(["lt", "lte", "gt", "gte", "eq"]),
-  threshold: z.number(),
+  threshold: z.number().finite(),
 });
 
 const artifactCheckSpec = z.object({
