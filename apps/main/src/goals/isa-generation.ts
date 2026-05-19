@@ -101,6 +101,8 @@ const parseDraft = (raw: string): IsaDraft => {
 
 export type GenerateIsaDeps = {
   db: Database.Database;
+  // Injected so the module is testable without a real claude process. In
+  // production this is the M11 derivation runner.
   runDerivation: (input: {
     prompt: string;
     model: string;

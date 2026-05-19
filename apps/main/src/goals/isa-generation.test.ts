@@ -6,8 +6,14 @@ import type { RunDerivationResult } from "../derivation/runner.js";
 
 const usage = { input: 10, output: 20, cacheCreation: 0, cacheRead: 0 };
 
-const fakeRun = (text: string) => (): Promise<RunDerivationResult> =>
-  Promise.resolve({ text, usage });
+const fakeRun =
+  (text: string) =>
+  (_input: {
+    prompt: string;
+    model: string;
+    env: Record<string, string>;
+  }): Promise<RunDerivationResult> =>
+    Promise.resolve({ text, usage });
 
 describe("generateIsa", () => {
   it("parses a JSON envelope into an IsaDraft", async () => {
@@ -74,5 +80,38 @@ describe("generateIsa", () => {
       | { adapter_name: string }
       | undefined;
     expect(row?.adapter_name).toBe("isa-generation");
+  });
+
+  it("throws on unparseable output", async () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    await expect(
+      generateIsa(
+        { db, runDerivation: fakeRun("not json at all") },
+        { description: "x", env: {}, companyId: null },
+      ),
+    ).rejects.toThrow(/unparseable/);
+  });
+
+  it("throws when the JSON is not an object", async () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    await expect(
+      generateIsa(
+        { db, runDerivation: fakeRun("null") },
+        { description: "x", env: {}, companyId: null },
+      ),
+    ).rejects.toThrow(/no JSON object/);
+  });
+
+  it("throws when the ISA body is absent from the envelope", async () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    await expect(
+      generateIsa(
+        { db, runDerivation: fakeRun(JSON.stringify({ criteria: [] })) },
+        { description: "x", env: {}, companyId: null },
+      ),
+    ).rejects.toThrow(/no ISA body/);
   });
 });
