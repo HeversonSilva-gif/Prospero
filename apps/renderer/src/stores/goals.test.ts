@@ -26,6 +26,7 @@ const mkGoal = (overrides: Partial<Goal> = {}): Goal => ({
   budgetMaxTokens: null,
   deadline: null,
   successCriteria: null,
+  isaPath: null,
   createdAt: 1,
   updatedAt: 1,
   ...overrides,

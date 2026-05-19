@@ -14,6 +14,7 @@ const mk = (id: string, parent: string | null = null): Goal => ({
   budgetMaxTokens: null,
   deadline: null,
   successCriteria: null,
+  isaPath: null,
   createdAt: 0,
   updatedAt: 0,
 });
