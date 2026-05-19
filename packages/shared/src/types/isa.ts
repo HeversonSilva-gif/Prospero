@@ -4,6 +4,7 @@
 // shared breaks the preload sandbox bundle).
 
 export type CriterionKind = "deterministic" | "judgment";
+// Must stay in sync with the checkType discriminants of CriterionCheckSpec.
 export type CriterionCheckType = "command" | "metric" | "artifact_exists";
 export type CriterionStatus = "pending" | "passed" | "failed" | "waived";
 
@@ -41,6 +42,9 @@ export interface GoalCriterion {
   sortOrder: number;
   statement: string;
   kind: CriterionKind;
+  // Invariant: checkType and checkSpec are either both non-null (a
+  // deterministic criterion) or both null (a judgment criterion). The pair
+  // mirrors the goal_criteria.check_type / check_spec DB columns.
   checkType: CriterionCheckType | null;
   checkSpec: CriterionCheckSpec | null;
   status: CriterionStatus;
@@ -73,6 +77,7 @@ export interface UpdateCriterionInput {
 export interface ProposedCriterion {
   statement: string;
   kind: CriterionKind;
+  // A hint only — the user authors the full checkSpec in the confirmation step.
   checkType?: CriterionCheckType;
 }
 
