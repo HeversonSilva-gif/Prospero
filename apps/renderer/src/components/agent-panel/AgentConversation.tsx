@@ -27,7 +27,7 @@ export const AgentConversation: FC<Props> = ({ agent }) => {
 
   useEffect(() => {
     const off = window.prospero.agents.onEvent((ev) => {
-      if (ev.kind === "message-append") {
+      if (ev.kind === "message-append" && ev.agentId === agent.id) {
         void (async () => {
           const all = await window.prospero.messages.listByAgent(agent.id);
           setMessages(all);
