@@ -239,4 +239,32 @@ describe("checkAndPause — per-agent budget", () => {
     expect(r.paused).toBe(true);
     if (r.paused) expect(r.reason).toBe("budget_exceeded_agent");
   });
+
+  it("pauses once with the token metric when both token and USD caps are hit", () => {
+    const deps = makeDeps({
+      getBudgetState: vi.fn().mockReturnValue({
+        tokensLimit: 1000,
+        usdLimit: 100,
+        period: "daily",
+        warnedPeriod: null,
+        adapterName: "claude-api-key-local",
+      }),
+      costsRepo: {
+        insert: vi.fn(),
+        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+        hasAgentRowsForDay: vi.fn().mockReturnValue(false),
+        listRunsByAgent: vi.fn().mockReturnValue([]),
+        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 1000, cents: 100 }),
+      },
+    });
+    const r = checkAndPause(deps, ctx);
+    expect(r.paused).toBe(true);
+    if (r.paused) {
+      expect(r.reason).toBe("budget_exceeded_agent");
+      expect(r.tokens).toBe(1000); // token metric wins, not cents
+      expect(r.limit).toBe(1000);
+    }
+    expect(deps.pauseAgent).toHaveBeenCalledTimes(1); // exactly one pause
+  });
 });

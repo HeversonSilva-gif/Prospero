@@ -124,7 +124,12 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       });
     },
     notifySecurityAlert: (input) => {
-      const limitDesc = input.reason === "budget_exceeded_daily" ? "diário" : "por issue";
+      const limitDesc =
+        input.reason === "budget_exceeded_daily"
+          ? "diário"
+          : input.reason === "budget_exceeded_issue"
+            ? "por issue"
+            : "do agente";
       inbox.create({
         companyId: input.companyId,
         kind: "security_alert",
@@ -146,6 +151,24 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         entityId: input.agentId,
         agentId: input.agentId,
         payload: { reason: input.reason },
+      });
+    },
+    getBudgetState: (agentId) => agents.getBudgetState(agentId),
+    markBudgetWarned: (agentId, key) => {
+      agents.setBudgetWarnedPeriod(agentId, key);
+    },
+    notifyBudgetWarning: (input) => {
+      const periodLabel = input.period === "daily" ? "diário" : "mensal";
+      const fmt = (v: number): string =>
+        input.metric === "tokens" ? `${String(v)} tokens` : `$${(v / 100).toFixed(2)}`;
+      inbox.create({
+        companyId: input.companyId,
+        kind: "budget_warning",
+        actorId: input.agentId,
+        title: `Orçamento ${periodLabel} do agente em 80%`,
+        preview: `Uso: ${fmt(input.used)} de ${fmt(input.limit)}`,
+        payloadJson: JSON.stringify(input),
+        requiresAction: false,
       });
     },
   };
