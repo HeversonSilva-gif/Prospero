@@ -70,4 +70,19 @@ describe("isa_read tool", () => {
       /not found/,
     );
   });
+
+  it("throws when the requested section does not exist", async () => {
+    const { ctx, goalId } = setup();
+    await expect(isaRead.run({ goal_id: goalId, section: "DoesNotExist" }, ctx)).rejects.toThrow(
+      /ISA section not found/,
+    );
+  });
+
+  it("returns an empty criteria array for a goal with no criteria", async () => {
+    const { ctx, goalId } = setup();
+    const out = JSON.parse(await isaRead.run({ goal_id: goalId }, ctx)) as {
+      criteria: unknown[];
+    };
+    expect(out.criteria).toEqual([]);
+  });
 });
