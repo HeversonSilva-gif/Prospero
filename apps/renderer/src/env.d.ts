@@ -311,12 +311,15 @@ declare global {
         narratedRollback: (args: { goalId: string }) => Promise<{ aborted: true }>;
       };
       isa: {
-        get(args: { goalId: string }): Promise<{ body: string; criteria: GoalCriterion[] }>;
-        save(args: { goalId: string; body: string }): Promise<void>;
-        generate(args: { goalId: string }): Promise<IsaDraft>;
-        criterionCreate(args: CreateCriterionInput): Promise<GoalCriterion>;
-        criterionUpdate(args: { id: string; patch: UpdateCriterionInput }): Promise<GoalCriterion>;
-        criterionDelete(args: { id: string }): Promise<void>;
+        get: (args: { goalId: string }) => Promise<{ body: string; criteria: GoalCriterion[] }>;
+        save: (args: { goalId: string; body: string }) => Promise<void>;
+        generate: (args: { goalId: string }) => Promise<IsaDraft>;
+        criterionCreate: (args: CreateCriterionInput) => Promise<GoalCriterion>;
+        criterionUpdate: (args: {
+          id: string;
+          patch: UpdateCriterionInput;
+        }) => Promise<GoalCriterion>;
+        criterionDelete: (args: { id: string }) => Promise<void>;
       };
       remote: {
         testConnection: () => Promise<{ ok: boolean; message: string }>;
