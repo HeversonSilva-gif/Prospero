@@ -4,7 +4,7 @@ import { applyMigrations } from "../db/migrations.js";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
-import { applyVerificationReport, runVerification } from "./index.js";
+import { applyVerificationReport, checkOneCriterion, runVerification } from "./index.js";
 import type { RunVerificationDeps } from "./index.js";
 
 const toVerifying = (db: Database.Database, companyId: string): string => {
@@ -89,5 +89,47 @@ describe("verification gate", () => {
       pendingJudgment: [],
     });
     expect(repo.getById(g.id)?.status).toBe("draft");
+  });
+
+  it("checkOneCriterion runs a deterministic check and persists the result", async () => {
+    const goalId = createGoalsRepository(db).create({ companyId, title: "G" }).id;
+    const crit = createGoalCriteriaRepository(db).create({
+      goalId,
+      statement: "tests pass",
+      kind: "deterministic",
+      checkType: "command",
+      checkSpec: { checkType: "command", command: "x", expectedExitCode: 0, timeoutMs: 1000 },
+    });
+    const result = await checkOneCriterion(db, crit.id, depsWith(0));
+    expect(result.status).toBe("passed");
+    expect(createGoalCriteriaRepository(db).getById(crit.id)?.status).toBe("passed");
+  });
+
+  it("checkOneCriterion persists a failing result", async () => {
+    const goalId = createGoalsRepository(db).create({ companyId, title: "G" }).id;
+    const crit = createGoalCriteriaRepository(db).create({
+      goalId,
+      statement: "tests pass",
+      kind: "deterministic",
+      checkType: "command",
+      checkSpec: { checkType: "command", command: "x", expectedExitCode: 0, timeoutMs: 1000 },
+    });
+    const result = await checkOneCriterion(db, crit.id, depsWith(1));
+    expect(result.status).toBe("failed");
+    expect(createGoalCriteriaRepository(db).getById(crit.id)?.status).toBe("failed");
+  });
+
+  it("checkOneCriterion throws for an unknown criterion", async () => {
+    await expect(checkOneCriterion(db, "nope", depsWith(0))).rejects.toThrow(/not found/);
+  });
+
+  it("checkOneCriterion throws for a judgment criterion", async () => {
+    const goalId = createGoalsRepository(db).create({ companyId, title: "G" }).id;
+    const crit = createGoalCriteriaRepository(db).create({
+      goalId,
+      statement: "on brand",
+      kind: "judgment",
+    });
+    await expect(checkOneCriterion(db, crit.id, depsWith(0))).rejects.toThrow(/deterministic/);
   });
 });

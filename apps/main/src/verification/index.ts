@@ -12,6 +12,7 @@ import { createInboxRepository } from "../inbox/repository.js";
 import { runGoalVerification } from "./engine.js";
 import { runSandboxedCommand } from "./sandbox.js";
 import type { RunSandboxedCommandInput, SandboxedCommandResult } from "./sandbox.js";
+import { checkDeterministic } from "./checks.js";
 import type { VerifyContext } from "./checks.js";
 
 export interface RunVerificationDeps {
@@ -113,6 +114,35 @@ export const runVerification = async (
   applyVerificationReport(db, report);
   deps.notify?.(goal.companyId);
   return report;
+};
+
+// Runs the deterministic check for ONE criterion and persists the result.
+// The single-criterion analog of runVerification — it does NOT run the goal
+// gate (the agent calls this to self-check an ISC while still working an
+// issue; the goal is not yet `verifying`). Throws for an unknown criterion
+// or a judgment criterion (judgment is resolved by criterion_judge, not here).
+export const checkOneCriterion = async (
+  db: Database.Database,
+  criterionId: string,
+  deps: RunVerificationDeps,
+): Promise<CriterionResult> => {
+  const criteriaRepo = createGoalCriteriaRepository(db);
+  const criterion = criteriaRepo.getById(criterionId);
+  if (criterion === null) throw new Error(`criterion not found: ${criterionId}`);
+  if (criterion.kind !== "deterministic") {
+    throw new Error(`criterion ${criterionId} is not a deterministic criterion`);
+  }
+  const goal = createGoalsRepository(db).getById(criterion.goalId);
+  if (goal === null) throw new Error(`goal not found: ${criterion.goalId}`);
+  const ctx: VerifyContext = {
+    db,
+    sandboxRoot: deps.sandboxRootFor(goal),
+    runCommand: deps.runCommand ?? runSandboxedCommand,
+    callMetricTool: deps.callMetricTool,
+  };
+  const result = await checkDeterministic(criterion, ctx);
+  criteriaRepo.applyResult(result);
+  return result;
 };
 
 // Boot recovery: re-run any goal left in `verifying` by a crash/restart.
