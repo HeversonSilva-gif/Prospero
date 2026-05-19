@@ -14,6 +14,7 @@ const sample: Goal = {
   budgetMaxTokens: 100_000,
   deadline: 1_700_000_000_000,
   successCriteria: "Users can sign in",
+  isaPath: null,
   createdAt: 0,
   updatedAt: 0,
 };

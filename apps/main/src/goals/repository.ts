@@ -19,6 +19,7 @@ export type GoalsRepository = {
   listByCompany(companyId: string, filter?: GoalsListFilter): Goal[];
   updateStatus(id: string, to: GoalStatus, reason?: string | null): Goal;
   updateTitleDescription(id: string, patch: { title?: string; description?: string | null }): Goal;
+  setIsaPath(id: string, isaPath: string): void;
   // M8.6 narrated execution
   setExecutionState(goalId: string, state: ExecutionState | null): void;
   getExecutionState(goalId: string): ExecutionState | null;
@@ -48,6 +49,7 @@ type GoalRow = {
   budget_max_tokens: number | null;
   deadline: number | null;
   success_criteria: string | null;
+  isa_path: string | null;
   created_at: number;
   updated_at: number;
 };
@@ -64,6 +66,7 @@ const rowToGoal = (row: GoalRow): Goal => ({
   budgetMaxTokens: row.budget_max_tokens,
   deadline: row.deadline,
   successCriteria: row.success_criteria,
+  isaPath: row.isa_path ?? null,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -102,6 +105,8 @@ export const createGoalsRepository = (db: Database.Database): GoalsRepository =>
       updated_at = @updatedAt
     WHERE id = @id
   `);
+
+  const setIsaPathStmt = db.prepare("UPDATE goals SET isa_path = ?, updated_at = ? WHERE id = ?");
 
   const setExecStateStmt = db.prepare(
     "UPDATE goals SET execution_state_json = ?, updated_at = ? WHERE id = ?",
@@ -148,6 +153,7 @@ export const createGoalsRepository = (db: Database.Database): GoalsRepository =>
       budget_max_tokens: row.budgetMaxTokens,
       deadline: row.deadline,
       success_criteria: row.successCriteria,
+      isa_path: null,
       created_at: row.createdAt,
       updated_at: row.updatedAt,
     });
@@ -196,6 +202,10 @@ export const createGoalsRepository = (db: Database.Database): GoalsRepository =>
     return after;
   };
 
+  const setIsaPath = (id: string, isaPath: string): void => {
+    setIsaPathStmt.run(isaPath, Date.now(), id);
+  };
+
   const setExecutionState = (goalId: string, state: ExecutionState | null): void => {
     setExecStateStmt.run(state === null ? null : JSON.stringify(state), Date.now(), goalId);
   };
@@ -233,6 +243,7 @@ export const createGoalsRepository = (db: Database.Database): GoalsRepository =>
     listByCompany,
     updateStatus,
     updateTitleDescription,
+    setIsaPath,
     setExecutionState,
     getExecutionState,
     findActiveNarratedByCeo,

@@ -14,6 +14,7 @@ const goal = (over: Partial<Goal> = {}): Goal => ({
   budgetMaxTokens: null,
   deadline: null,
   successCriteria: null,
+  isaPath: null,
   createdAt: 0,
   updatedAt: 0,
   ...over,

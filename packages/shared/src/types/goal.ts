@@ -33,6 +33,7 @@ export interface Goal {
   budgetMaxTokens: number | null;
   deadline: number | null;
   successCriteria: string | null;
+  isaPath: string | null;
   createdAt: number;
   updatedAt: number;
 }

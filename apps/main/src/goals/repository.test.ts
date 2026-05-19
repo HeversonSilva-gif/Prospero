@@ -81,6 +81,19 @@ describe("goalsRepository", () => {
     const updated = repo.updateStatus(g.id, "cancelled");
     expect(updated.status).toBe("cancelled");
   });
+
+  it("getById returns isaPath (null by default)", () => {
+    const repo = createGoalsRepository(db);
+    const goal = repo.create({ companyId, title: "Launch" });
+    expect(goal.isaPath).toBeNull();
+  });
+
+  it("setIsaPath persists the relative isa path", () => {
+    const repo = createGoalsRepository(db);
+    const goal = repo.create({ companyId, title: "Launch" });
+    repo.setIsaPath(goal.id, "companies/c/goals/g/isa.md");
+    expect(repo.getById(goal.id)?.isaPath).toBe("companies/c/goals/g/isa.md");
+  });
 });
 
 describe("goalsRepository — narrated execution state", () => {
