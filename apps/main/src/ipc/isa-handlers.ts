@@ -3,6 +3,7 @@ import type Database from "better-sqlite3";
 import { IPC } from "@prospero/shared";
 import type {
   CreateCriterionInput,
+  Goal,
   GoalCriterion,
   IsaDraft,
   UpdateCriterionInput,
@@ -16,7 +17,6 @@ import { criterionCheckSpecSchema } from "../schemas/criterionCheckSpec.js";
 import { runDerivation, defaultRunProcess } from "../derivation/runner.js";
 import type { RunDerivationResult } from "../derivation/runner.js";
 import { buildAuthEnv } from "../derivation/index.js";
-import { createSettingsRepository } from "../settings/repository.js";
 
 export type IsaHandlersDeps = {
   db: Database.Database;
@@ -48,10 +48,9 @@ export const isaHandlers = (deps: IsaHandlersDeps): IsaHandlers => {
   };
 
   // Stamp goals.isa_path the first time an ISA is materialized.
-  const markMaterialized = (goalId: string, companyId: string): void => {
-    const goal = goalsRepo.getById(goalId);
-    if (goal !== null && goal.isaPath === null) {
-      goalsRepo.setIsaPath(goalId, relativeIsaPath(companyId, goalId));
+  const markMaterialized = (goal: Goal): void => {
+    if (goal.isaPath === null) {
+      goalsRepo.setIsaPath(goal.id, relativeIsaPath(goal.companyId, goal.id));
     }
   };
 
@@ -59,24 +58,23 @@ export const isaHandlers = (deps: IsaHandlersDeps): IsaHandlers => {
     get({ goalId }) {
       const goal = requireGoal(goalId);
       const body = readIsa(deps.userDataDir, goal);
-      markMaterialized(goal.id, goal.companyId);
+      markMaterialized(goal);
       return { body, criteria: criteriaRepo.listByGoal(goal.id) };
     },
 
     save({ goalId, body }) {
       const goal = requireGoal(goalId);
       writeIsa(deps.userDataDir, goal, body);
-      markMaterialized(goal.id, goal.companyId);
+      markMaterialized(goal);
     },
 
     generate({ goalId }) {
       const goal = requireGoal(goalId);
       const env = buildAuthEnv(deps.db);
-      const companyId = createSettingsRepository(deps.db).read().activeCompanyId;
       const description = (goal.description ?? "").trim() || goal.title;
       return generateIsa(
         { db: deps.db, runDerivation: deps.runDerivation },
-        { description, env, companyId },
+        { description, env, companyId: goal.companyId },
       );
     },
 
