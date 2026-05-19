@@ -459,6 +459,12 @@
         "required": "Obrigatórias",
         "optional": "Opcionais",
         "addLabel": "Adicionar capacidade…"
+      },
+      "runPolicy": {
+        "label": "Política de Execução",
+        "hint": "Controla como este agente roda e o que ele pode delegar.",
+        "canHire": "Pode contratar e demitir agentes",
+        "canAssign": "Pode atribuir issues a outros"
       }
     },
     "issues": {
@@ -472,7 +478,21 @@
       "costTotal": "Custo total",
       "spark7d": "Últimos 7 dias",
       "viewInCosts": "Ver no /costs →",
-      "lastActivity": "Última atividade"
+      "lastActivity": "Última atividade",
+      "budget": {
+        "label": "Orçamento",
+        "tokens": "Tokens no período",
+        "usd": "Custo no período",
+        "informational": "informativo",
+        "period": "Período",
+        "daily": "Diário",
+        "monthly": "Mensal",
+        "tokenLimit": "Limite de tokens",
+        "usdLimit": "Limite em USD ($)",
+        "unset": "sem limite",
+        "save": "Salvar",
+        "invalid": "Informe um número positivo."
+      }
     },
     "header": {
       "pause": "Pausar",

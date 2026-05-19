@@ -459,6 +459,12 @@
         "required": "Required",
         "optional": "Optional",
         "addLabel": "Add capability…"
+      },
+      "runPolicy": {
+        "label": "Run Policy",
+        "hint": "Controls how this agent runs and what it may delegate.",
+        "canHire": "Can hire and fire agents",
+        "canAssign": "Can assign issues to others"
       }
     },
     "issues": {
@@ -472,7 +478,21 @@
       "costTotal": "Total cost",
       "spark7d": "Last 7 days",
       "viewInCosts": "View in /costs →",
-      "lastActivity": "Last activity"
+      "lastActivity": "Last activity",
+      "budget": {
+        "label": "Budget",
+        "tokens": "Tokens this period",
+        "usd": "Cost this period",
+        "informational": "informational",
+        "period": "Period",
+        "daily": "Daily",
+        "monthly": "Monthly",
+        "tokenLimit": "Token limit",
+        "usdLimit": "USD limit ($)",
+        "unset": "no limit",
+        "save": "Save",
+        "invalid": "Enter a positive number."
+      }
     },
     "header": {
       "pause": "Pause",
