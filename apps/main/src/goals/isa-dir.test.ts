@@ -24,9 +24,8 @@ describe("isa-dir", () => {
   });
 
   it("goalIsaPath points at isa.md inside the goal directory", () => {
-    const root = newTmp();
-    expect(goalIsaPath(root, "company_1", "goal_1")).toBe(
-      join(root, "companies", "company_1", "goals", "goal_1", "isa.md"),
+    expect(goalIsaPath("/fake/root", "company_1", "goal_1")).toBe(
+      join("/fake/root", "companies", "company_1", "goals", "goal_1", "isa.md"),
     );
   });
 
@@ -38,6 +37,8 @@ describe("isa-dir", () => {
     expect(() => assertSafePathSegment("..", "goal id")).toThrow(/unsafe goal id/);
     expect(() => assertSafePathSegment("a/b", "goal id")).toThrow();
     expect(() => assertSafePathSegment("a.b", "goal id")).toThrow();
+    expect(() => assertSafePathSegment("", "goal id")).toThrow();
+    expect(() => assertSafePathSegment("a\\b", "goal id")).toThrow();
     expect(() => assertSafePathSegment("goal_1", "goal id")).not.toThrow();
   });
 

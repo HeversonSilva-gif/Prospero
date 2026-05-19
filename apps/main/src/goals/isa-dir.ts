@@ -35,5 +35,8 @@ export const goalIsaPath = (userDataDir: string, companyId: string, goalId: stri
 };
 
 // Stable forward-slash relative path stored in goals.isa_path as a marker.
-export const relativeIsaPath = (companyId: string, goalId: string): string =>
-  `companies/${companyId}/goals/${goalId}/isa.md`;
+export const relativeIsaPath = (companyId: string, goalId: string): string => {
+  assertSafePathSegment(companyId, "company id");
+  assertSafePathSegment(goalId, "goal id");
+  return `companies/${companyId}/goals/${goalId}/isa.md`;
+};
