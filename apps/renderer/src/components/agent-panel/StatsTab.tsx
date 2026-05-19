@@ -6,6 +6,7 @@ import { useAgentsStore } from "../../stores/agents.js";
 import { useCostsQuery } from "../../hooks/useCostsQuery.js";
 import { formatCents, formatTokens } from "../../lib/costs/formatCents.js";
 import { BudgetSection } from "./BudgetSection.js";
+import { Section, LoadingState } from "../ui/index.js";
 
 type Props = { agentId: string };
 
@@ -24,6 +25,25 @@ const useCompanyId = (): string | null => {
   }, []);
   return companyId;
 };
+
+/** Single stat cell — label on top, value below */
+const StatCell: FC<{ label: string; value: string; accent?: boolean; muted?: boolean }> = ({
+  label,
+  value,
+  accent = false,
+  muted = false,
+}) => (
+  <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-soft border border-surface-border">
+    <span className="text-[10px] uppercase tracking-wide font-semibold text-ink-soft">{label}</span>
+    <span
+      className={`text-xl font-bold tabular-nums leading-none ${
+        accent ? "text-brand-dark" : muted ? "text-ink-muted" : "text-ink"
+      }`}
+    >
+      {value}
+    </span>
+  </div>
+);
 
 export const StatsTab: FC<Props> = ({ agentId }) => {
   const { t } = useTranslation();
@@ -54,67 +74,71 @@ export const StatsTab: FC<Props> = ({ agentId }) => {
     result.buckets.reduce((acc, b) => acc + b.cacheCreationTokens + b.cacheReadTokens, 0);
 
   if (stats === null) {
-    return <div className="p-4 text-xs text-ink-muted">…</div>;
-  }
-  return (
-    <div className="p-4 space-y-4">
-      <dl className="grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <dt className="text-[10px] uppercase text-ink-soft font-semibold">
-            {t("agent.stats.turns")}
-          </dt>
-          <dd className="text-lg font-bold text-brand-dark mt-0.5">{stats.turns}</dd>
-        </div>
-        <div>
-          <dt className="text-[10px] uppercase text-ink-soft font-semibold">
-            {t("agent.stats.lastActivity")}
-          </dt>
-          <dd className="text-[11px] text-ink mt-1.5">{formatTimestamp(stats.lastActivityAt)}</dd>
-        </div>
-      </dl>
-      <div className="border-t border-surface-border pt-3">
-        <div className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
-          {t("agent.stats.spark7d")}
-        </div>
-        <dl className="grid grid-cols-2 gap-3 text-xs">
-          <div>
-            <dt className="text-[10px] uppercase text-ink-soft font-semibold">
-              {t("agent.stats.tokensIn")}
-            </dt>
-            <dd className="text-base font-bold text-ink mt-0.5 tabular-nums">
-              {formatTokens(sumByKey("inputTokens"))}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[10px] uppercase text-ink-soft font-semibold">
-              {t("agent.stats.tokensOut")}
-            </dt>
-            <dd className="text-base font-bold text-ink mt-0.5 tabular-nums">
-              {formatTokens(sumByKey("outputTokens"))}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[10px] uppercase text-ink-soft font-semibold">
-              {t("agent.stats.tokensCache")}
-            </dt>
-            <dd className="text-base font-bold text-ink-muted mt-0.5 tabular-nums">
-              {formatTokens(sumCache())}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[10px] uppercase text-ink-soft font-semibold">
-              {t("agent.stats.costTotal")}
-            </dt>
-            <dd className="text-base font-bold text-brand-dark mt-0.5 tabular-nums">
-              {formatCents(result.total.cents)}
-            </dd>
-          </div>
-        </dl>
+    return (
+      <div className="p-6">
+        <LoadingState />
       </div>
-      <Link to="/costs" className="text-xs text-brand hover:underline block">
-        {t("agent.stats.viewInCosts")}
-      </Link>
-      <BudgetSection agentId={agentId} />
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Two-column layout: metrics left, budget right */}
+      <div className="grid grid-cols-[1fr_1fr] gap-6 items-start">
+        {/* Left column: activity metrics + 7-day breakdown */}
+        <div className="space-y-5">
+          <Section title={t("agent.stats.turns").split(" ")[0] ?? "Activity"}>
+            <div className="grid grid-cols-2 gap-3">
+              <StatCell label={t("agent.stats.turns")} value={String(stats.turns)} accent />
+              <StatCell
+                label={t("agent.stats.lastActivity")}
+                value={formatTimestamp(stats.lastActivityAt)}
+              />
+            </div>
+          </Section>
+
+          <Section title={t("agent.stats.spark7d")}>
+            <div className="grid grid-cols-2 gap-3">
+              <StatCell
+                label={t("agent.stats.tokensIn")}
+                value={formatTokens(sumByKey("inputTokens"))}
+              />
+              <StatCell
+                label={t("agent.stats.tokensOut")}
+                value={formatTokens(sumByKey("outputTokens"))}
+              />
+              <StatCell
+                label={t("agent.stats.tokensCache")}
+                value={formatTokens(sumCache())}
+                muted
+              />
+              <div className="flex flex-col gap-1 p-3 rounded-lg bg-surface-soft border border-surface-border">
+                <span className="text-[10px] uppercase tracking-wide font-semibold text-ink-soft">
+                  {t("agent.stats.costTotal")}
+                </span>
+                <div className="flex items-end justify-between gap-2">
+                  <span className="text-xl font-bold tabular-nums leading-none text-brand-dark">
+                    {formatCents(result.total.cents)}
+                  </span>
+                  <Link
+                    to="/costs"
+                    className="text-[10px] text-brand hover:underline shrink-0 leading-none mb-0.5"
+                  >
+                    {t("agent.stats.viewInCosts")}
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </Section>
+        </div>
+
+        {/* Right column: budget */}
+        <div>
+          <Section title={t("agent.studio.stats.budget")}>
+            <BudgetSection agentId={agentId} />
+          </Section>
+        </div>
+      </div>
     </div>
   );
 };
