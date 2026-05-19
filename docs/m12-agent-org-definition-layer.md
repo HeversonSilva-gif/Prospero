@@ -236,7 +236,9 @@ Regra dura [`feedback_token_efficiency`](../README.md): o uso não pode inflar.
 
 ## 11. Abas do Agent Studio
 
-Hoje: Config · Issues · Stats (3). M11 adiciona Learning. M12 adiciona Instructions/Runs/Budget/Run Policy. Para não explodir em 8 abas, agrupamento proposto (**~6 abas**):
+**Implementado em PR-F.** A tela `/agents/:id` usa um modelo de **dois modos**: **Conversa** (chat, delegações, composer) e **Estúdio** (gestão do agente). A troca de modo é feita por um `TabBar` segmentado abaixo do `AgentHeader` persistente. O Estúdio abre em **tela cheia** — sem o painel lateral de 320px da concepção original.
+
+As **6 abas do Estúdio** são renderizadas em largura total por `AgentStudio.tsx`:
 
 | Aba | Conteúdo |
 |---|---|
@@ -247,7 +249,7 @@ Hoje: Config · Issues · Stats (3). M11 adiciona Learning. M12 adiciona Instruc
 | **Runs** | Histórico de turnos |
 | **Stats** | Métricas + seção **Budget** (tetos token/USD + utilização) |
 
-IA fina é decisão da `frontend-design` skill na implementação.
+Detalhes de implementação em `docs/agent-studio.md`.
 
 ---
 
@@ -271,7 +273,7 @@ IA fina é decisão da `frontend-design` skill na implementação.
 | **C** | `agent_instruction_files` + bundle gerenciado em disco + refactor de `composeSystemPrompt` + aba Instructions (file-tree + editor). |
 | **D** | Assistente de geração de charter (one-shot) + capability "arquiteto de organização" do CEO + `submit_org_plan` + tela de revisão (reusa GoalPlanReview) + contratação em massa + `org_proposed` inbox kind + extensão do `AGENTS.md` para carregar charters. |
 | **E** | `agent_runs` + aba Runs + budget por agente (tokens+USD) + enforcement (estende soft-stop M8) + seção Budget no Stats + Run Policy (permissões) no Config. |
-| **F** | Consolidação da IA das 6 abas + docs + atualização do `roadmap.html`. |
+| **F** ✅ | Consolidação da IA das 6 abas (dois modos Conversa/Estúdio, 6 abas full-width, primitivos `components/ui/`) + docs + atualização do roadmap. |
 
 ---
 
