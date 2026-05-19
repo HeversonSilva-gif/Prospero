@@ -3,6 +3,7 @@ export * from "./types/index.js";
 export * from "./capabilities.js";
 export * from "./charter.js";
 export * from "./isa.js";
+export * from "./telos.js";
 export * from "./wire/transport.js";
 export * from "./wire/codec.js";
 export * from "./wire/client.js";

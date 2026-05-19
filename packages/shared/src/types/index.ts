@@ -15,6 +15,7 @@ export * from "./hire-agent-input.js";
 export * from "./costs.js";
 export * from "./goal.js";
 export * from "./isa.js";
+export * from "./telos.js";
 export * from "./verification.js";
 export * from "./org-plan.js";
 export * from "./memory.js";
