@@ -28,7 +28,7 @@ type State = {
   draft: IsaDraft | null;
   error: string | null;
   load: (goalId: string) => Promise<void>;
-  save: (body: string) => Promise<void>;
+  save: (body: string) => Promise<boolean>;
   generate: () => Promise<void>;
   applyDraft: () => Promise<void>;
   discardDraft: () => void;
@@ -58,12 +58,16 @@ export const useIsaStore = create<State>((set, get) => ({
 
   save: async (body) => {
     const { goalId } = get();
-    if (goalId === null) return;
+    if (goalId === null) return false;
+    // Optimistic — the editor reflects the user's text immediately; a failed
+    // save is retried on the next keystroke via debounced autosave.
     set({ body, error: null });
     try {
       await window.prospero.isa.save({ goalId, body });
+      return true;
     } catch (err) {
       set({ error: err instanceof Error ? err.message : String(err) });
+      return false;
     }
   },
 
@@ -82,17 +86,22 @@ export const useIsaStore = create<State>((set, get) => ({
   applyDraft: async () => {
     const { goalId, draft } = get();
     if (goalId === null || draft === null) return;
-    await get().save(draft.isa);
-    for (const c of draft.criteria) {
-      await window.prospero.isa.criterionCreate({
-        goalId,
-        statement: c.statement,
-        kind: c.kind,
-        checkType: c.checkType ?? null,
-      });
+    const ok = await get().save(draft.isa);
+    if (!ok) return;
+    try {
+      for (const c of draft.criteria) {
+        await window.prospero.isa.criterionCreate({
+          goalId,
+          statement: c.statement,
+          kind: c.kind,
+          checkType: c.checkType ?? null,
+        });
+      }
+      set({ draft: null });
+      await get().load(goalId);
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err) });
     }
-    set({ draft: null });
-    await get().load(goalId);
   },
 
   discardDraft: () => set({ draft: null }),
@@ -120,7 +129,11 @@ export const useIsaStore = create<State>((set, get) => ({
 
   removeCriterion: async (id) => {
     const { goalId } = get();
-    await window.prospero.isa.criterionDelete({ id });
-    if (goalId !== null) await get().load(goalId);
+    try {
+      await window.prospero.isa.criterionDelete({ id });
+      if (goalId !== null) await get().load(goalId);
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err) });
+    }
   },
 }));
