@@ -99,6 +99,9 @@ export const isaHandlers = (deps: IsaHandlersDeps): IsaHandlers => {
     criterionJudge({ criterionId, verdict }) {
       const criterion = criteriaRepo.getById(criterionId);
       if (criterion === null) throw new Error(`criterion not found: ${criterionId}`);
+      if (criterion.kind !== "judgment") {
+        throw new Error(`criterion ${criterionId} is not a judgment criterion`);
+      }
       criteriaRepo.setJudgment(criterionId, verdict, null);
       reevaluateGoalFromState(deps.db, criterion.goalId);
     },

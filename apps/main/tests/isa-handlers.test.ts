@@ -130,4 +130,16 @@ describe("isaHandlers", () => {
     const { h } = setup();
     expect(() => h.criterionJudge({ criterionId: "nope", verdict: "passed" })).toThrow(/not found/);
   });
+
+  it("criterionJudge throws for a deterministic criterion", () => {
+    const { db, h, goalId } = setup();
+    const c = createGoalCriteriaRepository(db).create({
+      goalId,
+      statement: "cmd check",
+      kind: "deterministic",
+      checkType: "command",
+      checkSpec: { checkType: "command", command: "echo ok", expectedExitCode: 0, timeoutMs: 5000 },
+    });
+    expect(() => h.criterionJudge({ criterionId: c.id, verdict: "passed" })).toThrow(/judgment/);
+  });
 });
