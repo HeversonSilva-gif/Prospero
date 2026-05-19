@@ -5,6 +5,7 @@ import {
   ensureChatCapability,
   capabilitiesToTools,
   resolveCapabilityTools,
+  applyRunPolicy,
 } from "../src/capabilities.js";
 
 describe("capability catalog", () => {
@@ -126,5 +127,37 @@ describe("resolveCapabilityTools force-adds memory", () => {
     const tools = resolveCapabilityTools(["shell"]);
     expect(tools).toContain("mcp__dashboard__skill_search");
     expect(tools).toContain("mcp__dashboard__memory_add");
+  });
+});
+
+const ALL = [
+  "mcp__dashboard__hire_agent",
+  "mcp__dashboard__fire_agent",
+  "mcp__dashboard__message_agent",
+  "mcp__dashboard__list_agents",
+  "mcp__dashboard__read_thread",
+  "mcp__dashboard__assign_issue",
+  "mcp__dashboard__create_issue",
+];
+
+describe("applyRunPolicy", () => {
+  it("returns the list unchanged when both flags are true", () => {
+    expect(applyRunPolicy(ALL, { canHire: true, canAssign: true })).toEqual(ALL);
+  });
+
+  it("removes hire_agent and fire_agent when canHire is false", () => {
+    const out = applyRunPolicy(ALL, { canHire: false, canAssign: true });
+    expect(out).not.toContain("mcp__dashboard__hire_agent");
+    expect(out).not.toContain("mcp__dashboard__fire_agent");
+    expect(out).toContain("mcp__dashboard__message_agent");
+    expect(out).toContain("mcp__dashboard__list_agents");
+    expect(out).toContain("mcp__dashboard__assign_issue");
+  });
+
+  it("removes assign_issue when canAssign is false", () => {
+    const out = applyRunPolicy(ALL, { canHire: true, canAssign: false });
+    expect(out).not.toContain("mcp__dashboard__assign_issue");
+    expect(out).toContain("mcp__dashboard__create_issue");
+    expect(out).toContain("mcp__dashboard__hire_agent");
   });
 });

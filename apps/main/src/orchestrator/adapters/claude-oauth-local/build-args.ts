@@ -1,4 +1,4 @@
-import { resolveCapabilityTools, type Agent } from "@prospero/shared";
+import { resolveCapabilityTools, applyRunPolicy, type Agent } from "@prospero/shared";
 import { composeSystemPrompt } from "../../system-prompt.js";
 import { goalsSystemPromptBlock } from "../../system-prompt-goals.js";
 import { orgArchitectSystemPromptBlock } from "../../system-prompt-org.js";
@@ -17,7 +17,10 @@ export const buildClaudeArgs = (
   mcpConfigPath: string | null,
   opts: { narratedActive?: boolean; memoryBlock?: string; instructionsBlock?: string } = {},
 ): string[] => {
-  const allowedTools = resolveCapabilityTools(agent.capabilities);
+  const allowedTools = applyRunPolicy(resolveCapabilityTools(agent.capabilities), {
+    canHire: agent.canHire,
+    canAssign: agent.canAssign,
+  });
   const isCeo = agent.role === "ceo" || agent.role === "CEO";
   const narratedBlock = opts.narratedActive === true ? buildNarratedBlock() : undefined;
   const args = [

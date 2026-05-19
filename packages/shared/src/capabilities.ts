@@ -141,3 +141,22 @@ export const capabilitiesToTools = (capabilities: string[]): string[] => {
 export const resolveCapabilityTools = (capabilities: string[]): string[] => {
   return capabilitiesToTools(ensureMemoryCapability(ensureChatCapability(capabilities)));
 };
+
+// M12 PR-E2: Run Policy is a fine sub-toggle of the delegation/issues
+// capabilities. It only ever *removes* tools from the resolved list — never
+// adds. Applied after resolveCapabilityTools, at spawn time.
+export const applyRunPolicy = (
+  tools: string[],
+  policy: { canHire: boolean; canAssign: boolean },
+): string[] => {
+  let out = tools;
+  if (!policy.canHire) {
+    out = out.filter(
+      (t) => t !== "mcp__dashboard__hire_agent" && t !== "mcp__dashboard__fire_agent",
+    );
+  }
+  if (!policy.canAssign) {
+    out = out.filter((t) => t !== "mcp__dashboard__assign_issue");
+  }
+  return out;
+};
