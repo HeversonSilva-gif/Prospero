@@ -13,6 +13,7 @@ import { useSettingsStore } from "../../stores/settings.js";
 import { AgentProjectsEditor } from "./AgentProjectsEditor.js";
 import { ChangeRoleModal } from "./ChangeRoleModal.js";
 import { categorizeCapabilities } from "./capabilityCategorize.js";
+import { Section } from "../ui/index.js";
 
 type Props = { agent: Agent };
 
@@ -94,243 +95,241 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
   };
 
   return (
-    <div className="p-4 space-y-5 text-xs">
-      <section>
-        <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
-          {t("agent.config.role.label")}
-        </h3>
-        <div className="flex items-center gap-2">
-          <span className="text-ink font-medium">
-            {currentRole !== null ? currentRole.name : agent.role || "—"}
-          </span>
-          <button
-            type="button"
-            onClick={() => setShowRoleModal(true)}
-            className="text-[10px] px-2 py-0.5 rounded bg-surface-soft text-ink-muted hover:text-brand"
+    <div className="p-6 space-y-6 text-xs">
+      {/* Two-column grid: collapses to single column on narrow viewports */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ── LEFT COLUMN — Identity ── */}
+        <div className="space-y-6">
+          {/* Role */}
+          <Section
+            title={t("agent.config.role.label")}
+            hint={t("agent.config.role.instructionsHint")}
           >
-            {t("agent.config.role.change")}
-          </button>
-        </div>
-        <p className="text-[10px] text-ink-soft mt-1">{t("agent.config.role.instructionsHint")}</p>
-      </section>
-
-      <section>
-        <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
-          {t("agent.config.model.label")}
-        </h3>
-        <select
-          value={modelPreset}
-          onChange={(e) => void onModelPresetChange(e.target.value)}
-          className="w-full px-2 py-1 border border-surface-border rounded bg-surface text-xs"
-        >
-          {CLAUDE_MODEL_PRESETS.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-          <option value="custom">{t("agent.config.model.custom")}</option>
-        </select>
-        {modelPreset === "custom" && (
-          <input
-            type="text"
-            value={customModel}
-            onChange={(e) => setCustomModel(e.target.value)}
-            onBlur={() => void onCustomModelBlur()}
-            placeholder="claude-..."
-            className="mt-2 w-full px-2 py-1 border border-surface-border rounded bg-surface text-xs font-mono"
-          />
-        )}
-        {modelError !== null && (
-          <p className="mt-1 text-[10px] text-semantic-danger">{modelError}</p>
-        )}
-      </section>
-
-      <section>
-        <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
-          {t("agent.config.reportsTo.label")}
-        </h3>
-        <select
-          value={agent.reportsTo ?? ""}
-          onChange={(e) => {
-            const v = e.target.value;
-            void setReportsTo(agent.id, v === "" ? null : v);
-          }}
-          className="w-full px-2 py-1 border border-surface-border rounded bg-surface text-xs"
-        >
-          <option value="">{t("agent.config.reportsTo.none")}</option>
-          {otherAgents.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
-      </section>
-
-      <section>
-        <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
-          {t("agent.location.label")}
-        </h3>
-        <div className="flex gap-3 text-xs">
-          {(["local", "remote"] as const).map((loc) => {
-            const isRemote = agent.adapterName === "claude-oauth-remote-docker";
-            const current = isRemote ? "remote" : "local";
-            return (
-              <label key={loc} className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="radio"
-                  name={`location-${agent.id}`}
-                  checked={current === loc}
-                  onChange={() => {
-                    const adapterName =
-                      loc === "remote"
-                        ? "claude-oauth-remote-docker"
-                        : authMode === "api-key"
-                          ? "claude-api-key-local"
-                          : "claude-oauth-local";
-                    void setAdapter(agent.id, adapterName);
-                  }}
-                />
-                {t(`agent.location.${loc}`)}
-              </label>
-            );
-          })}
-        </div>
-        <p className="text-[10px] text-ink-soft mt-1">{t("agent.location.hint")}</p>
-      </section>
-
-      <section>
-        <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
-          {t("agent.config.runPolicy.label")}
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <p className="text-[10px] uppercase tracking-wide text-ink-soft mb-1">
-              {t("agent.config.mode.label")}
-            </p>
-            <div className="flex gap-3 text-xs">
-              {(["supervised", "auto"] as const).map((m) => (
-                <label key={m} className="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    name={`mode-${agent.id}`}
-                    checked={agent.mode === m}
-                    onChange={() => void setMode(agent.id, m)}
-                  />
-                  {t(`agent.config.mode.${m}`)}
-                </label>
-              ))}
+            <div className="flex items-center gap-2">
+              <span className="text-ink font-medium">
+                {currentRole !== null ? currentRole.name : agent.role || "—"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowRoleModal(true)}
+                className="text-[10px] px-2 py-0.5 rounded bg-surface-soft text-ink-muted hover:text-brand"
+              >
+                {t("agent.config.role.change")}
+              </button>
             </div>
-          </div>
-          <label className="flex items-center gap-2 text-xs cursor-pointer">
-            <input
-              type="checkbox"
-              checked={agent.alwaysOn}
-              onChange={(e) => void setAlwaysOn(agent.id, e.target.checked)}
-            />
-            <span className="text-ink">{t("agent.config.alwaysOn.label")}</span>
-          </label>
-          <label className="flex items-center gap-2 text-xs cursor-pointer">
-            <input
-              type="checkbox"
-              checked={agent.canHire}
-              onChange={(e) => void setPermissions(agent.id, e.target.checked, agent.canAssign)}
-            />
-            <span className="text-ink">{t("agent.config.runPolicy.canHire")}</span>
-          </label>
-          <label className="flex items-center gap-2 text-xs cursor-pointer">
-            <input
-              type="checkbox"
-              checked={agent.canAssign}
-              onChange={(e) => void setPermissions(agent.id, agent.canHire, e.target.checked)}
-            />
-            <span className="text-ink">{t("agent.config.runPolicy.canAssign")}</span>
-          </label>
+          </Section>
+
+          {/* Model */}
+          <Section title={t("agent.config.model.label")}>
+            <select
+              value={modelPreset}
+              onChange={(e) => void onModelPresetChange(e.target.value)}
+              className="w-full px-2 py-1 border border-surface-border rounded bg-surface text-xs"
+            >
+              {CLAUDE_MODEL_PRESETS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+              <option value="custom">{t("agent.config.model.custom")}</option>
+            </select>
+            {modelPreset === "custom" && (
+              <input
+                type="text"
+                value={customModel}
+                onChange={(e) => setCustomModel(e.target.value)}
+                onBlur={() => void onCustomModelBlur()}
+                placeholder="claude-..."
+                className="mt-2 w-full px-2 py-1 border border-surface-border rounded bg-surface text-xs font-mono"
+              />
+            )}
+            {modelError !== null && (
+              <p className="mt-1 text-[10px] text-semantic-danger">{modelError}</p>
+            )}
+          </Section>
+
+          {/* Reports-to */}
+          <Section title={t("agent.config.reportsTo.label")}>
+            <select
+              value={agent.reportsTo ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                void setReportsTo(agent.id, v === "" ? null : v);
+              }}
+              className="w-full px-2 py-1 border border-surface-border rounded bg-surface text-xs"
+            >
+              <option value="">{t("agent.config.reportsTo.none")}</option>
+              {otherAgents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </Section>
+
+          {/* Location */}
+          <Section title={t("agent.location.label")} hint={t("agent.location.hint")}>
+            <div className="flex gap-3">
+              {(["local", "remote"] as const).map((loc) => {
+                const isRemote = agent.adapterName === "claude-oauth-remote-docker";
+                const current = isRemote ? "remote" : "local";
+                return (
+                  <label key={loc} className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      name={`location-${agent.id}`}
+                      checked={current === loc}
+                      onChange={() => {
+                        const adapterName =
+                          loc === "remote"
+                            ? "claude-oauth-remote-docker"
+                            : authMode === "api-key"
+                              ? "claude-api-key-local"
+                              : "claude-oauth-local";
+                        void setAdapter(agent.id, adapterName);
+                      }}
+                    />
+                    {t(`agent.location.${loc}`)}
+                  </label>
+                );
+              })}
+            </div>
+          </Section>
         </div>
-        <p className="text-[10px] text-ink-soft mt-1">{t("agent.config.runPolicy.hint")}</p>
-      </section>
 
-      <section>
-        <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
-          {t("agent.config.schedule.label")}
-        </h3>
-        <button
-          type="button"
-          onClick={() => void wakeUp(agent.id)}
-          disabled={agent.status === "paused" || agent.status === "terminated"}
-          className="text-xs px-3 py-1 bg-surface-soft text-ink-muted rounded disabled:opacity-50"
-        >
-          ▶ {t("agent.config.schedule.wakeUp")}
-        </button>
-        <p className="text-[10px] text-ink-soft mt-1">{t("agent.config.schedule.wakeUpHint")}</p>
-      </section>
-
-      <section>
-        <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
-          {t("agent.config.capabilities.label")}
-        </h3>
-        {categorizedCapabilities.required.length > 0 && (
-          <div className="mb-2">
-            <p className="text-[10px] uppercase tracking-wide text-ink-soft mb-1">
-              {t("agent.config.capabilitiesEdit.required")}
-            </p>
-            {categorizedCapabilities.required.map((s) => (
-              <label key={s.id} className="flex items-center gap-1 text-xs">
-                <input type="checkbox" checked={s.enabled} disabled />
-                <span>{s.id}</span>
-              </label>
-            ))}
-          </div>
-        )}
-
-        {categorizedCapabilities.optional.length > 0 && (
-          <div className="mb-2">
-            <p className="text-[10px] uppercase tracking-wide text-ink-soft mb-1">
-              {t("agent.config.capabilitiesEdit.optional")}
-            </p>
-            {categorizedCapabilities.optional.map((s) => (
-              <label key={s.id} className="flex items-center gap-1 text-xs cursor-pointer">
+        {/* ── RIGHT COLUMN — Policy, Schedule, Capabilities, Projects ── */}
+        <div className="space-y-6">
+          {/* Run Policy */}
+          <Section
+            title={t("agent.config.runPolicy.label")}
+            hint={t("agent.config.runPolicy.hint")}
+          >
+            <div className="space-y-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-ink-soft mb-1">
+                  {t("agent.config.mode.label")}
+                </p>
+                <div className="flex gap-3">
+                  {(["supervised", "auto"] as const).map((m) => (
+                    <label key={m} className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`mode-${agent.id}`}
+                        checked={agent.mode === m}
+                        onChange={() => void setMode(agent.id, m)}
+                      />
+                      {t(`agent.config.mode.${m}`)}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={s.enabled}
-                  onChange={(e) => {
-                    const next = e.target.checked
-                      ? [...agent.capabilities, s.id]
-                      : agent.capabilities.filter((id) => id !== s.id);
-                    void setCapabilities(agent.id, next);
-                  }}
+                  checked={agent.alwaysOn}
+                  onChange={(e) => void setAlwaysOn(agent.id, e.target.checked)}
                 />
-                <span>{s.id}</span>
+                <span className="text-ink">{t("agent.config.alwaysOn.label")}</span>
               </label>
-            ))}
-          </div>
-        )}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agent.canHire}
+                  onChange={(e) => void setPermissions(agent.id, e.target.checked, agent.canAssign)}
+                />
+                <span className="text-ink">{t("agent.config.runPolicy.canHire")}</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agent.canAssign}
+                  onChange={(e) => void setPermissions(agent.id, agent.canHire, e.target.checked)}
+                />
+                <span className="text-ink">{t("agent.config.runPolicy.canAssign")}</span>
+              </label>
+            </div>
+          </Section>
 
-        {categorizedCapabilities.available.length > 0 && (
-          <select
-            value=""
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v === "") return;
-              void setCapabilities(agent.id, [...agent.capabilities, v]);
-            }}
-            className="text-xs px-2 py-1 border border-surface-border rounded bg-surface w-full mt-1"
+          {/* Schedule */}
+          <Section
+            title={t("agent.config.schedule.label")}
+            hint={t("agent.config.schedule.wakeUpHint")}
           >
-            <option value="">{t("agent.config.capabilitiesEdit.addLabel")}</option>
-            {categorizedCapabilities.available.map((id) => (
-              <option key={id} value={id}>
-                {id}
-              </option>
-            ))}
-          </select>
-        )}
-      </section>
+            <button
+              type="button"
+              onClick={() => void wakeUp(agent.id)}
+              disabled={agent.status === "paused" || agent.status === "terminated"}
+              className="text-xs px-3 py-1 bg-surface-soft text-ink-muted rounded disabled:opacity-50"
+            >
+              ▶ {t("agent.config.schedule.wakeUp")}
+            </button>
+          </Section>
 
-      <section>
-        <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
-          {t("agent.config.projects.label")}
-        </h3>
-        <AgentProjectsEditor agent={agent} allProjects={allProjects} />
-      </section>
+          {/* Capabilities */}
+          <Section title={t("agent.config.capabilities.label")}>
+            {categorizedCapabilities.required.length > 0 && (
+              <div className="mb-2">
+                <p className="text-[10px] uppercase tracking-wide text-ink-soft mb-1">
+                  {t("agent.config.capabilitiesEdit.required")}
+                </p>
+                {categorizedCapabilities.required.map((s) => (
+                  <label key={s.id} className="flex items-center gap-1">
+                    <input type="checkbox" checked={s.enabled} disabled />
+                    <span>{s.id}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {categorizedCapabilities.optional.length > 0 && (
+              <div className="mb-2">
+                <p className="text-[10px] uppercase tracking-wide text-ink-soft mb-1">
+                  {t("agent.config.capabilitiesEdit.optional")}
+                </p>
+                {categorizedCapabilities.optional.map((s) => (
+                  <label key={s.id} className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={s.enabled}
+                      onChange={(e) => {
+                        const next = e.target.checked
+                          ? [...agent.capabilities, s.id]
+                          : agent.capabilities.filter((id) => id !== s.id);
+                        void setCapabilities(agent.id, next);
+                      }}
+                    />
+                    <span>{s.id}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {categorizedCapabilities.available.length > 0 && (
+              <select
+                value=""
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") return;
+                  void setCapabilities(agent.id, [...agent.capabilities, v]);
+                }}
+                className="text-xs px-2 py-1 border border-surface-border rounded bg-surface w-full mt-1"
+              >
+                <option value="">{t("agent.config.capabilitiesEdit.addLabel")}</option>
+                {categorizedCapabilities.available.map((id) => (
+                  <option key={id} value={id}>
+                    {id}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Section>
+
+          {/* Projects */}
+          <Section title={t("agent.config.projects.label")}>
+            <AgentProjectsEditor agent={agent} allProjects={allProjects} />
+          </Section>
+        </div>
+      </div>
 
       {showRoleModal && (
         <ChangeRoleModal
