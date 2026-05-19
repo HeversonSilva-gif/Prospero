@@ -31,7 +31,7 @@ describe("maybeStartVerification", () => {
     goalId = g.id;
   });
 
-  const linkedIssue = (status: "todo" | "done") => {
+  const linkedIssue = (status: "todo" | "done" | "cancelled") => {
     const issue = createIssuesRepository(db).create({
       companyId,
       title: "I",
@@ -57,6 +57,13 @@ describe("maybeStartVerification", () => {
     expect(createGoalsRepository(db).getById(goalId)?.status).toBe("verifying");
   });
 
+  it("triggers when the last issue is cancelled", () => {
+    linkedIssue("cancelled");
+    const last = linkedIssue("done");
+    maybeStartVerification(db, last, deps);
+    expect(createGoalsRepository(db).getById(goalId)?.status).toBe("verifying");
+  });
+
   it("does nothing while an issue is still open", () => {
     linkedIssue("todo");
     const done = linkedIssue("done");
@@ -64,7 +71,7 @@ describe("maybeStartVerification", () => {
     expect(createGoalsRepository(db).getById(goalId)?.status).toBe("in_progress");
   });
 
-  it("does nothing for an issue with no goal", () => {
+  it("does nothing for a done issue with no goal", () => {
     const issue = createIssuesRepository(db).create({
       companyId,
       title: "free",
@@ -75,7 +82,9 @@ describe("maybeStartVerification", () => {
       parentId: null,
       createdBy: null,
     });
+    db.prepare("UPDATE issues SET status = 'done' WHERE id = ?").run(issue.id);
     const done = createIssuesRepository(db).getById(issue.id)!;
     expect(() => maybeStartVerification(db, done, deps)).not.toThrow();
+    expect(createGoalsRepository(db).getById(goalId)?.status).toBe("in_progress");
   });
 });

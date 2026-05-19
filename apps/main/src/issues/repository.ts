@@ -86,6 +86,7 @@ export type IssuesRepository = {
   getDetail(id: string): IssueDetail | null;
   list(filter: ListIssuesFilter): Issue[];
   listByGoal(goalId: string): Issue[];
+  getGoalId(issueId: string): string | null;
   update(id: string, patch: UpdateIssueInput, actor: ActorContext): Issue | null;
   delete(id: string): void;
   resolveProjectByNameOrId(companyId: string, query: string): { id: string; matches: number };
@@ -148,6 +149,7 @@ export const createIssuesRepository = (
   const listByGoalStmt = db.prepare(
     "SELECT * FROM issues WHERE goal_id = ? ORDER BY created_at ASC, id ASC",
   );
+  const getGoalIdStmt = db.prepare("SELECT goal_id FROM issues WHERE id = ?");
 
   const createTx = db.transaction((input: CreateIssueInput, actor: ActorContext): Issue => {
     const id = `iss_${randomUUID()}`;
@@ -288,6 +290,10 @@ export const createIssuesRepository = (
       return (db.prepare(sql).all(...params) as IssueRow[]).map(rowToIssue);
     },
     listByGoal: (goalId) => (listByGoalStmt.all(goalId) as IssueRow[]).map(rowToIssue),
+    getGoalId: (issueId) => {
+      const row = getGoalIdStmt.get(issueId) as { goal_id: string | null } | undefined;
+      return row?.goal_id ?? null;
+    },
     update(id, patch, actor) {
       const current = byId.get(id) as IssueRow | undefined;
       if (current === undefined) return null;

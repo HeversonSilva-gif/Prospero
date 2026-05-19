@@ -330,4 +330,33 @@ describe("issues repository", () => {
     db.prepare("UPDATE issues SET goal_id = ? WHERE id IN (?, ?)").run(goalId, a.id, b.id);
     expect(repo.listByGoal(goalId).map((i) => i.title)).toEqual(["first", "second"]);
   });
+
+  it("getGoalId returns the linked goal id, or null when unlinked", () => {
+    const { db, companyId } = setup();
+    const repo = createIssuesRepository(db);
+    const goalId = createGoalsRepository(db).create({ companyId, title: "G" }).id;
+    const linked = repo.create({
+      companyId,
+      projectId: null,
+      title: "linked",
+      description: null,
+      assigneeId: null,
+      priority: "medium",
+      parentId: null,
+      createdBy: null,
+    });
+    const unlinked = repo.create({
+      companyId,
+      projectId: null,
+      title: "unlinked",
+      description: null,
+      assigneeId: null,
+      priority: "medium",
+      parentId: null,
+      createdBy: null,
+    });
+    db.prepare("UPDATE issues SET goal_id = ? WHERE id = ?").run(goalId, linked.id);
+    expect(repo.getGoalId(linked.id)).toBe(goalId);
+    expect(repo.getGoalId(unlinked.id)).toBeNull();
+  });
 });

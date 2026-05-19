@@ -2,16 +2,14 @@
 // LAST issue of an in_progress goal reaches done/cancelled, the goal moves to
 // `verifying` and verification runs (fire-and-forget).
 //
-// NOTE: The shared `Issue` type does not expose `goalId` — the DB column
-// `issues.goal_id` is not projected by rowToIssue in the issues repository.
-// The trigger resolves the goal link via a direct DB query.
+// NOTE: The shared `Issue` type does not carry `goalId`, so the goal link is
+// resolved via the issues repository's `getGoalId`.
 
 import type Database from "better-sqlite3";
 import type { Issue } from "@prospero/shared";
 import { createGoalsRepository } from "../goals/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
-import { runVerification } from "./index.js";
-import type { RunVerificationDeps } from "./index.js";
+import { runVerification, type RunVerificationDeps } from "./index.js";
 
 export const maybeStartVerification = (
   db: Database.Database,
@@ -20,18 +18,15 @@ export const maybeStartVerification = (
 ): void => {
   if (issue.status !== "done" && issue.status !== "cancelled") return;
 
-  // Resolve the goal_id for this issue via raw SQL (not in the shared Issue type).
-  const row = db.prepare("SELECT goal_id FROM issues WHERE id = ?").get(issue.id) as
-    | { goal_id: string | null }
-    | undefined;
-  const goalId = row?.goal_id ?? null;
+  const issuesRepo = createIssuesRepository(db);
+  const goalId = issuesRepo.getGoalId(issue.id);
   if (goalId === null) return;
 
   const goalsRepo = createGoalsRepository(db);
   const goal = goalsRepo.getById(goalId);
   if (goal === null || goal.status !== "in_progress") return;
 
-  const issues = createIssuesRepository(db).listByGoal(goal.id);
+  const issues = issuesRepo.listByGoal(goal.id);
   const allTerminal =
     issues.length > 0 && issues.every((i) => i.status === "done" || i.status === "cancelled");
   if (!allTerminal) return;

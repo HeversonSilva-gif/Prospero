@@ -37,7 +37,7 @@ export const registerIssuesHandlers = (db: Database.Database): void => {
   const messages = createMessagesRepository(db);
   const agents = createAgentsRepository(db, tryGetRecorder());
   const eventsDir = getEventsDir(app.getPath("userData"));
-  const verificationDeps = buildVerificationDeps(db);
+  const verificationDeps = buildVerificationDeps();
 
   // Wake the assignee agent when an issue is created or reassigned to them.
   // Persists a user-authored message in the [user, assignee] thread and writes

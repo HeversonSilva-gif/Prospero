@@ -3,12 +3,11 @@
 // M13 PR-B1 — an unknown metric tool fails the check cleanly.
 
 import { app, BrowserWindow } from "electron";
-import type Database from "better-sqlite3";
 import { IPC } from "@prospero/shared";
 import { getAgentSandboxCwd } from "../orchestrator/util/paths.js";
 import type { RunVerificationDeps } from "./index.js";
 
-export const buildVerificationDeps = (_db: Database.Database): RunVerificationDeps => {
+export const buildVerificationDeps = (): RunVerificationDeps => {
   let userDataDir = "";
   try {
     userDataDir = app.getPath("userData");
