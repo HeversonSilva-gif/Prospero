@@ -22,6 +22,8 @@ import { computeUnlockedDependents } from "../issues/topo-activation.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { getEventsDir } from "../orchestrator/events-dir.js";
 import { broadcastIssueChanged } from "./issue-events-broadcast.js";
+import { maybeStartVerification } from "../verification/trigger.js";
+import { buildVerificationDeps } from "../verification/deps.js";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -35,6 +37,7 @@ export const registerIssuesHandlers = (db: Database.Database): void => {
   const messages = createMessagesRepository(db);
   const agents = createAgentsRepository(db, tryGetRecorder());
   const eventsDir = getEventsDir(app.getPath("userData"));
+  const verificationDeps = buildVerificationDeps(db);
 
   // Wake the assignee agent when an issue is created or reassigned to them.
   // Persists a user-authored message in the [user, assignee] thread and writes
@@ -186,6 +189,9 @@ export const registerIssuesHandlers = (db: Database.Database): void => {
             });
           }
         }
+        // M13: when the last issue of an in_progress goal finishes, transition
+        // the goal to `verifying` and run the verification engine.
+        maybeStartVerification(db, next, verificationDeps);
       }
       return next;
     },
