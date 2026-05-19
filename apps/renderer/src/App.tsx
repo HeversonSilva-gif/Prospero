@@ -20,6 +20,7 @@ import { useProjectsStore } from "./stores/projects.js";
 import { Issues } from "./routes/Issues.js";
 import { useIssuesStore } from "./stores/issues.js";
 import { Roles } from "./routes/Roles.js";
+import { Telos } from "./routes/Telos.js";
 import { Org } from "./routes/Org.js";
 import { AgentNew } from "./routes/AgentNew.js";
 import { SidebarFooter } from "./components/SidebarFooter.js";
@@ -125,6 +126,14 @@ const Sidebar = () => {
           }
         >
           {t("nav.roles")}
+        </NavLink>
+        <NavLink
+          to="/telos"
+          className={({ isActive }) =>
+            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
+          }
+        >
+          {t("nav.telos")}
         </NavLink>
         <NavLink
           to="/costs"
@@ -396,6 +405,18 @@ export const App = () => {
               hasToken ? (
                 <Layout>
                   <Roles />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/telos"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Telos />
                 </Layout>
               ) : (
                 <Navigate to="/setup" replace />
