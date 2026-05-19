@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { getIsaSection } from "@prospero/shared";
+import { getIsaSection, getTelosSection } from "@prospero/shared";
 import type { ToolContext } from "./tools.js";
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
 import { readIsa } from "../goals/isa-store.js";
 import { checkOneCriterion, reevaluateGoalFromState } from "../verification/index.js";
 import { buildVerificationDeps } from "../verification/deps.js";
+import { readTelos } from "../companies/telos-store.js";
 
 type Tool = {
   name: string;
@@ -108,4 +109,30 @@ const criterionJudge: Tool = {
   },
 };
 
-export const isaToolDefinitions: Tool[] = [isaRead, criterionCheck, criterionJudge];
+// telos_read — lets an agent read its company's TELOS. Read-only,
+// auto-allowed. The system prompt gives the CEO the full TELOS and other
+// agents a 1-line pointer telling them to call this tool.
+const telosRead: Tool = {
+  name: "telos_read",
+  description:
+    "Read your company's TELOS — its mission, long-term goals, principles, ideal state, and non-goals. Pass `section` (e.g. 'Principles') to read only one section.",
+  inputSchema: z.object({
+    section: z.string().min(1).max(120).optional(),
+  }),
+  // eslint-disable-next-line @typescript-eslint/require-await
+  run: async (input, ctx) => {
+    const { section } = telosRead.inputSchema.parse(input) as { section?: string };
+    const body = readTelos(ctx.userDataDir, ctx.companyId);
+    if (body === null) {
+      return JSON.stringify({ exists: false });
+    }
+    if (section !== undefined) {
+      const text = getTelosSection(body, section);
+      if (text === null) throw new Error(`TELOS section not found: ${section}`);
+      return JSON.stringify({ exists: true, section, text });
+    }
+    return JSON.stringify({ exists: true, body });
+  },
+};
+
+export const isaToolDefinitions: Tool[] = [isaRead, criterionCheck, criterionJudge, telosRead];

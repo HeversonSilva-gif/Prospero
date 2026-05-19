@@ -11,6 +11,7 @@ import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
 import { createArtifactsRepository } from "../artifacts/repository.js";
+import { writeTelos } from "../companies/telos-store.js";
 
 const tmps: string[] = [];
 afterEach(() => {
@@ -49,6 +50,7 @@ const setup = (): { ctx: ToolContext; goalId: string } => {
 const isaRead = isaToolDefinitions.find((t) => t.name === "isa_read")!;
 const criterionCheck = isaToolDefinitions.find((t) => t.name === "criterion_check")!;
 const criterionJudge = isaToolDefinitions.find((t) => t.name === "criterion_judge")!;
+const telosRead = isaToolDefinitions.find((t) => t.name === "telos_read")!;
 
 describe("isa_read tool", () => {
   it("returns the materialized ISA body and criteria", async () => {
@@ -233,5 +235,28 @@ describe("criterion_judge tool", () => {
         { ...ctx, companyId: "other" },
       ),
     ).rejects.toThrow(/not found/);
+  });
+});
+
+describe("telos_read tool", () => {
+  it("returns the company TELOS body", async () => {
+    const { ctx } = setup();
+    writeTelos(ctx.userDataDir, ctx.companyId, "# Company TELOS\n\n## Mission\n\nShip fast.");
+    const out = JSON.parse(await telosRead.run({}, ctx)) as { exists: boolean; body: string };
+    expect(out.exists).toBe(true);
+    expect(out.body).toContain("Ship fast.");
+  });
+
+  it("returns exists:false when the company has no TELOS", async () => {
+    const { ctx } = setup();
+    const out = JSON.parse(await telosRead.run({}, ctx)) as { exists: boolean };
+    expect(out.exists).toBe(false);
+  });
+
+  it("returns a single section when `section` is given", async () => {
+    const { ctx } = setup();
+    writeTelos(ctx.userDataDir, ctx.companyId, "# Company TELOS\n\n## Mission\n\nShip fast.");
+    const out = JSON.parse(await telosRead.run({ section: "Mission" }, ctx)) as { text: string };
+    expect(out.text).toBe("Ship fast.");
   });
 });
