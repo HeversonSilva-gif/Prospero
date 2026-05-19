@@ -147,7 +147,9 @@ export const createIssuesRepository = (
     "SELECT * FROM issue_comments WHERE issue_id = ? ORDER BY created_at ASC",
   );
   const listByGoalStmt = db.prepare(
-    "SELECT * FROM issues WHERE goal_id = ? ORDER BY created_at ASC, id ASC",
+    // rowid (SQLite's implicit monotonic insertion counter) breaks created_at
+    // ties deterministically — id is a random uuid, so id ASC is not stable.
+    "SELECT * FROM issues WHERE goal_id = ? ORDER BY created_at ASC, rowid ASC",
   );
   const getGoalIdStmt = db.prepare("SELECT goal_id FROM issues WHERE id = ?");
 
