@@ -266,5 +266,6 @@ describe("checkAndPause — per-agent budget", () => {
       expect(r.limit).toBe(1000);
     }
     expect(deps.pauseAgent).toHaveBeenCalledTimes(1); // exactly one pause
+    expect(deps.notifySecurityAlert).toHaveBeenCalledTimes(1);
   });
 });

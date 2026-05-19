@@ -33,6 +33,7 @@ export type EnforceBudgetDeps = {
     companyId: string;
     agentId: string;
     reason: PauseReason;
+    metric: "tokens" | "usd";
     tokens: number;
     limit: number;
     issueId: string | null;
@@ -68,6 +69,7 @@ export const checkAndPause = (
       companyId: ctx.companyId,
       agentId: ctx.agentId,
       reason,
+      metric: "tokens",
       tokens: daily.tokens,
       limit: budgets.maxTokensPerDayPerAgent,
       issueId: null,
@@ -86,6 +88,7 @@ export const checkAndPause = (
         companyId: ctx.companyId,
         agentId: ctx.agentId,
         reason,
+        metric: "tokens",
         tokens: issueTotal.tokens,
         limit: budgets.maxTokensPerIssue,
         issueId: ctx.issueId,
@@ -114,6 +117,7 @@ export const checkAndPause = (
         companyId: ctx.companyId,
         agentId: ctx.agentId,
         reason,
+        metric: tokenOver ? "tokens" : "usd",
         tokens,
         limit,
         issueId: null,

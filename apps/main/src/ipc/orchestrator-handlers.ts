@@ -130,12 +130,14 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
           : input.reason === "budget_exceeded_issue"
             ? "por issue"
             : "do agente";
+      const fmt = (v: number): string =>
+        input.metric === "usd" ? `$${(v / 100).toFixed(2)}` : `${String(v)} tokens`;
       inbox.create({
         companyId: input.companyId,
         kind: "security_alert",
         actorId: input.agentId,
         title: `Budget ${limitDesc} excedido`,
-        preview: `Agent gastou ${String(input.tokens)} tokens (limite ${String(input.limit)})`,
+        preview: `Agent gastou ${fmt(input.tokens)} (limite ${fmt(input.limit)})`,
         payloadJson: JSON.stringify(input),
         requiresAction: true,
       });
