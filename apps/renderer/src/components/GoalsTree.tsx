@@ -10,6 +10,7 @@ const STATUS_BADGE: Record<GoalStatus, string> = {
   proposed: "bg-semantic-warning/20 text-semantic-warning",
   approved: "bg-semantic-success/20 text-semantic-success",
   in_progress: "bg-semantic-success/20 text-semantic-success",
+  verifying: "bg-semantic-warning/20 text-semantic-warning",
   achieved: "bg-semantic-success text-white",
   cancelled: "bg-surface-soft text-ink-soft",
 };

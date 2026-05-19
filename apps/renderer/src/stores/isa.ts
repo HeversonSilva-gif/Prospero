@@ -3,6 +3,7 @@ import type {
   CriterionCheckSpec,
   CriterionCheckType,
   CriterionKind,
+  CriterionStatus,
   GoalCriterion,
   IsaDraft,
   UpdateCriterionInput,
@@ -35,6 +36,7 @@ type State = {
   addCriterion: (input: NewCriterion) => Promise<void>;
   updateCriterion: (id: string, patch: UpdateCriterionInput) => Promise<void>;
   removeCriterion: (id: string) => Promise<void>;
+  judgeCriterion: (id: string, verdict: CriterionStatus) => Promise<void>;
 };
 
 export const useIsaStore = create<State>((set, get) => ({
@@ -133,6 +135,16 @@ export const useIsaStore = create<State>((set, get) => ({
     const { goalId } = get();
     try {
       await window.prospero.isa.criterionDelete({ id });
+      if (goalId !== null) await get().load(goalId);
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err) });
+    }
+  },
+
+  judgeCriterion: async (id, verdict) => {
+    const { goalId } = get();
+    try {
+      await window.prospero.isa.criterionJudge({ criterionId: id, verdict });
       if (goalId !== null) await get().load(goalId);
     } catch (err) {
       set({ error: err instanceof Error ? err.message : String(err) });

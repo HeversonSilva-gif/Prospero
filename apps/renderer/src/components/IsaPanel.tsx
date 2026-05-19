@@ -1,9 +1,16 @@
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import { validateIsa } from "@prospero/shared";
-import type { CriterionKind } from "@prospero/shared";
+import type { CriterionKind, CriterionStatus } from "@prospero/shared";
 import { useIsaStore } from "../stores/isa.js";
 import { Section, EmptyState, LoadingState } from "./ui/index.js";
+
+const STATUS_DOT: Record<CriterionStatus, string> = {
+  pending: "bg-ink-soft",
+  passed: "bg-semantic-success",
+  failed: "bg-semantic-danger",
+  waived: "bg-ink-muted",
+};
 
 // ISA authoring panel for the goal-detail screen. One textarea for the isa.md
 // body (debounced auto-save, like InstructionsTab) + a criteria list. Live
@@ -130,11 +137,32 @@ const IsaCriteriaList: FC = () => {
               key={c.id}
               className="flex items-center gap-2 text-xs p-2 rounded border border-surface-border bg-surface-card"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-ink-soft shrink-0" aria-hidden />
+              <span
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[c.status]}`}
+                aria-hidden
+              />
               <span className="flex-1 text-ink">{c.statement}</span>
               <span className="text-[10px] uppercase tracking-wide text-ink-soft">
                 {t(`isa.kind.${c.kind}`)}
               </span>
+              {c.kind === "judgment" && c.status === "pending" && (
+                <span className="flex gap-1">
+                  <button
+                    type="button"
+                    className="px-2 py-0.5 text-[10px] rounded border border-surface-border text-semantic-success"
+                    onClick={() => void store.judgeCriterion(c.id, "passed")}
+                  >
+                    {t("isa.judgePass")}
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2 py-0.5 text-[10px] rounded border border-surface-border text-semantic-danger"
+                    onClick={() => void store.judgeCriterion(c.id, "failed")}
+                  >
+                    {t("isa.judgeFail")}
+                  </button>
+                </span>
+              )}
               <button
                 type="button"
                 className="text-ink-soft hover:text-semantic-danger"
