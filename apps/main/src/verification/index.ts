@@ -41,7 +41,10 @@ export const applyVerificationReport = (
       companyId: goal.companyId,
       kind: "verification_failed",
       title: `Verification failed: ${goal.title}`,
-      preview: failed[0]!.detail.slice(0, 200),
+      preview:
+        failed.length > 1
+          ? `${failed[0]!.detail.slice(0, 150)} (+${failed.length - 1} more)`
+          : failed[0]!.detail.slice(0, 200),
       requiresAction: true,
       payloadJson: JSON.stringify({
         goalId: goal.id,
@@ -95,8 +98,10 @@ export const recoverStuckVerifications = (
     id: string;
   }[];
   for (const row of rows) {
-    void runVerification(db, row.id, deps).catch(() => {
-      /* a stuck goal that fails to re-verify stays verifying — surfaced in UI */
+    void runVerification(db, row.id, deps).catch((err: unknown) => {
+      // A stuck goal that fails to re-verify stays `verifying` — visible in the
+      // UI; log so the failure is diagnosable.
+      console.warn(`[verification] recovery failed for goal ${row.id}: ${String(err)}`);
     });
   }
 };
