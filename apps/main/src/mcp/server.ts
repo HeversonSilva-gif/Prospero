@@ -13,6 +13,7 @@ import { goalsToolDefinitions } from "./tools-goals.js";
 import { orgToolDefinitions } from "./tools-org.js";
 import { issuesToolDefinitions } from "./tools-issues.js";
 import { memoryToolDefinitions } from "./tools-memory.js";
+import { isaToolDefinitions } from "./tools-isa.js";
 
 const agentId = process.env["AGENT_ID"];
 const companyId = process.env["COMPANY_ID"];
@@ -83,6 +84,7 @@ const allToolDefinitions = [
   ...orgToolDefinitions,
   ...issuesToolDefinitions,
   ...memoryToolDefinitions,
+  ...isaToolDefinitions,
 ];
 
 for (const def of allToolDefinitions) {
