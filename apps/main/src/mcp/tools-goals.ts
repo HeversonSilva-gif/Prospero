@@ -222,6 +222,9 @@ const submitGoalPlan: Tool = {
       proposedByAgentId: ctx.agentId,
       summary: payload.summary,
       agentsToHire: payload.agentsToHire,
+      // zod infers optional fields as `T | undefined`; under
+      // exactOptionalPropertyTypes that is not assignable to IssueToCreate — the
+      // cast is the standard bridge (the value is already zod-validated).
       issuesToCreate: payload.issuesToCreate as IssueToCreate[],
       estimatedTotalTokens: payload.estimatedTotalTokens ?? null,
       estimatedDurationDays: payload.estimatedDurationDays ?? null,
@@ -409,10 +412,12 @@ const createIssueForPlan: Tool = {
       .run(goal.id, dependsOnIds.length > 0 ? JSON.stringify(dependsOnIds) : null, created.id);
     // M13: link the ISCs this issue advances. Skip ids that don't belong to
     // this goal (a stale criterion id must not abort plan execution).
+    const criteriaRepo = createGoalCriteriaRepository(ctx.db);
+    const issueCriteriaRepo = createIssueCriteriaRepository(ctx.db);
     for (const criterionId of issueSpec.advancesCriteria ?? []) {
-      const criterion = createGoalCriteriaRepository(ctx.db).getById(criterionId);
+      const criterion = criteriaRepo.getById(criterionId);
       if (criterion !== null && criterion.goalId === goal.id) {
-        createIssueCriteriaRepository(ctx.db).link(created.id, criterionId);
+        issueCriteriaRepo.link(created.id, criterionId);
       }
     }
     state.issueIndexToId[planIndex] = created.id;
