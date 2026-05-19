@@ -89,6 +89,7 @@
       "proposed": "Proposed",
       "approved": "Approved",
       "in_progress": "In progress",
+      "verifying": "Verifying",
       "achieved": "Achieved",
       "cancelled": "Cancelled"
     },
@@ -808,6 +809,12 @@
       "allRoles": "All roles",
       "approve": "Approve promotion",
       "cancel": "Cancel"
+    },
+    "verificationFailed": {
+      "open": "Open goal"
+    },
+    "verificationReview": {
+      "open": "Review goal"
     }
   },
   "approval": {
@@ -907,7 +914,9 @@
     "kind": {
       "deterministic": "Deterministic",
       "judgment": "Judgment"
-    }
+    },
+    "judgePass": "Pass",
+    "judgeFail": "Fail"
   },
   "issues": {
     "title": "Issues",

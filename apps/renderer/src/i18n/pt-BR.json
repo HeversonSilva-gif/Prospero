@@ -89,6 +89,7 @@
       "proposed": "Proposto",
       "approved": "Aprovado",
       "in_progress": "Em andamento",
+      "verifying": "Verificando",
       "achieved": "Alcançado",
       "cancelled": "Cancelado"
     },
@@ -808,6 +809,12 @@
       "allRoles": "Todos os papéis",
       "approve": "Aprovar promoção",
       "cancel": "Cancelar"
+    },
+    "verificationFailed": {
+      "open": "Abrir objetivo"
+    },
+    "verificationReview": {
+      "open": "Revisar objetivo"
     }
   },
   "approval": {
@@ -907,7 +914,9 @@
     "kind": {
       "deterministic": "Determinístico",
       "judgment": "Julgamento"
-    }
+    },
+    "judgePass": "Aprovar",
+    "judgeFail": "Reprovar"
   },
   "issues": {
     "title": "Issues",
