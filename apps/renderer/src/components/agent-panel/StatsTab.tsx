@@ -87,7 +87,7 @@ export const StatsTab: FC<Props> = ({ agentId }) => {
       <div className="grid grid-cols-[1fr_1fr] gap-6 items-start">
         {/* Left column: activity metrics + 7-day breakdown */}
         <div className="space-y-5">
-          <Section title={t("agent.stats.turns").split(" ")[0] ?? "Activity"}>
+          <Section title={t("agent.studio.stats.activity")}>
             <div className="grid grid-cols-2 gap-3">
               <StatCell label={t("agent.stats.turns")} value={String(stats.turns)} accent />
               <StatCell
