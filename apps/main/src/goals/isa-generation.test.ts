@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations } from "../db/migrations.js";
-import { generateIsa } from "./isa-generation.js";
+import { generateIsa, buildIsaGenerationPrompt } from "./isa-generation.js";
 import type { RunDerivationResult } from "../derivation/runner.js";
 
 const usage = { input: 10, output: 20, cacheCreation: 0, cacheRead: 0 };
@@ -113,5 +113,15 @@ describe("generateIsa", () => {
         { description: "x", env: {}, companyId: null },
       ),
     ).rejects.toThrow(/no ISA body/);
+  });
+
+  it("buildIsaGenerationPrompt includes the company TELOS when given", () => {
+    const prompt = buildIsaGenerationPrompt("A landing page", "## Ideal State\n\nSame-day pages.");
+    expect(prompt).toContain("Same-day pages.");
+  });
+
+  it("buildIsaGenerationPrompt omits the TELOS section when none is given", () => {
+    const prompt = buildIsaGenerationPrompt("A landing page");
+    expect(prompt).not.toContain("Company TELOS");
   });
 });

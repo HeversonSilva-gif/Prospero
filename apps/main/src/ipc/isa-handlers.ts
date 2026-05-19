@@ -19,6 +19,7 @@ import { runDerivation, defaultRunProcess } from "../derivation/runner.js";
 import type { RunDerivationResult } from "../derivation/runner.js";
 import { buildAuthEnv } from "../derivation/index.js";
 import { reevaluateGoalFromState } from "../verification/index.js";
+import { readTelos } from "../companies/telos-store.js";
 
 export type IsaHandlersDeps = {
   db: Database.Database;
@@ -75,9 +76,10 @@ export const isaHandlers = (deps: IsaHandlersDeps): IsaHandlers => {
       const goal = requireGoal(goalId);
       const env = buildAuthEnv(deps.db);
       const description = (goal.description ?? "").trim() || goal.title;
+      const telos = goal.companyId !== null ? readTelos(deps.userDataDir, goal.companyId) : null;
       return generateIsa(
         { db: deps.db, runDerivation: deps.runDerivation },
-        { description, env, companyId: goal.companyId },
+        { description, env, companyId: goal.companyId, ...(telos !== null ? { telos } : {}) },
       );
     },
 

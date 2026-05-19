@@ -27,7 +27,7 @@ const ISA_EXAMPLE = `{
 }`;
 
 // Builds the single prompt string fed to the headless runner.
-export const buildIsaGenerationPrompt = (description: string): string => {
+export const buildIsaGenerationPrompt = (description: string, telos?: string): string => {
   const sections = ISA_SECTIONS.map((s, i) => `${i + 1}. ${s}`).join("\n");
   return [
     "You are an expert at defining what 'done' means for a business goal.",
@@ -52,6 +52,15 @@ export const buildIsaGenerationPrompt = (description: string): string => {
     "exactly like this example:",
     "",
     ISA_EXAMPLE,
+    ...(telos !== undefined && telos.trim() !== ""
+      ? [
+          "",
+          "Here is the company's TELOS — align the Vision section to its Ideal",
+          "State and respect its Principles and Non-goals:",
+          "",
+          telos.trim(),
+        ]
+      : []),
     "",
     `Goal description: ${description}`,
   ].join("\n");
@@ -114,6 +123,7 @@ export type GenerateIsaInput = {
   description: string;
   env: Record<string, string>;
   companyId: string | null;
+  telos?: string;
 };
 
 export const generateIsa = async (
@@ -124,7 +134,7 @@ export const generateIsa = async (
   if (description === "") throw new Error("a goal description is required");
 
   const result = await deps.runDerivation({
-    prompt: buildIsaGenerationPrompt(description),
+    prompt: buildIsaGenerationPrompt(description, input.telos),
     model: GENERATION_MODEL,
     env: input.env,
   });
