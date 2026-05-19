@@ -27,6 +27,8 @@ export type SpawnContext = {
   // M12 PR-C: pre-assembled instruction bundle (charter + extras), read from
   // the agent's on-disk bundle by the host at spawn time via composeInstructions.
   instructionsBlock?: string;
+  // M13 PR-C: the company TELOS system-prompt block.
+  telosBlock?: string;
 };
 
 export type AssistantContentBlock =

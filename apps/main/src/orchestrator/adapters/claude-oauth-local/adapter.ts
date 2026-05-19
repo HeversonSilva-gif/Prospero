@@ -73,6 +73,7 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
     const handshake = setupMcpHandshake(env, this.ctx.mcpServerJsPath);
     const args = buildClaudeArgs(this.ctx.agent, handshake.mcpConfigPath, {
       ...(this.ctx.narratedActive === true ? { narratedActive: true } : {}),
+      ...(this.ctx.telosBlock !== undefined ? { telosBlock: this.ctx.telosBlock } : {}),
       ...(this.ctx.memoryBlock !== undefined ? { memoryBlock: this.ctx.memoryBlock } : {}),
       ...(this.ctx.instructionsBlock !== undefined
         ? { instructionsBlock: this.ctx.instructionsBlock }

@@ -15,7 +15,12 @@ import { buildNarratedBlock } from "../../system-prompt-narrated.js";
 export const buildClaudeArgs = (
   agent: Agent,
   mcpConfigPath: string | null,
-  opts: { narratedActive?: boolean; memoryBlock?: string; instructionsBlock?: string } = {},
+  opts: {
+    narratedActive?: boolean;
+    memoryBlock?: string;
+    instructionsBlock?: string;
+    telosBlock?: string;
+  } = {},
 ): string[] => {
   const allowedTools = applyRunPolicy(resolveCapabilityTools(agent.capabilities), {
     canHire: agent.canHire,
@@ -32,6 +37,7 @@ export const buildClaudeArgs = (
       capabilities: agent.capabilities,
       ...(isCeo ? { goalsBlock: goalsSystemPromptBlock + orgArchitectSystemPromptBlock } : {}),
       ...(narratedBlock !== undefined ? { narratedBlock } : {}),
+      ...(opts.telosBlock !== undefined ? { telosBlock: opts.telosBlock } : {}),
       ...(opts.memoryBlock !== undefined ? { memoryBlock: opts.memoryBlock } : {}),
     }),
     "--model",

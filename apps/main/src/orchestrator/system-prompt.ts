@@ -31,6 +31,7 @@ export type ComposeArgs = {
   preambleOverride?: string;
   goalsBlock?: string;
   narratedBlock?: string;
+  telosBlock?: string;
   memoryBlock?: string;
 };
 
@@ -59,6 +60,7 @@ your role.
 `;
   const goalsBlock = args.goalsBlock ?? "";
   const narratedBlock = args.narratedBlock ?? "";
+  const telosBlock = args.telosBlock ?? "";
   const memoryBlock = args.memoryBlock ?? "";
   return (
     preamble +
@@ -67,6 +69,7 @@ your role.
     capabilitiesBlock +
     goalsBlock +
     narratedBlock +
+    telosBlock +
     memoryBlock
   );
 };

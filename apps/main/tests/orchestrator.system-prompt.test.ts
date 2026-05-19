@@ -72,4 +72,15 @@ describe("composeSystemPrompt", () => {
     });
     expect(result).not.toContain("# Memory & skills");
   });
+
+  it("includes the telosBlock when provided", () => {
+    const prompt = composeSystemPrompt({
+      agentPersona: "persona",
+      capabilities: ["chat"],
+      preambleOverride: "PRE\n",
+      telosBlock: "\n---\n\n# Company TELOS\n\nShip launch pages.\n",
+    });
+    expect(prompt).toContain("# Company TELOS");
+    expect(prompt).toContain("Ship launch pages.");
+  });
 });
