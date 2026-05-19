@@ -130,15 +130,7 @@ describe("resolveCapabilityTools force-adds memory", () => {
   });
 });
 
-const ALL = [
-  "mcp__dashboard__hire_agent",
-  "mcp__dashboard__fire_agent",
-  "mcp__dashboard__message_agent",
-  "mcp__dashboard__list_agents",
-  "mcp__dashboard__read_thread",
-  "mcp__dashboard__assign_issue",
-  "mcp__dashboard__create_issue",
-];
+const ALL = [...CAPABILITY_CATALOG.delegation.tools, ...CAPABILITY_CATALOG.issues.tools];
 
 describe("applyRunPolicy", () => {
   it("returns the list unchanged when both flags are true", () => {

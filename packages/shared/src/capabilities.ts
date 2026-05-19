@@ -150,6 +150,8 @@ export const applyRunPolicy = (
   policy: { canHire: boolean; canAssign: boolean },
 ): string[] => {
   let out = tools;
+  // These tool names MUST stay in sync with CAPABILITY_CATALOG (delegation /
+  // issues entries). If a tool is renamed in the catalog, update them here too.
   if (!policy.canHire) {
     out = out.filter(
       (t) => t !== "mcp__dashboard__hire_agent" && t !== "mcp__dashboard__fire_agent",
