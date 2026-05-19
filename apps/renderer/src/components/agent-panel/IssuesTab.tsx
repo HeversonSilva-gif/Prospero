@@ -49,7 +49,7 @@ export const IssuesTab: FC<Props> = ({ agentId, companyId }) => {
         ) : issues.length === 0 ? (
           <EmptyState message={t("agent.issues.empty")} />
         ) : (
-          <ul className="divide-y divide-border-soft rounded-md border border-border-soft overflow-hidden">
+          <ul className="divide-y divide-surface-border rounded-md border border-surface-border overflow-hidden">
             {issues.map((i) => (
               <li
                 key={i.id}
