@@ -75,7 +75,7 @@ export const getIsaSection = (body: string, section: string): string | null => {
   const headingRe = /^##[ \t]+(.+?)[ \t]*$/;
   let capturing = false;
   const out: string[] = [];
-  for (const line of body.split("\n")) {
+  for (const line of body.replace(/\r\n/g, "\n").split("\n")) {
     const m = headingRe.exec(line);
     if (m !== null) {
       if (capturing) break;

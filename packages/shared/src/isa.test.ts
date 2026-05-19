@@ -48,4 +48,21 @@ describe("isa module", () => {
     expect(getIsaSection(ISA_SKELETON, "Decisions")).toBe("_Describe this section._");
     expect(getIsaSection(ISA_SKELETON, "Nonexistent")).toBeNull();
   });
+
+  it("getIsaSection returns the ISC placeholder for managed sections", () => {
+    const body = getIsaSection(ISA_SKELETON, "Criteria");
+    expect(body).toContain("ISCs");
+    expect(getIsaSection(ISA_SKELETON, "Verification Plan")).toBe(body);
+  });
+
+  it("getIsaSection reads sections from a CRLF document", () => {
+    const crlf = ISA_SKELETON.replace(/\n/g, "\r\n");
+    expect(getIsaSection(crlf, "Problem")).toBe("_Describe this section._");
+  });
+
+  it("validateIsa treats an empty document as all sections missing", () => {
+    const result = validateIsa("");
+    expect(result.ok).toBe(false);
+    expect(result.missing).toEqual([...ISA_SECTIONS]);
+  });
 });
