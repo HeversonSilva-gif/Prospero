@@ -49,10 +49,11 @@ Source: `apps/renderer/src/components/agent-panel/AgentConversation.tsx`.
 
 ## Estúdio mode
 
-Rendered by `AgentStudio`. The component owns a secondary `TabBar` (pill
-variant) for the 6 tabs and delegates rendering to the active tab component.
-All tabs receive `agent` as a prop; `skills` and `memories` are also threaded
-down from `Agent.tsx` (fetched once per mode-switch or studio-tab-change).
+Rendered by `AgentStudio`. The component owns a secondary `TabBar` with
+`variant="underline"` for the 6 tabs and delegates rendering to the active
+tab component. All tabs receive `agent` as a prop; `skills` and `memories`
+are also threaded down from `Agent.tsx` (fetched once per mode-switch or
+studio-tab-change).
 
 Source: `apps/renderer/src/components/agent-panel/AgentStudio.tsx`.
 
@@ -127,10 +128,10 @@ PR-F extracted four primitives used by every Estúdio tab:
 
 | Component | Purpose |
 |---|---|
-| `Section` | Titled card wrapper — white background, rounded border, consistent internal spacing. Accepts `title` (string), `description` (optional string), and `children`. |
-| `EmptyState` | Zero-data placeholder — centered icon + message + optional action button. Used when a tab has no data yet (no skills, no runs, etc.). |
-| `LoadingState` | Spinner placeholder shown while async data is in flight. |
-| `TabBar` | Horizontal tab strip in two variants: `"segmented"` (mode switch, pill style) and `"pill"` (studio sub-tabs, lighter style). |
+| `Section` | Titled block — an uppercase heading above its `children`, with an optional trailing hint line. Props: `title` (string), `hint` (optional string), and `children`. |
+| `EmptyState` | Zero-data placeholder — a centered message with an optional icon above it. Props: `message` (string), `icon` (optional `ReactNode`). No action/button prop. Used when a tab has no data yet (no skills, no runs, etc.). |
+| `LoadingState` | Spinner placeholder shown while async data is in flight. Optional `label` string. |
+| `TabBar` | Horizontal tab strip in two variants: `"segmented"` (pill-style switch, used for the Conversa/Estúdio mode toggle and the Chat/Delegations sub-switch) and `"underline"` (border-bottom strip, used for the 6 Estúdio tabs and the Learning sub-tabs). |
 
 Source: `apps/renderer/src/components/ui/`.
 
@@ -143,7 +144,7 @@ All six Estúdio tabs follow the same layout rules so the studio feels unified:
   `<h2>` / `<h3>` outside Section.
 - **Empty states:** always `<EmptyState>` — never a raw `<p className="text-muted">`.
 - **Loading states:** always `<LoadingState>` — never ad-hoc spinners.
-- **Tab navigation within Estúdio:** `<TabBar variant="pill">` owned by
+- **Tab navigation within Estúdio:** `<TabBar variant="underline">` owned by
   `AgentStudio.tsx`, not duplicated in individual tab components.
 
 ---
