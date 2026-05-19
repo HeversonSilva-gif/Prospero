@@ -117,6 +117,8 @@ export const useIsaStore = create<State>((set, get) => ({
     }
   },
 
+  // Wired end-to-end (IPC + handler) but has no UI consumer in M13 PR-A —
+  // the criterion edit affordance lands with the PR-B verification work.
   updateCriterion: async (id, patch) => {
     const { goalId } = get();
     try {
