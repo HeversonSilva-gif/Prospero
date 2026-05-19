@@ -5,10 +5,11 @@ import { useGoalsStore } from "../stores/goals.js";
 import { GoalDetailHeader } from "../components/GoalDetailHeader.js";
 import { GoalPlanReview } from "../components/GoalPlanReview.js";
 import { GoalPlanHistory } from "../components/GoalPlanHistory.js";
+import { IsaPanel } from "../components/IsaPanel.js";
 
-type TabKey = "plan" | "subgoals" | "issues" | "history";
+type TabKey = "plan" | "isa" | "subgoals" | "issues" | "history";
 
-const TABS: TabKey[] = ["plan", "subgoals", "issues", "history"];
+const TABS: TabKey[] = ["plan", "isa", "subgoals", "issues", "history"];
 
 export const GoalDetail: FC = () => {
   const { t } = useTranslation();
@@ -109,6 +110,7 @@ export const GoalDetail: FC = () => {
             )}
           </>
         )}
+        {tab === "isa" && <IsaPanel goalId={detail.id} />}
         {tab === "subgoals" && (
           <p className="text-sm text-ink-muted bg-surface-soft rounded p-4">
             {t("goals.detail.subgoalsPending")}
