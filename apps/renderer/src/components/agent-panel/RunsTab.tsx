@@ -3,15 +3,27 @@ import { useTranslation } from "react-i18next";
 import type { AgentRunRow, ActivityEventRow } from "@prospero/shared";
 import { groupRunsBySession } from "../../lib/runs/groupRunsBySession.js";
 import { formatCents, formatTokens } from "../../lib/costs/formatCents.js";
+import { Section, EmptyState, LoadingState } from "../ui/index.js";
 
 type Props = { agentId: string; companyId: string };
 
 const runTokens = (r: AgentRunRow): number =>
   r.inputTokens + r.outputTokens + r.cacheCreationTokens + r.cacheReadTokens;
 
+// ── Stat pill — one labelled metric in the full-width drill-in row ──────────
+const StatPill: FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="flex flex-col gap-0.5 rounded-md bg-surface-soft px-3 py-2 min-w-0">
+    <span className="text-[9px] uppercase tracking-wide text-ink-soft font-semibold truncate">
+      {label}
+    </span>
+    <span className="text-xs tabular-nums font-medium text-ink truncate">{value}</span>
+  </div>
+);
+
 export const RunsTab: FC<Props> = ({ agentId, companyId }) => {
   const { t } = useTranslation();
   const [runs, setRuns] = useState<AgentRunRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityEventRow[]>([]);
 
@@ -23,7 +35,10 @@ export const RunsTab: FC<Props> = ({ agentId, companyId }) => {
     let cancelled = false;
     void (async () => {
       const rows = await window.prospero.runs.list(agentId);
-      if (!cancelled) setRuns(rows);
+      if (!cancelled) {
+        setRuns(rows);
+        setLoading(false);
+      }
     })();
     return () => {
       cancelled = true;
@@ -64,64 +79,104 @@ export const RunsTab: FC<Props> = ({ agentId, companyId }) => {
     })();
   };
 
+  if (loading) {
+    return (
+      <div className="p-6">
+        <LoadingState />
+      </div>
+    );
+  }
+
   if (runs.length === 0) {
-    return <div className="p-4 text-xs text-ink-muted">{t("agent.runs.empty")}</div>;
+    return (
+      <div className="p-6">
+        <EmptyState message={t("agent.runs.empty")} />
+      </div>
+    );
   }
 
   return (
-    <div className="p-3 space-y-3">
+    <div className="p-6 space-y-6">
       {sessions.map((session, si) => (
-        <section key={session.sessionId ?? `null-${String(si)}`}>
-          <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-1">
-            {t("agent.runs.session", { n: si + 1 })}
-          </h3>
-          <ul className="space-y-1">
+        <Section
+          key={session.sessionId ?? `null-${String(si)}`}
+          title={t("agent.runs.session", { n: si + 1 })}
+        >
+          {/* Run list — compact header rows, one per turn */}
+          <ul className="divide-y divide-surface-border rounded-md border border-surface-border overflow-hidden">
             {session.runs.map((run) => (
-              <li key={run.id} className="border border-surface-border rounded">
+              <li key={run.id}>
+                {/* ── Collapsed header row ─────────────────────────────── */}
                 <button
                   type="button"
                   onClick={() => toggle(run)}
-                  className="w-full text-left px-2 py-1.5 flex items-center gap-2 text-xs"
+                  className="w-full text-left px-4 py-2.5 flex items-center gap-3 text-xs bg-surface hover:bg-surface-soft transition-colors"
                 >
-                  <span className="text-ink-muted tabular-nums">
+                  {/* Expand chevron */}
+                  <span
+                    className={`text-[9px] text-ink-soft transition-transform duration-150 ${
+                      expandedId === run.id ? "rotate-90" : ""
+                    }`}
+                  >
+                    ▶
+                  </span>
+
+                  {/* Time */}
+                  <span className="text-ink-muted tabular-nums shrink-0">
                     {new Date(run.occurredAt).toLocaleTimeString()}
                   </span>
-                  <span className="text-ink truncate flex-1">{run.model ?? "—"}</span>
-                  <span className="text-ink-soft tabular-nums">{formatTokens(runTokens(run))}</span>
-                  <span className="text-brand-dark tabular-nums">
+
+                  {/* Model — grows to fill */}
+                  <span className="text-ink font-medium truncate flex-1">{run.model ?? "—"}</span>
+
+                  {/* Token total */}
+                  <span className="text-ink-soft tabular-nums shrink-0">
+                    {formatTokens(runTokens(run))}
+                    <span className="text-[9px] ml-0.5 text-ink-soft opacity-60">
+                      {t("agent.studio.runs.tok")}
+                    </span>
+                  </span>
+
+                  {/* Cost */}
+                  <span className="tabular-nums shrink-0 font-medium text-brand-dark">
                     {formatCents(run.costCentsEstimate)}
                   </span>
                 </button>
+
+                {/* ── Expanded drill-in — full width ───────────────────── */}
                 {expandedId === run.id && (
-                  <div className="px-3 py-2 border-t border-surface-border space-y-2">
-                    <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-                      <div className="flex justify-between">
-                        <dt className="text-ink-soft">{t("agent.runs.tokensIn")}</dt>
-                        <dd className="tabular-nums">{formatTokens(run.inputTokens)}</dd>
-                      </div>
-                      <div className="flex justify-between">
-                        <dt className="text-ink-soft">{t("agent.runs.tokensOut")}</dt>
-                        <dd className="tabular-nums">{formatTokens(run.outputTokens)}</dd>
-                      </div>
-                      <div className="flex justify-between">
-                        <dt className="text-ink-soft">{t("agent.runs.tokensCache")}</dt>
-                        <dd className="tabular-nums">
-                          {formatTokens(run.cacheCreationTokens + run.cacheReadTokens)}
-                        </dd>
-                      </div>
-                      <div className="flex justify-between">
-                        <dt className="text-ink-soft">{t("agent.runs.adapter")}</dt>
-                        <dd className="truncate">{run.adapterName}</dd>
-                      </div>
-                    </dl>
+                  <div className="border-t border-surface-border bg-surface-soft/40 px-4 py-4 space-y-4">
+                    {/* Stats row — horizontally tiled pill cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                      <StatPill
+                        label={t("agent.runs.tokensIn")}
+                        value={formatTokens(run.inputTokens)}
+                      />
+                      <StatPill
+                        label={t("agent.runs.tokensOut")}
+                        value={formatTokens(run.outputTokens)}
+                      />
+                      <StatPill
+                        label={t("agent.runs.tokensCache")}
+                        value={formatTokens(run.cacheCreationTokens + run.cacheReadTokens)}
+                      />
+                      <StatPill
+                        label={t("agent.studio.runs.cost")}
+                        value={formatCents(run.costCentsEstimate)}
+                      />
+                      <StatPill label={t("agent.studio.runs.model")} value={run.model ?? "—"} />
+                      <StatPill label={t("agent.runs.adapter")} value={run.adapterName} />
+                    </div>
+
+                    {/* Activity section — left-rail timeline */}
                     <div>
-                      <div className="text-[10px] uppercase text-ink-soft font-semibold mb-1">
+                      <p className="text-[9px] uppercase tracking-wide text-ink-soft font-semibold mb-2">
                         {t("agent.runs.activity")}
-                      </div>
+                      </p>
                       {activity.length === 0 ? (
                         <p className="text-[11px] text-ink-muted">{t("agent.runs.noActivity")}</p>
                       ) : (
-                        <ul className="space-y-0.5">
+                        <ul className="border-l-2 border-surface-border pl-3 space-y-1">
                           {activity.map((ev) => (
                             <li key={ev.id} className="text-[11px] text-ink-soft">
                               {ev.action}
@@ -135,7 +190,7 @@ export const RunsTab: FC<Props> = ({ agentId, companyId }) => {
               </li>
             ))}
           </ul>
-        </section>
+        </Section>
       ))}
     </div>
   );
