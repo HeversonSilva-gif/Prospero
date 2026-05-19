@@ -76,7 +76,7 @@ export const isaHandlers = (deps: IsaHandlersDeps): IsaHandlers => {
       const goal = requireGoal(goalId);
       const env = buildAuthEnv(deps.db);
       const description = (goal.description ?? "").trim() || goal.title;
-      const telos = goal.companyId !== null ? readTelos(deps.userDataDir, goal.companyId) : null;
+      const telos = readTelos(deps.userDataDir, goal.companyId);
       return generateIsa(
         { db: deps.db, runDerivation: deps.runDerivation },
         { description, env, companyId: goal.companyId, ...(telos !== null ? { telos } : {}) },

@@ -122,6 +122,6 @@ describe("generateIsa", () => {
 
   it("buildIsaGenerationPrompt omits the TELOS section when none is given", () => {
     const prompt = buildIsaGenerationPrompt("A landing page");
-    expect(prompt).not.toContain("Company TELOS");
+    expect(prompt).not.toContain("company's TELOS");
   });
 });
