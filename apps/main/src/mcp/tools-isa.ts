@@ -4,6 +4,8 @@ import type { ToolContext } from "./tools.js";
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
 import { readIsa } from "../goals/isa-store.js";
+import { checkOneCriterion } from "../verification/index.js";
+import { buildVerificationDeps } from "../verification/deps.js";
 
 type Tool = {
   name: string;
@@ -44,4 +46,32 @@ const isaRead: Tool = {
   },
 };
 
-export const isaToolDefinitions: Tool[] = [isaRead];
+// criterion_check — runs the deterministic check of ONE ISC and persists the
+// result. The auto-check of the Algorithm's VERIFY phase: an agent calls this
+// on its issue's criteria before marking the issue done. It does not transition
+// the goal — the goal gate runs later, when all issues finish (M13 PR-B1).
+const criterionCheck: Tool = {
+  name: "criterion_check",
+  description:
+    "Run the deterministic check of one verifiable criterion (ISC) — a command, an artifact check, or a metric — and get whether it passed or failed. Use this to self-verify your work before marking an issue done. Only works on deterministic criteria; judgment criteria are decided with criterion_judge.",
+  inputSchema: z.object({
+    criterion_id: z.string().min(1).max(120),
+  }),
+  run: async (input, ctx) => {
+    const { criterion_id } = criterionCheck.inputSchema.parse(input) as { criterion_id: string };
+    const criterion = createGoalCriteriaRepository(ctx.db).getById(criterion_id);
+    if (criterion === null) throw new Error(`criterion not found: ${criterion_id}`);
+    const goal = createGoalsRepository(ctx.db).getById(criterion.goalId);
+    if (goal === null || goal.companyId !== ctx.companyId) {
+      throw new Error(`criterion not found: ${criterion_id}`);
+    }
+    const result = await checkOneCriterion(ctx.db, criterion_id, buildVerificationDeps());
+    return JSON.stringify({
+      criterionId: result.criterionId,
+      status: result.status,
+      detail: result.detail,
+    });
+  },
+};
+
+export const isaToolDefinitions: Tool[] = [isaRead, criterionCheck];

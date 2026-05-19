@@ -9,6 +9,8 @@ import type { ToolContext } from "./tools.js";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
+import { createIssuesRepository } from "../issues/repository.js";
+import { createArtifactsRepository } from "../artifacts/repository.js";
 
 const tmps: string[] = [];
 afterEach(() => {
@@ -38,6 +40,7 @@ const setup = (): { ctx: ToolContext; goalId: string } => {
 };
 
 const isaRead = isaToolDefinitions.find((t) => t.name === "isa_read")!;
+const criterionCheck = isaToolDefinitions.find((t) => t.name === "criterion_check")!;
 
 describe("isa_read tool", () => {
   it("returns the materialized ISA body and criteria", async () => {
@@ -84,5 +87,82 @@ describe("isa_read tool", () => {
       criteria: unknown[];
     };
     expect(out.criteria).toEqual([]);
+  });
+});
+
+describe("criterion_check tool", () => {
+  it("runs a deterministic check and returns + persists the result", async () => {
+    const { ctx, goalId } = setup();
+    const issue = createIssuesRepository(ctx.db).create({
+      companyId: ctx.companyId,
+      title: "I",
+      projectId: null,
+      description: null,
+      assigneeId: null,
+      priority: "medium",
+      parentId: null,
+      createdBy: null,
+    });
+    ctx.db.prepare("UPDATE issues SET goal_id = ? WHERE id = ?").run(goalId, issue.id);
+    createArtifactsRepository(ctx.db).create({
+      issueId: issue.id,
+      kind: "file_path",
+      ref: "out/report.md",
+      contentPreview: null,
+      createdBy: null,
+    });
+    const crit = createGoalCriteriaRepository(ctx.db).create({
+      goalId,
+      statement: "report delivered",
+      kind: "deterministic",
+      checkType: "artifact_exists",
+      checkSpec: { checkType: "artifact_exists", artifactKind: "file_path" },
+    });
+    const out = JSON.parse(await criterionCheck.run({ criterion_id: crit.id }, ctx)) as {
+      status: string;
+    };
+    expect(out.status).toBe("passed");
+    expect(createGoalCriteriaRepository(ctx.db).getById(crit.id)?.status).toBe("passed");
+  });
+
+  it("returns a failed result when the check does not pass", async () => {
+    const { ctx, goalId } = setup();
+    const crit = createGoalCriteriaRepository(ctx.db).create({
+      goalId,
+      statement: "report delivered",
+      kind: "deterministic",
+      checkType: "artifact_exists",
+      checkSpec: { checkType: "artifact_exists", artifactKind: "pr_url" },
+    });
+    const out = JSON.parse(await criterionCheck.run({ criterion_id: crit.id }, ctx)) as {
+      status: string;
+    };
+    expect(out.status).toBe("failed");
+  });
+
+  it("rejects a judgment criterion", async () => {
+    const { ctx, goalId } = setup();
+    const crit = createGoalCriteriaRepository(ctx.db).create({
+      goalId,
+      statement: "on brand",
+      kind: "judgment",
+    });
+    await expect(criterionCheck.run({ criterion_id: crit.id }, ctx)).rejects.toThrow(
+      /deterministic/,
+    );
+  });
+
+  it("rejects a criterion from another company", async () => {
+    const { ctx, goalId } = setup();
+    const crit = createGoalCriteriaRepository(ctx.db).create({
+      goalId,
+      statement: "x",
+      kind: "deterministic",
+      checkType: "artifact_exists",
+      checkSpec: { checkType: "artifact_exists", artifactKind: "file_path" },
+    });
+    await expect(
+      criterionCheck.run({ criterion_id: crit.id }, { ...ctx, companyId: "other" }),
+    ).rejects.toThrow(/not found/);
   });
 });
