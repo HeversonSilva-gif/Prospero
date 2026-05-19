@@ -3,6 +3,7 @@
 // owner's sandbox directory, with a minimal (no-secrets) environment and a
 // hard timeout. The cwd is fixed by the caller — never taken from the ISC.
 
+import { spawnSync } from "node:child_process";
 import crossSpawn from "cross-spawn";
 
 export interface SandboxedCommandResult {
@@ -29,6 +30,25 @@ export const minimalVerificationEnv = (): Record<string, string> => {
   return env;
 };
 
+// Kills the whole process tree of a shell child. On Windows `child.kill()`
+// only terminates cmd.exe and orphans the grandchild — taskkill /T fixes that.
+const killTree = (child: ReturnType<typeof crossSpawn>): void => {
+  const pid = child.pid;
+  if (pid === undefined) {
+    child.kill();
+    return;
+  }
+  if (process.platform === "win32") {
+    try {
+      spawnSync("taskkill", ["/F", "/T", "/PID", String(pid)], { windowsHide: true });
+    } catch {
+      child.kill();
+    }
+  } else {
+    child.kill("SIGKILL");
+  }
+};
+
 export const runSandboxedCommand = (
   input: RunSandboxedCommandInput,
 ): Promise<SandboxedCommandResult> =>
@@ -46,11 +66,11 @@ export const runSandboxedCommand = (
     let settled = false;
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill();
-      // On Windows with shell:true the shell (cmd.exe) is killed but the
-      // grandchild node process may keep running, so the `close` event never
-      // fires. Force-resolve after a short grace period so the promise always
-      // settles. The exitCode 124 mirrors the POSIX timeout convention.
+      killTree(child);
+      // Even with the whole tree killed, the `close` event can lag or (on a
+      // stubborn shell child) not fire at all. Force-resolve after a short
+      // grace period so the promise always settles. The exitCode 124 mirrors
+      // the POSIX timeout convention.
       setTimeout(() => finish(124), 500);
     }, input.timeoutMs);
     child.stdout?.on("data", (d: Buffer) => {
