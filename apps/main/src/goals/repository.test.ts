@@ -94,6 +94,30 @@ describe("goalsRepository", () => {
     repo.setIsaPath(goal.id, "companies/c/goals/g/isa.md");
     expect(repo.getById(goal.id)?.isaPath).toBe("companies/c/goals/g/isa.md");
   });
+
+  it("allows in_progress -> verifying -> achieved", () => {
+    const repo = createGoalsRepository(db);
+    const goal = repo.create({ companyId, title: "Launch" });
+    repo.updateStatus(goal.id, "planning");
+    repo.updateStatus(goal.id, "proposed");
+    repo.updateStatus(goal.id, "approved");
+    repo.updateStatus(goal.id, "in_progress");
+    repo.updateStatus(goal.id, "verifying");
+    repo.updateStatus(goal.id, "achieved");
+    expect(repo.getById(goal.id)?.status).toBe("achieved");
+  });
+
+  it("allows verifying -> in_progress (verification bounce-back)", () => {
+    const repo = createGoalsRepository(db);
+    const goal = repo.create({ companyId, title: "Launch" });
+    repo.updateStatus(goal.id, "planning");
+    repo.updateStatus(goal.id, "proposed");
+    repo.updateStatus(goal.id, "approved");
+    repo.updateStatus(goal.id, "in_progress");
+    repo.updateStatus(goal.id, "verifying");
+    repo.updateStatus(goal.id, "in_progress");
+    expect(repo.getById(goal.id)?.status).toBe("in_progress");
+  });
 });
 
 describe("goalsRepository — narrated execution state", () => {

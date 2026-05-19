@@ -32,7 +32,8 @@ const ALLOWED_TRANSITIONS: Record<GoalStatus, GoalStatus[]> = {
   planning: ["proposed", "cancelled"],
   proposed: ["planning", "approved", "cancelled"],
   approved: ["in_progress", "cancelled"],
-  in_progress: ["achieved", "cancelled"],
+  in_progress: ["verifying", "achieved", "cancelled"],
+  verifying: ["achieved", "in_progress", "cancelled"],
   achieved: [],
   cancelled: [],
 };
