@@ -35,7 +35,7 @@ describe("sandbox", () => {
     const r = await runSandboxedCommand({
       command: `node -e "setTimeout(() => {}, 8000)"`,
       cwd: process.cwd(),
-      timeoutMs: 400,
+      timeoutMs: 1000,
       env: minimalVerificationEnv(),
     });
     expect(r.timedOut).toBe(true);

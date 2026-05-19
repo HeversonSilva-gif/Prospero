@@ -40,7 +40,10 @@ const killTree = (child: ReturnType<typeof crossSpawn>): void => {
   }
   if (process.platform === "win32") {
     try {
-      spawnSync("taskkill", ["/F", "/T", "/PID", String(pid)], { windowsHide: true });
+      spawnSync("taskkill", ["/F", "/T", "/PID", String(pid)], {
+        windowsHide: true,
+        timeout: 3000,
+      });
     } catch {
       child.kill();
     }
@@ -53,6 +56,8 @@ export const runSandboxedCommand = (
   input: RunSandboxedCommandInput,
 ): Promise<SandboxedCommandResult> =>
   new Promise((resolve) => {
+    // shell: true — `command` is a full shell command line; the args array is
+    // empty because the shell parses the whole string.
     const child = crossSpawn(input.command, [], {
       cwd: input.cwd,
       env: input.env,
@@ -64,6 +69,14 @@ export const runSandboxedCommand = (
     let stderr = "";
     let timedOut = false;
     let settled = false;
+    let graceTimer: ReturnType<typeof setTimeout> | undefined;
+    const finish = (exitCode: number): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      clearTimeout(graceTimer);
+      resolve({ exitCode, stdout, stderr, timedOut });
+    };
     const timer = setTimeout(() => {
       timedOut = true;
       killTree(child);
@@ -71,7 +84,7 @@ export const runSandboxedCommand = (
       // stubborn shell child) not fire at all. Force-resolve after a short
       // grace period so the promise always settles. The exitCode 124 mirrors
       // the POSIX timeout convention.
-      setTimeout(() => finish(124), 500);
+      graceTimer = setTimeout(() => finish(124), 500);
     }, input.timeoutMs);
     child.stdout?.on("data", (d: Buffer) => {
       stdout += d.toString("utf8");
@@ -79,12 +92,8 @@ export const runSandboxedCommand = (
     child.stderr?.on("data", (d: Buffer) => {
       stderr += d.toString("utf8");
     });
-    const finish = (exitCode: number): void => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve({ exitCode, stdout, stderr, timedOut });
-    };
+    // Spawn errors (e.g. ENOENT) resolve rather than reject — verification
+    // callers read exitCode, they do not catch exceptions.
     child.on("error", () => finish(timedOut ? 124 : 1));
     child.on("close", (code) => finish(code ?? (timedOut ? 124 : 1)));
   });
