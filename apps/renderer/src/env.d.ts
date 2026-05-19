@@ -43,6 +43,7 @@ import type {
   AgentRunRow,
   AgentBudgetStatus,
   CreateCriterionInput,
+  CriterionStatus,
   GoalCriterion,
   IsaDraft,
   UpdateCriterionInput,
@@ -320,6 +321,7 @@ declare global {
           patch: UpdateCriterionInput;
         }) => Promise<GoalCriterion>;
         criterionDelete: (args: { id: string }) => Promise<void>;
+        criterionJudge: (args: { criterionId: string; verdict: CriterionStatus }) => Promise<void>;
       };
       remote: {
         testConnection: () => Promise<{ ok: boolean; message: string }>;

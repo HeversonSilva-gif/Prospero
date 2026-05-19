@@ -5,8 +5,9 @@
 // recoverStuckVerifications re-runs goals left in `verifying` after a restart.
 
 import type Database from "better-sqlite3";
-import type { Goal, VerificationReport } from "@prospero/shared";
+import type { CriterionResult, Goal, VerificationReport } from "@prospero/shared";
 import { createGoalsRepository } from "../goals/repository.js";
+import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { runGoalVerification } from "./engine.js";
 import { runSandboxedCommand } from "./sandbox.js";
@@ -29,6 +30,7 @@ export interface RunVerificationDeps {
 export const applyVerificationReport = (
   db: Database.Database,
   report: VerificationReport,
+  opts: { fileReviewCard?: boolean } = {},
 ): void => {
   const goalsRepo = createGoalsRepository(db);
   const goal = goalsRepo.getById(report.goalId);
@@ -55,18 +57,42 @@ export const applyVerificationReport = (
   }
 
   if (report.pendingJudgment.length > 0) {
-    createInboxRepository(db).create({
-      companyId: goal.companyId,
-      kind: "verification_review",
-      title: `Review needed: ${goal.title}`,
-      preview: `${report.pendingJudgment.length} criteria need your judgment`,
-      requiresAction: true,
-      payloadJson: JSON.stringify({ goalId: goal.id, pending: report.pendingJudgment }),
-    });
+    if (opts.fileReviewCard !== false) {
+      createInboxRepository(db).create({
+        companyId: goal.companyId,
+        kind: "verification_review",
+        title: `Review needed: ${goal.title}`,
+        preview: `${report.pendingJudgment.length} criteria need your judgment`,
+        requiresAction: true,
+        payloadJson: JSON.stringify({ goalId: goal.id, pending: report.pendingJudgment }),
+      });
+    }
     return;
   }
 
   goalsRepo.updateStatus(goal.id, "achieved");
+};
+
+// Re-evaluates a `verifying` goal from the criteria's already-persisted
+// statuses (no checks are re-run) and applies the gate. Used after a user
+// resolves a judgment criterion. Does not re-file the review inbox card.
+export const reevaluateGoalFromState = (db: Database.Database, goalId: string): void => {
+  const goal = createGoalsRepository(db).getById(goalId);
+  if (goal === null || goal.status !== "verifying") return;
+  const criteria = createGoalCriteriaRepository(db).listByGoal(goalId);
+  const results: CriterionResult[] = criteria.map((c) => ({
+    criterionId: c.id,
+    status: c.status,
+    detail: `${c.kind}: ${c.status}`,
+    resultJson: null,
+  }));
+  const pendingJudgment = results.filter((r) => r.status === "pending").map((r) => r.criterionId);
+  const allPassed = results.every((r) => r.status === "passed" || r.status === "waived");
+  applyVerificationReport(
+    db,
+    { goalId, allPassed, results, pendingJudgment },
+    { fileReviewCard: false },
+  );
 };
 
 // Runs the engine for one goal and applies the gate. Fire-and-forget safe.

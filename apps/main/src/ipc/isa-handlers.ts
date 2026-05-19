@@ -3,6 +3,7 @@ import type Database from "better-sqlite3";
 import { IPC } from "@prospero/shared";
 import type {
   CreateCriterionInput,
+  CriterionStatus,
   Goal,
   GoalCriterion,
   IsaDraft,
@@ -17,6 +18,7 @@ import { criterionCheckSpecSchema } from "../schemas/criterionCheckSpec.js";
 import { runDerivation, defaultRunProcess } from "../derivation/runner.js";
 import type { RunDerivationResult } from "../derivation/runner.js";
 import { buildAuthEnv } from "../derivation/index.js";
+import { reevaluateGoalFromState } from "../verification/index.js";
 
 export type IsaHandlersDeps = {
   db: Database.Database;
@@ -35,6 +37,7 @@ export type IsaHandlers = {
   criterionCreate(args: CreateCriterionInput): GoalCriterion;
   criterionUpdate(args: { id: string; patch: UpdateCriterionInput }): GoalCriterion;
   criterionDelete(args: { id: string }): void;
+  criterionJudge(args: { criterionId: string; verdict: CriterionStatus }): void;
 };
 
 export const isaHandlers = (deps: IsaHandlersDeps): IsaHandlers => {
@@ -92,6 +95,13 @@ export const isaHandlers = (deps: IsaHandlersDeps): IsaHandlers => {
     criterionDelete({ id }) {
       criteriaRepo.delete(id);
     },
+
+    criterionJudge({ criterionId, verdict }) {
+      const criterion = criteriaRepo.getById(criterionId);
+      if (criterion === null) throw new Error(`criterion not found: ${criterionId}`);
+      criteriaRepo.setJudgment(criterionId, verdict, null);
+      reevaluateGoalFromState(deps.db, criterion.goalId);
+    },
   };
 };
 
@@ -112,4 +122,8 @@ export const registerIsaHandlers = (db: Database.Database): void => {
     (_e, args: { id: string; patch: UpdateCriterionInput }) => h.criterionUpdate(args),
   );
   ipcMain.handle(IPC.ISA_CRITERION_DELETE, (_e, args: { id: string }) => h.criterionDelete(args));
+  ipcMain.handle(
+    IPC.ISA_CRITERION_JUDGE,
+    (_e, args: { criterionId: string; verdict: CriterionStatus }) => h.criterionJudge(args),
+  );
 };

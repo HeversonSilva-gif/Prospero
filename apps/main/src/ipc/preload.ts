@@ -44,6 +44,7 @@ import {
   type AgentRunRow,
   type AgentBudgetStatus,
   type CreateCriterionInput,
+  type CriterionStatus,
   type GoalCriterion,
   type IsaDraft,
   type UpdateCriterionInput,
@@ -445,6 +446,8 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.ISA_CRITERION_UPDATE, args) as Promise<GoalCriterion>,
     criterionDelete: (args: { id: string }) =>
       ipcRenderer.invoke(IPC.ISA_CRITERION_DELETE, args) as Promise<void>,
+    criterionJudge: (args: { criterionId: string; verdict: CriterionStatus }) =>
+      ipcRenderer.invoke(IPC.ISA_CRITERION_JUDGE, args) as Promise<void>,
   },
   remote: {
     testConnection: () =>

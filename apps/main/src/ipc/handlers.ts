@@ -21,11 +21,14 @@ import { registerOrgPlanHandlers } from "./org-plan-handlers.js";
 import { registerIsaHandlers } from "./isa-handlers.js";
 import { initRecorder } from "../activity/index.js";
 import { initDerivation } from "../derivation/index.js";
+import { recoverStuckVerifications } from "../verification/index.js";
+import { buildVerificationDeps } from "../verification/deps.js";
 
 export const registerIpcHandlers = (db: Database.Database): void => {
   ipcMain.handle(IPC.PING, () => "pong");
   const derivation = initDerivation(db);
   initRecorder(db, derivation.onActivity);
+  recoverStuckVerifications(db, buildVerificationDeps());
   registerSettingsHandlers(db);
   registerAuthHandlers(db);
   registerCompaniesHandlers(db);

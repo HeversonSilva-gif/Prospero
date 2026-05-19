@@ -7,6 +7,7 @@ import { applyMigrations } from "../src/db/migrations.js";
 import { isaHandlers } from "../src/ipc/isa-handlers.js";
 import { createCompaniesRepository } from "../src/companies/repository.js";
 import { createGoalsRepository } from "../src/goals/repository.js";
+import { createGoalCriteriaRepository } from "../src/goals/criteria-repository.js";
 
 const tmps: string[] = [];
 afterEach(() => {
@@ -110,5 +111,23 @@ describe("isaHandlers", () => {
         },
       }),
     ).toThrow();
+  });
+
+  it("criterionJudge resolves a judgment criterion and re-evaluates the goal", () => {
+    const { db, h, goalId } = setup();
+    const goalsRepo = createGoalsRepository(db);
+    for (const s of ["planning", "proposed", "approved", "in_progress", "verifying"] as const) {
+      goalsRepo.updateStatus(goalId, s);
+    }
+    const criteriaRepo = createGoalCriteriaRepository(db);
+    const c = criteriaRepo.create({ goalId, statement: "on brand", kind: "judgment" });
+    h.criterionJudge({ criterionId: c.id, verdict: "passed" });
+    expect(criteriaRepo.getById(c.id)?.status).toBe("passed");
+    expect(goalsRepo.getById(goalId)?.status).toBe("achieved");
+  });
+
+  it("criterionJudge throws for an unknown criterion", () => {
+    const { h } = setup();
+    expect(() => h.criterionJudge({ criterionId: "nope", verdict: "passed" })).toThrow(/not found/);
   });
 });
