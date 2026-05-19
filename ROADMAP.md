@@ -138,17 +138,17 @@
 - **14 / 14 milestones do v1 fechados** — **v1 entregue em 2026-05-15**
 - **M11 ✅ COMPLETO** — V2 anchor fechado (2026-05-18). 6 PRs (A–F) mergeados. Settings Memory (`user.md` + budget), decay/trust, nudges fallback, terminate-modal promote-skills, docs.
 - **M12 ✅ COMPLETO** — todos os 6 PRs (A–F) mergeados. PR-A..E2 mergeados 2026-05-18: biblioteca de papéis · Manual Operacional · bundle de instruções por agente · geração de charter por IA · CEO arquiteto de organização (backend + UI) · charters no `AGENTS.md` · aba Runs · budget por agente + Run Policy. **PR-F mergeado 2026-05-19**: Agent Studio redesenhado — dois modos (Conversa / Estúdio), 6 abas full-width, primitivos de UI compartilhados, doc `docs/agent-studio.md`.
-- **M13 🔄 EM ANDAMENTO** — Espinha de Outcome & Verificação. **PR-A (ISA) + PR-B1 (motor de verificação) mergeados 2026-05-19**: cada objetivo tem uma definição estruturada do que significa estar "pronto"; e agora, quando todas as tarefas de um objetivo terminam, os critérios são checados automaticamente — o objetivo só vira "concluído" se tudo passar, senão volta para "em andamento" com um aviso na caixa de entrada. Faltam PR-B2 (ferramentas de verificação para os agentes), PR-C TELOS, PR-D Algorithm, PR-E zonas de contenção, PR-F consolidação.
-- **1437 testes passing + 2 todo** · 0 lint/typecheck errors
-- HEAD `main`: M13 PR-B1 (motor de verificação) mergeado (2026-05-19)
+- **M13 🔄 EM ANDAMENTO** — Espinha de Outcome & Verificação. **PR-A (ISA) + PR-B (motor de verificação, B1+B2) mergeados 2026-05-19**: cada objetivo tem uma definição estruturada do que significa estar "pronto"; quando todas as tarefas terminam, os critérios são checados automaticamente — o objetivo só vira "concluído" se tudo passar, senão volta para "em andamento" com um aviso; e os agentes podem checar/julgar critérios eles mesmos (auto-verificação antes de marcar uma tarefa pronta, e agentes revisores decidindo critérios de julgamento). Faltam PR-C TELOS, PR-D Algorithm, PR-E zonas de contenção, PR-F consolidação.
+- **1449 testes passing + 2 todo** · 0 lint/typecheck errors
+- HEAD `main`: M13 PR-B2 (ferramentas de verificação para agentes) mergeado (2026-05-19)
 
 ### ▸ Próximo
 
 | Candidato | Escopo | Por quê |
 |---|---|---|
-| 🥇 **M13 Espinha de Outcome & Verificação** 🔄 EM ANDAMENTO | ✅ PR-A ISA (definição estruturada de "pronto") · ✅ PR-B1 motor de verificação (checagem automática + gate de conclusão) · PR-B2 ferramentas de verificação para os agentes · PR-C TELOS (norte da empresa) · PR-D The Algorithm · PR-E zonas de contenção · PR-F consolidação | Concretiza a aposta "Enforced Outcomes" da V2 — torna o "feito" um fato verificável, não uma opinião. Doc de design em `docs/superpowers/specs/2026-05-18-m13-outcome-verification-spine-design.md`. |
+| 🥇 **M13 Espinha de Outcome & Verificação** 🔄 EM ANDAMENTO | ✅ PR-A ISA (definição estruturada de "pronto") · ✅ PR-B motor de verificação (checagem automática + gate de conclusão + ferramentas de verificação para os agentes) · PR-C TELOS (norte da empresa) · PR-D The Algorithm · PR-E zonas de contenção · PR-F consolidação | Concretiza a aposta "Enforced Outcomes" da V2 — torna o "feito" um fato verificável, não uma opinião. Doc de design em `docs/superpowers/specs/2026-05-18-m13-outcome-verification-spine-design.md`. |
 
-**Recomendação:** seguir o M13 — PR-B2 (ferramentas de verificação para os agentes) é o próximo PR.
+**Recomendação:** seguir o M13 — PR-C (TELOS — o norte da empresa) é o próximo PR.
 
 ### ▸ Horizonte (v1 = M10 fechado · V2 começa em M11)
 
@@ -189,13 +189,13 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 |---|---|
 | Milestones fechados | M1–M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6**, **M9**, **M10** (14/14 do v1 ✅) + **M11** (V2 anchor ✅) |
 | Concluído | **M11 ✅ fechado** 2026-05-18 — **6/6 PRs** ✅ (A capabilities rename · B schema+repos · C MCP tools + Learning tab · D1/D2 derivation pipeline + Candidates UI · E1/E2 role inheritance + org retrospectives · F decay/trust + Settings Memory + nudges + terminate-modal + docs). **V2 anchor fechado.** **M12 ✅ fechado** 2026-05-19 — **6/6 PRs** ✅ (A biblioteca de papéis + charters · B Manual Operacional embutido · C bundle de instruções por agente · D1/D2-backend/D3-UI/D4 geração de charter + CEO arquiteto de org + AGENTS.md com charters · E1/E2 aba Runs + budget + Run Policy · F Agent Studio redesenhado). |
-| Concluído recentemente | **M13 PR-B1 — motor de verificação** mergeado 2026-05-19. Quando todas as tarefas de um objetivo terminam, ele entra em "verificando", os critérios determinísticos são checados automaticamente (comando em sandbox, artefato, métrica) e o objetivo só vira "concluído" se tudo passar — senão volta para "em andamento" com um aviso. Critérios de julgamento são resolvidos pela pessoa. Antes: **M13 PR-A — ISA** mergeado 2026-05-19. |
-| Testes | **1437 passing + 2 todo**, 0 lint/typecheck errors |
+| Concluído recentemente | **M13 PR-B2 — ferramentas de verificação para agentes** mergeado 2026-05-19. Dois MCP tools: `criterion_check` (um agente roda a checagem determinística de um critério para se auto-verificar antes de marcar uma tarefa pronta) e `criterion_judge` (um agente revisor decide um critério de julgamento, ficando registrado como verificador). Fecham o motor de verificação do M13 (PR-B = B1 + B2). Antes: **M13 PR-B1 — motor de verificação** e **PR-A — ISA**, ambos 2026-05-19. |
+| Testes | **1449 passing + 2 todo**, 0 lint/typecheck errors |
 | Commits no main | ~810 |
 | LoC (apps + packages) | ~23k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
-| Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** M11 + M12 fechados. **M13 em andamento** (PR-A ✅ · PR-B1 ✅, faltam PR-B2, C, D, E, F). |
+| Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** M11 + M12 fechados. **M13 em andamento** (PR-A ✅ · PR-B ✅, faltam PR-C, D, E, F). |
 | V2 anchor | **M11 Agent Memory & Learning Loop — ✅ COMPLETO** (2026-05-18, 6 PRs). Arquitetura: 3 camadas × 2 níveis, fluxo bidirecional. Spec: `docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md`. Docs: `docs/memory-architecture.md` + `docs/skills-format.md` + `docs/derivation-pipeline.md`. 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). Próximo V2: M12 Agent & Org Definition Layer. |
 
 ---
