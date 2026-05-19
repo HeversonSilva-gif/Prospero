@@ -23,6 +23,13 @@ const setup = (): { ctx: ToolContext; goalId: string } => {
   const userDataDir = mkdtempSync(join(tmpdir(), "tools-isa-"));
   tmps.push(userDataDir);
   const companyId = createCompaniesRepository(db).create({ name: "Acme" }).id;
+  // Insert a stub agent row so verified_by FK is satisfied when criterion_judge
+  // records the agent as verifier.
+  const now = Date.now();
+  db.prepare(
+    `INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json, mode, always_on, status, model, adapter_name, created_at, updated_at)
+     VALUES ('agent_1', ?, 'Reviewer', 'engineer', '', '[]', '[]', 'supervised', 0, 'idle', 'claude-sonnet-4-6', 'claude-oauth-local', ?, ?)`,
+  ).run(companyId, now, now);
   const goalId = createGoalsRepository(db).create({
     companyId,
     title: "Launch",
@@ -41,6 +48,7 @@ const setup = (): { ctx: ToolContext; goalId: string } => {
 
 const isaRead = isaToolDefinitions.find((t) => t.name === "isa_read")!;
 const criterionCheck = isaToolDefinitions.find((t) => t.name === "criterion_check")!;
+const criterionJudge = isaToolDefinitions.find((t) => t.name === "criterion_judge")!;
 
 describe("isa_read tool", () => {
   it("returns the materialized ISA body and criteria", async () => {
@@ -163,6 +171,67 @@ describe("criterion_check tool", () => {
     });
     await expect(
       criterionCheck.run({ criterion_id: crit.id }, { ...ctx, companyId: "other" }),
+    ).rejects.toThrow(/not found/);
+  });
+});
+
+describe("criterion_judge tool", () => {
+  // Walk a goal to `verifying` so reevaluateGoalFromState has something to gate.
+  const toVerifying = (ctx: ToolContext, goalId: string): void => {
+    const repo = createGoalsRepository(ctx.db);
+    for (const s of ["planning", "proposed", "approved", "in_progress", "verifying"] as const) {
+      repo.updateStatus(goalId, s);
+    }
+  };
+
+  it("records the verdict with the agent as verifier and re-evaluates the goal", async () => {
+    const { ctx, goalId } = setup();
+    toVerifying(ctx, goalId);
+    const crit = createGoalCriteriaRepository(ctx.db).create({
+      goalId,
+      statement: "on brand",
+      kind: "judgment",
+    });
+    await criterionJudge.run({ criterion_id: crit.id, verdict: "passed" }, ctx);
+    const fetched = createGoalCriteriaRepository(ctx.db).getById(crit.id);
+    expect(fetched?.status).toBe("passed");
+    expect(fetched?.verifiedBy).toBe("agent_1");
+    expect(createGoalsRepository(ctx.db).getById(goalId)?.status).toBe("achieved");
+  });
+
+  it("rejects a deterministic criterion", async () => {
+    const { ctx, goalId } = setup();
+    const crit = createGoalCriteriaRepository(ctx.db).create({
+      goalId,
+      statement: "tests pass",
+      kind: "deterministic",
+      checkType: "artifact_exists",
+      checkSpec: { checkType: "artifact_exists", artifactKind: "file_path" },
+    });
+    await expect(
+      criterionJudge.run({ criterion_id: crit.id, verdict: "passed" }, ctx),
+    ).rejects.toThrow(/judgment/);
+  });
+
+  it("rejects an unknown criterion", async () => {
+    const { ctx } = setup();
+    await expect(
+      criterionJudge.run({ criterion_id: "nope", verdict: "passed" }, ctx),
+    ).rejects.toThrow(/not found/);
+  });
+
+  it("rejects a criterion from another company", async () => {
+    const { ctx, goalId } = setup();
+    const crit = createGoalCriteriaRepository(ctx.db).create({
+      goalId,
+      statement: "on brand",
+      kind: "judgment",
+    });
+    await expect(
+      criterionJudge.run(
+        { criterion_id: crit.id, verdict: "passed" },
+        { ...ctx, companyId: "other" },
+      ),
     ).rejects.toThrow(/not found/);
   });
 });

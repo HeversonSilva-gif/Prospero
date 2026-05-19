@@ -4,7 +4,7 @@ import type { ToolContext } from "./tools.js";
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
 import { readIsa } from "../goals/isa-store.js";
-import { checkOneCriterion } from "../verification/index.js";
+import { checkOneCriterion, reevaluateGoalFromState } from "../verification/index.js";
 import { buildVerificationDeps } from "../verification/deps.js";
 
 type Tool = {
@@ -74,4 +74,38 @@ const criterionCheck: Tool = {
   },
 };
 
-export const isaToolDefinitions: Tool[] = [isaRead, criterionCheck];
+// criterion_judge — a reviewer agent decides a judgment ISC. Records the
+// verdict with the agent as verifier, then re-evaluates the goal's gate
+// (the goal may now be fully verified). The agent-facing analog of the
+// user's criterion-judge action (M13 PR-B1).
+const criterionJudge: Tool = {
+  name: "criterion_judge",
+  description:
+    "Decide a judgment criterion (ISC) of a goal — pass, fail, or waive it. Use this when you have been asked to review a goal's judgment criteria. Records you as the verifier and re-checks whether the goal is fully verified.",
+  inputSchema: z.object({
+    criterion_id: z.string().min(1).max(120),
+    verdict: z.enum(["passed", "failed", "waived"]),
+  }),
+  // eslint-disable-next-line @typescript-eslint/require-await
+  run: async (input, ctx) => {
+    const { criterion_id, verdict } = criterionJudge.inputSchema.parse(input) as {
+      criterion_id: string;
+      verdict: "passed" | "failed" | "waived";
+    };
+    const criteriaRepo = createGoalCriteriaRepository(ctx.db);
+    const criterion = criteriaRepo.getById(criterion_id);
+    if (criterion === null) throw new Error(`criterion not found: ${criterion_id}`);
+    const goal = createGoalsRepository(ctx.db).getById(criterion.goalId);
+    if (goal === null || goal.companyId !== ctx.companyId) {
+      throw new Error(`criterion not found: ${criterion_id}`);
+    }
+    if (criterion.kind !== "judgment") {
+      throw new Error(`criterion ${criterion_id} is not a judgment criterion`);
+    }
+    criteriaRepo.setJudgment(criterion_id, verdict, ctx.agentId);
+    reevaluateGoalFromState(ctx.db, criterion.goalId);
+    return JSON.stringify({ criterionId: criterion_id, verdict });
+  },
+};
+
+export const isaToolDefinitions: Tool[] = [isaRead, criterionCheck, criterionJudge];
