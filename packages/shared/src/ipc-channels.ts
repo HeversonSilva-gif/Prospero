@@ -132,6 +132,9 @@ export const IPC = {
   ISA_CRITERION_UPDATE: "isa:criterion-update",
   ISA_CRITERION_DELETE: "isa:criterion-delete",
   ISA_CRITERION_JUDGE: "isa:criterion-judge",
+  TELOS_GET: "telos:get",
+  TELOS_SAVE: "telos:save",
+  TELOS_SYNTHESIZE: "telos:synthesize",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

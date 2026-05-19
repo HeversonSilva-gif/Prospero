@@ -19,6 +19,7 @@ import { registerLearningHandlers } from "./learning-handlers.js";
 import { registerInstructionsHandlers } from "./instructions-handlers.js";
 import { registerOrgPlanHandlers } from "./org-plan-handlers.js";
 import { registerIsaHandlers } from "./isa-handlers.js";
+import { registerTelosHandlers } from "./telos-handlers.js";
 import { initRecorder } from "../activity/index.js";
 import { initDerivation } from "../derivation/index.js";
 import { recoverStuckVerifications } from "../verification/index.js";
@@ -49,4 +50,5 @@ export const registerIpcHandlers = (db: Database.Database): void => {
   registerInstructionsHandlers(db);
   registerOrgPlanHandlers(db);
   registerIsaHandlers(db);
+  registerTelosHandlers(db);
 };
