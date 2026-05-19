@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FC } from "react";
+import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import { validateIsa } from "@prospero/shared";
 import type { CriterionKind } from "@prospero/shared";
@@ -13,7 +13,6 @@ export const IsaPanel: FC<{ goalId: string }> = ({ goalId }) => {
   const { t } = useTranslation();
   const store = useIsaStore();
   const [local, setLocal] = useState("");
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { load, body, save } = store;
 
@@ -25,12 +24,18 @@ export const IsaPanel: FC<{ goalId: string }> = ({ goalId }) => {
     setLocal(body);
   }, [body]);
 
+  // Debounced autosave. The `local === body` guard skips the no-op fired by
+  // the body-sync effect (on mount and after a save round-trips back).
+  useEffect(() => {
+    if (local === body) return;
+    const handle = setTimeout(() => {
+      void save(local);
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [local, body, save]);
+
   const onBodyChange = (value: string): void => {
     setLocal(value);
-    if (saveTimer.current !== null) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      void save(value);
-    }, 500);
   };
 
   if (store.loading) return <LoadingState label={t("isa.loading")} />;
@@ -47,7 +52,7 @@ export const IsaPanel: FC<{ goalId: string }> = ({ goalId }) => {
           <div className="flex gap-2">
             <button
               type="button"
-              className="px-3 py-1 text-xs rounded bg-brand text-white"
+              className="px-3 py-1 text-xs rounded bg-brand text-brand-fg"
               onClick={() => void store.applyDraft()}
             >
               {t("isa.applyDraft")}
@@ -72,6 +77,7 @@ export const IsaPanel: FC<{ goalId: string }> = ({ goalId }) => {
         }
       >
         <textarea
+          aria-label={t("isa.documentTitle")}
           className="w-full h-80 font-mono text-xs p-3 rounded border border-surface-border bg-surface-card text-ink resize-y"
           value={local}
           onChange={(e) => onBodyChange(e.target.value)}
@@ -124,9 +130,7 @@ const IsaCriteriaList: FC = () => {
               key={c.id}
               className="flex items-center gap-2 text-xs p-2 rounded border border-surface-border bg-surface-card"
             >
-              <span className="text-ink-soft" aria-hidden>
-                &#9203;
-              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-ink-soft shrink-0" aria-hidden />
               <span className="flex-1 text-ink">{c.statement}</span>
               <span className="text-[10px] uppercase tracking-wide text-ink-soft">
                 {t(`isa.kind.${c.kind}`)}
@@ -146,6 +150,7 @@ const IsaCriteriaList: FC = () => {
 
       <div className="flex gap-2">
         <input
+          aria-label={t("isa.criterionPlaceholder")}
           className="flex-1 text-xs px-2 py-1 rounded border border-surface-border bg-surface-card text-ink"
           placeholder={t("isa.criterionPlaceholder")}
           value={statement}
@@ -164,7 +169,7 @@ const IsaCriteriaList: FC = () => {
         </select>
         <button
           type="button"
-          className="px-3 py-1 text-xs rounded bg-brand text-white"
+          className="px-3 py-1 text-xs rounded bg-brand text-brand-fg"
           onClick={add}
         >
           {t("isa.addCriterion")}
