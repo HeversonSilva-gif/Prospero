@@ -104,6 +104,7 @@
       "issuesPending": "Issues vinculadas aparecerão aqui em breve.",
       "tabs": {
         "plan": "Plano",
+        "isa": "ISA",
         "subgoals": "Sub-objetivos",
         "issues": "Issues",
         "history": "Histórico"
@@ -885,6 +886,27 @@
       "recentIssues": "Issues recentes",
       "counts": "{{agents}} agentes · {{issues}} issues · {{doing}} doing",
       "pathMissing": "Pasta indisponível"
+    }
+  },
+  "isa": {
+    "loading": "Carregando ISA…",
+    "documentTitle": "Artefato de Estado Ideal",
+    "generate": "Gerar ISA",
+    "generating": "Gerando…",
+    "draftReady": "Um rascunho de ISA foi gerado. Aplique para substituir o documento e adicionar os critérios propostos, ou descarte.",
+    "applyDraft": "Aplicar rascunho",
+    "discardDraft": "Descartar",
+    "allSectionsPresent": "As 8 seções estão presentes.",
+    "missingSections": "Seções faltando: {{sections}}",
+    "criteriaTitle": "Critérios (ISCs)",
+    "criteriaHint": "Critérios verificáveis. A verificação roda num milestone futuro — aqui todos aparecem como pendentes.",
+    "noCriteria": "Nenhum critério ainda.",
+    "criterionPlaceholder": "O que precisa ser verdade?",
+    "addCriterion": "Adicionar",
+    "removeCriterion": "Remover critério",
+    "kind": {
+      "deterministic": "Determinístico",
+      "judgment": "Julgamento"
     }
   },
   "issues": {

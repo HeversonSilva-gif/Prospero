@@ -104,6 +104,7 @@
       "issuesPending": "Linked issues will appear here soon.",
       "tabs": {
         "plan": "Plan",
+        "isa": "ISA",
         "subgoals": "Sub-goals",
         "issues": "Issues",
         "history": "History"
@@ -885,6 +886,27 @@
       "recentIssues": "Recent issues",
       "counts": "{{agents}} agents · {{issues}} issues · {{doing}} doing",
       "pathMissing": "Path unavailable"
+    }
+  },
+  "isa": {
+    "loading": "Loading ISA…",
+    "documentTitle": "Ideal State Artifact",
+    "generate": "Generate ISA",
+    "generating": "Generating…",
+    "draftReady": "A draft ISA was generated. Apply it to replace the document and add the proposed criteria, or discard it.",
+    "applyDraft": "Apply draft",
+    "discardDraft": "Discard",
+    "allSectionsPresent": "All 8 sections present.",
+    "missingSections": "Missing sections: {{sections}}",
+    "criteriaTitle": "Criteria (ISCs)",
+    "criteriaHint": "Verifiable criteria. Verification runs in a later milestone — all show as pending here.",
+    "noCriteria": "No criteria yet.",
+    "criterionPlaceholder": "What must be true?",
+    "addCriterion": "Add",
+    "removeCriterion": "Remove criterion",
+    "kind": {
+      "deterministic": "Deterministic",
+      "judgment": "Judgment"
     }
   },
   "issues": {
