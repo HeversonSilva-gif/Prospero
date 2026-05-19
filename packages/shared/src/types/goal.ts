@@ -14,6 +14,7 @@ export type GoalStatus =
   | "proposed"
   | "approved"
   | "in_progress"
+  | "verifying"
   | "achieved"
   | "cancelled";
 
@@ -57,6 +58,9 @@ export interface IssueToCreate {
   assigneeIndex: number | "CEO";
   estimatedTokens: number;
   dependsOnIndexes: number[];
+  // M13 — ids of goal_criteria (ISCs) this issue advances. Optional: existing
+  // plans predate the field. Populated into the issue_criteria join on execute.
+  advancesCriteria?: string[];
   rationale: string;
 }
 
