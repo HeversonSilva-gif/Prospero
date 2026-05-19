@@ -3,6 +3,8 @@ import { createGoalsRepository } from "./repository.js";
 import { createGoalPlansRepository } from "./plans-repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
+import { createGoalCriteriaRepository } from "./criteria-repository.js";
+import { createIssueCriteriaRepository } from "./issue-criteria-repository.js";
 import { createSettingsRepository } from "../settings/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { executePlanNarrated } from "./executor-narrated.js";
@@ -62,6 +64,8 @@ export const executePlanAtomic = (
   const recorder = tryGetRecorder();
   const agentsRepo = createAgentsRepository(db, recorder);
   const issuesRepo = createIssuesRepository(db, recorder);
+  const criteriaRepo = createGoalCriteriaRepository(db);
+  const issueCriteriaRepo = createIssueCriteriaRepository(db);
   const linkIssueGoalStmt = db.prepare("UPDATE issues SET goal_id = ? WHERE id = ?");
 
   try {
@@ -159,6 +163,14 @@ export const executePlanAtomic = (
           { actorKind: "user", actorId: null },
         );
         linkIssueGoalStmt.run(goal.id, created.id);
+        // M13: link the ISCs this issue advances. Skip ids that don't belong to
+        // this goal (a stale criterion id must not abort plan execution).
+        for (const criterionId of issue.advancesCriteria ?? []) {
+          const criterion = criteriaRepo.getById(criterionId);
+          if (criterion !== null && criterion.goalId === goal.id) {
+            issueCriteriaRepo.link(created.id, criterionId);
+          }
+        }
         indexToIssueId.set(issue.index, created.id);
       }
 

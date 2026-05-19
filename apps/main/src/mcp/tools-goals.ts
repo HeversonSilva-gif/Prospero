@@ -7,11 +7,13 @@ import { createRoleTemplatesRepository } from "../agents/role-templates-reposito
 import { createInboxRepository } from "../inbox/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
+import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
+import { createIssueCriteriaRepository } from "../goals/issue-criteria-repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { getCostBaseline } from "../costs/baseline.js";
 import { GoalPlanPayloadSchema, type GoalPlanPayload } from "../schemas/goalPlan.js";
 import type { ToolContext } from "./tools.js";
-import type { GoalStatus, GoalLevel } from "@prospero/shared";
+import type { GoalStatus, GoalLevel, IssueToCreate } from "@prospero/shared";
 
 type Tool = {
   name: string;
@@ -220,7 +222,7 @@ const submitGoalPlan: Tool = {
       proposedByAgentId: ctx.agentId,
       summary: payload.summary,
       agentsToHire: payload.agentsToHire,
-      issuesToCreate: payload.issuesToCreate,
+      issuesToCreate: payload.issuesToCreate as IssueToCreate[],
       estimatedTotalTokens: payload.estimatedTotalTokens ?? null,
       estimatedDurationDays: payload.estimatedDurationDays ?? null,
       estimatedCostCents: payload.estimatedCostCents ?? null,
@@ -405,6 +407,14 @@ const createIssueForPlan: Tool = {
     ctx.db
       .prepare("UPDATE issues SET goal_id = ?, depends_on_json = ? WHERE id = ?")
       .run(goal.id, dependsOnIds.length > 0 ? JSON.stringify(dependsOnIds) : null, created.id);
+    // M13: link the ISCs this issue advances. Skip ids that don't belong to
+    // this goal (a stale criterion id must not abort plan execution).
+    for (const criterionId of issueSpec.advancesCriteria ?? []) {
+      const criterion = createGoalCriteriaRepository(ctx.db).getById(criterionId);
+      if (criterion !== null && criterion.goalId === goal.id) {
+        createIssueCriteriaRepository(ctx.db).link(created.id, criterionId);
+      }
+    }
     state.issueIndexToId[planIndex] = created.id;
     state.step = "creating_issues";
     goalsRepo.setExecutionState(goal.id, state);

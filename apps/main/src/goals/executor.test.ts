@@ -4,6 +4,7 @@ import { applyMigrations } from "../db/migrations.js";
 import { executePlan } from "./executor.js";
 import { createGoalsRepository } from "./repository.js";
 import { createGoalPlansRepository } from "./plans-repository.js";
+import { createGoalCriteriaRepository } from "./criteria-repository.js";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import type { AgentToHire, IssueToCreate } from "@prospero/shared";
@@ -145,5 +146,43 @@ describe("executePlan", () => {
       includeAgentIndexes: new Set([0]),
     });
     expect(result.ok).toBe(false);
+  });
+
+  it("populates issue_criteria when issue carries advancesCriteria", () => {
+    const { goalId, planId } = createApprovedReady([agentInput({})], [issueInput({})]);
+    // Seed a criterion that belongs to this goal.
+    const criteriaRepo = createGoalCriteriaRepository(env.db);
+    const criterion = criteriaRepo.create({
+      goalId,
+      statement: "Endpoint returns 200",
+      kind: "judgment",
+    });
+    // Re-insert a fresh plan that carries advancesCriteria on the issue.
+    // The plan created by createApprovedReady is already in 'proposed' state —
+    // supersede it and insert a new one to avoid the "plan not proposed" guard.
+    const plansRepo = createGoalPlansRepository(env.db);
+    const goalsRepo = createGoalsRepository(env.db);
+    plansRepo.markSuperseded(planId);
+    goalsRepo.updateStatus(goalId, "planning");
+    goalsRepo.updateStatus(goalId, "proposed");
+    const plan2 = plansRepo.insert({
+      goalId,
+      version: 2,
+      proposedByAgentId: env.ceoId,
+      summary: "Sample plan summary spanning at least twenty characters.",
+      agentsToHire: [agentInput({})],
+      issuesToCreate: [issueInput({ advancesCriteria: [criterion.id] })],
+      estimatedTotalTokens: null,
+      estimatedDurationDays: null,
+      estimatedCostCents: null,
+      risks: [],
+    });
+    const result = executePlan(env.db, plan2.id);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const linked = env.db
+      .prepare("SELECT COUNT(*) AS n FROM issue_criteria WHERE criterion_id = ?")
+      .get(criterion.id) as { n: number };
+    expect(linked.n).toBe(1);
   });
 });

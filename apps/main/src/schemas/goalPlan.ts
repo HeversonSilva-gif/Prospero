@@ -36,6 +36,7 @@ const IssueToCreateSchema = z.object({
   assigneeIndex: indexRef,
   estimatedTokens: z.number().int().positive(),
   dependsOnIndexes: z.array(z.number().int().nonnegative()).max(20),
+  advancesCriteria: z.array(z.string().min(1).max(120)).max(50).optional(),
   rationale: z.string().min(1).max(500),
 });
 
