@@ -1,0 +1,84 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import Database from "better-sqlite3";
+import { applyMigrations } from "../db/migrations.js";
+import { createGoalsRepository } from "./repository.js";
+import { createGoalCriteriaRepository } from "./criteria-repository.js";
+import { createCompaniesRepository } from "../companies/repository.js";
+
+const newDb = (): Database.Database => {
+  const db = new Database(":memory:");
+  applyMigrations(db);
+  return db;
+};
+
+describe("goalCriteriaRepository", () => {
+  let db: Database.Database;
+  let goalId: string;
+
+  beforeEach(() => {
+    db = newDb();
+    const companyId = createCompaniesRepository(db).create({ name: "Acme" }).id;
+    goalId = createGoalsRepository(db).create({ companyId, title: "Launch" }).id;
+  });
+
+  it("create assigns an incrementing sort_order per goal", () => {
+    const repo = createGoalCriteriaRepository(db);
+    const a = repo.create({ goalId, statement: "tests pass", kind: "deterministic" });
+    const b = repo.create({ goalId, statement: "on brand", kind: "judgment" });
+    expect(a.sortOrder).toBe(0);
+    expect(b.sortOrder).toBe(1);
+    expect(a.status).toBe("pending");
+    expect(b.checkType).toBeNull();
+  });
+
+  it("round-trips a deterministic command criterion with its checkSpec", () => {
+    const repo = createGoalCriteriaRepository(db);
+    const created = repo.create({
+      goalId,
+      statement: "the suite passes",
+      kind: "deterministic",
+      checkType: "command",
+      checkSpec: {
+        checkType: "command",
+        command: "pnpm test",
+        expectedExitCode: 0,
+        timeoutMs: 600000,
+      },
+    });
+    const fetched = repo.getById(created.id);
+    expect(fetched?.checkSpec).toEqual({
+      checkType: "command",
+      command: "pnpm test",
+      expectedExitCode: 0,
+      timeoutMs: 600000,
+    });
+  });
+
+  it("listByGoal returns criteria ordered by sort_order", () => {
+    const repo = createGoalCriteriaRepository(db);
+    repo.create({ goalId, statement: "first", kind: "judgment" });
+    repo.create({ goalId, statement: "second", kind: "judgment" });
+    expect(repo.listByGoal(goalId).map((c) => c.statement)).toEqual(["first", "second"]);
+  });
+
+  it("update replaces all editable fields", () => {
+    const repo = createGoalCriteriaRepository(db);
+    const c = repo.create({ goalId, statement: "old", kind: "judgment" });
+    const updated = repo.update(c.id, {
+      statement: "new",
+      kind: "deterministic",
+      checkType: "artifact_exists",
+      checkSpec: { checkType: "artifact_exists", artifactKind: "file_path" },
+    });
+    expect(updated.statement).toBe("new");
+    expect(updated.kind).toBe("deterministic");
+    expect(updated.checkType).toBe("artifact_exists");
+  });
+
+  it("delete removes the row", () => {
+    const repo = createGoalCriteriaRepository(db);
+    const c = repo.create({ goalId, statement: "x", kind: "judgment" });
+    repo.delete(c.id);
+    expect(repo.getById(c.id)).toBeNull();
+  });
+});
