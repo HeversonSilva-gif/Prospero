@@ -125,6 +125,12 @@ export const IPC = {
   MEMORY_USER_SET: "memory:user-set",
   MEMORY_USER_IMPORT_CC: "memory:user-import-cc",
   SKILLS_PROMOTE_ON_TERMINATE: "skills:promote-on-terminate",
+  ISA_GET: "isa:get",
+  ISA_SAVE: "isa:save",
+  ISA_GENERATE: "isa:generate",
+  ISA_CRITERION_CREATE: "isa:criterion-create",
+  ISA_CRITERION_UPDATE: "isa:criterion-update",
+  ISA_CRITERION_DELETE: "isa:criterion-delete",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
