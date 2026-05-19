@@ -1,0 +1,104 @@
+import { useEffect, useMemo, useState, type FC } from "react";
+import { useTranslation } from "react-i18next";
+import type { Agent, Message, PermissionRequest, PermissionResolution } from "@prospero/shared";
+import { useAgentsStore } from "../../stores/agents.js";
+import { ApprovalCard } from "../ApprovalCard.js";
+import { MessageList } from "../MessageList.js";
+import { DelegationsPanel } from "../DelegationsPanel.js";
+import { Composer } from "../Composer.js";
+import { TabBar } from "../ui/index.js";
+
+type SubTab = "chat" | "delegations";
+type Props = { agent: Agent };
+
+export const AgentConversation: FC<Props> = ({ agent }) => {
+  const { t } = useTranslation();
+  const agents = useAgentsStore((s) => s.agents);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<PermissionRequest[]>([]);
+  const [sub, setSub] = useState<SubTab>("chat");
+
+  useEffect(() => {
+    void (async () => {
+      const all = await window.prospero.messages.listByAgent(agent.id);
+      setMessages(all);
+    })();
+  }, [agent.id]);
+
+  useEffect(() => {
+    const off = window.prospero.agents.onEvent((ev) => {
+      if (ev.kind === "message-append") {
+        void (async () => {
+          const all = await window.prospero.messages.listByAgent(agent.id);
+          setMessages(all);
+        })();
+      }
+    });
+    return off;
+  }, [agent.id]);
+
+  useEffect(() => {
+    const unsub = window.prospero.permissions.onRequest((req) => {
+      if (req.agentId === agent.id) {
+        setPendingApprovals((prev) => [...prev, req]);
+      }
+    });
+    return unsub;
+  }, [agent.id]);
+
+  const { chatMessages, delegationMessages } = useMemo(() => {
+    const chat: Message[] = [];
+    const delegation: Message[] = [];
+    for (const m of messages) {
+      const parts = m.threadParticipants;
+      if (parts === undefined || parts.includes("user")) chat.push(m);
+      else delegation.push(m);
+    }
+    return { chatMessages: chat, delegationMessages: delegation };
+  }, [messages]);
+
+  const resolve = (req: PermissionRequest, allow: boolean): void => {
+    const resolution: PermissionResolution = allow
+      ? { behavior: "allow" }
+      : { behavior: "deny", message: "User rejected" };
+    void window.prospero.permissions.resolve(req.toolUseId, resolution);
+    setPendingApprovals((prev) => prev.filter((r) => r.toolUseId !== req.toolUseId));
+  };
+
+  const onSend = async (content: string): Promise<void> => {
+    await window.prospero.agents.sendMessage(agent.id, content);
+  };
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="px-6 pt-2">
+        <TabBar
+          variant="segmented"
+          active={sub}
+          onSelect={(id) => setSub(id as SubTab)}
+          tabs={[
+            { id: "chat", label: t("agent.tabs.chat") },
+            {
+              id: "delegations",
+              label: t("agent.tabs.delegations"),
+              badge: delegationMessages.length,
+            },
+          ]}
+        />
+      </div>
+      {sub === "chat" ? (
+        <MessageList messages={chatMessages} agents={agents} />
+      ) : (
+        <DelegationsPanel messages={delegationMessages} currentAgentId={agent.id} agents={agents} />
+      )}
+      {pendingApprovals.map((req) => (
+        <ApprovalCard
+          key={req.toolUseId}
+          request={req}
+          onResolve={(allow) => resolve(req, allow)}
+        />
+      ))}
+      <Composer onSubmit={(text) => void onSend(text)} />
+    </div>
+  );
+};
