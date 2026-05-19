@@ -1,6 +1,7 @@
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import type { Skill, Memory, SessionSearchHit, SkillCandidate } from "@prospero/shared";
+import { TabBar, EmptyState, LoadingState } from "../ui/index.js";
 
 interface Props {
   agentId: string;
@@ -17,30 +18,20 @@ export const LearningPanel: FC<Props> = ({ agentId, skills, memories }) => {
   const [sub, setSub] = useState<SubTab>("skills");
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex gap-1 px-6 py-2 border-b border-surface-border">
-        {SUB_TABS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setSub(s)}
-            className={`px-2.5 py-1 text-xs font-medium rounded ${
-              sub === s
-                ? "bg-brand text-brand-fg"
-                : "bg-surface-soft text-ink-muted hover:bg-surface-border"
-            }`}
-          >
-            {t(`agent.learning.subtabs.${s}`)}
-          </button>
-        ))}
-      </div>
-      <div className="flex-1 overflow-auto">
+    <>
+      <TabBar
+        variant="underline"
+        tabs={SUB_TABS.map((s) => ({ id: s, label: t(`agent.learning.subtabs.${s}`) }))}
+        active={sub}
+        onSelect={(id: string) => setSub(id as SubTab)}
+      />
+      <div className="p-6">
         {sub === "skills" && <SkillsView skills={skills} />}
         {sub === "memory" && <MemoryView memories={memories} />}
         {sub === "history" && <HistoryView agentId={agentId} />}
         {sub === "candidates" && <CandidatesView agentId={agentId} />}
       </div>
-    </div>
+    </>
   );
 };
 
@@ -77,11 +68,7 @@ const SkillsView: FC<{ skills: Skill[] }> = ({ skills }) => {
   };
 
   if (skills.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-ink-muted">
-        {t("agent.learning.skills.empty")}
-      </div>
-    );
+    return <EmptyState message={t("agent.learning.skills.empty")} />;
   }
 
   return (
@@ -100,7 +87,7 @@ const SkillsView: FC<{ skills: Skill[] }> = ({ skills }) => {
                 toggle(skill);
               }
             }}
-            className="w-full cursor-pointer text-left px-6 py-3 hover:bg-surface-soft"
+            className="w-full cursor-pointer text-left py-3 hover:bg-surface-soft"
           >
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-ink">{skill.name}</span>
@@ -150,7 +137,7 @@ const SkillsView: FC<{ skills: Skill[] }> = ({ skills }) => {
             <p className="text-xs text-ink-muted mt-0.5">{skill.description}</p>
           </div>
           {expandedId === skill.id && (
-            <pre className="px-6 pb-3 text-xs text-ink-muted whitespace-pre-wrap font-mono">
+            <pre className="pb-3 text-xs text-ink-muted whitespace-pre-wrap font-mono">
               {bodies[skill.id] ?? "…"}
             </pre>
           )}
@@ -174,17 +161,13 @@ const MemoryView: FC<{ memories: Memory[] }> = ({ memories }) => {
   };
 
   if (memories.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-ink-muted">
-        {t("agent.learning.memory.empty")}
-      </div>
-    );
+    return <EmptyState message={t("agent.learning.memory.empty")} />;
   }
 
   return (
     <ul className="divide-y divide-surface-border">
       {memories.map((m) => (
-        <li key={m.id} className="px-6 py-3">
+        <li key={m.id} className="py-3">
           <div className="flex items-center gap-2">
             <span className="text-[10px] px-1.5 py-0.5 bg-surface-soft rounded text-ink-muted">
               {t(`agent.learning.memory.kind.${m.kind}`)}
@@ -247,8 +230,8 @@ const HistoryView: FC<{ agentId: string }> = ({ agentId }) => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex gap-2 px-6 py-3 border-b border-surface-border">
+    <div>
+      <div className="flex gap-2 mb-4">
         <input
           type="text"
           value={query}
@@ -267,36 +250,26 @@ const HistoryView: FC<{ agentId: string }> = ({ agentId }) => {
           {t("agent.learning.history.search")}
         </button>
       </div>
-      <div className="flex-1 overflow-auto">
-        {searching && (
-          <div className="flex h-full items-center justify-center text-sm text-ink-muted">
-            {t("agent.learning.history.searching")}
-          </div>
-        )}
-        {!searching && results === null && (
-          <div className="flex h-full items-center justify-center text-sm text-ink-muted">
-            {t("agent.learning.history.prompt")}
-          </div>
-        )}
-        {!searching && results !== null && results.length === 0 && (
-          <div className="flex h-full items-center justify-center text-sm text-ink-muted">
-            {t("agent.learning.history.empty")}
-          </div>
-        )}
-        {!searching && results !== null && results.length > 0 && (
-          <ul className="divide-y divide-surface-border">
-            {results.map((hit) => (
-              <li key={hit.messageId} className="px-6 py-3">
-                <div className="flex items-center gap-2 text-[10px] text-ink-soft">
-                  <span className="font-semibold">{hit.senderKind}</span>
-                  <span>{new Date(hit.createdAt).toLocaleString()}</span>
-                </div>
-                <p className="text-sm text-ink mt-0.5">{hit.content}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {searching && <LoadingState label={t("agent.learning.history.searching")} />}
+      {!searching && results === null && (
+        <EmptyState message={t("agent.learning.history.prompt")} />
+      )}
+      {!searching && results !== null && results.length === 0 && (
+        <EmptyState message={t("agent.learning.history.empty")} />
+      )}
+      {!searching && results !== null && results.length > 0 && (
+        <ul className="divide-y divide-surface-border">
+          {results.map((hit) => (
+            <li key={hit.messageId} className="py-3">
+              <div className="flex items-center gap-2 text-[10px] text-ink-soft">
+                <span className="font-semibold">{hit.senderKind}</span>
+                <span>{new Date(hit.createdAt).toLocaleString()}</span>
+              </div>
+              <p className="text-sm text-ink mt-0.5">{hit.content}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };
@@ -370,20 +343,16 @@ const CandidatesView: FC<{ agentId: string }> = ({ agentId }) => {
   };
 
   if (candidates === null) {
-    return <div className="flex h-full items-center justify-center text-sm text-ink-muted">…</div>;
+    return <LoadingState />;
   }
   if (candidates.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-ink-muted">
-        {t("agent.learning.candidates.empty")}
-      </div>
-    );
+    return <EmptyState message={t("agent.learning.candidates.empty")} />;
   }
 
   return (
     <ul className="divide-y divide-surface-border">
       {candidates.map((c) => (
-        <li key={c.id} className="px-6 py-3">
+        <li key={c.id} className="py-3">
           {editingId === c.id ? (
             <div className="flex flex-col gap-2">
               <input
