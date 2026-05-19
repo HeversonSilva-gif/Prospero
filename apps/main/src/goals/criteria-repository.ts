@@ -5,6 +5,7 @@ import type {
   CriterionCheckSpec,
   CriterionCheckType,
   CriterionKind,
+  CriterionResult,
   CriterionStatus,
   GoalCriterion,
   UpdateCriterionInput,
@@ -16,12 +17,9 @@ export type GoalCriteriaRepository = {
   listByGoal(goalId: string): GoalCriterion[];
   update(id: string, input: UpdateCriterionInput): GoalCriterion;
   delete(id: string): void;
-  applyResult(result: {
-    criterionId: string;
-    status: CriterionStatus;
-    detail: string;
-    resultJson: unknown;
-  }): void;
+  // Persists a deterministic check result. `detail` on the CriterionResult is
+  // not stored as its own column — it is derivable from last_result_json.
+  applyResult(result: CriterionResult): void;
   setJudgment(id: string, status: CriterionStatus, verifiedBy: string | null): void;
 };
 
