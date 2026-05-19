@@ -4,6 +4,7 @@ import { applyMigrations } from "../src/db/migrations.js";
 import { createCompaniesRepository } from "../src/companies/repository.js";
 import { createProjectsRepository } from "../src/projects/repository.js";
 import { createIssuesRepository } from "../src/issues/repository.js";
+import { createGoalsRepository } from "../src/goals/repository.js";
 
 const setup = () => {
   const db = new Database(":memory:");
@@ -290,5 +291,43 @@ describe("issues repository", () => {
       // LIKE matches but JSON.parse + includes check rejects
       expect(env.issues.findDependentsOf(env.a.id, env.companyId)).toEqual([]);
     });
+  });
+
+  it("listByGoal returns the goal's issues ordered by created_at", () => {
+    const { db, companyId } = setup();
+    const repo = createIssuesRepository(db);
+    const goalId = createGoalsRepository(db).create({ companyId, title: "G" }).id;
+    const a = repo.create({
+      companyId,
+      projectId: null,
+      title: "first",
+      description: null,
+      assigneeId: null,
+      priority: "medium",
+      parentId: null,
+      createdBy: null,
+    });
+    const b = repo.create({
+      companyId,
+      projectId: null,
+      title: "second",
+      description: null,
+      assigneeId: null,
+      priority: "medium",
+      parentId: null,
+      createdBy: null,
+    });
+    repo.create({
+      companyId,
+      projectId: null,
+      title: "unlinked",
+      description: null,
+      assigneeId: null,
+      priority: "medium",
+      parentId: null,
+      createdBy: null,
+    });
+    db.prepare("UPDATE issues SET goal_id = ? WHERE id IN (?, ?)").run(goalId, a.id, b.id);
+    expect(repo.listByGoal(goalId).map((i) => i.title)).toEqual(["first", "second"]);
   });
 });
