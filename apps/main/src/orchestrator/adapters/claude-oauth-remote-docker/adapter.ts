@@ -59,6 +59,7 @@ export class ClaudeRemoteDockerAdapter implements AgentAdapter {
     // container-local mcp.json path (design §4.3).
     const args = buildClaudeArgs(this.ctx.agent, null, {
       ...(this.ctx.narratedActive === true ? { narratedActive: true } : {}),
+      ...(this.ctx.telosBlock !== undefined ? { telosBlock: this.ctx.telosBlock } : {}),
       ...(this.ctx.memoryBlock !== undefined ? { memoryBlock: this.ctx.memoryBlock } : {}),
       ...(this.ctx.instructionsBlock !== undefined
         ? { instructionsBlock: this.ctx.instructionsBlock }
