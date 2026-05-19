@@ -82,7 +82,7 @@ describe("goalsRepository", () => {
     expect(updated.status).toBe("cancelled");
   });
 
-  it("getById returns isaPath (null by default)", () => {
+  it("create returns isaPath as null by default", () => {
     const repo = createGoalsRepository(db);
     const goal = repo.create({ companyId, title: "Launch" });
     expect(goal.isaPath).toBeNull();

@@ -66,7 +66,7 @@ const rowToGoal = (row: GoalRow): Goal => ({
   budgetMaxTokens: row.budget_max_tokens,
   deadline: row.deadline,
   successCriteria: row.success_criteria,
-  isaPath: row.isa_path ?? null,
+  isaPath: row.isa_path,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
