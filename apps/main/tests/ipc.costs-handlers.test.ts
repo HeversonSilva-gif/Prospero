@@ -102,4 +102,38 @@ describe("costs IPC handlers", () => {
     const setHandler = handlers.get("costs:set-budgets")!;
     expect(() => setHandler(null, { maxTokensPerIssue: -1 })).toThrow(/positive integer/i);
   });
+
+  it("costs:get-agent-budget-status reflects the agent's period total", () => {
+    const { db, companyId, agentId, costsRepo } = setup();
+    const agents = createAgentsRepository(db);
+    agents.setBudget(agentId, { tokensLimit: 1000, usdLimit: 500, period: "daily" });
+    costsRepo.insert({
+      companyId,
+      agentId,
+      projectId: null,
+      issueId: null,
+      adapterName: "claude-oauth-local",
+      model: "claude-sonnet-4-6",
+      sessionId: null,
+      inputTokens: 300,
+      outputTokens: 0,
+      cacheCreationTokens: 0,
+      cacheReadTokens: 0,
+      costCentsEstimate: 12,
+      occurredAt: Date.now(),
+    });
+    const handler = handlers.get("costs:get-agent-budget-status")!;
+    const result = handler(null, { agentId }) as {
+      tokenTotal: number;
+      tokenLimit: number | null;
+      usdTotalCents: number;
+      usdLimitCents: number | null;
+      adapterIsCostBearing: boolean;
+    };
+    expect(result.tokenTotal).toBe(300);
+    expect(result.tokenLimit).toBe(1000);
+    expect(result.usdTotalCents).toBe(12);
+    expect(result.usdLimitCents).toBe(500);
+    expect(result.adapterIsCostBearing).toBe(false);
+  });
 });

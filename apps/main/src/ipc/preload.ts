@@ -42,6 +42,7 @@ import {
   type SessionSearchHit,
   type SkillCandidate,
   type AgentRunRow,
+  type AgentBudgetStatus,
 } from "@prospero/shared";
 
 contextBridge.exposeInMainWorld("prospero", {
@@ -165,6 +166,24 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.AGENTS_SET_CAPABILITIES, { agentId, capabilities }) as Promise<{
         ok: true;
       }>,
+    setBudget: (
+      agentId: string,
+      tokensLimit: number | null,
+      usdLimit: number | null,
+      period: "daily" | "monthly",
+    ) =>
+      ipcRenderer.invoke(IPC.AGENTS_SET_BUDGET, {
+        agentId,
+        tokensLimit,
+        usdLimit,
+        period,
+      }) as Promise<{ ok: true }>,
+    setPermissions: (agentId: string, canHire: boolean, canAssign: boolean) =>
+      ipcRenderer.invoke(IPC.AGENTS_SET_PERMISSIONS, {
+        agentId,
+        canHire,
+        canAssign,
+      }) as Promise<{ ok: true }>,
     pause: (agentId: string, reason?: string) =>
       ipcRenderer.invoke(IPC.AGENTS_PAUSE, { agentId, reason }) as Promise<{ ok: true }>,
     resume: (agentId: string) =>
@@ -358,6 +377,10 @@ contextBridge.exposeInMainWorld("prospero", {
     getBudgets: () => ipcRenderer.invoke(IPC.COSTS_GET_BUDGETS) as Promise<CostBudgets>,
     setBudgets: (patch: Partial<CostBudgets>) =>
       ipcRenderer.invoke(IPC.COSTS_SET_BUDGETS, patch) as Promise<CostBudgets>,
+    getAgentBudgetStatus: (agentId: string) =>
+      ipcRenderer.invoke(IPC.COSTS_GET_AGENT_BUDGET_STATUS, {
+        agentId,
+      }) as Promise<AgentBudgetStatus>,
     onNew: (
       cb: (payload: { agentId: string; deltaTokens: number; deltaCents: number }) => void,
     ): (() => void) => {

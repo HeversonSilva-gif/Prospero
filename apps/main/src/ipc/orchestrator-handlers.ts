@@ -7,6 +7,7 @@ import {
   type AgentEvent,
   type AgentMode,
   type AgentStats,
+  type BudgetPeriod,
   type Message,
   type MessageKind,
   type ToolCallView,
@@ -711,6 +712,48 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       if (agent === null) throw new Error("Agent not found");
       agents.setCapabilities(payload.agentId, payload.capabilities);
       // capabilities afeta --allowedTools no spawn → exige re-spawn.
+      restartIfRunning(payload.agentId, agent.companyId);
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.AGENTS_SET_BUDGET,
+    (
+      _e,
+      payload: {
+        agentId: string;
+        tokensLimit: number | null;
+        usdLimit: number | null;
+        period: BudgetPeriod;
+      },
+    ): { ok: true } => {
+      if (payload.period !== "daily" && payload.period !== "monthly") {
+        throw new Error("Invalid budget period");
+      }
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      // Repo throws on a non-positive, non-null limit.
+      agents.setBudget(payload.agentId, {
+        tokensLimit: payload.tokensLimit,
+        usdLimit: payload.usdLimit,
+        period: payload.period,
+      });
+      // No re-spawn: enforcement reads the DB each turn post-completion.
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.AGENTS_SET_PERMISSIONS,
+    (_e, payload: { agentId: string; canHire: boolean; canAssign: boolean }): { ok: true } => {
+      const agent = agents.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      agents.setPermissions(payload.agentId, {
+        canHire: payload.canHire,
+        canAssign: payload.canAssign,
+      });
+      // can_hire/can_assign affect --allowedTools at spawn → re-spawn.
       restartIfRunning(payload.agentId, agent.companyId);
       return { ok: true };
     },

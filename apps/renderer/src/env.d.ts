@@ -41,6 +41,7 @@ import type {
   SessionSearchHit,
   SkillCandidate,
   AgentRunRow,
+  AgentBudgetStatus,
 } from "@prospero/shared";
 
 declare global {
@@ -135,6 +136,17 @@ declare global {
         setMode: (agentId: string, mode: "supervised" | "auto") => Promise<{ ok: true }>;
         setAlwaysOn: (agentId: string, alwaysOn: boolean) => Promise<{ ok: true }>;
         setCapabilities: (agentId: string, capabilities: string[]) => Promise<{ ok: true }>;
+        setBudget: (
+          agentId: string,
+          tokensLimit: number | null,
+          usdLimit: number | null,
+          period: "daily" | "monthly",
+        ) => Promise<{ ok: true }>;
+        setPermissions: (
+          agentId: string,
+          canHire: boolean,
+          canAssign: boolean,
+        ) => Promise<{ ok: true }>;
         pause: (agentId: string, reason?: string) => Promise<{ ok: true }>;
         resume: (agentId: string) => Promise<{ ok: true; drained: number }>;
         terminate: (agentId: string, reason?: string) => Promise<{ ok: true }>;
@@ -270,6 +282,7 @@ declare global {
         aggregateToday: (payload: { companyId: string }) => Promise<CostsAggregateTodayResult>;
         getBudgets: () => Promise<CostBudgets>;
         setBudgets: (patch: Partial<CostBudgets>) => Promise<CostBudgets>;
+        getAgentBudgetStatus: (agentId: string) => Promise<AgentBudgetStatus>;
         onNew: (
           cb: (payload: { agentId: string; deltaTokens: number; deltaCents: number }) => void,
         ) => () => void;

@@ -13,8 +13,11 @@ import type {
   CostBucket,
   CostAgentTotal,
   CostProjectTotal,
+  AgentBudgetStatus,
 } from "@prospero/shared";
 import { createBudgetsRepository } from "../costs/budgets-repository.js";
+import { createAgentsRepository } from "../agents/repository.js";
+import { createCostsRepository } from "../costs/repository.js";
 
 const bucketMs = (b: "day" | "hour"): number => (b === "day" ? 86_400_000 : 3_600_000);
 
@@ -202,6 +205,8 @@ const aggregateToday = (db: Database.Database, companyId: string): CostsAggregat
 
 export const registerCostsHandlers = (db: Database.Database): void => {
   const budgetsRepo = createBudgetsRepository(db);
+  const agentsRepo = createAgentsRepository(db);
+  const costsRepo = createCostsRepository(db);
 
   ipcMain.handle(IPC.COSTS_QUERY, (_e, payload: CostsQueryInput): CostsQueryResult => {
     return queryCompany(db, payload);
@@ -220,4 +225,21 @@ export const registerCostsHandlers = (db: Database.Database): void => {
     budgetsRepo.write(payload);
     return budgetsRepo.read();
   });
+
+  ipcMain.handle(
+    IPC.COSTS_GET_AGENT_BUDGET_STATUS,
+    (_e, payload: { agentId: string }): AgentBudgetStatus => {
+      const agent = agentsRepo.getById(payload.agentId);
+      if (agent === null) throw new Error("Agent not found");
+      const total = costsRepo.getAgentPeriodTotal(payload.agentId, agent.budgetPeriod, new Date());
+      return {
+        period: agent.budgetPeriod,
+        tokenTotal: total.tokens,
+        tokenLimit: agent.budgetTokensLimit,
+        usdTotalCents: total.cents,
+        usdLimitCents: agent.budgetUsdLimit,
+        adapterIsCostBearing: agent.adapterName.startsWith("claude-api-key"),
+      };
+    },
+  );
 };

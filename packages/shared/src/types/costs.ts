@@ -1,3 +1,5 @@
+import type { BudgetPeriod } from "./agent.js";
+
 export type CostBucket = {
   bucketStart: number;
   inputTokens: number;
@@ -53,6 +55,17 @@ export type CostBudgets = {
   maxTokensPerIssue: number;
   rateLimitWindowTokens: number;
   rateLimitWindowHours: number;
+};
+
+// M12 PR-E2: live snapshot of an agent's per-agent budget utilisation, for
+// the Budget section in the Stats tab. Derived from cost_events.
+export type AgentBudgetStatus = {
+  period: BudgetPeriod;
+  tokenTotal: number;
+  tokenLimit: number | null;
+  usdTotalCents: number;
+  usdLimitCents: number | null;
+  adapterIsCostBearing: boolean;
 };
 
 // M12 PR-E1: a "run" is one turn — derived directly from a cost_events row.
