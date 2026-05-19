@@ -124,12 +124,14 @@ describe("costs IPC handlers", () => {
     });
     const handler = handlers.get("costs:get-agent-budget-status")!;
     const result = handler(null, { agentId }) as {
+      period: string;
       tokenTotal: number;
       tokenLimit: number | null;
       usdTotalCents: number;
       usdLimitCents: number | null;
       adapterIsCostBearing: boolean;
     };
+    expect(result.period).toBe("daily");
     expect(result.tokenTotal).toBe(300);
     expect(result.tokenLimit).toBe(1000);
     expect(result.usdTotalCents).toBe(12);
