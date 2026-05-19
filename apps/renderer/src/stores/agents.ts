@@ -22,6 +22,13 @@ type State = {
   setMode: (agentId: string, mode: "supervised" | "auto") => Promise<void>;
   setAlwaysOn: (agentId: string, alwaysOn: boolean) => Promise<void>;
   setCapabilities: (agentId: string, capabilities: string[]) => Promise<void>;
+  setBudget: (
+    agentId: string,
+    tokensLimit: number | null,
+    usdLimit: number | null,
+    period: "daily" | "monthly",
+  ) => Promise<void>;
+  setPermissions: (agentId: string, canHire: boolean, canAssign: boolean) => Promise<void>;
   pause: (agentId: string, reason?: string) => Promise<void>;
   resume: (agentId: string) => Promise<{ ok: true; drained: number }>;
   terminate: (agentId: string, reason?: string) => Promise<void>;
@@ -116,6 +123,22 @@ export const useAgentsStore = create<State>((set, get) => ({
     set((s) => ({
       agents: s.agents.map((a) => (a.id === agentId ? { ...a, capabilities } : a)),
     }));
+  },
+  setBudget: async (agentId, tokensLimit, usdLimit, period) => {
+    await window.prospero.agents.setBudget(agentId, tokensLimit, usdLimit, period);
+    set((s) => ({
+      agents: s.agents.map((a) =>
+        a.id === agentId
+          ? { ...a, budgetTokensLimit: tokensLimit, budgetUsdLimit: usdLimit, budgetPeriod: period }
+          : a,
+      ),
+    }));
+  },
+  setPermissions: async (agentId, canHire, canAssign) => {
+    await window.prospero.agents.setPermissions(agentId, canHire, canAssign);
+    // set-permissions re-spawns (clears the session) — reload the roster.
+    const agent = get().agents.find((a) => a.id === agentId);
+    if (agent !== undefined) await reloadAgentsForCompany(set, agent.companyId);
   },
   pause: async (agentId, reason) => {
     await window.prospero.agents.pause(agentId, reason);
