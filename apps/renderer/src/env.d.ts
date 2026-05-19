@@ -42,6 +42,10 @@ import type {
   SkillCandidate,
   AgentRunRow,
   AgentBudgetStatus,
+  CreateCriterionInput,
+  GoalCriterion,
+  IsaDraft,
+  UpdateCriterionInput,
 } from "@prospero/shared";
 
 declare global {
@@ -305,6 +309,14 @@ declare global {
         rejectPlan: (args: { planId: string; reason?: string }) => Promise<{ ok: true }>;
         narratedResume: (args: { goalId: string }) => Promise<{ ok: true }>;
         narratedRollback: (args: { goalId: string }) => Promise<{ aborted: true }>;
+      };
+      isa: {
+        get(args: { goalId: string }): Promise<{ body: string; criteria: GoalCriterion[] }>;
+        save(args: { goalId: string; body: string }): Promise<void>;
+        generate(args: { goalId: string }): Promise<IsaDraft>;
+        criterionCreate(args: CreateCriterionInput): Promise<GoalCriterion>;
+        criterionUpdate(args: { id: string; patch: UpdateCriterionInput }): Promise<GoalCriterion>;
+        criterionDelete(args: { id: string }): Promise<void>;
       };
       remote: {
         testConnection: () => Promise<{ ok: boolean; message: string }>;

@@ -43,6 +43,10 @@ import {
   type SkillCandidate,
   type AgentRunRow,
   type AgentBudgetStatus,
+  type CreateCriterionInput,
+  type GoalCriterion,
+  type IsaDraft,
+  type UpdateCriterionInput,
 } from "@prospero/shared";
 
 contextBridge.exposeInMainWorld("prospero", {
@@ -424,6 +428,23 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.GOALS_NARRATED_RESUME, args) as Promise<{ ok: true }>,
     narratedRollback: (args: { goalId: string }) =>
       ipcRenderer.invoke(IPC.GOALS_NARRATED_ROLLBACK, args) as Promise<{ aborted: true }>,
+  },
+  isa: {
+    get: (args: { goalId: string }) =>
+      ipcRenderer.invoke(IPC.ISA_GET, args) as Promise<{
+        body: string;
+        criteria: GoalCriterion[];
+      }>,
+    save: (args: { goalId: string; body: string }) =>
+      ipcRenderer.invoke(IPC.ISA_SAVE, args) as Promise<void>,
+    generate: (args: { goalId: string }) =>
+      ipcRenderer.invoke(IPC.ISA_GENERATE, args) as Promise<IsaDraft>,
+    criterionCreate: (args: CreateCriterionInput) =>
+      ipcRenderer.invoke(IPC.ISA_CRITERION_CREATE, args) as Promise<GoalCriterion>,
+    criterionUpdate: (args: { id: string; patch: UpdateCriterionInput }) =>
+      ipcRenderer.invoke(IPC.ISA_CRITERION_UPDATE, args) as Promise<GoalCriterion>,
+    criterionDelete: (args: { id: string }) =>
+      ipcRenderer.invoke(IPC.ISA_CRITERION_DELETE, args) as Promise<void>,
   },
   remote: {
     testConnection: () =>
