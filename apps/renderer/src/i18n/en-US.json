@@ -402,6 +402,7 @@
       "tabs": {
         "config": "Config",
         "instructions": "Instructions",
+        "learning": "Learning",
         "issues": "Issues",
         "runs": "Runs",
         "stats": "Stats"
@@ -561,6 +562,24 @@
       "errors": {
         "nameRequired": "Name is required",
         "personaTooShort": "Persona must be at least 20 characters"
+      }
+    },
+    "mode": {
+      "conversa": "Conversation",
+      "estudio": "Studio"
+    },
+    "studio": {
+      "issues": {
+        "title": "Assigned issues"
+      },
+      "runs": {
+        "tok": "Tokens",
+        "cost": "Cost",
+        "model": "Model"
+      },
+      "stats": {
+        "activity": "Activity",
+        "budget": "Budget"
       }
     },
     "location": {

@@ -402,6 +402,7 @@
       "tabs": {
         "config": "Config",
         "instructions": "Instruções",
+        "learning": "Aprendizado",
         "issues": "Issues",
         "runs": "Execuções",
         "stats": "Stats"
@@ -561,6 +562,24 @@
       "errors": {
         "nameRequired": "Nome obrigatório",
         "personaTooShort": "Persona precisa ter pelo menos 20 caracteres"
+      }
+    },
+    "mode": {
+      "conversa": "Conversa",
+      "estudio": "Estúdio"
+    },
+    "studio": {
+      "issues": {
+        "title": "Issues atribuídas"
+      },
+      "runs": {
+        "tok": "Tokens",
+        "cost": "Custo",
+        "model": "Modelo"
+      },
+      "stats": {
+        "activity": "Atividade",
+        "budget": "Orçamento"
       }
     },
     "location": {
