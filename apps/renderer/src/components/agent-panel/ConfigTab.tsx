@@ -23,6 +23,7 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
   const setReportsTo = useAgentsStore((s) => s.setReportsTo);
   const setMode = useAgentsStore((s) => s.setMode);
   const setAlwaysOn = useAgentsStore((s) => s.setAlwaysOn);
+  const setPermissions = useAgentsStore((s) => s.setPermissions);
   const setCapabilities = useAgentsStore((s) => s.setCapabilities);
   const wakeUp = useAgentsStore((s) => s.wakeUp);
   const setAdapter = useAgentsStore((s) => s.setAdapter);
@@ -199,33 +200,53 @@ export const ConfigTab: FC<Props> = ({ agent }) => {
 
       <section>
         <h3 className="text-[10px] uppercase text-ink-soft font-semibold mb-2">
-          {t("agent.config.mode.label")}
+          {t("agent.config.runPolicy.label")}
         </h3>
-        <div className="flex gap-3 text-xs">
-          {(["supervised", "auto"] as const).map((m) => (
-            <label key={m} className="flex items-center gap-1 cursor-pointer">
-              <input
-                type="radio"
-                name={`mode-${agent.id}`}
-                checked={agent.mode === m}
-                onChange={() => void setMode(agent.id, m)}
-              />
-              {t(`agent.config.mode.${m}`)}
-            </label>
-          ))}
+        <div className="space-y-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-ink-soft mb-1">
+              {t("agent.config.mode.label")}
+            </p>
+            <div className="flex gap-3 text-xs">
+              {(["supervised", "auto"] as const).map((m) => (
+                <label key={m} className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    name={`mode-${agent.id}`}
+                    checked={agent.mode === m}
+                    onChange={() => void setMode(agent.id, m)}
+                  />
+                  {t(`agent.config.mode.${m}`)}
+                </label>
+              ))}
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agent.alwaysOn}
+              onChange={(e) => void setAlwaysOn(agent.id, e.target.checked)}
+            />
+            <span className="text-ink">{t("agent.config.alwaysOn.label")}</span>
+          </label>
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agent.canHire}
+              onChange={(e) => void setPermissions(agent.id, e.target.checked, agent.canAssign)}
+            />
+            <span className="text-ink">{t("agent.config.runPolicy.canHire")}</span>
+          </label>
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agent.canAssign}
+              onChange={(e) => void setPermissions(agent.id, agent.canHire, e.target.checked)}
+            />
+            <span className="text-ink">{t("agent.config.runPolicy.canAssign")}</span>
+          </label>
         </div>
-      </section>
-
-      <section>
-        <label className="flex items-center gap-2 text-xs cursor-pointer">
-          <input
-            type="checkbox"
-            checked={agent.alwaysOn}
-            onChange={(e) => void setAlwaysOn(agent.id, e.target.checked)}
-          />
-          <span className="text-ink">{t("agent.config.alwaysOn.label")}</span>
-        </label>
-        <p className="text-[10px] text-ink-soft mt-1">{t("agent.config.alwaysOn.hint")}</p>
+        <p className="text-[10px] text-ink-soft mt-1">{t("agent.config.runPolicy.hint")}</p>
       </section>
 
       <section>
