@@ -61,6 +61,15 @@ describe("goalCriteriaRepository", () => {
     expect(repo.listByGoal(goalId).map((c) => c.statement)).toEqual(["first", "second"]);
   });
 
+  it("listByGoal returns only the requested goal's criteria", () => {
+    const companyId = createGoalsRepository(db).getById(goalId)!.companyId;
+    const otherGoalId = createGoalsRepository(db).create({ companyId, title: "Other" }).id;
+    const repo = createGoalCriteriaRepository(db);
+    repo.create({ goalId, statement: "mine", kind: "judgment" });
+    repo.create({ goalId: otherGoalId, statement: "theirs", kind: "judgment" });
+    expect(repo.listByGoal(goalId).map((c) => c.statement)).toEqual(["mine"]);
+  });
+
   it("update replaces all editable fields", () => {
     const repo = createGoalCriteriaRepository(db);
     const c = repo.create({ goalId, statement: "old", kind: "judgment" });
@@ -73,6 +82,18 @@ describe("goalCriteriaRepository", () => {
     expect(updated.statement).toBe("new");
     expect(updated.kind).toBe("deterministic");
     expect(updated.checkType).toBe("artifact_exists");
+  });
+
+  it("update throws when id does not exist", () => {
+    const repo = createGoalCriteriaRepository(db);
+    expect(() =>
+      repo.update("crit_does_not_exist", {
+        statement: "x",
+        kind: "judgment",
+        checkType: null,
+        checkSpec: null,
+      }),
+    ).toThrow("criterion not found");
   });
 
   it("delete removes the row", () => {

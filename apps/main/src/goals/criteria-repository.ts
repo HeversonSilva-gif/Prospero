@@ -34,6 +34,17 @@ type CriterionRow = {
   updated_at: number;
 };
 
+// Defensive parse: check_spec is zod-validated at write time, but a malformed
+// value from a migration or test fixture must not crash a read path.
+const parseCheckSpec = (raw: string | null): CriterionCheckSpec | null => {
+  if (raw === null) return null;
+  try {
+    return JSON.parse(raw) as CriterionCheckSpec;
+  } catch {
+    return null;
+  }
+};
+
 const rowToCriterion = (row: CriterionRow): GoalCriterion => ({
   id: row.id,
   goalId: row.goal_id,
@@ -41,7 +52,7 @@ const rowToCriterion = (row: CriterionRow): GoalCriterion => ({
   statement: row.statement,
   kind: row.kind as CriterionKind,
   checkType: row.check_type as CriterionCheckType | null,
-  checkSpec: row.check_spec !== null ? (JSON.parse(row.check_spec) as CriterionCheckSpec) : null,
+  checkSpec: parseCheckSpec(row.check_spec),
   status: row.status as CriterionStatus,
   lastCheckedAt: row.last_checked_at,
   lastResultJson: row.last_result_json,
@@ -95,10 +106,26 @@ export const createGoalCriteriaRepository = (db: Database.Database): GoalCriteri
       createdAt: now,
       updatedAt: now,
     });
-    return getById(id)!;
+    return rowToCriterion({
+      id,
+      goal_id: input.goalId,
+      sort_order: sortOrder,
+      statement: input.statement,
+      kind: input.kind,
+      check_type: input.checkType ?? null,
+      check_spec: input.checkSpec != null ? JSON.stringify(input.checkSpec) : null,
+      status: "pending",
+      last_checked_at: null,
+      last_result_json: null,
+      verified_by: null,
+      created_at: now,
+      updated_at: now,
+    });
   };
 
   const update = (id: string, input: UpdateCriterionInput): GoalCriterion => {
+    // checkType/checkSpec may be null here — better-sqlite3 maps JS null to SQL
+    // NULL, which correctly clears the columns for a judgment criterion.
     updateStmt.run({
       id,
       statement: input.statement,
