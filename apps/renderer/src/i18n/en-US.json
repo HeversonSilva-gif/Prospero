@@ -13,7 +13,8 @@
     "roles": "Roles",
     "orgChart": "Org Chart",
     "activity": "Activity",
-    "costs": "Costs"
+    "costs": "Costs",
+    "telos": "TELOS"
   },
   "company": {
     "switcher": {
@@ -1117,6 +1118,44 @@
       "company": {
         "created": "Company {{name}} created",
         "updated": "Company updated"
+      }
+    }
+  },
+  "telos": {
+    "title": "Company TELOS",
+    "loading": "Loading TELOS…",
+    "noCompany": "Select a company first.",
+    "allSectionsPresent": "All 5 sections present.",
+    "missingSections": "Missing sections: {{sections}}",
+    "writeManually": "Skip the interview — write the TELOS myself",
+    "draftTitle": "Review the generated TELOS",
+    "draftHint": "Apply it to save this as your company's TELOS, or discard it and edit your answers.",
+    "applyDraft": "Apply",
+    "discardDraft": "Discard",
+    "interview": {
+      "title": "Define your company's TELOS",
+      "subtitle": "Answer these five questions — they will be synthesized into your company's mission, principles, and ideal state.",
+      "generate": "Generate TELOS",
+      "generating": "Generating…",
+      "purpose": {
+        "label": "What does your business do, and for whom?",
+        "placeholder": "e.g. We build launch pages for solo founders."
+      },
+      "growth": {
+        "label": "Where do you want the business to be in 1-2 years?",
+        "placeholder": "e.g. 100 paying customers."
+      },
+      "principles": {
+        "label": "What principles or rules are non-negotiable?",
+        "placeholder": "e.g. Ship weekly. Never overpromise a deadline."
+      },
+      "idealState": {
+        "label": "Describe the business running perfectly.",
+        "placeholder": "e.g. A founder describes their launch and gets a page same-day."
+      },
+      "nonGoals": {
+        "label": "What should the business explicitly NOT become?",
+        "placeholder": "e.g. We do not build full web apps."
       }
     }
   }

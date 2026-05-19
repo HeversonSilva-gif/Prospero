@@ -13,7 +13,8 @@
     "roles": "Funções",
     "orgChart": "Organograma",
     "activity": "Atividade",
-    "costs": "Custos"
+    "costs": "Custos",
+    "telos": "TELOS"
   },
   "company": {
     "switcher": {
@@ -1117,6 +1118,44 @@
       "company": {
         "created": "Empresa {{name}} criada",
         "updated": "Empresa atualizada"
+      }
+    }
+  },
+  "telos": {
+    "title": "TELOS da empresa",
+    "loading": "Carregando TELOS…",
+    "noCompany": "Selecione uma empresa primeiro.",
+    "allSectionsPresent": "As 5 seções estão presentes.",
+    "missingSections": "Seções faltando: {{sections}}",
+    "writeManually": "Pular a entrevista — escrever o TELOS eu mesmo",
+    "draftTitle": "Revise o TELOS gerado",
+    "draftHint": "Aplique para salvar como o TELOS da empresa, ou descarte e edite suas respostas.",
+    "applyDraft": "Aplicar",
+    "discardDraft": "Descartar",
+    "interview": {
+      "title": "Defina o TELOS da sua empresa",
+      "subtitle": "Responda estas cinco perguntas — elas serão sintetizadas na missão, princípios e estado ideal da empresa.",
+      "generate": "Gerar TELOS",
+      "generating": "Gerando…",
+      "purpose": {
+        "label": "O que o seu negócio faz, e para quem?",
+        "placeholder": "ex.: Criamos páginas de lançamento para fundadores solo."
+      },
+      "growth": {
+        "label": "Onde você quer o negócio em 1-2 anos?",
+        "placeholder": "ex.: 100 clientes pagantes."
+      },
+      "principles": {
+        "label": "Quais princípios ou regras são inegociáveis?",
+        "placeholder": "ex.: Entregar toda semana. Nunca prometer um prazo que não cumpre."
+      },
+      "idealState": {
+        "label": "Descreva o negócio funcionando perfeitamente.",
+        "placeholder": "ex.: Um fundador descreve o lançamento e recebe a página no mesmo dia."
+      },
+      "nonGoals": {
+        "label": "O que o negócio explicitamente NÃO deve se tornar?",
+        "placeholder": "ex.: Não construímos aplicativos web completos."
       }
     }
   }
