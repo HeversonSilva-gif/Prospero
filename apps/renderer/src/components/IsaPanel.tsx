@@ -9,7 +9,7 @@ const STATUS_DOT: Record<CriterionStatus, string> = {
   pending: "bg-ink-soft",
   passed: "bg-semantic-success",
   failed: "bg-semantic-danger",
-  waived: "bg-ink-muted",
+  waived: "bg-ink-soft",
 };
 
 // ISA authoring panel for the goal-detail screen. One textarea for the isa.md
@@ -149,14 +149,14 @@ const IsaCriteriaList: FC = () => {
                 <span className="flex gap-1">
                   <button
                     type="button"
-                    className="px-2 py-0.5 text-[10px] rounded border border-surface-border text-semantic-success"
+                    className="px-2 py-0.5 text-[10px] rounded border border-semantic-success/40 text-semantic-success bg-semantic-success/10"
                     onClick={() => void store.judgeCriterion(c.id, "passed")}
                   >
                     {t("isa.judgePass")}
                   </button>
                   <button
                     type="button"
-                    className="px-2 py-0.5 text-[10px] rounded border border-surface-border text-semantic-danger"
+                    className="px-2 py-0.5 text-[10px] rounded border border-semantic-danger/40 text-semantic-danger bg-semantic-danger/10"
                     onClick={() => void store.judgeCriterion(c.id, "failed")}
                   >
                     {t("isa.judgeFail")}
