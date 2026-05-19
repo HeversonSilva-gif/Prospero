@@ -1,6 +1,7 @@
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import type { Issue, IssueStatus } from "@prospero/shared";
+import { Section, EmptyState, LoadingState } from "../ui/index.js";
 
 type Props = { agentId: string; companyId: string };
 
@@ -40,24 +41,30 @@ export const IssuesTab: FC<Props> = ({ agentId, companyId }) => {
     };
   }, [agentId, companyId]);
 
-  if (loading) {
-    return <div className="p-4 text-xs text-ink-muted">…</div>;
-  }
-  if (issues.length === 0) {
-    return <div className="p-4 text-xs text-ink-muted italic">{t("agent.issues.empty")}</div>;
-  }
   return (
-    <ul className="p-3 space-y-2">
-      {issues.map((i) => (
-        <li
-          key={i.id}
-          className="flex items-center gap-2 text-xs hover:bg-surface-soft rounded px-2 py-1.5"
-        >
-          <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLOR[i.status]}`} />
-          <span className="flex-1 truncate">{i.title}</span>
-          <span className="text-[10px] text-ink-soft uppercase">{i.status}</span>
-        </li>
-      ))}
-    </ul>
+    <div className="p-6">
+      <Section title={t("agent.studio.issues.title")}>
+        {loading ? (
+          <LoadingState />
+        ) : issues.length === 0 ? (
+          <EmptyState message={t("agent.issues.empty")} />
+        ) : (
+          <ul className="divide-y divide-border-soft rounded-md border border-border-soft overflow-hidden">
+            {issues.map((i) => (
+              <li
+                key={i.id}
+                className="flex items-center gap-3 px-4 py-3 text-xs bg-surface hover:bg-surface-soft transition-colors"
+              >
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_COLOR[i.status]}`} />
+                <span className="flex-1 truncate text-ink">{i.title}</span>
+                <span className="shrink-0 rounded-sm bg-surface-soft px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink-soft">
+                  {i.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+    </div>
   );
 };
