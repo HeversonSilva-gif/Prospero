@@ -21,7 +21,7 @@ beforeEach(() => {
   useCompaniesStore.setState({ companies: [], activeId: null, loaded: false });
 });
 
-const co = (id: string, name: string) => ({ id, name, createdAt: 0 });
+const co = (id: string, name: string) => ({ id, name, createdAt: 0, telosPath: null });
 
 describe("useCompaniesStore", () => {
   it("load fetches companies and seeds activeId from settings", async () => {

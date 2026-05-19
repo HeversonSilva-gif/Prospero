@@ -58,4 +58,19 @@ describe("companies repository", () => {
     const repo = createCompaniesRepository(db);
     expect(() => repo.delete("co_doesnotexist")).not.toThrow();
   });
+
+  it("getById returns telosPath (null by default)", () => {
+    const db = setupDb();
+    const repo = createCompaniesRepository(db);
+    const company = repo.create({ name: "Acme" });
+    expect(company.telosPath).toBeNull();
+  });
+
+  it("setTelosPath persists the relative telos path", () => {
+    const db = setupDb();
+    const repo = createCompaniesRepository(db);
+    const company = repo.create({ name: "Acme" });
+    repo.setTelosPath(company.id, "companies/c/telos.md");
+    expect(repo.getById(company.id)?.telosPath).toBe("companies/c/telos.md");
+  });
 });
