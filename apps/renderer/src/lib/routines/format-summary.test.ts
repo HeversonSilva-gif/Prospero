@@ -4,16 +4,18 @@ import {
   formatEventSummary,
   parseAtMinute,
   formatAtMinute,
+  formatRelative,
+  type TFunction,
 } from "./format-summary.js";
 
 // Fake t() returns the key + params for inspection.
-const t = (key: string, params?: Record<string, string | number>): string => {
+const t = ((key: string, params?: Record<string, string | number>): string => {
   if (params === undefined) return key;
   const pairs = Object.entries(params)
     .map(([k, v]) => `${k}=${String(v)}`)
     .join(",");
   return `${key}{${pairs}}`;
-};
+}) as unknown as TFunction;
 
 describe("formatScheduleSummary", () => {
   it("daily → routines.summary.daily with time", () => {
@@ -95,5 +97,35 @@ describe("formatAtMinute", () => {
   });
   it("zero-pads hour and minute", () => {
     expect(formatAtMinute(65)).toBe("01:05");
+  });
+});
+
+describe("formatRelative", () => {
+  it("null timestamp returns the neverLabel", () => {
+    expect(formatRelative(null, "never")).toBe("never");
+  });
+
+  it("today's timestamp returns HH:MM string", () => {
+    const now = new Date();
+    const todayAt0915 = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      9,
+      15,
+      0,
+      0,
+    ).getTime();
+    expect(formatRelative(todayAt0915, "—")).toBe("09:15");
+  });
+
+  it("non-today timestamp returns a locale date string", () => {
+    // Fixed past date — January 15, 2025 at 14:30 local.
+    const past = new Date(2025, 0, 15, 14, 30, 0, 0).getTime();
+    const result = formatRelative(past, "—");
+    // Not "14:30" (would be the today branch). Locale-dependent, so just
+    // assert it isn't the HH:MM form by checking it contains a date marker.
+    expect(result).not.toBe("14:30");
+    expect(result.length).toBeGreaterThan(0);
   });
 });

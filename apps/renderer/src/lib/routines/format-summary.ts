@@ -1,10 +1,13 @@
+import type { TFunction } from "i18next";
 import type { EventSpec, RoutineEventType, ScheduleSpec } from "@prospero/shared";
 
 // M15 PR-B — pure formatters used by RoutineRow and elsewhere.
-// `t` is the i18next-style translator: callers inject it so the module stays
-// renderer-pure (no react-i18next coupling).
+// `t` is the i18next translator: callers inject it so the module stays
+// renderer-pure (no react-i18next coupling). PR-C: TFunction widened to
+// the real i18next type via type-only import — eliminates the
+// `as unknown as TFunction` cast in RoutineRow.tsx.
 
-export type TFunction = (key: string, params?: Record<string, string | number>) => string;
+export type { TFunction };
 
 export const formatAtMinute = (atMinute: number): string => {
   const h = Math.floor(atMinute / 60);
@@ -54,4 +57,18 @@ export const formatEventSummary = (spec: EventSpec, t: TFunction): string => {
 
 const eventLabelKey = (eventType: RoutineEventType): string => {
   return `routines.form.events.${eventType}`;
+};
+
+export const formatRelative = (ts: number | null, neverLabel: string): string => {
+  if (ts === null) return neverLabel;
+  const d = new Date(ts);
+  const now = new Date();
+  if (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  ) {
+    return formatAtMinute(d.getHours() * 60 + d.getMinutes());
+  }
+  return d.toLocaleDateString();
 };
