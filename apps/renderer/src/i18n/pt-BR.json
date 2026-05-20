@@ -923,12 +923,25 @@
     "criteriaTitle": "Critérios (ISCs)",
     "criteriaHint": "Critérios verificáveis. A verificação ainda não está ativa — todos aparecem como pendentes.",
     "noCriteria": "Nenhum critério ainda.",
+    "noCriteriaHint": "Nenhum critério ainda. Adicione um abaixo para verificar este objetivo.",
     "criterionPlaceholder": "O que precisa ser verdade?",
     "addCriterion": "Adicionar",
     "removeCriterion": "Remover critério",
     "kind": {
       "deterministic": "Determinístico",
       "judgment": "Julgamento"
+    },
+    "status": {
+      "pending": "Pendente",
+      "passed": "Aprovado",
+      "failed": "Reprovado",
+      "waived": "Dispensado"
+    },
+    "group": {
+      "failed": "Precisa de atenção",
+      "pending": "Pendentes",
+      "passed": "Verificados",
+      "waived": "Dispensados"
     },
     "judgePass": "Aprovar",
     "judgeFail": "Reprovar"
