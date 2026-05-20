@@ -133,23 +133,25 @@
 
 > Quick view: onde estamos · o que vem a seguir · onde chegamos com v1 fechado.
 
-### ▸ Agora (estado em 2026-05-19)
+### ▸ Agora (estado em 2026-05-20)
 
 - **14 / 14 milestones do v1 fechados** — **v1 entregue em 2026-05-15**
 - **M11 ✅ COMPLETO** — V2 anchor fechado (2026-05-18). 6 PRs (A–F) mergeados. Settings Memory (`user.md` + budget), decay/trust, nudges fallback, terminate-modal promote-skills, docs.
 - **M12 ✅ COMPLETO** — todos os 6 PRs (A–F) mergeados. PR-A..E2 mergeados 2026-05-18: biblioteca de papéis · Manual Operacional · bundle de instruções por agente · geração de charter por IA · CEO arquiteto de organização (backend + UI) · charters no `AGENTS.md` · aba Runs · budget por agente + Run Policy. **PR-F mergeado 2026-05-19**: Agent Studio redesenhado — dois modos (Conversa / Estúdio), 6 abas full-width, primitivos de UI compartilhados, doc `docs/agent-studio.md`.
 - **M13 ✅ COMPLETO** — Espinha de Outcome & Verificação (6 PRs mergeados 2026-05-19/05-20). Resumo: definição estruturada de "pronto" (ISA) · checagem automática + ferramentas de verificação para agentes (B1+B2) · TELOS (norte da empresa) · The Algorithm (loop operacional de 7 fases) · zonas de privacidade (containment) · consolidação.
 - **M14 ✅ COMPLETO** — Vitrine Matinal & Escada de Confiança (4 PRs mergeados 2026-05-20). Cada funcionário tem um **degrau de confiança** que sobe automaticamente conforme entrega objetivos verificados; "confiável" deixa de pedir aprovação pra leitura de arquivos, "autônomo" liga modo auto (com sua aprovação). O badge **atualiza ao vivo** quando o degrau muda; passa o mouse e o tooltip mostra "por que não sobe". A **Vitrine Matinal vira a tela inicial**: briefing diário com "Precisa de você" dominando o topo (cor de aviso), faixa colapsável com o resto, rodapé de custo. Manchete por IA cacheada com fallback determinístico. A Vitrine **atualiza ao vivo** quando algo cai no inbox.
-- **1646 testes passing + 2 todo** · 0 lint/typecheck errors
-- HEAD `main`: M14 PR-D (consolidação — fecha o M14) mergeado (2026-05-20)
+- **M15 PR-A ✅ MERGEADO** (2026-05-20) — engine backend das Routines. Migration `0035` (tabela `routines`) · shared types `Routine` / `ScheduleSpec` / `EventSpec` · 2 novas activity actions (`routine.fired` / `routine.skipped`) · zod input schemas · módulo `apps/main/src/routines/` (repository · `computeNextFire` · tick loop scheduler · event matcher · fireRoutine · engine composta com singleton lazy) · `Sender` ganha kind `"routine"` · 5 IPCs (`routines:list/create/update/delete/run-now`) · wire em handlers + orchestrator + preload. Renderer-invisível; UI vem no PR-B. +66 testes.
+- **1712 testes passing + 2 todo** · 0 lint/typecheck errors
+- HEAD `main`: M15 PR-A (engine + wiring) mergeado (2026-05-20)
 
 ### ▸ Próximo
 
 | Candidato | Escopo | Por quê |
 |---|---|---|
-| 🥇 **M15 Routines** | Agentes que acordam sozinhos por schedule (tick loop, catch-up coalescido) ou evento (4 tipos fixos). Routine = acorda um agente-alvo com uma instrução. 3 PRs, ~5-7d. | Fecha o "gatilho" da V2 — M13+M14 entregam motor+lado-humano, faltava o agente acordar sem o usuário pedir. Pré-req do `Workflow Plays` e `Async governance`. Spec em `docs/superpowers/specs/2026-05-18-m15-routines-design.md`. |
+| 🥇 **M15 PR-B Routines UI** | Rota `/routines` — lista + form criar/editar (picker de recorrência estruturada · dropdown de evento · agente-alvo · instrução) · "Rodar agora" · badges de último/próximo disparo. | Engine backend (PR-A) já está mergeado; UI fecha o caminho do usuário pra criar/editar routines sem ir ao SQL. |
+| 🥈 **M15 PR-C Consolidação** | Polish (`frontend-design`) · `SECURITY.md` (nota Routines) · `ROADMAP.md` + `roadmap.html` · não-regressão completa. | Fecha o M15 inteiro. Pré-req de `Workflow Plays` e `Async governance`. |
 
-**Recomendação:** começar M15 — toda a maquinaria do motor + lado-humano (M11+M12+M13+M14) está pronta.
+**Recomendação:** seguir pra M15 PR-B (UI) — o engine backend já roda, falta só o usuário poder criar routines pela UI.
 
 ### ▸ Horizonte (v1 = M10 fechado · V2 começa em M11)
 
@@ -190,13 +192,13 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 |---|---|
 | Milestones fechados | M1–M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6**, **M9**, **M10** (14/14 do v1 ✅) + **M11** (V2 anchor ✅) |
 | Concluído | **M11 ✅ fechado** 2026-05-18 — **6/6 PRs** ✅ (A capabilities rename · B schema+repos · C MCP tools + Learning tab · D1/D2 derivation pipeline + Candidates UI · E1/E2 role inheritance + org retrospectives · F decay/trust + Settings Memory + nudges + terminate-modal + docs). **V2 anchor fechado.** **M12 ✅ fechado** 2026-05-19 — **6/6 PRs** ✅ (A biblioteca de papéis + charters · B Manual Operacional embutido · C bundle de instruções por agente · D1/D2-backend/D3-UI/D4 geração de charter + CEO arquiteto de org + AGENTS.md com charters · E1/E2 aba Runs + budget + Run Policy · F Agent Studio redesenhado). |
-| Concluído recentemente | **M14 PR-D — consolidação (fecha o M14 inteiro)** mergeado 2026-05-20. 6 commits em `main` (7 tasks no plano, audit sem commit): (1) **live broadcast do tier change** — `AgentEvent` ganha `trust-tier-changed`, novo helper `broadcastAgentEvent`, `setTrustTier` dispara fan-out, store ganha `applyTrustTier`; o badge atualiza sem reload; (2) **`blockedReason` tooltip via novo IPC `trust:get-evaluation`** read-only compute-on-demand — `TrustTierBadge` lazy-fetcha no hover e mostra "por que não sobe" no `title`; (3) **live refresh da Vitrine** — `useBriefingStore.subscribeInbox` consome `INBOX_UPDATE`; (4) **polish UI da Vitrine** — "Precisa de você" warning-tinted dominante, SVG dots por bucket mirror `TrustTierBadge`, primitivos `BucketHeader` + `SubBucket`, ritmo vertical mais consistente; cap +200 LOC respeitado (194 → 202); (5) `SECURITY.md` ganhou 2 seções — Trust ladder (gap conhecido V2: manual override do `mode`) + Morning briefing (data-flow rationale); (6) `roadmap.html` refletindo M14 em tom leigo + fix `agente→funcionário`. **+5 testes** (agents/repository broadcast: 1 · agents.delta-handlers: 2 · trust-handlers getEvaluation: 2). Zero impacto no system prompt do agente. **M14 4/4 PRs ✅ FECHADO.** Antes: **M14 PR-A + PR-B + PR-C** mergeados 2026-05-20. |
-| Testes | **1646 passing + 2 todo**, 0 lint/typecheck errors |
+| Concluído recentemente | **M15 PR-A — engine backend das Routines** mergeado 2026-05-20. 13 tasks no plano · ~16 commits em `main` (1 task gerou 2 commits após code-review fixes). Entrega: (1) migration `0035` cria tabela `routines` com `trigger_type`/`schedule_spec`/`next_fire_at`/`event_spec`/`target_agent_id`/`instruction` e dois índices; (2) shared types — `Routine`, `ScheduleSpec` (4 variantes discriminadas: daily/weekly/monthly/interval), `RoutineEventType` (4 literais), `FireReason`; 2 actions novas (`routine.fired`/`routine.skipped`) com Zod payloads; (3) Zod input schemas main-side via `discriminatedUnion("triggerType")`; (4) `RoutinesRepository` com 9 métodos (CRUD + due-list + enabled-events + setters de timestamps); (5) `computeNextFire` puro em fuso local com exhaustiveness guard `never`; (6) `createRoutineScheduler` — tick loop `setInterval` (~30s), reason `"catchup"` quando `nextFireAt < now - tickMs`; (7) `routinesForActivity` espelha o `derivation/dispatcher` mapeando os 4 eventos pra `(action, payload)`; (8) `Sender.kind` ganha `"routine"`; (9) `fireRoutine` com 3 skip rules (`agent_unavailable` para null/terminated/user-paused; `budget_paused` apenas para `pauseReason === "budget_exceeded_agent"`); (10) `createRoutinesEngine` compõe scheduler + event-matcher + fire, bridge injetado em `start()`, lazy singleton em `routines/index.ts`; (11) 5 IPCs (`routines:list/create/update/delete/run-now`) com seed de `nextFireAt` no create; (12) wire em `handlers.ts` (fan-out do observer pra derivation+routines), `orchestrator-handlers.ts` (start bridge com `agents.getById`/`ensureAgentRunner`/`router.enqueue`/`messages.ensureThread`), `preload.ts` (blob `routines`). **+66 testes** (5 migration · 12 zod · 10 repo · 12 recurrence · 5 scheduler · 6 event-matcher · 6 fire · 5 engine · 5 handlers). Renderer-invisível end-to-end via IPC. UI vem no PR-B. Antes: **M14 ✅ FECHADO** (4 PRs mergeados 2026-05-20). |
+| Testes | **1712 passing + 2 todo**, 0 lint/typecheck errors |
 | Commits no main | ~845 |
 | LoC (apps + packages) | ~23k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
-| Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** M11 + M12 + M13 + **M14 fechados** (4/4 PRs). Próximo V2: **M15 Routines**. |
+| Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** M11 + M12 + M13 + M14 fechados. **M15 PR-A (engine) mergeado**; restam PR-B (UI) + PR-C (consolidação). |
 | V2 anchor | **M11 Agent Memory & Learning Loop — ✅ COMPLETO** (2026-05-18, 6 PRs). Arquitetura: 3 camadas × 2 níveis, fluxo bidirecional. Spec: `docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md`. Docs: `docs/memory-architecture.md` + `docs/skills-format.md` + `docs/derivation-pipeline.md`. 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). Próximo V2: M12 Agent & Org Definition Layer. |
 
 ---
