@@ -35,6 +35,7 @@ type CriterionRow = {
   last_checked_at: number | null;
   last_result_json: string | null;
   verified_by: string | null;
+  attempts: number;
   created_at: number;
   updated_at: number;
 };
@@ -62,6 +63,7 @@ const rowToCriterion = (row: CriterionRow): GoalCriterion => ({
   lastCheckedAt: row.last_checked_at,
   lastResultJson: row.last_result_json,
   verifiedBy: row.verified_by,
+  attempts: row.attempts,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -93,7 +95,8 @@ export const createGoalCriteriaRepository = (db: Database.Database): GoalCriteri
   const applyResultStmt = db.prepare(`
     UPDATE goal_criteria SET
       status = @status, last_checked_at = @checkedAt,
-      last_result_json = @resultJson, updated_at = @updatedAt
+      last_result_json = @resultJson, updated_at = @updatedAt,
+      attempts = attempts + 1
     WHERE id = @id
   `);
   const setJudgmentStmt = db.prepare(`
@@ -135,6 +138,7 @@ export const createGoalCriteriaRepository = (db: Database.Database): GoalCriteri
       last_checked_at: null,
       last_result_json: null,
       verified_by: null,
+      attempts: 0,
       created_at: now,
       updated_at: now,
     });

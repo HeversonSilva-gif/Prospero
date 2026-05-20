@@ -127,4 +127,47 @@ describe("goalCriteriaRepository", () => {
     expect(fetched?.verifiedBy).toBeNull();
     expect(fetched?.lastCheckedAt).not.toBeNull();
   });
+
+  it("listByGoal returns attempts = 0 for a fresh criterion", () => {
+    const repo = createGoalCriteriaRepository(db);
+    repo.create({
+      goalId,
+      statement: "tests pass",
+      kind: "deterministic",
+      checkType: "command",
+      checkSpec: { checkType: "command", command: "echo ok", expectedExitCode: 0, timeoutMs: 1000 },
+    });
+    const list = repo.listByGoal(goalId);
+    expect(list[0]!.attempts).toBe(0);
+  });
+
+  it("applyResult bumps attempts by 1 per call", () => {
+    const repo = createGoalCriteriaRepository(db);
+    const c = repo.create({
+      goalId,
+      statement: "tests pass",
+      kind: "deterministic",
+      checkType: "command",
+      checkSpec: { checkType: "command", command: "echo ok", expectedExitCode: 0, timeoutMs: 1000 },
+    });
+    repo.applyResult({
+      criterionId: c.id,
+      status: "failed",
+      detail: "x",
+      resultJson: { exitCode: 1 },
+    });
+    repo.applyResult({
+      criterionId: c.id,
+      status: "failed",
+      detail: "x",
+      resultJson: { exitCode: 1 },
+    });
+    repo.applyResult({
+      criterionId: c.id,
+      status: "passed",
+      detail: "x",
+      resultJson: { exitCode: 0 },
+    });
+    expect(repo.getById(c.id)!.attempts).toBe(3);
+  });
 });

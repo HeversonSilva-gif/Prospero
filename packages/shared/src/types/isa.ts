@@ -52,6 +52,8 @@ export interface GoalCriterion {
   lastCheckedAt: number | null;
   lastResultJson: string | null;
   verifiedBy: string | null;
+  // M13 PR-D: how many times applyResult has run on this row.
+  attempts: number;
   createdAt: number;
   updatedAt: number;
 }
