@@ -30,13 +30,19 @@ const RECOVERY_TRAIL_LIMIT = 12;
 
 // A unit of derivation work, enqueued by the dispatcher.
 export type DerivationJob = {
-  trigger: "issue_done" | "recovery" | "goal_achieved" | "approval_rejected";
+  trigger:
+    | "issue_done"
+    | "recovery"
+    | "goal_achieved"
+    | "approval_rejected"
+    | "verification_failed";
   companyId: string;
   agentId: string;
   sourceEventId: string;
   issueId?: string;
   goalId?: string;
   approvalId?: string;
+  failedCriterionIds?: string[];
 };
 
 export type DerivationWorkerDeps = {

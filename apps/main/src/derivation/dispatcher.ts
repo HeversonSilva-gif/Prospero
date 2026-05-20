@@ -47,6 +47,20 @@ export const jobForActivity = (row: ActivityEventRow): DerivationJob | null => {
       approvalId: row.entityId,
     };
   }
+  if (row.action === "verification.failed") {
+    const failedRaw = (row.payload["failedCriteria"]) ?? [];
+    const failedCriterionIds = Array.isArray(failedRaw)
+      ? failedRaw.filter((x): x is string => typeof x === "string")
+      : [];
+    return {
+      trigger: "verification_failed",
+      companyId: row.companyId,
+      agentId: row.agentId,
+      sourceEventId: row.id,
+      goalId: row.entityId,
+      failedCriterionIds,
+    };
+  }
   return null;
 };
 

@@ -102,4 +102,28 @@ describe("createDerivationDispatcher — memory triggers", () => {
     expect(jobs).toHaveLength(1);
     expect(jobs[0]).toMatchObject({ trigger: "approval_rejected", approvalId: "ap1" });
   });
+
+  it("routes a verification.failed activity event into a verification_failed derivation job", async () => {
+    const { jobs, processJob } = collect();
+    const d = createDerivationDispatcher({ processJob });
+    d.onActivity(
+      row({
+        action: "verification.failed",
+        entityKind: "goal",
+        entityId: "g1",
+        agentId: "a1",
+        payload: { goalId: "g1", failedCriteria: ["cr1", "cr2"] },
+      }),
+    );
+    await d.idle();
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]).toMatchObject({
+      trigger: "verification_failed",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      goalId: "g1",
+      failedCriterionIds: ["cr1", "cr2"],
+    });
+  });
 });
