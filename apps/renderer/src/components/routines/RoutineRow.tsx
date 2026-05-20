@@ -125,9 +125,12 @@ export const RoutineRow: FC<Props> = ({ routine, onToggle, onRun, onClick }) => 
           <button
             type="button"
             onClick={handleRun}
-            className="text-xs font-semibold px-2 py-0.5 rounded bg-surface-soft text-ink hover:bg-surface-border"
+            className="text-xs font-semibold px-2 py-0.5 rounded bg-surface-soft text-ink hover:bg-surface-border inline-flex items-center gap-1"
           >
-            ▶ {t("routines.form.runNow")}
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+              <path d="M2 1.5 L8 5 L2 8.5 Z" />
+            </svg>
+            {t("routines.form.runNow")}
           </button>
         </div>
       </div>

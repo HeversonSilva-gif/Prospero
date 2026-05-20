@@ -160,10 +160,26 @@ export const RoutineForm: FC = () => {
       </div>
 
       {error !== null && (
-        <div className="mb-4 p-2 bg-semantic-danger-bg text-semantic-danger text-xs rounded border border-semantic-danger">
-          {error}
-          <button type="button" onClick={() => setError(null)} className="ml-2 underline">
-            ✕
+        <div className="mb-4 p-2 bg-semantic-danger-bg text-semantic-danger text-xs rounded border border-semantic-danger flex items-start justify-between gap-2">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            aria-label="Dismiss"
+            className="text-semantic-danger hover:text-ink"
+          >
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 10 10"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M2 2 L8 8 M8 2 L2 8" />
+            </svg>
           </button>
         </div>
       )}
@@ -246,9 +262,18 @@ export const RoutineForm: FC = () => {
                 <button
                   type="button"
                   onClick={() => void handleRunNow()}
-                  className="text-xs px-3 py-1.5 rounded bg-surface-soft text-ink hover:bg-surface-border"
+                  className="text-xs px-3 py-1.5 rounded bg-surface-soft text-ink hover:bg-surface-border inline-flex items-center gap-1.5"
                 >
-                  ▶ {t("routines.form.runNow")}
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 10 10"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M2 1.5 L8 5 L2 8.5 Z" />
+                  </svg>
+                  {t("routines.form.runNow")}
                 </button>
                 {runStatus === "fired" && (
                   <span className="text-xs text-semantic-success">
