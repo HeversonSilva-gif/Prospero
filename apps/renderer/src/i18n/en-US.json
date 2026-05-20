@@ -1284,6 +1284,15 @@
     "othersHide": "Hide",
     "costFooter": "Spent overnight: {{cost}}"
   },
+  "equipe": {
+    "title": "My team",
+    "subtitle": "Your company's employees, organized by hierarchy.",
+    "contratar": "+ Hire someone",
+    "empty": {
+      "title": "Your team is empty",
+      "description": "Hire someone to get started."
+    }
+  },
   "routines": {
     "title": "Routines",
     "subtitle": "Agents that wake on their own",
