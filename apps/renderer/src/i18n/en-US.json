@@ -1140,6 +1140,7 @@
     "writeManually": "Skip the interview — write the TELOS myself",
     "draftTitle": "Review the generated TELOS",
     "draftHint": "Apply it to save this as your company's TELOS, or discard it and edit your answers.",
+    "validationErrors": "Validation issues — you can still save:",
     "applyDraft": "Apply",
     "discardDraft": "Discard",
     "interview": {

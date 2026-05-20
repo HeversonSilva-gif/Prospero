@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import { TELOS_SECTIONS, TELOS_SKELETON } from "@prospero/shared";
+import { TELOS_SECTIONS, TELOS_SKELETON, validateTelos } from "@prospero/shared";
 import type { TelosDraft, TelosInterviewAnswers } from "@prospero/shared";
 import { sanitizeMemoryBody } from "../memory/sanitizer.js";
 import { createCostsRepository } from "../costs/repository.js";
@@ -113,5 +113,13 @@ export const synthesizeTelos = async (
     });
   }
 
-  return { telos };
+  // Advisory: surface any structural issues so the renderer can warn the user,
+  // but still return the body so they can edit and save it.
+  const validation = validateTelos(telos);
+  const errors = validation.missing.map((s) => `Missing section: ${s}`);
+
+  return {
+    telos,
+    ...(errors.length > 0 ? { error: errors } : {}),
+  };
 };

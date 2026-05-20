@@ -44,6 +44,16 @@ export const Telos: FC = () => {
       <div className="max-w-2xl mx-auto p-6 space-y-4">
         <h1 className="text-sm font-bold text-ink">{t("telos.draftTitle")}</h1>
         <p className="text-xs text-ink-muted">{t("telos.draftHint")}</p>
+        {draft.error !== undefined && draft.error.length > 0 && (
+          <div className="rounded border border-semantic-danger bg-surface-soft p-2 text-xs text-semantic-danger">
+            <p className="font-semibold mb-1">{t("telos.validationErrors")}</p>
+            <ul className="list-disc pl-4">
+              {draft.error.map((e, i) => (
+                <li key={i}>{e}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <pre className="w-full text-xs p-3 rounded border border-surface-border bg-surface-card text-ink whitespace-pre-wrap">
           {draft.telos}
         </pre>

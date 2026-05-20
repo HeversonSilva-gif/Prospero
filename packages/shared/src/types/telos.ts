@@ -10,6 +10,9 @@ export interface TelosInterviewAnswers {
 }
 
 // The draft returned by AI-assisted TELOS synthesis — the telos.md markdown.
+// `error` is an advisory list of validation issues (e.g. missing sections);
+// the body still saves, the user is just warned.
 export interface TelosDraft {
   telos: string;
+  error?: string[];
 }

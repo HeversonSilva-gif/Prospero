@@ -1140,6 +1140,7 @@
     "writeManually": "Pular a entrevista — escrever o TELOS eu mesmo",
     "draftTitle": "Revise o TELOS gerado",
     "draftHint": "Aplique para salvar como o TELOS da empresa, ou descarte e edite suas respostas.",
+    "validationErrors": "Problemas de validação — você ainda pode salvar:",
     "applyDraft": "Aplicar",
     "discardDraft": "Descartar",
     "interview": {

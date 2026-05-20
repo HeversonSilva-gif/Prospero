@@ -50,6 +50,18 @@ describe("synthesizeTelos", () => {
     ).rejects.toThrow(/sanitizer/);
   });
 
+  it("propagates validateTelos errors on the draft", async () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    const draft = await synthesizeTelos(
+      { db, runDerivation: fakeRun("# TELOS\n\nno sections") },
+      { answers, env: {}, companyId: null },
+    );
+    expect(draft.error).toBeDefined();
+    expect(draft.error!.length).toBeGreaterThan(0);
+    expect(draft.telos).toContain("no sections"); // body still returned for editing
+  });
+
   it("records a cost event with adapter_name telos-synthesis when companyId is set", async () => {
     const db = new Database(":memory:");
     applyMigrations(db);
