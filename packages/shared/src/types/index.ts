@@ -19,6 +19,7 @@ export * from "./telos.js";
 export * from "./verification.js";
 export * from "./org-plan.js";
 export * from "./memory.js";
+export * from "./routine.js";
 export * from "./security.js";
 export * from "./trust.js";
 export * from "./briefing.js";

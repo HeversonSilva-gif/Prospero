@@ -31,6 +31,7 @@ export const ENTITY_IS_NAVIGABLE: Record<EntityKind, boolean> = {
   session: false,
   company: false,
   goal: false,
+  routine: false,
 };
 
 export const renderDescription = (

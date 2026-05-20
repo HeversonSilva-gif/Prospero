@@ -13,7 +13,8 @@ export type EntityKind =
   | "approval"
   | "session"
   | "company"
-  | "goal";
+  | "goal"
+  | "routine";
 
 // Runtime list — drives exhaustive Zod schema coverage in apps/main.
 export const ACTIVITY_ACTIONS = [
@@ -64,6 +65,9 @@ export const ACTIVITY_ACTIONS = [
   "trust.demoted",
   "trust.promotion_suggested",
   "trust.readonly_autoapproved",
+  // Routine (2) — M15 PR-A
+  "routine.fired",
+  "routine.skipped",
   // Session / Cost (3) — session.* optional in PR-A; cost.day_summary depends M8
   "session.started",
   "session.ended",

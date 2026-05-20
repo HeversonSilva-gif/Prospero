@@ -172,4 +172,13 @@ export const ActivityPayloads = {
     toolName: z.string(),
     inputHash: z.string().optional(),
   }),
+
+  // Routine (2) — M15 PR-A
+  "routine.fired": z.object({
+    reason: z.enum(["scheduled", "catchup", "event", "manual"]),
+  }),
+  "routine.skipped": z.object({
+    reason: z.enum(["agent_unavailable", "budget_paused"]),
+    detail: z.string().optional(),
+  }),
 } satisfies Record<ActivityAction, z.ZodTypeAny>;
