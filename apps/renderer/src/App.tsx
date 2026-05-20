@@ -25,7 +25,6 @@ import { Briefing } from "./routes/Briefing.js";
 import { Sidebar } from "./components/layout/Sidebar.js";
 import { Routines } from "./routes/Routines.js";
 import { RoutineForm } from "./routes/RoutineForm.js";
-import { Org } from "./routes/Org.js";
 import { AgentNew } from "./routes/AgentNew.js";
 import { TitleBar } from "./components/TitleBar.js";
 import { AuthErrorBanner } from "./components/banners/AuthErrorBanner.js";
@@ -330,18 +329,6 @@ export const App = () => {
               hasToken ? (
                 <Layout>
                   <Telos />
-                </Layout>
-              ) : (
-                <Navigate to="/setup" replace />
-              )
-            }
-          />
-          <Route
-            path="/org"
-            element={
-              hasToken ? (
-                <Layout>
-                  <Org />
                 </Layout>
               ) : (
                 <Navigate to="/setup" replace />
