@@ -910,6 +910,26 @@
     "paused": "pausado",
     "error": "com erro"
   },
+  "ajustes": {
+    "title": "Ajustes",
+    "backToAjustes": "Ajustes",
+    "conta": {
+      "title": "Conta",
+      "sub": "Sua conexão e plano."
+    },
+    "gastos": {
+      "title": "Gastos",
+      "sub": "Quanto a empresa gasta · limite e avisos."
+    },
+    "preferencias": {
+      "title": "Preferências",
+      "sub": "Tema e idioma do app."
+    },
+    "avancado": {
+      "title": "Avançado",
+      "sub": "Onde os agentes rodam, salvar/carregar empresa."
+    }
+  },
   "projects": {
     "title": "Projetos",
     "newButton": "+ Novo projeto",

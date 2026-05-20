@@ -910,6 +910,26 @@
     "paused": "paused",
     "error": "error"
   },
+  "ajustes": {
+    "title": "Settings",
+    "backToAjustes": "Settings",
+    "conta": {
+      "title": "Account",
+      "sub": "Your connection and plan."
+    },
+    "gastos": {
+      "title": "Spending",
+      "sub": "How much your company spends · limits and alerts."
+    },
+    "preferencias": {
+      "title": "Preferences",
+      "sub": "App theme and language."
+    },
+    "avancado": {
+      "title": "Advanced",
+      "sub": "Where agents run, save/load company."
+    }
+  },
   "projects": {
     "title": "Projects",
     "newButton": "+ New project",
