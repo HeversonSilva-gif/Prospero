@@ -33,11 +33,15 @@ export const Briefing: FC = () => {
   const error = useBriefingStore((s) => s.error);
   const load = useBriefingStore((s) => s.load);
   const markReviewed = useBriefingStore((s) => s.markReviewed);
+  const subscribeInbox = useBriefingStore((s) => s.subscribeInbox);
   const [othersExpanded, setOthersExpanded] = useState(false);
 
   useEffect(() => {
-    if (activeCompanyId !== null) void load(activeCompanyId);
-  }, [activeCompanyId, load]);
+    if (activeCompanyId === null) return;
+    void load(activeCompanyId);
+    const off = subscribeInbox(activeCompanyId);
+    return off;
+  }, [activeCompanyId, load, subscribeInbox]);
 
   if (activeCompanyId === null) {
     return (

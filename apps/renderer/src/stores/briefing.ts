@@ -7,9 +7,16 @@ interface BriefingState {
   error: string | null;
   load: (companyId: string) => Promise<void>;
   markReviewed: (companyId: string) => Promise<void>;
+  /**
+   * Subscribe the Vitrine to inbox updates: any inbox row that lands
+   * (new approval, new verification_failed, etc.) reloads the briefing
+   * so the user sees the new item without a manual refresh. Returns
+   * an unsubscribe callback for `useEffect` cleanup.
+   */
+  subscribeInbox: (companyId: string) => () => void;
 }
 
-export const useBriefingStore = create<BriefingState>((set) => ({
+export const useBriefingStore = create<BriefingState>((set, get) => ({
   briefing: null,
   loading: false,
   error: null,
@@ -38,5 +45,10 @@ export const useBriefingStore = create<BriefingState>((set) => ({
         error: err instanceof Error ? err.message : String(err),
       });
     }
+  },
+  subscribeInbox(companyId) {
+    return window.prospero.inbox.onUpdate(() => {
+      void get().load(companyId);
+    });
   },
 }));
