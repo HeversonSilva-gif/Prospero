@@ -1186,5 +1186,34 @@
         "placeholder": "e.g. We do not build full web apps."
       }
     }
+  },
+  "trust": {
+    "tier": {
+      "novato": "Novice",
+      "confiavel": "Trusted",
+      "autonomo": "Autonomous"
+    },
+    "badge": {
+      "title": {
+        "novato": "Novice — gate asks about sensitive actions",
+        "confiavel": "Trusted — read-only tools auto-approved",
+        "autonomo": "Autonomous — running in auto mode"
+      }
+    },
+    "history": {
+      "title": "Trust history",
+      "subtitle": "Automatic promotions, demotions, and suggested promotions for this agent.",
+      "loading": "Loading history…",
+      "empty": "No trust events yet — this agent is fresh.",
+      "kind": {
+        "promoted": "Promoted",
+        "demoted": "Demoted",
+        "promotion_suggested": "Promotion suggested"
+      }
+    },
+    "promotionCard": {
+      "approve": "Approve promotion",
+      "approving": "Approving…"
+    }
   }
 }

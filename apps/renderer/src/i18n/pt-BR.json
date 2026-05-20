@@ -1186,5 +1186,34 @@
         "placeholder": "ex.: Não construímos aplicativos web completos."
       }
     }
+  },
+  "trust": {
+    "tier": {
+      "novato": "Novato",
+      "confiavel": "Confiável",
+      "autonomo": "Autônomo"
+    },
+    "badge": {
+      "title": {
+        "novato": "Novato — o gate pergunta antes de ações sensíveis",
+        "confiavel": "Confiável — ferramentas read-only são auto-aprovadas",
+        "autonomo": "Autônomo — rodando em modo auto"
+      }
+    },
+    "history": {
+      "title": "Histórico de confiança",
+      "subtitle": "Promoções automáticas, rebaixamentos e sugestões pra este agente.",
+      "loading": "Carregando histórico…",
+      "empty": "Nenhum evento de confiança ainda — agente novato.",
+      "kind": {
+        "promoted": "Promovido",
+        "demoted": "Rebaixado",
+        "promotion_suggested": "Promoção sugerida"
+      }
+    },
+    "promotionCard": {
+      "approve": "Aprovar promoção",
+      "approving": "Aprovando…"
+    }
   }
 }
