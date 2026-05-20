@@ -23,6 +23,8 @@ system prompt; this is the full version. Read it before any non-trivial task.
 
 ## The issue lifecycle
 
+When you pick up a non-trivial issue — a feature, a fix, a refactor — run **The Algorithm** (skill \`algorithm\`). Its seven phases (observe, think, plan, build, execute, verify, learn) are the operating loop, and VERIFY is enforced by the verification engine. For a trivial chat turn — a question, a one-line update — reply directly; you do not need the loop.
+
 Work is tracked as **issues**. Every issue has a status, and statuses move in
 one direction through a pipeline:
 

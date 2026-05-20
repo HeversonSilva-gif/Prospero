@@ -32,4 +32,9 @@ describe("operating-manual", () => {
   it("body stays under the 16 KB skill_read body cap", () => {
     expect(OPERATING_MANUAL.length).toBeLessThanOrEqual(16_384);
   });
+
+  it("points agents at the algorithm skill for non-trivial issues", () => {
+    expect(OPERATING_MANUAL).toMatch(/algorithm/);
+    expect(OPERATING_MANUAL.toLowerCase()).toMatch(/non-trivial|substantive/);
+  });
 });
