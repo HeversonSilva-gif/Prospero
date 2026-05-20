@@ -23,34 +23,33 @@ const setup = (): Database.Database => {
   return db;
 };
 
-const liveAgent = (): Agent =>
-  ({
-    id: "a1",
-    companyId: "c1",
-    name: "Bob",
-    role: "engineer",
-    systemPrompt: "",
-    model: "claude-sonnet-4-6",
-    status: "idle",
-    mode: "supervised",
-    alwaysOn: false,
-    capabilities: [],
-    trustTier: "novato",
-    pauseReason: null,
-    claudeSessionId: null,
-    currentAction: null,
-    allowedProjects: [],
-    templateId: null,
-    reportsTo: null,
-    adapterName: "claude-cli",
-    pausedAt: null,
-    terminatedAt: null,
-    budgetTokensLimit: null,
-    budgetUsdLimit: null,
-    budgetPeriod: "monthly",
-    canHire: false,
-    canAssign: false,
-  });
+const liveAgent = (): Agent => ({
+  id: "a1",
+  companyId: "c1",
+  name: "Bob",
+  role: "engineer",
+  systemPrompt: "",
+  model: "claude-sonnet-4-6",
+  status: "idle",
+  mode: "supervised",
+  alwaysOn: false,
+  capabilities: [],
+  trustTier: "novato",
+  pauseReason: null,
+  claudeSessionId: null,
+  currentAction: null,
+  allowedProjects: [],
+  templateId: null,
+  reportsTo: null,
+  adapterName: "claude-cli",
+  pausedAt: null,
+  terminatedAt: null,
+  budgetTokensLimit: null,
+  budgetUsdLimit: null,
+  budgetPeriod: "monthly",
+  canHire: false,
+  canAssign: false,
+});
 
 describe("createRoutinesEngine", () => {
   beforeEach(() => vi.useFakeTimers());
@@ -102,7 +101,6 @@ describe("createRoutinesEngine", () => {
 
     expect(enqueue).toHaveBeenCalledTimes(1);
     expect(recordActivity).toHaveBeenCalledWith(
-       
       expect.objectContaining({ action: "routine.fired", payload: { reason: "event" } }),
     );
     engine.stop();
@@ -175,10 +173,32 @@ describe("createRoutinesEngine", () => {
     engine.runNow(created.id);
     expect(enqueue).toHaveBeenCalledTimes(1);
     expect(recordActivity).toHaveBeenCalledWith(
-       
       expect.objectContaining({ action: "routine.fired", payload: { reason: "manual" } }),
     );
     engine.stop();
+  });
+
+  it("runNow throws when engine not started", () => {
+    const db = setup();
+    const repo = createRoutinesRepository(db);
+    const created = repo.create({
+      companyId: "c1",
+      name: "M",
+      enabled: true,
+      triggerType: "schedule",
+      scheduleSpec: { freq: "daily", atMinute: 540 },
+      nextFireAt: 999_999_999_999,
+      eventSpec: null,
+      targetAgentId: "a1",
+      instruction: "x",
+    });
+    const engine = createRoutinesEngine({
+      db,
+      now: () => 0,
+      tickMs: 30_000,
+      recordActivity: vi.fn(),
+    });
+    expect(() => engine.runNow(created.id)).toThrow(/not started/);
   });
 
   it("onActivity is a no-op before start (collects nothing)", () => {

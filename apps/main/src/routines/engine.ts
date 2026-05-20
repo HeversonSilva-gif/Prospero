@@ -85,7 +85,7 @@ export const createRoutinesEngine = (deps: RoutinesEngineDeps): RoutinesEngine =
       }
     },
     runNow(routineId) {
-      if (bridge === null) return;
+      if (bridge === null) throw new Error("routines engine not started");
       const r = repo.getById(routineId);
       if (r === null) throw new Error(`routine ${routineId} not found`);
       fire(r, "manual");
