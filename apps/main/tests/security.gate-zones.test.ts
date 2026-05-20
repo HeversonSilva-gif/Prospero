@@ -52,6 +52,7 @@ const agent = (companyId: string, id: string): Agent => ({
   budgetPeriod: "daily",
   canHire: true,
   canAssign: true,
+  trustTier: "novato",
 });
 
 type RecordedCall = { action: string; payload: unknown; agentId: string | null | undefined };

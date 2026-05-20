@@ -27,6 +27,7 @@ const agent = (mode: "supervised" | "auto"): Agent => ({
   budgetPeriod: "daily",
   canHire: true,
   canAssign: true,
+  trustTier: "novato",
 });
 
 const WS = "C:\\Workspace";

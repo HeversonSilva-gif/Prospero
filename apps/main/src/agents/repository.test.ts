@@ -241,3 +241,22 @@ describe("budget + run policy", () => {
     expect(repo.getBudgetState("nope")).toBeNull();
   });
 });
+
+describe("trust tier (M14 PR-A)", () => {
+  it("rowToAgent reads trust_tier — defaults to novato for a fresh hire", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput());
+    expect(a.trustTier).toBe("novato");
+  });
+
+  it("setTrustTier persists the new tier and round-trips through getById", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput());
+    repo.setTrustTier(a.id, "confiavel");
+    expect(repo.getById(a.id)?.trustTier).toBe("confiavel");
+    repo.setTrustTier(a.id, "autonomo");
+    expect(repo.getById(a.id)?.trustTier).toBe("autonomo");
+  });
+});

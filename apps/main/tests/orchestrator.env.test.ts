@@ -27,6 +27,7 @@ const baseAgent = (): Agent => ({
   budgetPeriod: "daily",
   canHire: true,
   canAssign: true,
+  trustTier: "novato",
 });
 
 describe("buildSpawnEnv", () => {
@@ -57,6 +58,7 @@ describe("buildSpawnEnv", () => {
         budgetPeriod: "daily",
         canHire: true,
         canAssign: true,
+        trustTier: "novato",
       },
       "sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_xyz123",
       "/tmp/db/prospero.db",

@@ -27,6 +27,7 @@ const fakeAgent = (mode: "supervised" | "auto" = "auto"): Agent => ({
   budgetPeriod: "daily",
   canHire: true,
   canAssign: true,
+  trustTier: "novato",
 });
 
 describe("evaluatePermission with project allowlist", () => {

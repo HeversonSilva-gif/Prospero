@@ -7,6 +7,7 @@ import {
   type AgentStatus,
   type Actor,
   type BudgetPeriod,
+  type TrustTier,
 } from "@prospero/shared";
 import type { Recorder } from "../activity/recorder.js";
 
@@ -36,6 +37,7 @@ type Row = {
   budget_warned_period: string | null;
   can_hire: number;
   can_assign: number;
+  trust_tier: string;
   created_at: number;
   updated_at: number;
 };
@@ -65,6 +67,7 @@ const rowToAgent = (r: Row): Agent => ({
   budgetPeriod: r.budget_period as BudgetPeriod,
   canHire: r.can_hire === 1,
   canAssign: r.can_assign === 1,
+  trustTier: r.trust_tier as TrustTier,
 });
 
 // Internal enforcement view of an agent's budget — includes budget_warned_period,
@@ -107,6 +110,7 @@ export type AgentsRepository = {
   setRole(id: string, roleTemplateId: string, opts?: { preserveModel?: boolean }): void;
   setReportsTo(id: string, newParentId: string | null): void;
   setMode(id: string, mode: AgentMode): void;
+  setTrustTier(id: string, tier: TrustTier): void;
   setAlwaysOn(id: string, alwaysOn: boolean): void;
   setCapabilities(id: string, capabilities: string[]): void;
   setBudget(
@@ -326,6 +330,16 @@ export const createAgentsRepository = (
         agentId: id,
         payload: { from: row.mode, to: mode },
       });
+    },
+    setTrustTier(id, tier) {
+      // M14 PR-A: write-only. Activity events for the tier transition are
+      // recorded by the trust engine (`apps/main/src/trust/engine.ts`), not
+      // here — the engine knows the from-tier and reason; the repo doesn't.
+      db.prepare("UPDATE agents SET trust_tier = ?, updated_at = ? WHERE id = ?").run(
+        tier,
+        Date.now(),
+        id,
+      );
     },
     setAlwaysOn(id, alwaysOn) {
       const row = byId.get(id) as Row | undefined;

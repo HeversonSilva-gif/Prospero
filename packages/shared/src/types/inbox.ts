@@ -16,7 +16,8 @@ export type InboxKind =
   | "budget_warning"
   | "verification_failed"
   | "verification_review"
-  | "security_zone_blocked";
+  | "security_zone_blocked"
+  | "trust_promotion_suggested";
 
 export type InboxItem = {
   id: string;

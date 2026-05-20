@@ -30,6 +30,7 @@ const baseAgent: Agent = {
   budgetPeriod: "daily",
   canHire: true,
   canAssign: true,
+  trustTier: "novato",
 };
 
 const baseCtx = (): SpawnContext => ({

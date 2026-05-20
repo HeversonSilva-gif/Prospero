@@ -56,6 +56,7 @@ const baseAgent: Agent = {
   budgetPeriod: "daily",
   canHire: true,
   canAssign: true,
+  trustTier: "novato",
 };
 
 /** A minimal SpawnContext for remote-adapter tests. Test-only. */

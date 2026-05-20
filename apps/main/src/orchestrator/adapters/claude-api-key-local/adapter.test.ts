@@ -27,6 +27,7 @@ const baseAgent = (): Agent => ({
   budgetPeriod: "daily",
   canHire: true,
   canAssign: true,
+  trustTier: "novato",
 });
 
 describe("ClaudeApiKeyLocalAdapter", () => {

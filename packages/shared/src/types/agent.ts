@@ -1,3 +1,5 @@
+import type { TrustTier } from "./trust.js";
+
 export type AgentMode = "supervised" | "auto";
 export type BudgetPeriod = "daily" | "monthly";
 export type AgentStatus =
@@ -41,6 +43,7 @@ export type Agent = {
   budgetPeriod: BudgetPeriod;
   canHire: boolean;
   canAssign: boolean;
+  trustTier: TrustTier;
 };
 
 export type AgentStats = {
