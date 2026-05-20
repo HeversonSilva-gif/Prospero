@@ -22,6 +22,7 @@ import { registerIsaHandlers } from "./isa-handlers.js";
 import { registerTelosHandlers } from "./telos-handlers.js";
 import { registerSecurityHandlers } from "./security-handlers.js";
 import { registerTrustHandlers } from "./trust-handlers.js";
+import { registerBriefingHandlers } from "./briefing-handlers.js";
 import { initRecorder } from "../activity/index.js";
 import { initInbox, createInboxRepository } from "../inbox/index.js";
 import { initDerivation } from "../derivation/index.js";
@@ -57,4 +58,5 @@ export const registerIpcHandlers = (db: Database.Database): void => {
   registerTelosHandlers(db);
   registerSecurityHandlers(db);
   registerTrustHandlers(db);
+  registerBriefingHandlers(db);
 };

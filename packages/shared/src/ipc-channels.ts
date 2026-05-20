@@ -138,6 +138,8 @@ export const IPC = {
   SECURITY_LIST_ZONES: "security:list-zones",
   TRUST_GET_HISTORY: "trust:get-history",
   TRUST_APPROVE_PROMOTION: "trust:approve-promotion",
+  BRIEFING_GET: "briefing:get",
+  BRIEFING_MARK_REVIEWED: "briefing:mark-reviewed",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

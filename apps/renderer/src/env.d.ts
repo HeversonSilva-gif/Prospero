@@ -51,6 +51,7 @@ import type {
   TelosDraft,
   ZoneSummary,
   TrustEvent,
+  Briefing,
 } from "@prospero/shared";
 
 declare global {
@@ -342,6 +343,10 @@ declare global {
       trust: {
         getHistory: (args: { agentId: string }) => Promise<TrustEvent[]>;
         approvePromotion: (args: { inboxItemId: string }) => Promise<{ ok: true }>;
+      };
+      briefing: {
+        get: (args: { companyId: string }) => Promise<Briefing>;
+        markReviewed: (args: { companyId: string }) => Promise<void>;
       };
       remote: {
         testConnection: () => Promise<{ ok: boolean; message: string }>;

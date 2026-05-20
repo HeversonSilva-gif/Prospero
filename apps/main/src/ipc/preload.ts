@@ -52,6 +52,7 @@ import {
   type TelosDraft,
   type ZoneSummary,
   type TrustEvent,
+  type Briefing,
 } from "@prospero/shared";
 
 contextBridge.exposeInMainWorld("prospero", {
@@ -470,6 +471,12 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.TRUST_GET_HISTORY, args) as Promise<TrustEvent[]>,
     approvePromotion: (args: { inboxItemId: string }) =>
       ipcRenderer.invoke(IPC.TRUST_APPROVE_PROMOTION, args) as Promise<{ ok: true }>,
+  },
+  briefing: {
+    get: (args: { companyId: string }) =>
+      ipcRenderer.invoke(IPC.BRIEFING_GET, args) as Promise<Briefing>,
+    markReviewed: (args: { companyId: string }) =>
+      ipcRenderer.invoke(IPC.BRIEFING_MARK_REVIEWED, args) as Promise<void>,
   },
   remote: {
     testConnection: () =>
