@@ -41,6 +41,7 @@ describe("m3 types and channels", () => {
       budgetPeriod: "daily",
       canHire: true,
       canAssign: true,
+      trustTier: "novato",
     };
     expect(a.status).toBe("idle");
   });

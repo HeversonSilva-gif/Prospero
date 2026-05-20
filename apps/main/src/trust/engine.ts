@@ -77,7 +77,7 @@ export const recomputeAgentTrust = (
     });
     recorder?.recordActivity({
       companyId: agent.companyId,
-      actor: { kind: "system", id: "trust-engine" },
+      actor: { kind: "system" },
       action: "trust.promotion_suggested",
       entityKind: "agent",
       entityId: agent.id,
@@ -121,7 +121,7 @@ export const recomputeAgentTrust = (
 
   recorder?.recordActivity({
     companyId: agent.companyId,
-    actor: { kind: "system", id: "trust-engine" },
+    actor: { kind: "system" },
     action: isDemotion ? "trust.demoted" : "trust.promoted",
     entityKind: "agent",
     entityId: agent.id,
