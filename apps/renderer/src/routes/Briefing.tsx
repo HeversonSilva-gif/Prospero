@@ -1,75 +1,46 @@
-import { useEffect, useState, type FC, type ReactNode } from "react";
+import { useEffect, type FC } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useBriefingStore } from "../stores/briefing.js";
 import { useCompaniesStore } from "../stores/companies.js";
+import { useAgentsStore } from "../stores/agents.js";
 import { formatCents } from "../lib/costs/formatCents.js";
+import { StatCard } from "../components/inicio/StatCard.js";
+import { TeamMemberRow } from "../components/inicio/TeamMemberRow.js";
+import {
+  CheckCircleIcon,
+  PlayIcon,
+  CreditCardIcon,
+  AlertTriangleIcon,
+} from "../components/inicio/inicio-icons.js";
 import type { BriefingItem } from "@prospero/shared";
 
-// M14 PR-C — Vitrine Matinal. Triage page: "Precisa de você" dominates the
-// top, the smaller buckets live in a colapsável strip below, cost as a footer.
-// M14 PR-D — polish: stronger visual hierarchy, SVG dots per bucket, tighter
-// loading/empty/error states. Subscribes to INBOX_UPDATE so new items appear
-// without manual refresh.
+// M14 PR-C laid the data flow (useBriefingStore + subscribeInbox); M16 PR-B1
+// reskins this route for the new "Início" layout per spec §5. The cached
+// `briefing.headline` is no longer surfaced — the saudação subline replaces it.
+// Sub-buckets (verified/failed/inProgress/learned) are gone; their detail is
+// reachable via /goals, /issues, etc.
 
-type BucketColor = "warning" | "success" | "danger" | "brand" | "ink";
-
-const DOT: Record<BucketColor, string> = {
-  warning: "bg-semantic-warning",
-  success: "bg-semantic-success",
-  danger: "bg-semantic-danger",
-  brand: "bg-brand",
-  ink: "bg-ink-soft",
-};
-
-const ItemRow: FC<{ item: BriefingItem }> = ({ item }) => (
-  <Link
-    to={item.route}
-    className="block px-3 py-2 rounded border border-surface-border bg-surface-card hover:border-brand transition-colors"
-  >
-    <p className="text-sm font-medium text-ink truncate">{item.label}</p>
-    {item.detail !== "" && <p className="text-xs text-ink-muted truncate mt-0.5">{item.detail}</p>}
-    {item.agentName !== null && (
-      <p className="text-[10px] text-ink-soft mt-0.5">{item.agentName}</p>
-    )}
-  </Link>
-);
-
-const BucketHeader: FC<{
-  color: BucketColor;
-  label: string;
-  count: number;
-  right?: ReactNode;
-}> = ({ color, label, count, right }) => (
-  <div className="flex items-center justify-between mb-2">
-    <h3 className="flex items-center gap-2 text-sm font-semibold text-ink">
-      <span className={`w-2 h-2 rounded-full shrink-0 ${DOT[color]}`} aria-hidden />
-      <span>{label}</span>
-      <span className="text-xs text-ink-muted tabular-nums">({count})</span>
-    </h3>
-    {right !== undefined && <div>{right}</div>}
+const NeedsYouRow: FC<{ item: BriefingItem; verLabel: string }> = ({ item, verLabel }) => (
+  <div className="flex items-center gap-3 px-3 py-2.5 border-t border-surface-border first:border-t-0">
+    <span
+      className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-semantic-warning-bg text-semantic-warning"
+      aria-hidden="true"
+    >
+      <AlertTriangleIcon size={17} />
+    </span>
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-medium text-ink truncate">{item.label}</p>
+      {item.detail !== "" && <p className="text-xs text-ink-soft truncate">{item.detail}</p>}
+    </div>
+    <Link
+      to={item.route}
+      className="text-xs font-semibold px-3 py-1.5 rounded-md bg-brand text-white whitespace-nowrap"
+    >
+      {verLabel}
+    </Link>
   </div>
 );
-
-const SubBucket: FC<{
-  color: BucketColor;
-  label: string;
-  items: BriefingItem[];
-}> = ({ color, label, items }) => {
-  if (items.length === 0) return null;
-  return (
-    <section>
-      <BucketHeader color={color} label={label} count={items.length} />
-      <ul className="space-y-1.5">
-        {items.map((item) => (
-          <li key={item.id}>
-            <ItemRow item={item} />
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-};
 
 export const Briefing: FC = () => {
   const { t } = useTranslation();
@@ -80,7 +51,7 @@ export const Briefing: FC = () => {
   const load = useBriefingStore((s) => s.load);
   const markReviewed = useBriefingStore((s) => s.markReviewed);
   const subscribeInbox = useBriefingStore((s) => s.subscribeInbox);
-  const [othersExpanded, setOthersExpanded] = useState(false);
+  const agents = useAgentsStore((s) => s.agents.filter((a) => a.status !== "terminated"));
 
   useEffect(() => {
     if (activeCompanyId === null) return;
@@ -92,7 +63,7 @@ export const Briefing: FC = () => {
   if (activeCompanyId === null) {
     return (
       <div className="p-8">
-        <p className="text-sm text-ink-muted">{t("briefing.noCompany")}</p>
+        <p className="text-sm text-ink-muted">{t("inicio.noCompany")}</p>
       </div>
     );
   }
@@ -100,7 +71,7 @@ export const Briefing: FC = () => {
   if (loading && briefing === null) {
     return (
       <div className="p-8">
-        <p className="text-sm text-ink-muted">{t("briefing.loading")}</p>
+        <p className="text-sm text-ink-muted">{t("inicio.loading")}</p>
       </div>
     );
   }
@@ -117,80 +88,100 @@ export const Briefing: FC = () => {
 
   if (briefing === null) return null;
 
-  const otherCount =
-    briefing.verified.length +
-    briefing.failed.length +
-    briefing.inProgress.length +
-    briefing.learned.length;
+  const needsYouCount = briefing.needsYou.length;
 
   return (
-    <div className="p-8 max-w-3xl space-y-8">
-      {/* Headline */}
+    <div className="p-8 max-w-3xl space-y-6">
+      {/* Saudação */}
       <header>
-        <h1 className="text-2xl font-bold text-brand-dark">{t("briefing.title")}</h1>
-        <p className="mt-2 text-base text-ink leading-relaxed italic">{briefing.headline}</p>
+        <h1 className="text-2xl font-bold text-ink">{t("inicio.greeting")}</h1>
+        <p className="mt-1 text-sm text-ink-soft">{t("inicio.subline")}</p>
       </header>
 
-      {/* Precisa de você — dominant, warning-tinted */}
-      <section className="-mx-4 px-4 py-4 rounded-lg border-l-4 border-l-semantic-warning bg-semantic-warning-bg/30">
-        <BucketHeader
-          color="warning"
-          label={t("briefing.needsYou")}
-          count={briefing.needsYou.length}
-          right={
+      {/* Precisa de você */}
+      <section>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">
+            {t("inicio.precisaDeVoce")}
+          </h2>
+          {needsYouCount > 0 && (
             <button
               type="button"
               onClick={() => void markReviewed(activeCompanyId)}
-              className="text-xs px-2.5 py-1 bg-surface-card text-ink-muted rounded border border-surface-border hover:border-brand"
+              className="text-xs text-ink-muted hover:text-ink"
             >
-              {t("briefing.markReviewed")}
+              {t("inicio.markReviewed")}
             </button>
-          }
-        />
-        {briefing.needsYou.length === 0 ? (
-          <p className="text-sm text-ink-muted italic">{t("briefing.needsYouEmpty")}</p>
-        ) : (
-          <ul className="space-y-2">
-            {briefing.needsYou.map((item) => (
-              <li key={item.id}>
-                <ItemRow item={item} />
-              </li>
-            ))}
-          </ul>
-        )}
+          )}
+        </div>
+        <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
+          {needsYouCount === 0 ? (
+            <p className="text-sm text-ink-muted italic px-4 py-6 text-center">
+              {t("inicio.precisaDeVoceEmpty")}
+            </p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-surface-border">
+                <p className="text-sm font-semibold text-ink">
+                  {t("inicio.precisaDeVoceCount", { count: needsYouCount })}
+                </p>
+                <span className="text-[11px] font-bold bg-semantic-warning text-ink rounded-full px-2 py-0.5">
+                  {needsYouCount}
+                </span>
+              </div>
+              {briefing.needsYou.map((item) => (
+                <NeedsYouRow key={item.id} item={item} verLabel={t("inicio.verButton")} />
+              ))}
+            </>
+          )}
+        </div>
       </section>
 
-      {/* Other buckets — colapsável */}
-      {otherCount > 0 && (
-        <section>
-          <button
-            type="button"
-            onClick={() => setOthersExpanded((v) => !v)}
-            className="text-xs text-ink-muted hover:text-ink font-medium"
-          >
-            {othersExpanded
-              ? t("briefing.othersHide")
-              : t("briefing.othersShow", { count: otherCount })}
-          </button>
-          {othersExpanded && (
-            <div className="mt-4 space-y-5">
-              <SubBucket color="success" label={t("briefing.verified")} items={briefing.verified} />
-              <SubBucket color="danger" label={t("briefing.failed")} items={briefing.failed} />
-              <SubBucket
-                color="brand"
-                label={t("briefing.inProgress")}
-                items={briefing.inProgress}
-              />
-              <SubBucket color="ink" label={t("briefing.learned")} items={briefing.learned} />
-            </div>
-          )}
-        </section>
-      )}
+      {/* O que aconteceu esta noite */}
+      <section>
+        <h2 className="text-[11px] font-bold uppercase tracking-wider text-ink-soft mb-2">
+          {t("inicio.oQueAconteceu")}
+        </h2>
+        <div className="flex gap-3">
+          <StatCard
+            icon={<CheckCircleIcon size={17} />}
+            iconBg="bg-semantic-success-bg"
+            iconColor="text-semantic-success"
+            value={String(briefing.verified.length)}
+            label={t("inicio.tarefasConcluidas")}
+          />
+          <StatCard
+            icon={<PlayIcon size={15} />}
+            iconBg="bg-surface-soft"
+            iconColor="text-ink-muted"
+            value={String(briefing.inProgress.length)}
+            label={t("inicio.emAndamento")}
+          />
+          <StatCard
+            icon={<CreditCardIcon size={17} />}
+            iconBg="bg-surface-soft"
+            iconColor="text-ink-muted"
+            value={formatCents(briefing.costCents)}
+            label={t("inicio.gastosHoje")}
+          />
+        </div>
+      </section>
 
-      {/* Cost footer */}
-      <footer className="text-xs text-ink-muted pt-4 border-t border-surface-border">
-        {t("briefing.costFooter", { cost: formatCents(briefing.costCents) })}
-      </footer>
+      {/* Sua equipe agora */}
+      <section>
+        <h2 className="text-[11px] font-bold uppercase tracking-wider text-ink-soft mb-2">
+          {t("inicio.suaEquipeAgora")}
+        </h2>
+        <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
+          {agents.length === 0 ? (
+            <p className="text-sm text-ink-muted italic px-4 py-6 text-center">
+              {t("inicio.suaEquipeAgoraEmpty")}
+            </p>
+          ) : (
+            agents.map((agent) => <TeamMemberRow key={agent.id} agent={agent} />)
+          )}
+        </div>
+      </section>
     </div>
   );
 };
