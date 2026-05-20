@@ -166,4 +166,31 @@ describe("routinesHandlers", () => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     expect(fired?.[0].payload.reason).toBe("manual");
   });
+
+  it("update — re-seeds nextFireAt when scheduleSpec changes", () => {
+    const h = routinesHandlers({ db });
+    const created = h.create({
+      input: {
+        companyId: "c1",
+        name: "Standup",
+        enabled: true,
+        triggerType: "schedule",
+        scheduleSpec: { freq: "daily", atMinute: 540 },
+        targetAgentId: "a1",
+        instruction: "x",
+      },
+    });
+    const initialNextFire = created.nextFireAt;
+    expect(initialNextFire).not.toBeNull();
+
+    const updated = h.update({
+      input: {
+        id: created.id,
+        scheduleSpec: { freq: "daily", atMinute: 600 },
+      },
+    });
+
+    expect(updated.nextFireAt).not.toBeNull();
+    expect(updated.nextFireAt).not.toBe(initialNextFire);
+  });
 });

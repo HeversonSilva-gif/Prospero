@@ -55,6 +55,18 @@ export const routinesHandlers = (_deps: RoutinesHandlersDeps): RoutinesHandlers 
     },
     update({ input }) {
       const parsed = ROUTINE_UPDATE_INPUT_SCHEMA.parse(input);
+
+      // M15 PR-B: re-seed nextFireAt when scheduleSpec changes on a schedule
+      // routine. Mirror of seedNextFire used in `create`. Skipped if the caller
+      // already provided nextFireAt explicitly (e.g. internal advance after fire).
+      let computedNextFireAt: number | undefined;
+      if (parsed.scheduleSpec !== undefined && parsed.nextFireAt === undefined) {
+        const existing = repo.getById(parsed.id);
+        if (existing !== null && existing.triggerType === "schedule") {
+          computedNextFireAt = computeNextFire(parsed.scheduleSpec, new Date(Date.now())).getTime();
+        }
+      }
+
       return repo.update({
         id: parsed.id,
         ...(parsed.name !== undefined && { name: parsed.name }),
@@ -63,6 +75,8 @@ export const routinesHandlers = (_deps: RoutinesHandlersDeps): RoutinesHandlers 
         ...(parsed.eventSpec !== undefined && { eventSpec: parsed.eventSpec }),
         ...(parsed.targetAgentId !== undefined && { targetAgentId: parsed.targetAgentId }),
         ...(parsed.instruction !== undefined && { instruction: parsed.instruction }),
+        ...(parsed.nextFireAt !== undefined && { nextFireAt: parsed.nextFireAt }),
+        ...(computedNextFireAt !== undefined && { nextFireAt: computedNextFireAt }),
       });
     },
     delete({ id }) {

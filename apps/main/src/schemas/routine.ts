@@ -61,6 +61,7 @@ export const ROUTINE_UPDATE_INPUT_SCHEMA = z.object({
   enabled: z.boolean().optional(),
   scheduleSpec: ScheduleSpecSchema.optional(),
   eventSpec: EventSpecSchema.optional(),
+  nextFireAt: z.number().int().nullable().optional(),
   targetAgentId: z.string().min(1).optional(),
   instruction: z.string().min(1).max(4000).optional(),
 });
