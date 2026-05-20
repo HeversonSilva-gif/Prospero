@@ -1293,8 +1293,8 @@
       "neverFired": "nunca"
     },
     "summary": {
-      "daily": "Toda dia {{time}}",
-      "weekly": "Toda {{weekday}} {{time}}",
+      "daily": "Todo dia {{time}}",
+      "weekly": "Toda {{weekday}} às {{time}}",
       "monthly": "Todo dia {{day}} às {{time}}",
       "interval": "A cada {{minutes}} min",
       "event": "Quando: {{event}}"
