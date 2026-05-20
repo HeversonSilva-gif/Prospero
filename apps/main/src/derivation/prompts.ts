@@ -5,6 +5,7 @@ import type {
   ApprovalTrail,
   TrailCriterion,
 } from "./trail.js";
+import type { VerificationFailedTrail } from "./verification-failed-trail.js";
 
 // Shared closing instruction for every derivation prompt. The worker's parser
 // (parse-output.ts) understands exactly this contract.
@@ -108,6 +109,27 @@ ${
     : trail.issues.map((i) => `- [${i.status}] ${i.title}`).join("\n")
 }${renderCriteriaSection(trail.criteria)}
 ${MEMORY_OUTPUT_CONTRACT}`;
+
+// Prompt for a `verification.failed` derivation — what skill would prevent this
+// kind of failure from happening again?
+export const buildVerificationFailedPrompt = (trail: VerificationFailedTrail): string => {
+  const failedLines = trail.failed
+    .map(
+      (f) =>
+        `- [${f.kind}] ${f.statement} — still failing after ${f.attempts} attempts\n  Last detail: ${f.lastDetail || "(no detail captured)"}`,
+    )
+    .join("\n");
+  return `A goal's verification failed. Extract one durable skill — what should a future agent know to avoid this kind of failure next time? Focus on the pattern, not the one-off cause.
+
+## Goal: ${trail.goalTitle}
+
+${trail.goalDescription}
+
+## Failed criteria
+
+${failedLines === "" ? "(none)" : failedLines}
+${MEMORY_OUTPUT_CONTRACT}`;
+};
 
 // Prompt for an `approval.rejected` preference — what the user does NOT want.
 export const buildPreferencePrompt = (trail: ApprovalTrail): string =>

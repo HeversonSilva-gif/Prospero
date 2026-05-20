@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { buildIssuePrompt, buildRetrospectivePrompt } from "./prompts.js";
+import {
+  buildIssuePrompt,
+  buildRetrospectivePrompt,
+  buildVerificationFailedPrompt,
+} from "./prompts.js";
 import type { IssueTrail, GoalTrail } from "./trail.js";
 
 const trailWithCriteria = (): IssueTrail => ({
@@ -50,5 +54,27 @@ describe("buildRetrospectivePrompt with criteria", () => {
     const prompt = buildRetrospectivePrompt(trail);
     expect(prompt).toMatch(/build passes/);
     expect(prompt).toMatch(/3/);
+  });
+});
+
+describe("buildVerificationFailedPrompt", () => {
+  it("names the goal and each failed criterion with attempts and last detail", () => {
+    const prompt = buildVerificationFailedPrompt({
+      goalId: "g1",
+      goalTitle: "Ship X",
+      goalDescription: "users can do Y",
+      failed: [
+        {
+          statement: "build passes",
+          kind: "deterministic",
+          attempts: 3,
+          lastDetail: "exit 1: tsc found 2 errors",
+        },
+      ],
+    });
+    expect(prompt).toMatch(/Ship X/);
+    expect(prompt).toMatch(/build passes/);
+    expect(prompt).toMatch(/3/);
+    expect(prompt).toMatch(/tsc found 2 errors/);
   });
 });
