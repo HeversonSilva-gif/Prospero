@@ -8,6 +8,7 @@ import { useAgentsStore } from "../stores/agents.js";
 import { RecurrencePicker } from "../components/routines/RecurrencePicker.js";
 import { EventPicker } from "../components/routines/EventPicker.js";
 import { TargetAgentPicker } from "../components/routines/TargetAgentPicker.js";
+import { RoutineHistory } from "../components/routines/RoutineHistory.js";
 
 type TriggerType = "schedule" | "event";
 
@@ -323,6 +324,9 @@ export const RoutineForm: FC = () => {
           </div>
         </div>
       </form>
+      {isEdit && id !== undefined && activeCompanyId !== null && (
+        <RoutineHistory routineId={id} companyId={activeCompanyId} />
+      )}
     </div>
   );
 };
