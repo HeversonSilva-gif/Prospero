@@ -1239,9 +1239,7 @@
     "subtitle": "Agentes que acordam sozinhos",
     "new": "Nova routine",
     "empty": {
-      "title": "Nenhuma routine ainda",
-      "description": "Crie a primeira para que um agente acorde sozinho em horário ou por evento.",
-      "cta": "Criar primeira routine"
+      "description": "Crie a primeira para que um agente acorde sozinho em horário ou por evento."
     },
     "form": {
       "name": "Nome",
@@ -1298,6 +1296,25 @@
       "monthly": "Todo dia {{day}} às {{time}}",
       "interval": "A cada {{minutes}} min",
       "event": "Quando: {{event}}"
+    },
+    "history": {
+      "title": "Histórico de disparos",
+      "empty": "Esta routine nunca disparou",
+      "refresh": "Atualizar",
+      "expand": "Expandir",
+      "collapse": "Colapsar",
+      "status": {
+        "fired": "Disparada",
+        "skipped": "Pulada"
+      },
+      "reason": {
+        "scheduled": "agendada",
+        "catchup": "atrasada (catch-up)",
+        "event": "por evento",
+        "manual": "manual",
+        "agent_unavailable": "agente indisponível",
+        "budget_paused": "orçamento pausado"
+      }
     },
     "weekday": {
       "0": "domingo",

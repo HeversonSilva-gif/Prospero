@@ -1239,9 +1239,7 @@
     "subtitle": "Agents that wake on their own",
     "new": "New routine",
     "empty": {
-      "title": "No routines yet",
-      "description": "Create the first one so an agent wakes on its own — on a schedule or in response to an event.",
-      "cta": "Create first routine"
+      "description": "Create the first one so an agent wakes on its own — on a schedule or in response to an event."
     },
     "form": {
       "name": "Name",
@@ -1298,6 +1296,25 @@
       "monthly": "Every {{day}}th at {{time}}",
       "interval": "Every {{minutes}} min",
       "event": "When: {{event}}"
+    },
+    "history": {
+      "title": "Fire history",
+      "empty": "This routine has never fired",
+      "refresh": "Refresh",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "status": {
+        "fired": "Fired",
+        "skipped": "Skipped"
+      },
+      "reason": {
+        "scheduled": "scheduled",
+        "catchup": "catch-up",
+        "event": "event-triggered",
+        "manual": "manual",
+        "agent_unavailable": "agent unavailable",
+        "budget_paused": "budget paused"
+      }
     },
     "weekday": {
       "0": "Sunday",
