@@ -16,7 +16,12 @@
     "orgChart": "Org Chart",
     "activity": "Activity",
     "costs": "Costs",
-    "telos": "TELOS"
+    "telos": "TELOS",
+    "inicio": "Home",
+    "pedirAlgo": "Ask for something",
+    "projetos": "Projects",
+    "equipe": "My team",
+    "ajustes": "Settings"
   },
   "company": {
     "switcher": {

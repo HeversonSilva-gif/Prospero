@@ -16,7 +16,12 @@
     "orgChart": "Organograma",
     "activity": "Atividade",
     "costs": "Custos",
-    "telos": "TELOS"
+    "telos": "TELOS",
+    "inicio": "Início",
+    "pedirAlgo": "Pedir algo",
+    "projetos": "Projetos",
+    "equipe": "Minha equipe",
+    "ajustes": "Ajustes"
   },
   "company": {
     "switcher": {
