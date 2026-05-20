@@ -143,6 +143,10 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
           log(`verification_failed: goal ${job.goalId ?? "(none)"} not found — skipping`);
           return;
         }
+        if (trail.failed.length === 0) {
+          log(`verification_failed: no failed criteria in payload — skipping`);
+          return;
+        }
         prompt = buildVerificationFailedPrompt(trail);
       } else {
         // Exhaustiveness guard: a trigger added to DerivationJob without a

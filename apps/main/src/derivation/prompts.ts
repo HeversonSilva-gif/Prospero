@@ -110,15 +110,25 @@ ${
 }${renderCriteriaSection(trail.criteria)}
 ${MEMORY_OUTPUT_CONTRACT}`;
 
+const renderFailedLine = (f: {
+  statement: string;
+  kind: string;
+  attempts: number;
+  lastDetail: string;
+}): string => {
+  const verdict =
+    f.attempts === 0
+      ? "failed"
+      : f.attempts === 1
+        ? "failed on the first attempt"
+        : `still failing after ${f.attempts} attempts`;
+  return `- [${f.kind}] ${f.statement} — ${verdict}\n  Last detail: ${f.lastDetail || "(no detail captured)"}`;
+};
+
 // Prompt for a `verification.failed` derivation — what skill would prevent this
 // kind of failure from happening again?
 export const buildVerificationFailedPrompt = (trail: VerificationFailedTrail): string => {
-  const failedLines = trail.failed
-    .map(
-      (f) =>
-        `- [${f.kind}] ${f.statement} — still failing after ${f.attempts} attempts\n  Last detail: ${f.lastDetail || "(no detail captured)"}`,
-    )
-    .join("\n");
+  const failedLines = trail.failed.map(renderFailedLine).join("\n");
   return `A goal's verification failed. Extract one durable skill — what should a future agent know to avoid this kind of failure next time? Focus on the pattern, not the one-off cause.
 
 ## Goal: ${trail.goalTitle}

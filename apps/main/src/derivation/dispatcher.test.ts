@@ -104,6 +104,10 @@ describe("createDerivationDispatcher — memory triggers", () => {
   });
 
   it("routes a verification.failed activity event into a verification_failed derivation job", async () => {
+    // In production, verification/index.ts records this event with agentId = goal.ownerAgentId
+    // (not null). The dispatcher's first line early-returns on null, so the goal owner being
+    // the agentId is what keeps the LEARN-feeds-LEARN flow alive.
+    const goalOwnerAgentId = "a1";
     const { jobs, processJob } = collect();
     const d = createDerivationDispatcher({ processJob });
     d.onActivity(
@@ -111,7 +115,7 @@ describe("createDerivationDispatcher — memory triggers", () => {
         action: "verification.failed",
         entityKind: "goal",
         entityId: "g1",
-        agentId: "a1",
+        agentId: goalOwnerAgentId,
         payload: { goalId: "g1", failedCriteria: ["cr1", "cr2"] },
       }),
     );
@@ -120,7 +124,7 @@ describe("createDerivationDispatcher — memory triggers", () => {
     expect(jobs[0]).toMatchObject({
       trigger: "verification_failed",
       companyId: "c1",
-      agentId: "a1",
+      agentId: goalOwnerAgentId,
       sourceEventId: "evt_1",
       goalId: "g1",
       failedCriterionIds: ["cr1", "cr2"],

@@ -284,17 +284,39 @@ describe("createDerivationWorker — verification_failed trigger", () => {
     expect(ran).toBe(false);
   });
 
-  it("handles missing failedCriterionIds gracefully (treats as empty list)", async () => {
+  it("skips runDerivation when failedCriterionIds is empty — no signal to learn from", async () => {
+    // An empty failedCriterionIds list means the dispatcher fired with no real
+    // failures (e.g. a race). We must not burn a daily-cap slot for zero signal.
     const db = seedVerificationFailed();
-    const captured: string[] = [];
+    let ran = false;
     const worker = createDerivationWorker({
       db,
-      runDerivation: (input) => {
-        captured.push(input.prompt);
-        return Promise.resolve({
-          text: '```json\n{"body":"a lesson"}\n```',
-          usage: { input: 50, output: 10, cacheCreation: 0, cacheRead: 0 },
-        });
+      runDerivation: () => {
+        ran = true;
+        return Promise.resolve(memoryOutput("should not run"));
+      },
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    await worker.processJob({
+      trigger: "verification_failed",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      goalId: "g1",
+      failedCriterionIds: [],
+    });
+    expect(ran).toBe(false);
+  });
+
+  it("skips runDerivation when failedCriterionIds is omitted (defaults to empty)", async () => {
+    const db = seedVerificationFailed();
+    let ran = false;
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: () => {
+        ran = true;
+        return Promise.resolve(memoryOutput("should not run"));
       },
       now: () => 1000,
       authEnv: () => ({}),
@@ -307,8 +329,7 @@ describe("createDerivationWorker — verification_failed trigger", () => {
       goalId: "g1",
       // failedCriterionIds omitted intentionally
     });
-    expect(captured).toHaveLength(1);
-    expect(captured[0]).toMatch(/Goal:/);
+    expect(ran).toBe(false);
   });
 });
 

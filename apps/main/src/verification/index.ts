@@ -59,7 +59,7 @@ export const applyVerificationReport = (
       action: "verification.failed",
       entityKind: "goal",
       entityId: goal.id,
-      agentId: null,
+      agentId: goal.ownerAgentId ?? null,
       payload: { goalId: goal.id, failedCriteria },
     });
     return;

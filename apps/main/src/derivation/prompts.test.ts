@@ -77,4 +77,40 @@ describe("buildVerificationFailedPrompt", () => {
     expect(prompt).toMatch(/3/);
     expect(prompt).toMatch(/tsc found 2 errors/);
   });
+
+  it("uses 'failed' (no attempt count) when attempts is 0 — judgment criteria never increment", () => {
+    const prompt = buildVerificationFailedPrompt({
+      goalId: "g1",
+      goalTitle: "Ship X",
+      goalDescription: "users can do Y",
+      failed: [
+        {
+          statement: "on brand",
+          kind: "judgment",
+          attempts: 0,
+          lastDetail: "",
+        },
+      ],
+    });
+    expect(prompt).toContain("on brand — failed");
+    expect(prompt).not.toMatch(/after 0 attempts/);
+  });
+
+  it("uses 'failed on the first attempt' when attempts is 1", () => {
+    const prompt = buildVerificationFailedPrompt({
+      goalId: "g1",
+      goalTitle: "Ship X",
+      goalDescription: "users can do Y",
+      failed: [
+        {
+          statement: "tests pass",
+          kind: "deterministic",
+          attempts: 1,
+          lastDetail: "exit 1",
+        },
+      ],
+    });
+    expect(prompt).toContain("failed on the first attempt");
+    expect(prompt).not.toMatch(/1 attempt[^s]/);
+  });
 });
