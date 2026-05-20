@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations } from "../db/migrations.js";
 import { createCompaniesRepository } from "../companies/repository.js";
@@ -6,6 +6,8 @@ import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
 import { applyVerificationReport, checkOneCriterion, runVerification } from "./index.js";
 import type { RunVerificationDeps } from "./index.js";
+import { createRecorder } from "../activity/recorder.js";
+import { _setRecorderForTest } from "../activity/index.js";
 
 const toVerifying = (db: Database.Database, companyId: string): string => {
   const repo = createGoalsRepository(db);
@@ -66,6 +68,28 @@ describe("verification gate", () => {
       .prepare("SELECT kind FROM inbox_items WHERE company_id = ?")
       .all(companyId) as { kind: string }[];
     expect(inbox.some((i) => i.kind === "verification_failed")).toBe(true);
+  });
+
+  describe("activity event on failure", () => {
+    afterEach(() => {
+      _setRecorderForTest(null);
+    });
+
+    it("records a verification.failed activity event when a criterion fails", async () => {
+      const recorder = createRecorder(db, () => {}, { devMode: false });
+      _setRecorderForTest(recorder);
+      const goalId = toVerifying(db, companyId);
+      addCommandCriterion(goalId);
+      await runVerification(db, goalId, depsWith(1));
+      const rows = db
+        .prepare(
+          "SELECT action, entity_id, company_id FROM activity_events WHERE action = 'verification.failed'",
+        )
+        .all() as Array<{ action: string; entity_id: string; company_id: string }>;
+      expect(rows.length).toBe(1);
+      expect(rows[0]!.entity_id).toBe(goalId);
+      expect(rows[0]!.company_id).toBe(companyId);
+    });
   });
 
   it("a pending judgment keeps the goal verifying and files a review card", async () => {

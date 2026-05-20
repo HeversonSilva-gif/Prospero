@@ -137,4 +137,10 @@ export const ActivityPayloads = {
   // Company (2)
   "company.created": z.object({ name: z.string() }),
   "company.updated": z.object({ patch: z.record(z.unknown()) }),
+
+  // Verification (1) — M13 PR-D dispatcher trigger
+  "verification.failed": z.object({
+    goalId: stringId,
+    failedCriteria: z.array(stringId),
+  }),
 } satisfies Record<ActivityAction, z.ZodTypeAny>;

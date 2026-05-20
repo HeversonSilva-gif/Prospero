@@ -55,6 +55,8 @@ export const ACTIVITY_ACTIONS = [
   "goal.status_changed",
   "goal.subgoal_recorded",
   "goal.narrated_step",
+  // Verification (1) — M13 PR-D; dispatcher trigger
+  "verification.failed",
   // Session / Cost (3) — session.* optional in PR-A; cost.day_summary depends M8
   "session.started",
   "session.ended",

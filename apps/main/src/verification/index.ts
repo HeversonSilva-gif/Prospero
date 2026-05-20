@@ -9,6 +9,7 @@ import type { CriterionResult, Goal, VerificationReport } from "@prospero/shared
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
+import { tryGetRecorder } from "../activity/index.js";
 import { runGoalVerification } from "./engine.js";
 import { runSandboxedCommand } from "./sandbox.js";
 import type { RunSandboxedCommandInput, SandboxedCommandResult } from "./sandbox.js";
@@ -40,6 +41,7 @@ export const applyVerificationReport = (
   const failed = report.results.filter((r) => r.status === "failed");
   if (failed.length > 0) {
     goalsRepo.updateStatus(goal.id, "in_progress");
+    const failedCriteria = failed.map((f) => f.criterionId);
     createInboxRepository(db).create({
       companyId: goal.companyId,
       kind: "verification_failed",
@@ -49,10 +51,16 @@ export const applyVerificationReport = (
           ? `${failed[0]!.detail.slice(0, 150)} (+${failed.length - 1} more)`
           : failed[0]!.detail.slice(0, 200),
       requiresAction: true,
-      payloadJson: JSON.stringify({
-        goalId: goal.id,
-        failedCriteria: failed.map((f) => f.criterionId),
-      }),
+      payloadJson: JSON.stringify({ goalId: goal.id, failedCriteria }),
+    });
+    tryGetRecorder()?.recordActivity({
+      companyId: goal.companyId,
+      actor: { kind: "system" },
+      action: "verification.failed",
+      entityKind: "goal",
+      entityId: goal.id,
+      agentId: null,
+      payload: { goalId: goal.id, failedCriteria },
     });
     return;
   }
