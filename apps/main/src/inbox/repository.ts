@@ -41,6 +41,14 @@ export type CreateInboxInput = {
   approvalId?: string | null;
 };
 
+export type FindRecentUnreadArgs = {
+  companyId: string;
+  /** actor_id in the row */
+  agentId: string;
+  kind: string;
+  withinMs: number;
+};
+
 export type InboxRepository = {
   create(input: CreateInboxInput): InboxItem;
   listByCompany(companyId: string): InboxItem[];
@@ -48,6 +56,7 @@ export type InboxRepository = {
   markReadByToolUseId(toolUseId: string): InboxItem | null;
   markReadByApprovalId(approvalId: string): InboxItem | null;
   markReadByCandidateId(candidateId: string): void;
+  findRecentUnread(args: FindRecentUnreadArgs): InboxItem | null;
 };
 
 export const createInboxRepository = (db: Database.Database): InboxRepository => {
@@ -129,6 +138,19 @@ export const createInboxRepository = (db: Database.Database): InboxRepository =>
         )
         .get(`%${candidateId}%`) as { id: string } | undefined;
       if (row !== undefined) markReadStmt.run(Date.now(), row.id);
+    },
+    findRecentUnread({ companyId, agentId, kind, withinMs }) {
+      // Used by the security gate (M13 PR-F) to de-dup repeated zone_blocked
+      // cards within a short window — prevents loops from spamming the inbox.
+      const since = Date.now() - withinMs;
+      const row = db
+        .prepare(
+          `SELECT * FROM inbox_items
+            WHERE company_id = ? AND actor_id = ? AND kind = ? AND read_at IS NULL AND created_at > ?
+            LIMIT 1`,
+        )
+        .get(companyId, agentId, kind, since) as Row | undefined;
+      return row === undefined ? null : rowToItem(row);
     },
   };
 };

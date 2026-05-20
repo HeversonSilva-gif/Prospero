@@ -809,6 +809,7 @@
       "suggestion": "Sugestões",
       "error": "Erros",
       "security_alert": "Segurança",
+      "security_zone_blocked": "Bloqueios de zona",
       "goal_proposed": "Planos propostos",
       "goal_executing": "Executando",
       "goal_error": "Falhas de objetivo"
@@ -826,6 +827,10 @@
     },
     "verificationReview": {
       "open": "Revisar objetivo"
+    },
+    "zoneBlocked": {
+      "title": "Bloqueio de zona",
+      "description": "Um agente tentou ler entre zonas de privacidade."
     }
   },
   "approval": {

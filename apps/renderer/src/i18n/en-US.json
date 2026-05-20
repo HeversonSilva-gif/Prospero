@@ -809,6 +809,7 @@
       "suggestion": "Suggestions",
       "error": "Errors",
       "security_alert": "Security",
+      "security_zone_blocked": "Zone blocks",
       "goal_proposed": "Proposed plans",
       "goal_executing": "Executing",
       "goal_error": "Goal failures"
@@ -826,6 +827,10 @@
     },
     "verificationReview": {
       "open": "Review goal"
+    },
+    "zoneBlocked": {
+      "title": "Zone block",
+      "description": "An agent tried to read across a privacy zone."
     }
   },
   "approval": {

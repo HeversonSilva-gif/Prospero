@@ -5,9 +5,12 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { join } from "node:path";
+import Database from "better-sqlite3";
 import type { Agent } from "@prospero/shared";
 import { evaluatePermission } from "../src/security/gate.js";
 import { _setRecorderForTest, type Recorder } from "../src/activity/index.js";
+import { _setInboxForTest, createInboxRepository } from "../src/inbox/index.js";
+import { applyMigrations } from "../src/db/migrations.js";
 
 const USER_DATA = process.platform === "win32" ? "C:\\UserData" : "/tmp/prospero-userdata";
 
@@ -64,6 +67,7 @@ describe("evaluatePermission §5 containment zones (M13 PR-E)", () => {
 
   afterEach(() => {
     _setRecorderForTest(null);
+    _setInboxForTest(null);
     vi.restoreAllMocks();
   });
 
@@ -167,5 +171,90 @@ describe("evaluatePermission §5 containment zones (M13 PR-E)", () => {
     expect(r.action).toBe("deny");
     expect(r.reason).toMatch(/outside allowed projects/i);
     expect(recorded).toHaveLength(0);
+  });
+
+  describe("inbox card (M13 PR-F)", () => {
+    const seedCompanyAndAgent = (
+      db: Database.Database,
+      companyId: string,
+      agentId: string,
+    ): void => {
+      const now = Date.now();
+      db.prepare("INSERT INTO companies (id, name, created_at) VALUES (?, ?, ?)").run(
+        companyId,
+        "Acme",
+        now,
+      );
+      db.prepare(
+        `INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json, mode, always_on, status, model, adapter_name, created_at, updated_at)
+         VALUES (?, ?, ?, 'engineer', '', '[]', '[]', 'auto', 0, 'idle', 'claude-sonnet-4-6', 'claude-oauth-local', ?, ?)`,
+      ).run(agentId, companyId, agentId, now, now);
+    };
+
+    it("creates an inbox card on the first cross-zone deny", () => {
+      const db = new Database(":memory:");
+      applyMigrations(db);
+      seedCompanyAndAgent(db, "c-mine", "a1");
+      const inbox = createInboxRepository(db);
+      _setInboxForTest(inbox);
+
+      const target = join(USER_DATA, "companies", "c-other", "telos.md");
+      const r = evaluatePermission({
+        toolName: "Read",
+        toolInput: { file_path: target },
+        agent: agent("c-mine", "a1"),
+        allowedProjectPaths: [join(USER_DATA, "companies", "c-other")],
+        agentCwd: USER_DATA,
+        userDataDir: USER_DATA,
+      });
+      expect(r.action).toBe("deny");
+
+      const rows = inbox.listByCompany("c-mine");
+      expect(rows).toHaveLength(1);
+      const row = rows[0];
+      expect(row).toBeDefined();
+      expect(row?.kind).toBe("security_zone_blocked");
+      expect(row?.actorId).toBe("a1");
+      expect(row?.requiresAction).toBe(false);
+      expect(row?.payloadJson).not.toBeNull();
+      const payload = JSON.parse(row!.payloadJson!) as {
+        attemptedPath: string;
+        zoneKind: string;
+        reason: string;
+      };
+      expect(payload).toMatchObject({
+        attemptedPath: target,
+        zoneKind: "company",
+        reason: "cross-company",
+      });
+
+      db.close();
+    });
+
+    it("de-dups repeated denials within 5 minutes", () => {
+      const db = new Database(":memory:");
+      applyMigrations(db);
+      seedCompanyAndAgent(db, "c-mine", "a1");
+      const inbox = createInboxRepository(db);
+      _setInboxForTest(inbox);
+
+      const target = join(USER_DATA, "companies", "c-other", "telos.md");
+      const args = {
+        toolName: "Read" as const,
+        toolInput: { file_path: target },
+        agent: agent("c-mine", "a1"),
+        allowedProjectPaths: [join(USER_DATA, "companies", "c-other")],
+        agentCwd: USER_DATA,
+        userDataDir: USER_DATA,
+      };
+      evaluatePermission(args);
+      evaluatePermission(args);
+      evaluatePermission(args);
+
+      const rows = inbox.listByCompany("c-mine");
+      expect(rows).toHaveLength(1);
+
+      db.close();
+    });
   });
 });
