@@ -5,6 +5,7 @@ import type { InboxItem, InboxKind, PermissionResolution } from "@prospero/share
 import { useInboxStore } from "../stores/inbox.js";
 import { useCompaniesStore } from "../stores/companies.js";
 import { SkillPromotionModal } from "../components/inbox/SkillPromotionModal.js";
+import { TrustPromotionCard } from "../components/inbox/TrustPromotionCard.js";
 
 const GOAL_KINDS: InboxKind[] = [
   "goal_proposed",
@@ -121,6 +122,9 @@ export const Inbox: FC = () => {
               </div>
               {item.preview !== null && (
                 <p className="text-xs text-ink-muted mt-1 break-words">{item.preview}</p>
+              )}
+              {item.kind === "trust_promotion_suggested" && (
+                <TrustPromotionCard item={item} markRead={(id) => void markRead(id)} />
               )}
               {item.kind === "approval" && item.requiresAction && item.readAt === null && (
                 <div className="flex gap-2 mt-2">
