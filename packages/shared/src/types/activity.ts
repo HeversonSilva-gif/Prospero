@@ -59,6 +59,11 @@ export const ACTIVITY_ACTIONS = [
   "verification.failed",
   // Security (1) — M13 PR-E; containment zone blocked
   "security.zone_blocked",
+  // Trust (4) — M14 PR-A trust ladder
+  "trust.promoted",
+  "trust.demoted",
+  "trust.promotion_suggested",
+  "trust.readonly_autoapproved",
   // Session / Cost (3) — session.* optional in PR-A; cost.day_summary depends M8
   "session.started",
   "session.ended",

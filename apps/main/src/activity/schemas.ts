@@ -150,4 +150,26 @@ export const ActivityPayloads = {
     zoneKind: z.enum(["company", "agent", "shared", "system"]),
     reason: z.string(),
   }),
+
+  // Trust (4) — M14 PR-A trust ladder
+  "trust.promoted": z.object({
+    fromTier: z.enum(["novato", "confiavel", "autonomo"]),
+    toTier: z.enum(["novato", "confiavel", "autonomo"]),
+    reason: z.string(),
+  }),
+  "trust.demoted": z.object({
+    fromTier: z.enum(["novato", "confiavel", "autonomo"]),
+    toTier: z.enum(["novato", "confiavel", "autonomo"]),
+    reason: z.string(),
+  }),
+  "trust.promotion_suggested": z.object({
+    fromTier: z.enum(["novato", "confiavel", "autonomo"]),
+    toTier: z.enum(["novato", "confiavel", "autonomo"]),
+    reason: z.string(),
+    inboxItemId: z.string(),
+  }),
+  "trust.readonly_autoapproved": z.object({
+    toolName: z.string(),
+    inputHash: z.string().optional(),
+  }),
 } satisfies Record<ActivityAction, z.ZodTypeAny>;
