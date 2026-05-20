@@ -50,6 +50,7 @@ import type {
   TelosInterviewAnswers,
   TelosDraft,
   ZoneSummary,
+  TrustEvent,
 } from "@prospero/shared";
 
 declare global {
@@ -337,6 +338,10 @@ declare global {
       };
       security: {
         listZones: () => Promise<ZoneSummary[]>;
+      };
+      trust: {
+        getHistory: (args: { agentId: string }) => Promise<TrustEvent[]>;
+        approvePromotion: (args: { inboxItemId: string }) => Promise<{ ok: true }>;
       };
       remote: {
         testConnection: () => Promise<{ ok: boolean; message: string }>;

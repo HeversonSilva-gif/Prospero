@@ -51,6 +51,7 @@ import {
   type TelosInterviewAnswers,
   type TelosDraft,
   type ZoneSummary,
+  type TrustEvent,
 } from "@prospero/shared";
 
 contextBridge.exposeInMainWorld("prospero", {
@@ -463,6 +464,12 @@ contextBridge.exposeInMainWorld("prospero", {
   },
   security: {
     listZones: () => ipcRenderer.invoke(IPC.SECURITY_LIST_ZONES) as Promise<ZoneSummary[]>,
+  },
+  trust: {
+    getHistory: (args: { agentId: string }) =>
+      ipcRenderer.invoke(IPC.TRUST_GET_HISTORY, args) as Promise<TrustEvent[]>,
+    approvePromotion: (args: { inboxItemId: string }) =>
+      ipcRenderer.invoke(IPC.TRUST_APPROVE_PROMOTION, args) as Promise<{ ok: true }>,
   },
   remote: {
     testConnection: () =>

@@ -136,6 +136,8 @@ export const IPC = {
   TELOS_SAVE: "telos:save",
   TELOS_SYNTHESIZE: "telos:synthesize",
   SECURITY_LIST_ZONES: "security:list-zones",
+  TRUST_GET_HISTORY: "trust:get-history",
+  TRUST_APPROVE_PROMOTION: "trust:approve-promotion",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

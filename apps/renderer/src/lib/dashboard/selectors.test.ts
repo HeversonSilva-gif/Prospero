@@ -32,6 +32,7 @@ const agent = (over: Partial<Agent> = {}): Agent => ({
   budgetPeriod: "daily",
   canHire: true,
   canAssign: true,
+  trustTier: "novato",
   ...over,
 });
 

@@ -27,6 +27,7 @@ const mkAgent = (id: string, reportsTo: string | null): Agent => ({
   budgetPeriod: "daily",
   canHire: true,
   canAssign: true,
+  trustTier: "novato",
 });
 
 describe("layoutTree", () => {
