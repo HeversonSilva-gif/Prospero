@@ -809,7 +809,6 @@
       "suggestion": "Suggestions",
       "error": "Errors",
       "security_alert": "Security",
-      "security_zone_blocked": "Zone blocks",
       "goal_proposed": "Proposed plans",
       "goal_executing": "Executing",
       "goal_error": "Goal failures"
@@ -827,9 +826,6 @@
     },
     "verificationReview": {
       "open": "Review goal"
-    },
-    "zoneBlocked": {
-      "description": "An agent tried to read across a privacy zone."
     }
   },
   "approval": {
@@ -923,25 +919,12 @@
     "criteriaTitle": "Criteria (ISCs)",
     "criteriaHint": "Verifiable criteria. Verification is not yet active — all show as pending.",
     "noCriteria": "No criteria yet.",
-    "noCriteriaHint": "No criteria yet. Add one below to verify this goal.",
     "criterionPlaceholder": "What must be true?",
     "addCriterion": "Add",
     "removeCriterion": "Remove criterion",
     "kind": {
       "deterministic": "Deterministic",
       "judgment": "Judgment"
-    },
-    "status": {
-      "pending": "Pending",
-      "passed": "Passed",
-      "failed": "Failed",
-      "waived": "Waived"
-    },
-    "group": {
-      "failed": "Needs attention",
-      "pending": "Pending",
-      "passed": "Verified",
-      "waived": "Waived"
     },
     "judgePass": "Pass",
     "judgeFail": "Fail"

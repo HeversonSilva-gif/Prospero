@@ -4,8 +4,6 @@ import type { Agent } from "@prospero/shared";
 import { matchesBlockedBash, matchesBlockedPath } from "./blocklist.js";
 import { zoneOf, canAccess, type ZoneId } from "./zones.js";
 import { tryGetRecorder } from "../activity/index.js";
-import { tryGetInbox } from "../inbox/index.js";
-import { broadcastInboxUpdate } from "../ipc/inbox-handlers.js";
 
 export type GateInput = {
   toolName: string;
@@ -122,36 +120,6 @@ const auditZoneBlocked = (agent: Agent, absPath: string, zone: ZoneId, reason: s
     // Defensive: an audit-record failure must never break the gate's deny
     // path. Log and continue — the deny still applies.
     console.warn("[gate] failed to record security.zone_blocked", err);
-  }
-
-  // M13 PR-F: also surface the deny as an informational inbox card so the
-  // operator can notice without digging through the activity stream. De-dup
-  // within a 5-minute window to keep agent loops from spamming the inbox.
-  try {
-    const inbox = tryGetInbox();
-    if (inbox === undefined) return;
-    const recent = inbox.findRecentUnread({
-      companyId: agent.companyId,
-      agentId: agent.id,
-      kind: "security_zone_blocked",
-      withinMs: 5 * 60 * 1000,
-    });
-    if (recent !== null) return; // de-dup
-    inbox.create({
-      companyId: agent.companyId,
-      kind: "security_zone_blocked",
-      actorId: agent.id,
-      title: `Zone block: ${reason}`,
-      preview: absPath.slice(-120),
-      requiresAction: false,
-      payloadJson: JSON.stringify({ attemptedPath: absPath, zoneKind: zone.kind, reason }),
-    });
-    // Notify renderer so the inbox badge updates immediately. BrowserWindow is
-    // undefined when this runs outside an Electron host (unit tests) — the
-    // throw is swallowed by the surrounding try/catch.
-    broadcastInboxUpdate(agent.companyId);
-  } catch (err) {
-    console.warn("[gate] failed to create zone_blocked inbox card", err);
   }
 };
 

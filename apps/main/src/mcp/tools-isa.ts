@@ -104,12 +104,7 @@ const criterionJudge: Tool = {
       throw new Error(`criterion ${criterion_id} is not a judgment criterion`);
     }
     criteriaRepo.setJudgment(criterion_id, verdict, ctx.agentId);
-    // M13 PR-F: ping the renderer (mirrors the B1 verifier broadcast) so the
-    // goal page refreshes when this judgment closes the gate. `notify` is
-    // internally guarded against broadcast failures (see verification/deps.ts);
-    // gate errors must propagate so the agent sees the failure.
-    const notify = buildVerificationDeps().notify;
-    reevaluateGoalFromState(ctx.db, criterion.goalId, notify !== undefined ? { notify } : {});
+    reevaluateGoalFromState(ctx.db, criterion.goalId);
     return JSON.stringify({ criterionId: criterion_id, verdict });
   },
 };

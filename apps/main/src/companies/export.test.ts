@@ -110,25 +110,4 @@ describe("exportCompany", () => {
     const out = exportCompany(db, co.id);
     expect(out.artifacts).toBeUndefined();
   });
-
-  it("treats empty files on disk as absent artifacts (round-trips with import)", () => {
-    const db = setupDb();
-    const co = createCompaniesRepository(db).create({ name: "EmptyFiles" });
-    const goal = createGoalsRepository(db).create({ companyId: co.id, title: "G1" });
-    const userDataDir = mkdtempSync(join(tmpdir(), "export-empty-"));
-    try {
-      const telosFile = companyTelosPath(userDataDir, co.id);
-      mkdirSync(dirname(telosFile), { recursive: true });
-      writeFileSync(telosFile, "", "utf8");
-
-      const isaFile = goalIsaPath(userDataDir, co.id, goal.id);
-      mkdirSync(dirname(isaFile), { recursive: true });
-      writeFileSync(isaFile, "", "utf8");
-
-      const out = exportCompany(db, co.id, userDataDir);
-      expect(out.artifacts).toBeUndefined();
-    } finally {
-      rmSync(userDataDir, { recursive: true, force: true });
-    }
-  });
 });

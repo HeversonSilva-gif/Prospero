@@ -1,20 +1,8 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import Database from "better-sqlite3";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
-// Capture the notify spy that the tool resolves via buildVerificationDeps.
-// Mock is hoisted by vitest before the tools-isa import below runs.
-const notifySpy = vi.fn<(companyId: string) => void>();
-vi.mock("../verification/deps.js", () => ({
-  buildVerificationDeps: () => ({
-    sandboxRootFor: () => process.cwd(),
-    callMetricTool: () => Promise.reject(new Error("not used")),
-    notify: notifySpy,
-  }),
-}));
-
 import { applyMigrations } from "../db/migrations.js";
 import { isaToolDefinitions } from "./tools-isa.js";
 import type { ToolContext } from "./tools.js";
@@ -28,7 +16,6 @@ import { writeTelos } from "../companies/telos-store.js";
 const tmps: string[] = [];
 afterEach(() => {
   for (const d of tmps.splice(0)) rmSync(d, { recursive: true, force: true });
-  notifySpy.mockClear();
 });
 
 const setup = (): { ctx: ToolContext; goalId: string } => {
@@ -212,21 +199,6 @@ describe("criterion_judge tool", () => {
     expect(fetched?.status).toBe("passed");
     expect(fetched?.verifiedBy).toBe("agent_1");
     expect(createGoalsRepository(ctx.db).getById(goalId)?.status).toBe("achieved");
-  });
-
-  it("broadcasts an inbox update so the renderer refreshes after the goal closes", async () => {
-    // Mirrors the B1 verifier broadcast (RunVerificationDeps.notify), which the
-    // renderer subscribes to via onInboxUpdate. Without this, /goals/:id does
-    // not refresh when criterion_judge flips the goal to `achieved`.
-    const { ctx, goalId } = setup();
-    toVerifying(ctx, goalId);
-    const crit = createGoalCriteriaRepository(ctx.db).create({
-      goalId,
-      statement: "on brand",
-      kind: "judgment",
-    });
-    await criterionJudge.run({ criterion_id: crit.id, verdict: "passed" }, ctx);
-    expect(notifySpy).toHaveBeenCalledWith(ctx.companyId);
   });
 
   it("rejects a deterministic criterion", async () => {

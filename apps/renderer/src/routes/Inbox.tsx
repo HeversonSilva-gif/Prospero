@@ -51,7 +51,6 @@ const KIND_BORDER: Record<InboxKind, string> = {
   budget_warning: "border-l-4 border-l-semantic-warning",
   verification_failed: "border-l-4 border-l-semantic-danger",
   verification_review: "border-l-4 border-l-semantic-warning",
-  security_zone_blocked: "border-l-4 border-l-semantic-danger bg-semantic-danger/5",
 };
 
 type FilterKey = "all" | InboxKind;
@@ -63,7 +62,6 @@ const FILTERS: FilterKey[] = [
   "suggestion",
   "error",
   "security_alert",
-  "security_zone_blocked",
   "goal_proposed",
   "goal_executing",
   "goal_error",
@@ -251,9 +249,6 @@ export const Inbox: FC = () => {
                     </Link>
                   );
                 })()}
-              {item.kind === "security_zone_blocked" && (
-                <p className="text-xs text-ink-muted mt-2">{t("inbox.zoneBlocked.description")}</p>
-              )}
               {item.readAt === null && item.requiresAction === false && (
                 <button
                   onClick={() => void markRead(item.id)}

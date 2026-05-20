@@ -19,7 +19,6 @@ import { runDerivation, defaultRunProcess } from "../derivation/runner.js";
 import type { RunDerivationResult } from "../derivation/runner.js";
 import { buildAuthEnv } from "../derivation/index.js";
 import { reevaluateGoalFromState } from "../verification/index.js";
-import { buildVerificationDeps } from "../verification/deps.js";
 import { readTelos } from "../companies/telos-store.js";
 
 export type IsaHandlersDeps = {
@@ -106,10 +105,7 @@ export const isaHandlers = (deps: IsaHandlersDeps): IsaHandlers => {
         throw new Error(`criterion ${criterionId} is not a judgment criterion`);
       }
       criteriaRepo.setJudgment(criterionId, verdict, null);
-      // M13 PR-F: mirror the MCP tool — broadcast inbox change so a second
-      // window's /goals/:id refreshes after the user closes the gate.
-      const notify = buildVerificationDeps().notify;
-      reevaluateGoalFromState(deps.db, criterion.goalId, notify !== undefined ? { notify } : {});
+      reevaluateGoalFromState(deps.db, criterion.goalId);
     },
   };
 };

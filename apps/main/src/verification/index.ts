@@ -85,13 +85,7 @@ export const applyVerificationReport = (
 // Re-evaluates a `verifying` goal from the criteria's already-persisted
 // statuses (no checks are re-run) and applies the gate. Used after a user
 // resolves a judgment criterion. Does not re-file the review inbox card.
-// `notify` mirrors RunVerificationDeps.notify (M13 PR-F): when this path
-// closes the goal (e.g. criterion_judge), pings the renderer to refresh.
-export const reevaluateGoalFromState = (
-  db: Database.Database,
-  goalId: string,
-  opts: { notify?: (companyId: string) => void } = {},
-): void => {
+export const reevaluateGoalFromState = (db: Database.Database, goalId: string): void => {
   const goal = createGoalsRepository(db).getById(goalId);
   if (goal === null || goal.status !== "verifying") return;
   const criteria = createGoalCriteriaRepository(db).listByGoal(goalId);
@@ -108,7 +102,6 @@ export const reevaluateGoalFromState = (
     { goalId, allPassed, results, pendingJudgment },
     { fileReviewCard: false },
   );
-  opts.notify?.(goal.companyId);
 };
 
 // Runs the engine for one goal and applies the gate. Fire-and-forget safe.
