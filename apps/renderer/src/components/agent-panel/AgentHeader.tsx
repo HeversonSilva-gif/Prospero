@@ -4,6 +4,7 @@ import type { Agent, AgentStatus, Skill } from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 import { OverflowMenu } from "./OverflowMenu.js";
 import { TerminateConfirmModal } from "./TerminateConfirmModal.js";
+import { TrustTierBadge } from "../trust/TrustTierBadge.js";
 
 const STATUS_DOT: Record<AgentStatus, string> = {
   idle: "bg-ink-soft",
@@ -57,6 +58,7 @@ export const AgentHeader: FC<Props> = ({
       <span className="text-[10px] px-1.5 py-0.5 bg-surface-soft rounded text-ink-muted">
         {agent.role}
       </span>
+      <TrustTierBadge tier={agent.trustTier} />
       <button
         type="button"
         onClick={onOpenLearning}
