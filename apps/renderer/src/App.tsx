@@ -1,14 +1,11 @@
 import { useEffect, lazy, Suspense } from "react";
-import { HashRouter, Routes, Route, Navigate, NavLink } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import type { AgentStatus } from "@prospero/shared";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useSettingsStore } from "./stores/settings.js";
 import { useAuthStore } from "./stores/auth.js";
 import { useAgentsStore } from "./stores/agents.js";
 import { useMessagesStore } from "./stores/messages.js";
 import { useInboxStore } from "./stores/inbox.js";
 import { useCompaniesStore } from "./stores/companies.js";
-import { CompanySwitcher } from "./components/CompanySwitcher.js";
 import { Dashboard } from "./routes/Dashboard.js";
 import { Settings } from "./routes/Settings.js";
 import { SetupWizard } from "./routes/SetupWizard.js";
@@ -22,11 +19,11 @@ import { useIssuesStore } from "./stores/issues.js";
 import { Roles } from "./routes/Roles.js";
 import { Telos } from "./routes/Telos.js";
 import { Briefing } from "./routes/Briefing.js";
+import { Sidebar } from "./components/layout/Sidebar.js";
 import { Routines } from "./routes/Routines.js";
 import { RoutineForm } from "./routes/RoutineForm.js";
 import { Org } from "./routes/Org.js";
 import { AgentNew } from "./routes/AgentNew.js";
-import { SidebarFooter } from "./components/SidebarFooter.js";
 import { TitleBar } from "./components/TitleBar.js";
 import { AuthErrorBanner } from "./components/banners/AuthErrorBanner.js";
 import { OAuthExpiryBanner } from "./components/banners/OAuthExpiryBanner.js";
@@ -38,194 +35,6 @@ const Goals = lazy(() => import("./routes/Goals.js"));
 const GoalNew = lazy(() => import("./routes/GoalNew.js"));
 const GoalDetail = lazy(() => import("./routes/GoalDetail.js"));
 const Agents = lazy(() => import("./routes/Agents.js").then((m) => ({ default: m.Agents })));
-
-const STATUS_COLOR: Record<AgentStatus, string> = {
-  idle: "bg-ink-soft",
-  thinking: "bg-brand",
-  working: "bg-semantic-success",
-  waiting: "bg-semantic-warning",
-  error: "bg-semantic-danger",
-  paused: "bg-semantic-warning",
-  terminated: "bg-ink-soft",
-};
-
-const Sidebar = () => {
-  const { t } = useTranslation();
-  const agents = useAgentsStore((s) => s.agents);
-  const inboxUnread = useInboxStore((s) => s.unread);
-  return (
-    <aside className="w-56 bg-surface border-r border-surface-border flex flex-col p-3">
-      <h1 className="px-2 mb-4 text-sm font-bold text-brand-dark">{t("app.title")}</h1>
-      <div className="px-2 mb-3">
-        <CompanySwitcher />
-      </div>
-      <nav className="flex flex-col gap-1 text-sm text-ink-muted">
-        <NavLink
-          to="/briefing"
-          className={({ isActive }) =>
-            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          {t("nav.briefing")}
-        </NavLink>
-        <NavLink
-          to="/routines"
-          className={({ isActive }) =>
-            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          {t("nav.routines")}
-        </NavLink>
-        <NavLink
-          to="/dashboard"
-          className={({ isActive }) =>
-            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          {t("nav.dashboard")}
-        </NavLink>
-        <NavLink
-          to="/inbox"
-          className={({ isActive }) =>
-            `px-2 py-1 rounded flex items-center justify-between ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          <span>{t("nav.inbox")}</span>
-          {inboxUnread > 0 && (
-            <span className="text-[10px] font-bold bg-semantic-danger text-white rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
-              {inboxUnread}
-            </span>
-          )}
-        </NavLink>
-        <NavLink
-          to="/projects"
-          className={({ isActive }) =>
-            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          {t("nav.projects")}
-        </NavLink>
-        <NavLink
-          to="/issues"
-          className={({ isActive }) =>
-            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          {t("nav.issues")}
-        </NavLink>
-        <NavLink
-          to="/agents"
-          end
-          className={({ isActive }) =>
-            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          {t("nav.agents")}
-        </NavLink>
-        <NavLink
-          to="/goals"
-          className={({ isActive }) =>
-            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          {t("nav.goals")}
-        </NavLink>
-        <NavLink
-          to="/org"
-          className={({ isActive }) =>
-            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          {t("nav.orgChart")}
-        </NavLink>
-        <NavLink
-          to="/roles"
-          className={({ isActive }) =>
-            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          {t("nav.roles")}
-        </NavLink>
-        <NavLink
-          to="/telos"
-          className={({ isActive }) =>
-            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          {t("nav.telos")}
-        </NavLink>
-        <NavLink
-          to="/costs"
-          className={({ isActive }) =>
-            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          {t("nav.costs")}
-        </NavLink>
-        <NavLink
-          to="/activity"
-          className={({ isActive }) =>
-            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          {t("nav.activity")}
-        </NavLink>
-        <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-          }
-        >
-          {t("nav.settings")}
-        </NavLink>
-      </nav>
-      <div className="flex justify-between items-center mt-4 mb-2 px-2">
-        <div className="text-[10px] uppercase tracking-wide text-ink-soft font-semibold">
-          {t("nav.agents")}
-        </div>
-        <NavLink
-          to="/agents/new"
-          className="text-[10px] text-brand hover:underline font-normal normal-case"
-        >
-          + {t("agent.new.shortLabel")}
-        </NavLink>
-      </div>
-      {agents.length > 0 && (
-        <nav className="flex flex-col gap-1 text-sm text-ink-muted">
-          {agents.map((a) => {
-            const showAction =
-              (a.status === "working" || a.status === "thinking") &&
-              a.currentAction !== null &&
-              a.currentAction !== "";
-            return (
-              <NavLink
-                key={a.id}
-                to={`/agents/${a.id}`}
-                className={({ isActive }) =>
-                  `px-2 py-1 rounded flex flex-col gap-0.5 ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
-                }
-              >
-                <span className="flex items-center gap-2">
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${STATUS_COLOR[a.status]}`}
-                    title={a.status}
-                  />
-                  <span className="truncate">{a.name}</span>
-                </span>
-                {showAction && (
-                  <span className="pl-3.5 text-[10px] italic text-ink-soft truncate">
-                    {a.currentAction}
-                  </span>
-                )}
-              </NavLink>
-            );
-          })}
-        </nav>
-      )}
-      <SidebarFooter />
-    </aside>
-  );
-};
 
 const Shell = ({ children }: { children: React.ReactNode }) => (
   <div className="flex flex-col h-screen overflow-hidden bg-surface">
