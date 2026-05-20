@@ -141,6 +141,11 @@ export const IPC = {
   TRUST_GET_EVALUATION: "trust:get-evaluation",
   BRIEFING_GET: "briefing:get",
   BRIEFING_MARK_REVIEWED: "briefing:mark-reviewed",
+  ROUTINES_LIST: "routines:list",
+  ROUTINES_CREATE: "routines:create",
+  ROUTINES_UPDATE: "routines:update",
+  ROUTINES_DELETE: "routines:delete",
+  ROUTINES_RUN_NOW: "routines:run-now",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
