@@ -28,10 +28,16 @@ export const computeNextFire = (spec: ScheduleSpec, after: Date): Date => {
     return addDays(candidate, dowDelta);
   }
 
-  // monthly
-  const candidate = withLocalDayAndTime(after, spec.day, spec.atMinute);
-  if (candidate.getTime() > after.getTime()) return candidate;
-  return addMonths(candidate, 1);
+  if (spec.freq === "monthly") {
+    const candidate = withLocalDayAndTime(after, spec.day, spec.atMinute);
+    if (candidate.getTime() > after.getTime()) return candidate;
+    return addMonths(candidate, 1);
+  }
+
+  // Exhaustiveness — if a new ScheduleSpec variant is added later,
+  // TypeScript will fail compilation here.
+  const _exhaustive: never = spec;
+  return _exhaustive;
 };
 
 const withLocalTimeOfDay = (anchor: Date, atMinute: number): Date => {
