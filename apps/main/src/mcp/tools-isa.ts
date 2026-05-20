@@ -105,14 +105,11 @@ const criterionJudge: Tool = {
     }
     criteriaRepo.setJudgment(criterion_id, verdict, ctx.agentId);
     // M13 PR-F: ping the renderer (mirrors the B1 verifier broadcast) so the
-    // goal page refreshes when this judgment closes the gate. Guarded — a
-    // failed broadcast must not abort the verdict the agent just recorded.
-    try {
-      const notify = buildVerificationDeps().notify;
-      reevaluateGoalFromState(ctx.db, criterion.goalId, notify !== undefined ? { notify } : {});
-    } catch (err) {
-      console.warn("[criterion_judge] reevaluateGoalFromState failed", err);
-    }
+    // goal page refreshes when this judgment closes the gate. `notify` is
+    // internally guarded against broadcast failures (see verification/deps.ts);
+    // gate errors must propagate so the agent sees the failure.
+    const notify = buildVerificationDeps().notify;
+    reevaluateGoalFromState(ctx.db, criterion.goalId, notify !== undefined ? { notify } : {});
     return JSON.stringify({ criterionId: criterion_id, verdict });
   },
 };
