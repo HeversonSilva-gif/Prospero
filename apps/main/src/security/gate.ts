@@ -2,6 +2,8 @@ import { resolve, isAbsolute } from "node:path";
 import { homedir } from "node:os";
 import type { Agent } from "@prospero/shared";
 import { matchesBlockedBash, matchesBlockedPath } from "./blocklist.js";
+import { zoneOf, canAccess, type ZoneId } from "./zones.js";
+import { tryGetRecorder } from "../activity/index.js";
 
 export type GateInput = {
   toolName: string;
@@ -83,8 +85,46 @@ const isInsideAnyAllowed = (path: string, allowed: string[], cwd: string): boole
 const asObject = (v: unknown): Record<string, unknown> =>
   v !== null && typeof v === "object" ? (v as Record<string, unknown>) : {};
 
+// M13 PR-E containment zones: derive a short reason string from the zone +
+// actor combination, audit the deny via the activity stream, and return a
+// deny decision. Called from inside the FS-tool branch right after the
+// path-fence accepted the path.
+const buildZoneReason = (
+  zone: ZoneId,
+  actor: { companyId: string; id: string },
+): "cross-company" | "cross-agent" | "system" | "denied" => {
+  if (zone.kind === "company" && zone.companyId !== actor.companyId) return "cross-company";
+  if (zone.kind === "agent" && (zone.companyId !== actor.companyId || zone.agentId !== actor.id)) {
+    return "cross-agent";
+  }
+  if (zone.kind === "system") return "system";
+  return "denied";
+};
+
+const auditZoneBlocked = (agent: Agent, absPath: string, zone: ZoneId, reason: string): void => {
+  try {
+    tryGetRecorder()?.recordActivity({
+      companyId: agent.companyId,
+      actor: { kind: "agent", id: agent.id },
+      action: "security.zone_blocked",
+      entityKind: "agent",
+      entityId: agent.id,
+      agentId: agent.id,
+      payload: {
+        attemptedPath: absPath,
+        zoneKind: zone.kind,
+        reason,
+      },
+    });
+  } catch (err) {
+    // Defensive: an audit-record failure must never break the gate's deny
+    // path. Log and continue — the deny still applies.
+    console.warn("[gate] failed to record security.zone_blocked", err);
+  }
+};
+
 export const evaluatePermission = (input: GateInput): GateDecision => {
-  const { toolName, toolInput, agent, allowedProjectPaths, agentCwd } = input;
+  const { toolName, toolInput, agent, allowedProjectPaths, agentCwd, userDataDir } = input;
   const ti = asObject(toolInput);
 
   if (toolName === "Bash") {
@@ -118,6 +158,17 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
       const abs = resolve(agentCwd, expanded);
       if (!isInsideAnyAllowed(abs, allowedProjectPaths, agentCwd)) {
         return { action: "deny", reason: "path outside allowed projects" };
+      }
+      // M13 PR-E containment zones. Defense-in-depth: the path-fence already
+      // accepted this path, but if it falls inside a known zone the actor
+      // cannot access (a different company / a different agent / system),
+      // deny + audit. Unknown zones (zoneOf returns null) defer to the
+      // path-fence — no opinion.
+      const zone = zoneOf(abs, userDataDir);
+      if (zone !== null && !canAccess(agent, zone)) {
+        const reason = buildZoneReason(zone, agent);
+        auditZoneBlocked(agent, abs, zone, reason);
+        return { action: "deny", reason: `zone_blocked: ${reason}` };
       }
     }
   }
