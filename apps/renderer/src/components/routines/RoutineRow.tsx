@@ -1,12 +1,11 @@
-import { useState, type FC, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type FC, type MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { Routine } from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 import {
   formatScheduleSummary,
   formatEventSummary,
-  formatAtMinute,
-  type TFunction,
+  formatRelative,
 } from "../../lib/routines/format-summary.js";
 
 type Props = {
@@ -16,24 +15,8 @@ type Props = {
   onClick: () => void;
 };
 
-const formatRelative = (ts: number | null, neverLabel: string): string => {
-  if (ts === null) return neverLabel;
-  // For v1, plain HH:MM if today, else short date.
-  const d = new Date(ts);
-  const now = new Date();
-  if (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  ) {
-    return formatAtMinute(d.getHours() * 60 + d.getMinutes());
-  }
-  return d.toLocaleDateString();
-};
-
 export const RoutineRow: FC<Props> = ({ routine, onToggle, onRun, onClick }) => {
-  const { t: tRaw } = useTranslation();
-  const t = tRaw as unknown as TFunction;
+  const { t } = useTranslation();
   const [runStatus, setRunStatus] = useState<"idle" | "fired" | "error">("idle");
   const agent = useAgentsStore((s) => s.agents.find((a) => a.id === routine.targetAgentId));
 
@@ -49,16 +32,29 @@ export const RoutineRow: FC<Props> = ({ routine, onToggle, onRun, onClick }) => 
     void onToggle();
   };
 
+  const runStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (runStatusTimerRef.current !== null) {
+        clearTimeout(runStatusTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleRun = (e: MouseEvent): void => {
     e.stopPropagation();
     void (async () => {
+      if (runStatusTimerRef.current !== null) {
+        clearTimeout(runStatusTimerRef.current);
+      }
       try {
         await onRun();
         setRunStatus("fired");
       } catch {
         setRunStatus("error");
       }
-      setTimeout(() => setRunStatus("idle"), 2000);
+      runStatusTimerRef.current = setTimeout(() => setRunStatus("idle"), 2000);
     })();
   };
 
