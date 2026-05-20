@@ -53,6 +53,7 @@ import type {
   TrustEvent,
   TierEvaluation,
   Briefing,
+  Routine,
 } from "@prospero/shared";
 
 declare global {
@@ -349,6 +350,13 @@ declare global {
       briefing: {
         get: (args: { companyId: string }) => Promise<Briefing>;
         markReviewed: (args: { companyId: string }) => Promise<void>;
+      };
+      routines: {
+        list: (args: { companyId: string }) => Promise<Routine[]>;
+        create: (args: { input: unknown }) => Promise<Routine>;
+        update: (args: { input: unknown }) => Promise<Routine>;
+        delete: (args: { id: string }) => Promise<{ ok: true }>;
+        runNow: (args: { id: string }) => Promise<{ ok: true }>;
       };
       remote: {
         testConnection: () => Promise<{ ok: boolean; message: string }>;
