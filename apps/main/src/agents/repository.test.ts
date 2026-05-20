@@ -1,9 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import Database from "better-sqlite3";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createAgentsRepository, type CreateAgentInput } from "./repository.js";
+
+const sendSpy = vi.fn();
+vi.mock("electron", () => ({
+  BrowserWindow: {
+    getAllWindows: () => [{ webContents: { send: sendSpy } }],
+  },
+}));
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -258,5 +265,21 @@ describe("trust tier (M14 PR-A)", () => {
     expect(repo.getById(a.id)?.trustTier).toBe("confiavel");
     repo.setTrustTier(a.id, "autonomo");
     expect(repo.getById(a.id)?.trustTier).toBe("autonomo");
+  });
+
+  it("setTrustTier broadcasts AGENT_EVENT with trust-tier-changed (M14 PR-D)", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a = repo.create(baseInput());
+    sendSpy.mockClear();
+    repo.setTrustTier(a.id, "confiavel");
+    expect(sendSpy).toHaveBeenCalledWith(
+      "agent:event",
+      expect.objectContaining({
+        kind: "trust-tier-changed",
+        agentId: a.id,
+        tier: "confiavel",
+      }),
+    );
   });
 });

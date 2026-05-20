@@ -1,4 +1,5 @@
 import type { AgentStatus } from "./agent.js";
+import type { TrustTier } from "./trust.js";
 
 export type ToolCallStatus = "pending" | "success" | "error";
 
@@ -49,4 +50,5 @@ export type AgentEvent =
   | { kind: "error"; agentId: string; message: string }
   | { kind: "roster-changed"; companyId: string }
   | { kind: "costs-new"; agentId: string; deltaTokens: number; deltaCents: number }
-  | { kind: "rate-limited"; agentId: string; retryAfterSec: number | null; message: string };
+  | { kind: "rate-limited"; agentId: string; retryAfterSec: number | null; message: string }
+  | { kind: "trust-tier-changed"; agentId: string; tier: TrustTier };

@@ -244,6 +244,7 @@ export const App = () => {
   const applyAgentStatus = useAgentsStore((s) => s.applyAgentStatus);
   const applyCurrentAction = useAgentsStore((s) => s.applyCurrentAction);
   const applySessionId = useAgentsStore((s) => s.applySessionId);
+  const applyTrustTier = useAgentsStore((s) => s.applyTrustTier);
   const appendMessage = useMessagesStore((s) => s.append);
   const patchToolCall = useMessagesStore((s) => s.patchToolCallResult);
   const loadInbox = useInboxStore((s) => s.load);
@@ -319,6 +320,7 @@ export const App = () => {
     applyAgentStatus,
     applyCurrentAction,
     applySessionId,
+    applyTrustTier,
     loadAgents,
   ]);
 

@@ -62,4 +62,21 @@ describe("useAgentsStore delta handlers", () => {
     const a = useAgentsStore.getState().agents[0]!;
     expect(a.status).toBe("idle");
   });
+
+  it("applyTrustTier updates trustTier without touching other fields", () => {
+    useAgentsStore.setState({
+      agents: [sampleAgent({ status: "working", currentAction: "Reading a.ts" })],
+    });
+    useAgentsStore.getState().applyTrustTier("agent_1", "confiavel");
+    const a = useAgentsStore.getState().agents[0]!;
+    expect(a.trustTier).toBe("confiavel");
+    expect(a.status).toBe("working");
+    expect(a.currentAction).toBe("Reading a.ts");
+  });
+
+  it("applyTrustTier is a no-op for an unknown agentId", () => {
+    useAgentsStore.getState().applyTrustTier("agent_unknown", "autonomo");
+    const a = useAgentsStore.getState().agents[0]!;
+    expect(a.trustTier).toBe("novato");
+  });
 });

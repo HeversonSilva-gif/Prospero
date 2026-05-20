@@ -10,6 +10,7 @@ import {
   type TrustTier,
 } from "@prospero/shared";
 import type { Recorder } from "../activity/recorder.js";
+import { broadcastAgentEvent } from "../ipc/agent-event-broadcast.js";
 
 type Row = {
   id: string;
@@ -340,6 +341,13 @@ export const createAgentsRepository = (
         Date.now(),
         id,
       );
+      // M14 PR-D: broadcast so renderer badges update live. Defensive try/catch
+      // — a broadcast failure must never break the tier write.
+      try {
+        broadcastAgentEvent({ kind: "trust-tier-changed", agentId: id, tier });
+      } catch (err) {
+        console.warn("[trust] broadcastAgentEvent failed", err);
+      }
     },
     setAlwaysOn(id, alwaysOn) {
       const row = byId.get(id) as Row | undefined;

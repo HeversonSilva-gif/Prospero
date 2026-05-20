@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Agent, AgentStats, AgentStatus } from "@prospero/shared";
+import type { Agent, AgentStats, AgentStatus, TrustTier } from "@prospero/shared";
 
 type State = {
   agents: Agent[];
@@ -8,6 +8,7 @@ type State = {
   applyAgentStatus: (agentId: string, status: AgentStatus) => void;
   applyCurrentAction: (agentId: string, action: string | null) => void;
   applySessionId: (agentId: string, sessionId: string | null) => void;
+  applyTrustTier: (agentId: string, tier: TrustTier) => void;
   setAllowedProjects: (agentId: string, projectIds: string[]) => Promise<void>;
   setModel: (agentId: string, model: string) => Promise<void>;
   setRole: (
@@ -72,6 +73,10 @@ export const useAgentsStore = create<State>((set, get) => ({
   applySessionId: (agentId, sessionId) =>
     set((s) => ({
       agents: s.agents.map((a) => (a.id === agentId ? { ...a, claudeSessionId: sessionId } : a)),
+    })),
+  applyTrustTier: (agentId, tier) =>
+    set((s) => ({
+      agents: s.agents.map((a) => (a.id === agentId ? { ...a, trustTier: tier } : a)),
     })),
   setAllowedProjects: async (agentId, projectIds) => {
     await window.prospero.agents.setAllowedProjects(agentId, projectIds);
