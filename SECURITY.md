@@ -253,6 +253,37 @@ Known gap (tracked for V2):
   records the divergence but respects the user's choice. This is a
   conscious trade — the user retains final control of the run policy.
 
+### Routines (M15)
+
+A *routine* wakes a target agent on a schedule (cron-like, structured)
+or on a fixed activity event. The routine itself is data — the user
+authors the instruction string via the `/routines` UI; no agent
+generates routines.
+
+**Threat model:**
+
+- *Prompt injection via routine instruction* — N/A. Instructions are
+  user-authored.
+- *Agent escapes via routine* — N/A. The agent woken by a routine
+  passes through the gate (`request_permission`) and the trust ladder
+  (M14) exactly as if the user had sent the turn manually. A `novato`
+  agent will still block at the first sensitive tool call.
+- *Routines firing across companies* — Blocked by FK cascade. A
+  routine and its target agent share a `company_id` (PR-A migration
+  `0035`); `ON DELETE CASCADE` on both companies and agents wipes
+  routines automatically.
+- *Routine firing on budget-paused agent* — Blocked by `fireRoutine`
+  skip rule (`budget_paused`). The routine logs a `routine.skipped`
+  activity event and does NOT despause.
+- *Stale schedule* — Mitigated by PR-B fix: `routines:update` re-seeds
+  `nextFireAt` via `computeNextFire` when `scheduleSpec` changes.
+  Without this, an edit "09:00 → 14:00" would still fire at 09:00
+  once before self-correcting.
+
+**Known V2 hardening gap:** routines authored by agents (via a future
+MCP tool) would re-open the prompt-injection vector. Out of scope for
+v1; see `docs/superpowers/specs/2026-05-18-m15-routines-design.md` §14.
+
 ## Morning briefing — read-only triage surface (M14 PR-C)
 
 The Vitrine Matinal is a read-only triage page. The only write surface is
