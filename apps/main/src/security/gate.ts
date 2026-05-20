@@ -4,6 +4,7 @@ import type { Agent } from "@prospero/shared";
 import { matchesBlockedBash, matchesBlockedPath } from "./blocklist.js";
 import { zoneOf, canAccess, type ZoneId } from "./zones.js";
 import { tryGetRecorder } from "../activity/index.js";
+import { isReadOnlyTool } from "../trust/read-only-tools.js";
 import { tryGetInbox } from "../inbox/index.js";
 import { broadcastInboxUpdate } from "../ipc/inbox-handlers.js";
 
@@ -203,6 +204,27 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
         return { action: "deny", reason: `zone_blocked: ${reason}` };
       }
     }
+  }
+
+  // M14 PR-A trust ladder: non-novato agents get auto-approve for read-only
+  // tools. Always-blocked patterns, the path-fence, and the zone check have
+  // already filtered the call by this point, so this can only widen approvals
+  // inside the already-allowed surface — never lift a deny.
+  if (agent.trustTier !== "novato" && isReadOnlyTool(toolName)) {
+    try {
+      tryGetRecorder()?.recordActivity({
+        companyId: agent.companyId,
+        actor: { kind: "agent", id: agent.id },
+        action: "trust.readonly_autoapproved",
+        entityKind: "agent",
+        entityId: agent.id,
+        agentId: agent.id,
+        payload: { toolName },
+      });
+    } catch (err) {
+      console.warn("[gate] failed to record trust.readonly_autoapproved", err);
+    }
+    return { action: "allow", reason: "trust:confiavel-readonly" };
   }
 
   if (agent.mode === "auto") {
