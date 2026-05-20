@@ -795,6 +795,23 @@
       "save": "Salvar e continuar"
     }
   },
+  "inicio": {
+    "greeting": "Olá!",
+    "subline": "Sua empresa trabalhou enquanto você dormia. Aqui está o resumo.",
+    "noCompany": "Selecione uma empresa para ver seu Início.",
+    "loading": "Carregando…",
+    "precisaDeVoce": "Precisa de você",
+    "precisaDeVoceEmpty": "Tudo certo. Nada esperando você no momento.",
+    "precisaDeVoceCount": "{{count}} esperando sua decisão",
+    "verButton": "Ver",
+    "markReviewed": "Marcar como visto",
+    "oQueAconteceu": "O que aconteceu esta noite",
+    "tarefasConcluidas": "tarefas concluídas",
+    "emAndamento": "em andamento",
+    "gastosHoje": "gastos hoje",
+    "suaEquipeAgora": "Sua equipe agora",
+    "suaEquipeAgoraEmpty": "Você ainda não tem funcionários. Contrate alguém em \"Minha equipe\"."
+  },
   "inbox": {
     "title": "Inbox",
     "empty": "Inbox vazia.",
@@ -884,6 +901,14 @@
       "empty": "Nenhum template disponível.",
       "agentsCount": "agente(s)"
     }
+  },
+  "agentStatus": {
+    "working": "trabalhando",
+    "thinking": "pensando",
+    "idle": "parado",
+    "waiting": "esperando você",
+    "paused": "pausado",
+    "error": "com erro"
   },
   "projects": {
     "title": "Projetos",
