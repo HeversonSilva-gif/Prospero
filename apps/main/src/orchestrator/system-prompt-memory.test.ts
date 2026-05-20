@@ -47,6 +47,20 @@ describe("buildMemoryBlock", () => {
     expect(block).toContain("operating-manual");
   });
 
+  it("always includes the algorithm L0 entry, even with no memory or skills", () => {
+    const block = buildMemoryBlock(deps(s)) ?? "";
+    expect(block).toContain("## Your skills");
+    expect(block).toContain("algorithm");
+  });
+
+  it("lists both bundled L0 skills (operating-manual and algorithm) before any user skill", () => {
+    const block = buildMemoryBlock(deps(s)) ?? "";
+    const opIdx = block.indexOf("operating-manual");
+    const algoIdx = block.indexOf("algorithm");
+    expect(opIdx).toBeGreaterThan(-1);
+    expect(algoIdx).toBeGreaterThan(opIdx); // algorithm appears after operating-manual
+  });
+
   it("includes an agent memory entry", () => {
     s.memoriesRepo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "lint first" });
     expect(buildMemoryBlock(deps(s))).toContain("lint first");

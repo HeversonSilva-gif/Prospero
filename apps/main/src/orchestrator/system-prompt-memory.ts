@@ -4,6 +4,7 @@ import type { SkillsRepository } from "../memory/skills-repository.js";
 import type { Memory, Skill } from "@prospero/shared";
 import { getUserMemoryPath } from "../memory/memory-dir.js";
 import { OPERATING_MANUAL_NAME, OPERATING_MANUAL_DESCRIPTION } from "./operating-manual.js";
+import { ALGORITHM_NAME, ALGORITHM_DESCRIPTION } from "./algorithm.js";
 
 // Per-section character caps (spec §6). Total ≈ 7.5 KB additional system prompt.
 const USER_CAP = 1024;
@@ -82,14 +83,18 @@ export const buildMemoryBlock = (deps: BuildMemoryBlockDeps): string | undefined
     ],
     SKILLS_CAP,
   );
-  // The operating manual is a bundled skill every agent always has. It is a
-  // synthetic L0 entry — no DB row — whose body the skill_read fallback serves
-  // on demand (see mcp/tools-memory.ts). Listed first so the budget cannot
-  // crowd it out. The skills section therefore always renders.
+  // The operating manual and the algorithm are bundled skills every agent
+  // always has. Both are synthetic L0 entries — no DB row — whose bodies the
+  // skill_read fallback serves on demand (see mcp/tools-memory.ts). Listed
+  // first so the budget cannot crowd them out. The skills section therefore
+  // always renders.
   const manualLine = `- ${OPERATING_MANUAL_NAME}: ${OPERATING_MANUAL_DESCRIPTION}\n`;
+  const algorithmLine = `- ${ALGORITHM_NAME}: ${ALGORITHM_DESCRIPTION}\n`;
   sections.push(
     `## Your skills\n\nYou have these skills (procedural know-how). Use skill_read to load one:\n\n${(
-      manualLine + dbSkills
+      manualLine +
+      algorithmLine +
+      dbSkills
     ).trimEnd()}`,
   );
 
