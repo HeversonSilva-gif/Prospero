@@ -21,6 +21,7 @@ import { Issues } from "./routes/Issues.js";
 import { useIssuesStore } from "./stores/issues.js";
 import { Roles } from "./routes/Roles.js";
 import { Telos } from "./routes/Telos.js";
+import { Briefing } from "./routes/Briefing.js";
 import { Org } from "./routes/Org.js";
 import { AgentNew } from "./routes/AgentNew.js";
 import { SidebarFooter } from "./components/SidebarFooter.js";
@@ -57,6 +58,14 @@ const Sidebar = () => {
         <CompanySwitcher />
       </div>
       <nav className="flex flex-col gap-1 text-sm text-ink-muted">
+        <NavLink
+          to="/briefing"
+          className={({ isActive }) =>
+            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
+          }
+        >
+          {t("nav.briefing")}
+        </NavLink>
         <NavLink
           to="/dashboard"
           className={({ isActive }) =>
@@ -329,7 +338,19 @@ export const App = () => {
         <Routes>
           <Route
             path="/setup"
-            element={hasToken ? <Navigate to="/dashboard" replace /> : <SetupWizard />}
+            element={hasToken ? <Navigate to="/briefing" replace /> : <SetupWizard />}
+          />
+          <Route
+            path="/briefing"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Briefing />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
           />
           <Route
             path="/dashboard"
@@ -539,7 +560,7 @@ export const App = () => {
               </Layout>
             }
           />
-          <Route path="*" element={<Navigate to={hasToken ? "/dashboard" : "/setup"} replace />} />
+          <Route path="*" element={<Navigate to={hasToken ? "/briefing" : "/setup"} replace />} />
         </Routes>
       </Shell>
     </HashRouter>

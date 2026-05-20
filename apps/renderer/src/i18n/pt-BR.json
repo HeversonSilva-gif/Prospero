@@ -3,6 +3,7 @@
     "title": "Prospero"
   },
   "nav": {
+    "briefing": "Briefing",
     "dashboard": "Dashboard",
     "inbox": "Inbox",
     "settings": "Configurações",
@@ -1215,5 +1216,20 @@
       "approve": "Aprovar promoção",
       "approving": "Aprovando…"
     }
+  },
+  "briefing": {
+    "title": "Vitrine matinal",
+    "loading": "Carregando briefing…",
+    "noCompany": "Selecione uma empresa pra ver o briefing.",
+    "needsYou": "Precisa de você",
+    "needsYouEmpty": "Nada esperando você — manhã tranquila.",
+    "markReviewed": "Marcar como revisado",
+    "verified": "Entregues",
+    "failed": "Falharam",
+    "inProgress": "Em andamento",
+    "learned": "Aprendeu",
+    "othersShow": "Mostrar o resto ({{count}})",
+    "othersHide": "Esconder",
+    "costFooter": "Gasto durante a noite: {{cost}}"
   }
 }
