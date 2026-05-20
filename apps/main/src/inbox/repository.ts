@@ -45,7 +45,7 @@ export type FindRecentUnreadArgs = {
   companyId: string;
   /** actor_id in the row */
   agentId: string;
-  kind: string;
+  kind: InboxKind;
   withinMs: number;
 };
 

@@ -5,6 +5,7 @@ import { matchesBlockedBash, matchesBlockedPath } from "./blocklist.js";
 import { zoneOf, canAccess, type ZoneId } from "./zones.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { tryGetInbox } from "../inbox/index.js";
+import { broadcastInboxUpdate } from "../ipc/inbox-handlers.js";
 
 export type GateInput = {
   toolName: string;
@@ -145,6 +146,10 @@ const auditZoneBlocked = (agent: Agent, absPath: string, zone: ZoneId, reason: s
       requiresAction: false,
       payloadJson: JSON.stringify({ attemptedPath: absPath, zoneKind: zone.kind, reason }),
     });
+    // Notify renderer so the inbox badge updates immediately. BrowserWindow is
+    // undefined when this runs outside an Electron host (unit tests) — the
+    // throw is swallowed by the surrounding try/catch.
+    broadcastInboxUpdate(agent.companyId);
   } catch (err) {
     console.warn("[gate] failed to create zone_blocked inbox card", err);
   }

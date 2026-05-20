@@ -829,7 +829,6 @@
       "open": "Revisar objetivo"
     },
     "zoneBlocked": {
-      "title": "Bloqueio de zona",
       "description": "Um agente tentou ler entre zonas de privacidade."
     }
   },

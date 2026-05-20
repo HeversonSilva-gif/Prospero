@@ -7,6 +7,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import type { Agent } from "@prospero/shared";
+
+// Capture inbox-update broadcasts. broadcastInboxUpdate iterates
+// BrowserWindow.getAllWindows() and calls send(IPC.INBOX_UPDATE, …) on each;
+// expose a single fake window so the test can assert the broadcast fired.
+const sendSpy = vi.fn();
+vi.mock("electron", () => ({
+  ipcMain: { handle: vi.fn() },
+  app: { getPath: (_name: string) => "/tmp/test-userdata" },
+  BrowserWindow: {
+    getAllWindows: () => [{ webContents: { send: sendSpy } }],
+  },
+}));
+
 import { evaluatePermission } from "../src/security/gate.js";
 import { _setRecorderForTest, type Recorder } from "../src/activity/index.js";
 import { _setInboxForTest, createInboxRepository } from "../src/inbox/index.js";
@@ -63,6 +76,7 @@ describe("evaluatePermission §5 containment zones (M13 PR-E)", () => {
     const fixture = setupRecorder();
     recorded = fixture.recorded;
     _setRecorderForTest({ recordActivity: fixture.recordActivity });
+    sendSpy.mockClear();
   });
 
   afterEach(() => {
@@ -227,6 +241,9 @@ describe("evaluatePermission §5 containment zones (M13 PR-E)", () => {
         zoneKind: "company",
         reason: "cross-company",
       });
+
+      // Renderer must be notified so the inbox badge refreshes immediately.
+      expect(sendSpy).toHaveBeenCalledWith("inbox:update", { companyId: "c-mine" });
 
       db.close();
     });

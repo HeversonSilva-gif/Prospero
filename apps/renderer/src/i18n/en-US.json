@@ -829,7 +829,6 @@
       "open": "Review goal"
     },
     "zoneBlocked": {
-      "title": "Zone block",
       "description": "An agent tried to read across a privacy zone."
     }
   },
