@@ -1,4 +1,10 @@
-import type { IssueTrail, RecoveryTrail, GoalTrail, ApprovalTrail } from "./trail.js";
+import type {
+  IssueTrail,
+  RecoveryTrail,
+  GoalTrail,
+  ApprovalTrail,
+  TrailCriterion,
+} from "./trail.js";
 
 // Shared closing instruction for every derivation prompt. The worker's parser
 // (parse-output.ts) understands exactly this contract.
@@ -22,6 +28,27 @@ Do not add commentary before or after the block.`;
 const renderEntries = (entries: Array<{ sender: string; content: string }>): string =>
   entries.length === 0 ? "(none)" : entries.map((e) => `- ${e.sender}: ${e.content}`).join("\n");
 
+const renderCriterionLine = (c: TrailCriterion): string => {
+  const verdict =
+    c.status === "passed" && c.attempts === 1
+      ? "passed first try"
+      : c.status === "passed" && c.attempts > 1
+        ? `passed after ${c.attempts} attempts`
+        : c.status === "failed" && c.attempts > 1
+          ? `still failing after ${c.attempts} attempts`
+          : c.status === "failed"
+            ? "failed"
+            : c.status === "waived"
+              ? "waived"
+              : "not yet checked";
+  return `- [${c.kind}] ${c.statement} — ${verdict}`;
+};
+
+const renderCriteriaSection = (criteria: TrailCriterion[]): string => {
+  if (criteria.length === 0) return "";
+  return `\n\n## Criteria status\n\n${criteria.map(renderCriterionLine).join("\n")}`;
+};
+
 // Prompt for a completed-issue derivation.
 export const buildIssuePrompt = (trail: IssueTrail): string =>
   `You are reviewing a software task that was just completed, to extract a reusable skill.
@@ -32,7 +59,7 @@ ${trail.description}
 
 ## Work log (comments, oldest first)
 
-${renderEntries(trail.comments)}
+${renderEntries(trail.comments)}${renderCriteriaSection(trail.criteria)}
 ${OUTPUT_CONTRACT}`;
 
 // Prompt for an agent-recovery derivation ("how to avoid the error next time").
@@ -79,7 +106,7 @@ ${
   trail.issues.length === 0
     ? "(none)"
     : trail.issues.map((i) => `- [${i.status}] ${i.title}`).join("\n")
-}
+}${renderCriteriaSection(trail.criteria)}
 ${MEMORY_OUTPUT_CONTRACT}`;
 
 // Prompt for an `approval.rejected` preference — what the user does NOT want.
