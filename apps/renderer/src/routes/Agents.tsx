@@ -60,7 +60,7 @@ export const Agents: FC = () => {
                 </div>
                 <div className="text-xs text-ink-muted">{a.role}</div>
                 <div className="mt-1">
-                  <TrustTierBadge tier={a.trustTier} />
+                  <TrustTierBadge tier={a.trustTier} agentId={a.id} />
                 </div>
                 {showAction && (
                   <div className="mt-2 text-[11px] italic text-ink-soft truncate">

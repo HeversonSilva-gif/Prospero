@@ -1199,7 +1199,8 @@
         "novato": "Novice — gate asks about sensitive actions",
         "confiavel": "Trusted — read-only tools auto-approved",
         "autonomo": "Autonomous — running in auto mode"
-      }
+      },
+      "blockedPrefix": "Why not higher: {{reason}}"
     },
     "history": {
       "title": "Trust history",

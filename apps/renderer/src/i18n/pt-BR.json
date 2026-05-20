@@ -1199,7 +1199,8 @@
         "novato": "Novato — o gate pergunta antes de ações sensíveis",
         "confiavel": "Confiável — ferramentas read-only são auto-aprovadas",
         "autonomo": "Autônomo — rodando em modo auto"
-      }
+      },
+      "blockedPrefix": "Por que não sobe: {{reason}}"
     },
     "history": {
       "title": "Histórico de confiança",

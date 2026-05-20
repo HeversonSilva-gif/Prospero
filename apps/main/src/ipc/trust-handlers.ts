@@ -1,10 +1,12 @@
 import { ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type TrustEvent, type TrustTier } from "@prospero/shared";
+import { IPC, type TierEvaluation, type TrustEvent, type TrustTier } from "@prospero/shared";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createTrustEventsRepository } from "../trust/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { broadcastInboxUpdate } from "./inbox-handlers.js";
+import { collectTrackRecord } from "../trust/track-record.js";
+import { evaluateTier } from "../trust/evaluate.js";
 
 // M14 PR-A — IPC bridge for the trust ladder. Two channels:
 //   - trust:get-history(agentId) → TrustEvent[]
@@ -17,6 +19,7 @@ export type TrustHandlersDeps = { db: Database.Database };
 export type TrustHandlers = {
   getHistory(args: { agentId: string }): TrustEvent[];
   approvePromotion(args: { inboxItemId: string }): { ok: true };
+  getEvaluation(args: { agentId: string }): TierEvaluation;
 };
 
 export const trustHandlers = (deps: TrustHandlersDeps): TrustHandlers => {
@@ -87,6 +90,14 @@ export const trustHandlers = (deps: TrustHandlersDeps): TrustHandlers => {
 
       return { ok: true };
     },
+    getEvaluation({ agentId }) {
+      const agent = agentsRepo.getById(agentId);
+      if (agent === null) {
+        return { current: "novato", eligible: "novato", blockedReason: null };
+      }
+      const record = collectTrackRecord(deps.db, agentId);
+      return evaluateTier(record, agent.trustTier);
+    },
   };
 };
 
@@ -95,5 +106,8 @@ export const registerTrustHandlers = (db: Database.Database): void => {
   ipcMain.handle(IPC.TRUST_GET_HISTORY, (_e, args: { agentId: string }) => h.getHistory(args));
   ipcMain.handle(IPC.TRUST_APPROVE_PROMOTION, (_e, args: { inboxItemId: string }) =>
     h.approvePromotion(args),
+  );
+  ipcMain.handle(IPC.TRUST_GET_EVALUATION, (_e, args: { agentId: string }) =>
+    h.getEvaluation(args),
   );
 };

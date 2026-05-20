@@ -58,7 +58,7 @@ export const AgentHeader: FC<Props> = ({
       <span className="text-[10px] px-1.5 py-0.5 bg-surface-soft rounded text-ink-muted">
         {agent.role}
       </span>
-      <TrustTierBadge tier={agent.trustTier} />
+      <TrustTierBadge tier={agent.trustTier} agentId={agent.id} />
       <button
         type="button"
         onClick={onOpenLearning}

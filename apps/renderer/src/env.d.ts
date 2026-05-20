@@ -51,6 +51,7 @@ import type {
   TelosDraft,
   ZoneSummary,
   TrustEvent,
+  TierEvaluation,
   Briefing,
 } from "@prospero/shared";
 
@@ -343,6 +344,7 @@ declare global {
       trust: {
         getHistory: (args: { agentId: string }) => Promise<TrustEvent[]>;
         approvePromotion: (args: { inboxItemId: string }) => Promise<{ ok: true }>;
+        getEvaluation: (args: { agentId: string }) => Promise<TierEvaluation>;
       };
       briefing: {
         get: (args: { companyId: string }) => Promise<Briefing>;

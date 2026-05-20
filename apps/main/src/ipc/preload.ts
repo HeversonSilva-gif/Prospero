@@ -52,6 +52,7 @@ import {
   type TelosDraft,
   type ZoneSummary,
   type TrustEvent,
+  type TierEvaluation,
   type Briefing,
 } from "@prospero/shared";
 
@@ -471,6 +472,8 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.TRUST_GET_HISTORY, args) as Promise<TrustEvent[]>,
     approvePromotion: (args: { inboxItemId: string }) =>
       ipcRenderer.invoke(IPC.TRUST_APPROVE_PROMOTION, args) as Promise<{ ok: true }>,
+    getEvaluation: (args: { agentId: string }) =>
+      ipcRenderer.invoke(IPC.TRUST_GET_EVALUATION, args) as Promise<TierEvaluation>,
   },
   briefing: {
     get: (args: { companyId: string }) =>

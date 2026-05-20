@@ -115,4 +115,21 @@ describe("trustHandlers", () => {
     const { h } = setup();
     expect(() => h.approvePromotion({ inboxItemId: "nope" })).toThrow(/not found/);
   });
+
+  it("getEvaluation returns the current + eligible tier for an existing agent (M14 PR-D)", () => {
+    const { h } = setup();
+    // The setup() helper bumps agent a1 to 'confiavel' manually, but no
+    // verified outcomes are seeded — eligible drops back to 'novato'.
+    const ev = h.getEvaluation({ agentId: "a1" });
+    expect(ev.current).toBe("confiavel");
+    expect(ev.eligible).toBe("novato");
+  });
+
+  it("getEvaluation returns a no-op shape for a missing agent (M14 PR-D)", () => {
+    const { h } = setup();
+    const ev = h.getEvaluation({ agentId: "missing" });
+    expect(ev.current).toBe("novato");
+    expect(ev.eligible).toBe("novato");
+    expect(ev.blockedReason).toBeNull();
+  });
 });
