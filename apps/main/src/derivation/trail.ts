@@ -1,6 +1,14 @@
 import type Database from "better-sqlite3";
+import { createIssuesRepository } from "../issues/repository.js";
 
 export type TrailEntry = { sender: string; content: string };
+
+export type TrailCriterion = {
+  statement: string;
+  kind: "deterministic" | "judgment";
+  status: "pending" | "passed" | "failed" | "waived";
+  attempts: number;
+};
 
 export type IssueTrail = {
   issueId: string;
@@ -8,6 +16,7 @@ export type IssueTrail = {
   title: string;
   description: string;
   comments: TrailEntry[];
+  criteria: TrailCriterion[]; // empty when the issue is not tied to a goal
 };
 
 export type RecoveryTrail = {
@@ -22,6 +31,13 @@ type CommentRow = { sender_kind: string; content: string };
 type AgentRow = { name: string; role: string };
 type MessageRow = { sender_kind: string; content: string };
 
+type CriterionRow = {
+  statement: string;
+  kind: "deterministic" | "judgment";
+  status: "pending" | "passed" | "failed" | "waived";
+  attempts: number;
+};
+
 // Assembles the trail for an `issue.done` derivation: the issue plus its
 // comment thread oldest-first. Returns null if the issue no longer exists.
 export const buildIssueTrail = (db: Database.Database, issueId: string): IssueTrail | null => {
@@ -34,12 +50,26 @@ export const buildIssueTrail = (db: Database.Database, issueId: string): IssueTr
       "SELECT sender_kind, content FROM issue_comments WHERE issue_id = ? ORDER BY created_at ASC",
     )
     .all(issueId) as CommentRow[];
+  const goalId = createIssuesRepository(db).getGoalId(issueId);
+  let criteria: TrailCriterion[] = [];
+  if (goalId !== null) {
+    criteria = db
+      .prepare(
+        `SELECT gc.statement, gc.kind, gc.status, gc.attempts
+         FROM goal_criteria gc
+         JOIN issue_criteria ic ON ic.criterion_id = gc.id
+         WHERE ic.issue_id = ?
+         ORDER BY gc.sort_order`,
+      )
+      .all(issueId) as CriterionRow[];
+  }
   return {
     issueId,
     identifier: issue.identifier ?? issueId,
     title: issue.title,
     description: issue.description ?? "",
     comments: comments.map((c) => ({ sender: c.sender_kind, content: c.content })),
+    criteria,
   };
 };
 

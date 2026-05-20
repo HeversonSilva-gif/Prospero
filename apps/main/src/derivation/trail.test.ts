@@ -7,6 +7,7 @@ import {
   buildGoalTrail,
   buildApprovalTrail,
 } from "./trail.js";
+import type { TrailCriterion } from "./trail.js";
 import {
   buildIssuePrompt,
   buildRecoveryPrompt,
@@ -48,6 +49,47 @@ describe("buildIssueTrail", () => {
 
   it("returns null for an unknown issue", () => {
     expect(buildIssueTrail(seed(), "nope")).toBeNull();
+  });
+
+  it("buildIssueTrail includes the criteria this issue advances, with status and attempts", () => {
+    const db = seed();
+    // goal with 2 criteria
+    db.prepare(
+      `INSERT INTO goals (id, company_id, title, description, level, status, success_criteria, created_at, updated_at)
+       VALUES ('g1','c1','Ship it','desc','task','active','passes',0,0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO goal_criteria (id, goal_id, sort_order, statement, kind, status, attempts, created_at, updated_at)
+       VALUES ('cr1','g1',1,'build passes','deterministic','passed',2,0,0),
+              ('cr2','g1',2,'tests pass','judgment','pending',0,0,0)`,
+    ).run();
+    // issue tied to the goal, advancing both criteria
+    db.prepare(
+      `INSERT INTO issues (id, company_id, title, description, status, priority, goal_id, created_at, updated_at)
+       VALUES ('i1','c1','Fix CI','fix it','done','high','g1',0,0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO issue_criteria (issue_id, criterion_id) VALUES ('i1','cr1'),('i1','cr2')`,
+    ).run();
+    const trail = buildIssueTrail(db, "i1");
+    expect(trail).not.toBeNull();
+    expect(trail!.criteria).toBeDefined();
+    expect(trail!.criteria.length).toBe(2);
+    const cr1 = trail!.criteria.find((c: TrailCriterion) => c.statement === "build passes");
+    expect(cr1).toBeDefined();
+    expect(cr1!.status).toBe("passed");
+    expect(cr1!.attempts).toBe(2);
+  });
+
+  it("buildIssueTrail returns an empty criteria array for an issue with no goal link", () => {
+    const db = seed();
+    db.prepare(
+      `INSERT INTO issues (id, company_id, title, description, status, priority, created_at, updated_at)
+       VALUES ('i2','c1','Standalone issue','no goal','done','low',0,0)`,
+    ).run();
+    const trail = buildIssueTrail(db, "i2");
+    expect(trail).not.toBeNull();
+    expect(trail!.criteria).toEqual([]);
   });
 });
 
@@ -134,6 +176,7 @@ describe("prompts", () => {
       title: "Fix the redis timeout",
       description: "flakes",
       comments: [{ sender: "agent", content: "raised the pool size" }],
+      criteria: [],
     });
     expect(p).toContain("Fix the redis timeout");
     expect(p).toContain("raised the pool size");
