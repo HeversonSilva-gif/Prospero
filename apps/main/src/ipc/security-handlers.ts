@@ -1,7 +1,7 @@
 import { app, ipcMain } from "electron";
 import type Database from "better-sqlite3";
 import { join } from "node:path";
-import { IPC } from "@prospero/shared";
+import { IPC, type ZoneSummary } from "@prospero/shared";
 
 // M13 PR-E containment zones — read-only transparency view for the Settings
 // panel (spec §13 row "Settings → Segurança"). Derives one entry per live
@@ -9,21 +9,7 @@ import { IPC } from "@prospero/shared";
 // apps/main/src/security/zones.ts; this surface is purely informational and
 // safe to expose to the renderer.
 
-export type ZoneSummary =
-  | {
-      kind: "company";
-      companyId: string;
-      companyName: string;
-      samplePath: string;
-    }
-  | {
-      kind: "agent";
-      companyId: string;
-      companyName: string;
-      agentId: string;
-      agentName: string;
-      samplePath: string;
-    };
+export type { ZoneSummary };
 
 export type SecurityHandlersDeps = {
   db: Database.Database;

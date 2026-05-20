@@ -50,6 +50,7 @@ import {
   type UpdateCriterionInput,
   type TelosInterviewAnswers,
   type TelosDraft,
+  type ZoneSummary,
 } from "@prospero/shared";
 
 contextBridge.exposeInMainWorld("prospero", {
@@ -458,6 +459,9 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.TELOS_SAVE, args) as Promise<void>,
     synthesize: (args: { companyId: string; answers: TelosInterviewAnswers }) =>
       ipcRenderer.invoke(IPC.TELOS_SYNTHESIZE, args) as Promise<TelosDraft>,
+  },
+  security: {
+    listZones: () => ipcRenderer.invoke(IPC.SECURITY_LIST_ZONES) as Promise<ZoneSummary[]>,
   },
   remote: {
     testConnection: () =>

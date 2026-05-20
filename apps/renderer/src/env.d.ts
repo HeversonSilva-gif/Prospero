@@ -49,6 +49,7 @@ import type {
   UpdateCriterionInput,
   TelosInterviewAnswers,
   TelosDraft,
+  ZoneSummary,
 } from "@prospero/shared";
 
 declare global {
@@ -332,6 +333,9 @@ declare global {
           companyId: string;
           answers: TelosInterviewAnswers;
         }) => Promise<TelosDraft>;
+      };
+      security: {
+        listZones: () => Promise<ZoneSummary[]>;
       };
       remote: {
         testConnection: () => Promise<{ ok: boolean; message: string }>;

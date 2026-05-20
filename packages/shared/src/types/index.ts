@@ -19,4 +19,5 @@ export * from "./telos.js";
 export * from "./verification.js";
 export * from "./org-plan.js";
 export * from "./memory.js";
+export * from "./security.js";
 export * from "./wire-protocol.js";
