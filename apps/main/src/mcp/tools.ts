@@ -13,6 +13,7 @@ import { createSettingsRepository } from "../settings/repository.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
 import { createArtifactsRepository } from "../artifacts/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
+import { recomputeAgentTrust } from "../trust/engine.js";
 
 export type ToolContext = {
   agentId: string;
@@ -600,6 +601,14 @@ export const toolDefinitions = [
         "user",
         result.behavior === "deny" ? result.message : undefined,
       );
+      // M14 PR-A: a user decision is a track-record signal — recompute the
+      // calling agent's trust ladder. Idempotent + try/catch so a trust
+      // failure can never break the gate flow.
+      try {
+        recomputeAgentTrust(ctx.db, ctx.agentId);
+      } catch (err) {
+        console.warn("[approval] recomputeAgentTrust failed", err);
+      }
       safeUnlink(reqPath);
       // Claude Code's --permission-prompt-tool requires `updatedInput` (a Record) on
       // allow responses. Without it, the response fails Zod validation on claude's

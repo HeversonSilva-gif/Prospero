@@ -10,6 +10,7 @@ import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
+import { recomputeAgentTrust } from "../trust/engine.js";
 import { runGoalVerification } from "./engine.js";
 import { runSandboxedCommand } from "./sandbox.js";
 import type { RunSandboxedCommandInput, SandboxedCommandResult } from "./sandbox.js";
@@ -62,6 +63,7 @@ export const applyVerificationReport = (
       agentId: goal.ownerAgentId ?? null,
       payload: { goalId: goal.id, failedCriteria },
     });
+    recomputeTrustForGoalOwner(db, goal.ownerAgentId);
     return;
   }
 
@@ -80,6 +82,19 @@ export const applyVerificationReport = (
   }
 
   goalsRepo.updateStatus(goal.id, "achieved");
+  recomputeTrustForGoalOwner(db, goal.ownerAgentId);
+};
+
+// M14 PR-A — recompute the goal owner's trust ladder after a verification
+// outcome. Failure path above and the success path both call this. The
+// engine itself is idempotent.
+const recomputeTrustForGoalOwner = (db: Database.Database, ownerAgentId: string | null): void => {
+  if (ownerAgentId === null) return;
+  try {
+    recomputeAgentTrust(db, ownerAgentId);
+  } catch (err) {
+    console.warn("[verification] recomputeAgentTrust failed", err);
+  }
 };
 
 // Re-evaluates a `verifying` goal from the criteria's already-persisted
