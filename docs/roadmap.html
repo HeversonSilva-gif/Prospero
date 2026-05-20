@@ -952,8 +952,8 @@
             <span class="kicker">Delegue uma meta</span>
             <h2>Peça o resultado.<br />O time faz o resto.</h2>
             <p class="lede">
-              Você escreve um objetivo. Um agente-CEO o divide em tarefas, o time executa, um quadro
-              acompanha tudo, e você revisa no fim. Escolha uma meta e veja acontecer.
+              Você escreve um objetivo. Um funcionário-CEO o divide em tarefas, o time executa, um
+              quadro acompanha tudo, e você revisa no fim. Escolha uma meta e veja acontecer.
             </p>
           </div>
           <div class="sim reveal" data-delay="1">
@@ -1052,7 +1052,9 @@
           </div>
           <div class="calc reveal" data-delay="1">
             <div class="calc-control">
-              <label for="calcRange">Tamanho do time: <strong id="calcN">3</strong> agentes</label>
+              <label for="calcRange"
+                >Tamanho do time: <strong id="calcN">3</strong> funcionários</label
+              >
               <input id="calcRange" type="range" min="1" max="8" value="3" />
             </div>
             <div class="calc-bars">
@@ -1074,10 +1076,10 @@
             <p class="calc-note">
               Estimativa com base em preços reais (maio/2026). Lado Prospero: API Claude Sonnet 4.6
               — US$ 3 e US$ 15 por milhão de tokens de entrada e saída — supondo uso moderado de
-              cerca de 10 milhões de tokens por mês por agente, o que dá perto de R$ 250/mês a um
-              câmbio de ~R$ 5,05/US$. Lado humano: salário de referência de desenvolvedor júnior
+              cerca de 10 milhões de tokens por mês por funcionário, o que dá perto de R$ 250/mês a
+              um câmbio de ~R$ 5,05/US$. Lado humano: salário de referência de desenvolvedor júnior
               CLT, ~R$ 5.000/mês (faixa de mercado de R$ 4.000 a R$ 6.000 em 2026). O uso real de
-              cada agente varia conforme a carga de trabalho.
+              cada funcionário varia conforme a carga de trabalho.
             </p>
           </div>
         </div>
@@ -1152,6 +1154,17 @@
                   no disco; um funcionário não consegue ler arquivos de outra empresa nem do colega
                   ao lado, e tentativas ficam registradas.
                 </li>
+                <li>
+                  Confiança que cresce com o uso: cada funcionário sobe numa escada de três degraus
+                  (novato → confiável → autônomo) conforme entrega objetivos verificados. A partir
+                  de "confiável", ler arquivos do projeto não pede mais aprovação; passar a
+                  "autônomo" você aprova. Errou? Volta pra novato na hora.
+                </li>
+                <li>
+                  Briefing matinal: você abre o app de manhã e vê um resumo do que rodou enquanto
+                  dormia — o que precisa de você no topo, o que foi entregue, o que falhou, o que
+                  está em andamento, e quanto custou a noite.
+                </li>
                 <li>Roda na sua máquina ou num servidor; suporta várias empresas.</li>
                 <li>Segurança: caixa fechada, aprovação para ações sensíveis.</li>
               </ul>
@@ -1160,15 +1173,15 @@
               <h3>Para onde vamos</h3>
               <ul class="jlist">
                 <li>
-                  Rotinas: trabalhos que se repetem passam a rodar sozinhos, no horário certo, sem
-                  você pedir.
+                  Funcionários que acordam sozinhos: trabalhos que se repetem passam a rodar no
+                  horário certo, sem você pedir.
                 </li>
                 <li>
                   Manuais prontos: formas comprovadas de obter um resultado, prontas para reusar.
                 </li>
                 <li>
-                  Resumo matinal de tudo que aconteceu enquanto você dormia, com confiança que
-                  cresce conforme o time prova que entrega.
+                  Decisões noturnas: quando algo trava e precisa de aprovação, outro funcionário
+                  pode destravar dentro de regras claras — sem te acordar.
                 </li>
                 <li>
                   O rumo: a empresa cada vez mais se conduz sozinha — você só dá direção e revisa.
@@ -1207,7 +1220,7 @@
         var LINKS = { cta: "" };
 
         // Slider de custo (S5): estimativa baseada em preços reais (maio/2026).
-        // perAgent: ~10M tokens/mês por agente na API Claude Sonnet 4.6
+        // perAgent: ~10M tokens/mês por funcionário na API Claude Sonnet 4.6
         // (US$ 3 / US$ 15 por milhão de tokens entrada/saída) ~ US$ 50 ~ R$ 250.
         // perHuman: salário de referência de dev júnior CLT (faixa R$ 4.000-6.000).
         var COST = { perAgent: 250, perHuman: 5000 };
@@ -1594,11 +1607,11 @@
             },
             {
               title: "Hoje — você está aqui",
-              body: "A empresa completa funciona: você contrata, organiza, delega metas e revisa. Cada cargo tem um manual próprio (o charter) e o CEO consegue projetar a empresa inteira para qualquer ramo de negócio. Os funcionários têm memória e aprendem com cada trabalho — quem entra novo herda o que o time já sabe. A empresa tem um norte declarado que guia todo funcionário, e cada objetivo só vira 'concluído' depois de a empresa checar sozinha que o resultado bate com o padrão que você definiu.",
+              body: "A empresa completa funciona: você contrata, organiza, delega metas e revisa. Cada cargo tem um manual próprio (o charter), o CEO projeta a empresa inteira, funcionários têm memória e aprendem com cada trabalho, cada empresa tem um norte declarado e cada objetivo só vira 'concluído' depois de a empresa checar sozinha. A confiança em cada funcionário cresce com o uso — quem entrega bem sobe na escada e pede menos sua aprovação. De manhã, um briefing resume o que rodou enquanto você dormia.",
             },
             {
               title: "Próximo",
-              body: "Resumo matinal de tudo que aconteceu enquanto você dormia, e rotinas que rodam sozinhas no horário certo — trabalho repetido para de pedir sua atenção.",
+              body: "Funcionários que acordam sozinhos no horário certo, sem você pedir. Decisões noturnas que destravam dentro de regras claras — sem te acordar.",
             },
             {
               title: "A visão",
