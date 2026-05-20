@@ -368,6 +368,10 @@ export const importCompany = (
     if (goalIsas !== undefined) {
       const goalsRepo = createGoalsRepository(db);
       for (const [origGoalId, body] of Object.entries(goalIsas)) {
+        // Empty body = no artifact (matches the export side, which omits empty
+        // files via safeRead). Skip silently rather than stamping isa_path
+        // on a vacuous file from a corrupted or hostile snapshot.
+        if (body.length === 0) continue;
         const newGoalId = goalIdMap[origGoalId];
         if (newGoalId === undefined) {
           warnings.push(`isa.md for unknown goal ${origGoalId} skipped`);

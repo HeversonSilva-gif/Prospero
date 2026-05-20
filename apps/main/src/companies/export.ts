@@ -43,11 +43,14 @@ const safeCollect = (
 
 // Reads a file under userData if it exists, returning its body or null. Defensive:
 // any IO error (permissions, transient FS) yields null so a single missing artifact
-// never kills the whole export — consistent with safeCollect above.
+// never kills the whole export — consistent with safeCollect above. An empty file
+// body is treated as "no artifact" so the round-trip matches the import side,
+// which skips empty bodies to avoid stamping a path for a vacuous file.
 const safeRead = (path: string): string | null => {
   try {
     if (!existsSync(path)) return null;
-    return readFileSync(path, "utf8");
+    const body = readFileSync(path, "utf8");
+    return body.length > 0 ? body : null;
   } catch {
     return null;
   }

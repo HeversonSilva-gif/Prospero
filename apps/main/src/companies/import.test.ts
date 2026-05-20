@@ -188,4 +188,40 @@ describe("importCompany", () => {
     const result = importCompany(db, snapshot);
     expect(result.goalIdMap).toEqual({});
   });
+
+  it("treats empty telos/isa bodies in artifacts as absent (no file written, no path stamped)", () => {
+    const db = setupDb();
+    const source = createCompaniesRepository(db).create({ name: "EmptyArt" });
+    const goal = createGoalsRepository(db).create({ companyId: source.id, title: "G1" });
+    const destUserData = mkdtempSync(join(tmpdir(), "import-empty-"));
+    try {
+      // Hostile / corrupted payload: artifacts present but bodies are "".
+      const snapshot = exportCompany(db, source.id);
+      const payload = {
+        ...snapshot,
+        artifacts: {
+          companyTelos: "",
+          goalIsas: { [goal.id]: "" },
+        },
+      };
+      const result = importCompany(db, payload, destUserData);
+
+      const newGoalId = result.goalIdMap[goal.id]!;
+      const telosPath = companyTelosPath(destUserData, result.newCompanyId);
+      const isaPath = goalIsaPath(destUserData, result.newCompanyId, newGoalId);
+      expect(existsSync(telosPath)).toBe(false);
+      expect(existsSync(isaPath)).toBe(false);
+
+      const companyRow = db
+        .prepare("SELECT telos_path FROM companies WHERE id = ?")
+        .get(result.newCompanyId) as { telos_path: string | null };
+      expect(companyRow.telos_path).toBeNull();
+      const goalRow = db.prepare("SELECT isa_path FROM goals WHERE id = ?").get(newGoalId) as {
+        isa_path: string | null;
+      };
+      expect(goalRow.isa_path).toBeNull();
+    } finally {
+      rmSync(destUserData, { recursive: true, force: true });
+    }
+  });
 });
