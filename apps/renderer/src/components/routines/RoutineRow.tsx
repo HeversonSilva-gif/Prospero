@@ -87,10 +87,17 @@ export const RoutineRow: FC<Props> = ({ routine, onToggle, onRun, onClick }) => 
   }
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      className={`w-full text-left p-3 border-b border-surface-border hover:bg-surface-soft transition-colors ${
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={`w-full text-left p-3 border-b border-surface-border hover:bg-surface-soft transition-colors cursor-pointer ${
         routine.enabled ? "" : "opacity-60"
       }`}
     >
@@ -125,6 +132,6 @@ export const RoutineRow: FC<Props> = ({ routine, onToggle, onRun, onClick }) => 
         </div>
       </div>
       <div className="ml-6 mt-0.5 text-xs text-ink-muted truncate">{subLineParts.join(" · ")}</div>
-    </button>
+    </div>
   );
 };
