@@ -3,4 +3,5 @@ export type Company = {
   name: string;
   createdAt: number;
   telosPath: string | null;
+  briefingReviewedAt: number | null;
 };

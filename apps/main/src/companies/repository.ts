@@ -8,51 +8,60 @@ export type CompaniesRepository = {
   list(): Company[];
   delete(id: string): void;
   setTelosPath(id: string, telosPath: string): void;
+  setBriefingReviewedAt(id: string, reviewedAt: number): void;
+  setBriefingHeadline(id: string, json: string): void;
+  getBriefingHeadlineRaw(id: string): string | null;
 };
 
-const rowToCompany = (row: {
+type CompanyRow = {
   id: string;
   name: string;
   created_at: number;
   telos_path: string | null;
-}): Company => ({
+  briefing_reviewed_at: number | null;
+};
+
+const rowToCompany = (row: CompanyRow): Company => ({
   id: row.id,
   name: row.name,
   createdAt: row.created_at,
   telosPath: row.telos_path,
+  briefingReviewedAt: row.briefing_reviewed_at,
 });
 
 export const createCompaniesRepository = (db: Database.Database): CompaniesRepository => {
   const insertStmt = db.prepare("INSERT INTO companies (id, name, created_at) VALUES (?, ?, ?)");
   const selectByIdStmt = db.prepare(
-    "SELECT id, name, created_at, telos_path FROM companies WHERE id = ?",
+    "SELECT id, name, created_at, telos_path, briefing_reviewed_at FROM companies WHERE id = ?",
   );
   const listStmt = db.prepare(
-    "SELECT id, name, created_at, telos_path FROM companies ORDER BY created_at ASC",
+    "SELECT id, name, created_at, telos_path, briefing_reviewed_at FROM companies ORDER BY created_at ASC",
   );
   const deleteStmt = db.prepare("DELETE FROM companies WHERE id = ?");
   const setTelosPathStmt = db.prepare("UPDATE companies SET telos_path = ? WHERE id = ?");
+  const setBriefingReviewedAtStmt = db.prepare(
+    "UPDATE companies SET briefing_reviewed_at = ? WHERE id = ?",
+  );
+  const setBriefingHeadlineStmt = db.prepare(
+    "UPDATE companies SET briefing_headline_json = ? WHERE id = ?",
+  );
+  const getBriefingHeadlineStmt = db.prepare(
+    "SELECT briefing_headline_json AS json FROM companies WHERE id = ?",
+  );
 
   return {
     create(input) {
       const id = `co_${randomUUID()}`;
       const now = Date.now();
       insertStmt.run(id, input.name, now);
-      return { id, name: input.name, createdAt: now, telosPath: null };
+      return { id, name: input.name, createdAt: now, telosPath: null, briefingReviewedAt: null };
     },
     getById(id) {
-      const row = selectByIdStmt.get(id) as
-        | { id: string; name: string; created_at: number; telos_path: string | null }
-        | undefined;
+      const row = selectByIdStmt.get(id) as CompanyRow | undefined;
       return row ? rowToCompany(row) : null;
     },
     list() {
-      const rows = listStmt.all() as {
-        id: string;
-        name: string;
-        created_at: number;
-        telos_path: string | null;
-      }[];
+      const rows = listStmt.all() as CompanyRow[];
       return rows.map(rowToCompany);
     },
     delete(id) {
@@ -60,6 +69,16 @@ export const createCompaniesRepository = (db: Database.Database): CompaniesRepos
     },
     setTelosPath(id, telosPath) {
       setTelosPathStmt.run(telosPath, id);
+    },
+    setBriefingReviewedAt(id, reviewedAt) {
+      setBriefingReviewedAtStmt.run(reviewedAt, id);
+    },
+    setBriefingHeadline(id, json) {
+      setBriefingHeadlineStmt.run(json, id);
+    },
+    getBriefingHeadlineRaw(id) {
+      const row = getBriefingHeadlineStmt.get(id) as { json: string | null } | undefined;
+      return row?.json ?? null;
     },
   };
 };
