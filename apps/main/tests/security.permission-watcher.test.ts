@@ -42,6 +42,7 @@ describe(
         getAgent: () => ({ ...agent, mode: "auto" }),
         getAllowedProjectPaths: (_agentId: string) => ["C:\\Workspace"],
         getAgentCwd: (_agentId: string) => "C:\\Workspace",
+        userDataDir: "C:\\UserData",
         onUserDecision: vi.fn(),
       });
 
@@ -73,6 +74,7 @@ describe(
         getAgent: () => ({ ...agent, mode: "auto" }),
         getAllowedProjectPaths: (_agentId: string) => ["C:\\Workspace"],
         getAgentCwd: (_agentId: string) => "C:\\Workspace",
+        userDataDir: "C:\\UserData",
         onUserDecision: vi.fn(),
       });
 
@@ -109,6 +111,7 @@ describe(
         getAgent: () => agent,
         getAllowedProjectPaths: (_agentId: string) => ["C:\\Workspace"],
         getAgentCwd: (_agentId: string) => "C:\\Workspace",
+        userDataDir: "C:\\UserData",
         onUserDecision: vi.fn(),
         onResolved,
       });
@@ -128,6 +131,7 @@ describe(
         getAgent: () => agent,
         getAllowedProjectPaths: (_agentId: string) => ["C:\\Workspace"],
         getAgentCwd: (_agentId: string) => "C:\\Workspace",
+        userDataDir: "C:\\UserData",
         onUserDecision,
       });
 

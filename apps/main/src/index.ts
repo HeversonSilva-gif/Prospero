@@ -93,6 +93,7 @@ void app.whenReady().then(() => {
       return projects.filter((p) => agent.allowedProjects.includes(p.id)).map((p) => p.path);
     },
     getAgentCwd: (agentId: string) => getAgentSandboxCwd(userDataDir, agentId),
+    userDataDir,
     onUserDecision: (req, reason) => {
       console.log(
         `[m5/permission] onUserDecision toolUseId=${req.toolUseId} agentId=${req.agentId} tool=${req.toolName} reason=${reason}`,

@@ -12,6 +12,12 @@ export type WatcherOptions = {
   getAllowedProjectPaths: (agentId: string) => string[];
   /** Returns the agent's spawn CWD (per-agent sandbox dir). */
   getAgentCwd: (agentId: string) => string;
+  /**
+   * Electron's userData directory. Captured at watcher construction (it does
+   * not change at runtime) and forwarded to the gate so the M13 PR-E
+   * containment-zone check can classify paths.
+   */
+  userDataDir: string;
   onUserDecision: (request: PermissionRequest, reason: string) => void;
   onResolved?: (toolUseId: string, resolution: PermissionResolution) => void;
 };
@@ -56,6 +62,7 @@ export const startPermissionWatcher = (opts: WatcherOptions): (() => Promise<voi
       agent,
       allowedProjectPaths: opts.getAllowedProjectPaths(body.agentId),
       agentCwd: opts.getAgentCwd(body.agentId),
+      userDataDir: opts.userDataDir,
     });
     if (decision.action === "allow") {
       writeFileSync(

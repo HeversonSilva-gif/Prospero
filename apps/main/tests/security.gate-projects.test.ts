@@ -37,6 +37,7 @@ describe("evaluatePermission with project allowlist", () => {
       agent: fakeAgent(),
       allowedProjectPaths: [],
       agentCwd: "C:/sandbox",
+      userDataDir: "C:/UserData",
     });
     expect(decision.action).toBe("deny");
   });
@@ -48,6 +49,7 @@ describe("evaluatePermission with project allowlist", () => {
       agent: fakeAgent(),
       allowedProjectPaths: ["C:/proj-a", "C:/proj-b"],
       agentCwd: "C:/sandbox",
+      userDataDir: "C:/UserData",
     });
     expect(decision.action).toBe("allow");
   });
@@ -59,6 +61,7 @@ describe("evaluatePermission with project allowlist", () => {
       agent: fakeAgent(),
       allowedProjectPaths: ["C:/proj-a", "C:/proj-b"],
       agentCwd: "C:/sandbox",
+      userDataDir: "C:/UserData",
     });
     expect(decision.action).toBe("deny");
   });
@@ -70,6 +73,7 @@ describe("evaluatePermission with project allowlist", () => {
       agent: fakeAgent(),
       allowedProjectPaths: ["C:/proj-a"],
       agentCwd: "C:/sandbox",
+      userDataDir: "C:/UserData",
     });
     expect(decision.action).toBe("deny");
   });

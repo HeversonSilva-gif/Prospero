@@ -39,6 +39,7 @@ describe("evaluatePermission §1 always-blocked patterns", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("request_user");
     expect(r.reason).toMatch(/always-blocked/i);
@@ -51,6 +52,7 @@ describe("evaluatePermission §1 always-blocked patterns", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("request_user");
   });
@@ -64,6 +66,7 @@ describe("evaluatePermission §2 path-tool outside workspace", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("deny");
     expect(r.reason).toMatch(/outside allowed projects/i);
@@ -76,6 +79,7 @@ describe("evaluatePermission §2 path-tool outside workspace", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("deny");
   });
@@ -87,6 +91,7 @@ describe("evaluatePermission §2 path-tool outside workspace", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("allow");
   });
@@ -98,6 +103,7 @@ describe("evaluatePermission §2 path-tool outside workspace", () => {
       agent: agent("supervised"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("request_user");
   });
@@ -111,6 +117,7 @@ describe("evaluatePermission §3 Bash path extraction", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("request_user");
   });
@@ -122,6 +129,7 @@ describe("evaluatePermission §3 Bash path extraction", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("deny");
   });
@@ -133,6 +141,7 @@ describe("evaluatePermission §3 Bash path extraction", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("allow");
   });
@@ -144,6 +153,7 @@ describe("evaluatePermission §3 Bash path extraction", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("deny");
   });
@@ -155,6 +165,7 @@ describe("evaluatePermission §3 Bash path extraction", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("deny");
   });
@@ -166,6 +177,7 @@ describe("evaluatePermission §3 Bash path extraction", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("allow");
   });
@@ -179,6 +191,7 @@ describe("evaluatePermission §4 non-fs tools (orchestrator MCP)", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("allow");
   });
@@ -190,6 +203,7 @@ describe("evaluatePermission §4 non-fs tools (orchestrator MCP)", () => {
       agent: agent("supervised"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
+      userDataDir: "C:\\UserData",
     });
     expect(r.action).toBe("request_user");
   });

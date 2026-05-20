@@ -15,6 +15,11 @@ export type GateInput = {
    * not the Electron main process's cwd.
    */
   agentCwd: string;
+  /**
+   * Absolute path of Electron's userData directory. Consumed by the M13 PR-E
+   * containment-zone check to classify FS-tool paths into company/agent zones.
+   */
+  userDataDir: string;
 };
 
 export type GateDecision =
