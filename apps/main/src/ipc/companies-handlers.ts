@@ -1,4 +1,4 @@
-import { ipcMain } from "electron";
+import { app, ipcMain } from "electron";
 import type Database from "better-sqlite3";
 import { IPC, type Company } from "@prospero/shared";
 import { createCompaniesRepository } from "../companies/repository.js";
@@ -34,13 +34,13 @@ export const registerCompaniesHandlers = (db: Database.Database): void => {
     if (typeof payload.id !== "string" || payload.id.length === 0) {
       throw new Error("[company:export] id is required");
     }
-    return exportCompany(db, payload.id);
+    return exportCompany(db, payload.id, app.getPath("userData"));
   });
 
   ipcMain.handle(IPC.COMPANY_IMPORT, (_e, payload: { snapshot: unknown }): ImportSummary => {
     if (payload === null || typeof payload !== "object" || !("snapshot" in payload)) {
       throw new Error("[company:import] snapshot payload is required");
     }
-    return importCompany(db, payload.snapshot);
+    return importCompany(db, payload.snapshot, app.getPath("userData"));
   });
 };

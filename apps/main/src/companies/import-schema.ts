@@ -25,6 +25,14 @@ export const CompanyImportSchemaV1 = z.object({
   activityEvents: z.array(RowSchema),
   goals: z.array(RowSchema),
   approvals: z.array(RowSchema),
+  // M13 PR-F Task 2: opt-in disk-backed artifacts. Older payloads (v1 from
+  // before this addition) omit the field — kept optional for back-compat.
+  artifacts: z
+    .object({
+      companyTelos: z.string().optional(),
+      goalIsas: z.record(z.string()).optional(),
+    })
+    .optional(),
 });
 
 export type CompanyImportV1 = z.infer<typeof CompanyImportSchemaV1>;
@@ -44,5 +52,8 @@ export type ImportSummary = {
     activityEvents: number;
     goals: number;
   };
+  // M13 PR-F Task 2: original-goal-id -> new-goal-id, so callers can correlate
+  // restored artifacts back to their pre-import goal ids when needed.
+  goalIdMap: Record<string, string>;
   warnings: string[];
 };

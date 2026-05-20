@@ -1,4 +1,7 @@
+import { existsSync, readFileSync } from "node:fs";
 import type Database from "better-sqlite3";
+import { companyTelosPath } from "./telos-dir.js";
+import { goalIsaPath } from "../goals/isa-dir.js";
 
 export type CompanyExportV1 = {
   schemaVersion: 1;
@@ -14,6 +17,14 @@ export type CompanyExportV1 = {
   activityEvents: unknown[];
   goals: unknown[];
   approvals: unknown[];
+  // M13 PR-F Task 2: opt-in disk-backed artifacts (telos.md + per-goal isa.md).
+  // Files live under <userData>/companies/<cid>/{telos.md,goals/<gid>/isa.md},
+  // so the JSON snapshot alone would otherwise lose them. Absent fields mean
+  // no file existed on disk at export time.
+  artifacts?: {
+    companyTelos?: string;
+    goalIsas?: Record<string, string>;
+  };
 };
 
 // Best-effort row collect: try/catch per table so a missing column in one table
@@ -30,7 +41,23 @@ const safeCollect = (
   }
 };
 
-export const exportCompany = (db: Database.Database, companyId: string): CompanyExportV1 => {
+// Reads a file under userData if it exists, returning its body or null. Defensive:
+// any IO error (permissions, transient FS) yields null so a single missing artifact
+// never kills the whole export — consistent with safeCollect above.
+const safeRead = (path: string): string | null => {
+  try {
+    if (!existsSync(path)) return null;
+    return readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
+};
+
+export const exportCompany = (
+  db: Database.Database,
+  companyId: string,
+  userDataDir?: string,
+): CompanyExportV1 => {
   const companyRow = db
     .prepare("SELECT id, name, created_at FROM companies WHERE id = ?")
     .get(companyId) as { id: string; name: string; created_at: number } | undefined;
@@ -38,7 +65,7 @@ export const exportCompany = (db: Database.Database, companyId: string): Company
     throw new Error(`Company ${companyId} not found`);
   }
 
-  return {
+  const result: CompanyExportV1 = {
     schemaVersion: 1,
     exportedAt: Date.now(),
     company: { id: companyRow.id, name: companyRow.name, createdAt: companyRow.created_at },
@@ -71,4 +98,38 @@ export const exportCompany = (db: Database.Database, companyId: string): Company
       { cid: companyId },
     ),
   };
+
+  // M13 PR-F Task 2: when a userData dir is provided, snapshot the on-disk
+  // artifacts (telos.md, per-goal isa.md). Older call sites that don't pass
+  // userDataDir get the legacy shape — artifacts simply stays undefined.
+  // Path helpers reject unsafe ids by throwing; we catch so an unexpectedly
+  // shaped id in one row can never abort the whole export.
+  if (userDataDir !== undefined) {
+    let companyTelos: string | null = null;
+    try {
+      companyTelos = safeRead(companyTelosPath(userDataDir, companyId));
+    } catch {
+      companyTelos = null;
+    }
+    const goalRows = result.goals as Array<{ id: string }>;
+    const goalIsas: Record<string, string> = {};
+    for (const g of goalRows) {
+      if (typeof g.id !== "string" || g.id.length === 0) continue;
+      try {
+        const body = safeRead(goalIsaPath(userDataDir, companyId, g.id));
+        if (body !== null) goalIsas[g.id] = body;
+      } catch {
+        // unsafe goal id segment — skip silently, mirrors safeCollect's stance
+      }
+    }
+    const hasIsas = Object.keys(goalIsas).length > 0;
+    if (companyTelos !== null || hasIsas) {
+      result.artifacts = {
+        ...(companyTelos !== null ? { companyTelos } : {}),
+        ...(hasIsas ? { goalIsas } : {}),
+      };
+    }
+  }
+
+  return result;
 };

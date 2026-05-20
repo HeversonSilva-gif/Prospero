@@ -1,12 +1,24 @@
 import { describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
-import { readFileSync, readdirSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { exportCompany } from "./export.js";
 import { importCompany } from "./import.js";
 import { createCompaniesRepository } from "./repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
+import { createGoalsRepository } from "../goals/repository.js";
+import { companyTelosPath } from "./telos-dir.js";
+import { goalIsaPath } from "../goals/isa-dir.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -120,5 +132,60 @@ describe("importCompany", () => {
     const result = importCompany(db, snapshot);
     expect(result.warnings.some((w) => w.includes("projects row without id"))).toBe(true);
     expect(result.counts.projects).toBe(0);
+  });
+
+  it("restores telos and isa bodies into the new company's userData", () => {
+    const db = setupDb();
+    const source = createCompaniesRepository(db).create({ name: "WithArt" });
+    const goal = createGoalsRepository(db).create({ companyId: source.id, title: "G1" });
+
+    const srcUserData = mkdtempSync(join(tmpdir(), "import-src-"));
+    const destUserData = mkdtempSync(join(tmpdir(), "import-dst-"));
+    try {
+      const telosFile = companyTelosPath(srcUserData, source.id);
+      mkdirSync(dirname(telosFile), { recursive: true });
+      writeFileSync(telosFile, "# TELOS\n\n## Mission\n\nx", "utf8");
+
+      const isaFile = goalIsaPath(srcUserData, source.id, goal.id);
+      mkdirSync(dirname(isaFile), { recursive: true });
+      writeFileSync(isaFile, "# ISA\n\n## Vision\n\ny", "utf8");
+
+      const snapshot = exportCompany(db, source.id, srcUserData);
+      expect(snapshot.artifacts?.companyTelos).toContain("Mission");
+
+      const result = importCompany(db, snapshot, destUserData);
+
+      const newGoalId = result.goalIdMap[goal.id];
+      expect(newGoalId).toBeDefined();
+
+      const restoredTelosPath = companyTelosPath(destUserData, result.newCompanyId);
+      expect(existsSync(restoredTelosPath)).toBe(true);
+      expect(readFileSync(restoredTelosPath, "utf8")).toContain("Mission");
+
+      const restoredIsaPath = goalIsaPath(destUserData, result.newCompanyId, newGoalId!);
+      expect(existsSync(restoredIsaPath)).toBe(true);
+      expect(readFileSync(restoredIsaPath, "utf8")).toContain("Vision");
+
+      // Path markers are stamped so the DB reflects restored artifacts.
+      const companyRow = db
+        .prepare("SELECT telos_path FROM companies WHERE id = ?")
+        .get(result.newCompanyId) as { telos_path: string | null };
+      expect(companyRow.telos_path).toMatch(/telos\.md$/);
+      const goalRow = db.prepare("SELECT isa_path FROM goals WHERE id = ?").get(newGoalId) as {
+        isa_path: string | null;
+      };
+      expect(goalRow.isa_path).toMatch(/isa\.md$/);
+    } finally {
+      rmSync(srcUserData, { recursive: true, force: true });
+      rmSync(destUserData, { recursive: true, force: true });
+    }
+  });
+
+  it("returns an empty goalIdMap when the source has no goals", () => {
+    const db = setupDb();
+    const source = createCompaniesRepository(db).create({ name: "NoGoals" });
+    const snapshot = exportCompany(db, source.id);
+    const result = importCompany(db, snapshot);
+    expect(result.goalIdMap).toEqual({});
   });
 });

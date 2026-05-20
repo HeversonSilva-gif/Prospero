@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
-import { readFileSync, readdirSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { exportCompany } from "./export.js";
 import { createCompaniesRepository } from "./repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
+import { createGoalsRepository } from "../goals/repository.js";
+import { companyTelosPath } from "./telos-dir.js";
+import { goalIsaPath } from "../goals/isa-dir.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -63,5 +67,47 @@ describe("exportCompany", () => {
     expect(out.agents).toEqual([]);
     expect(out.issues).toEqual([]);
     expect(out.messages).toEqual([]);
+  });
+
+  it("includes telos and isa bodies when files exist on disk", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "WithArtifacts" });
+    const goal = createGoalsRepository(db).create({ companyId: co.id, title: "G1" });
+
+    const userDataDir = mkdtempSync(join(tmpdir(), "export-art-"));
+    try {
+      const telosFile = companyTelosPath(userDataDir, co.id);
+      mkdirSync(dirname(telosFile), { recursive: true });
+      writeFileSync(telosFile, "# TELOS\n\n## Mission\n\nx", "utf8");
+
+      const isaFile = goalIsaPath(userDataDir, co.id, goal.id);
+      mkdirSync(dirname(isaFile), { recursive: true });
+      writeFileSync(isaFile, "# ISA\n\n## Vision\n\ny", "utf8");
+
+      const out = exportCompany(db, co.id, userDataDir);
+      expect(out.artifacts?.companyTelos).toContain("Mission");
+      expect(out.artifacts?.goalIsas?.[goal.id]).toContain("Vision");
+    } finally {
+      rmSync(userDataDir, { recursive: true, force: true });
+    }
+  });
+
+  it("omits artifacts when no files exist on disk", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "NoArtifacts" });
+    const userDataDir = mkdtempSync(join(tmpdir(), "export-noart-"));
+    try {
+      const out = exportCompany(db, co.id, userDataDir);
+      expect(out.artifacts).toBeUndefined();
+    } finally {
+      rmSync(userDataDir, { recursive: true, force: true });
+    }
+  });
+
+  it("omits artifacts when userDataDir is not provided (back-compat)", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Legacy" });
+    const out = exportCompany(db, co.id);
+    expect(out.artifacts).toBeUndefined();
   });
 });

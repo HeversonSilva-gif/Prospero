@@ -1,10 +1,16 @@
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import {
   CompanyImportSchemaV1,
   type CompanyImportV1,
   type ImportSummary,
 } from "./import-schema.js";
+import { companyTelosPath, relativeTelosPath } from "./telos-dir.js";
+import { goalIsaPath, relativeIsaPath } from "../goals/isa-dir.js";
+import { createCompaniesRepository } from "./repository.js";
+import { createGoalsRepository } from "../goals/repository.js";
 
 // PR-F.2.1: restores a company exported by exportCompany (PR-F.1).
 // Strategy:
@@ -170,7 +176,11 @@ const uniqueCompanyName = (db: Database.Database, desired: string): string => {
   }
 };
 
-export const importCompany = (db: Database.Database, payload: unknown): ImportSummary => {
+export const importCompany = (
+  db: Database.Database,
+  payload: unknown,
+  userDataDir?: string,
+): ImportSummary => {
   const parsed = CompanyImportSchemaV1.safeParse(payload);
   if (!parsed.success) {
     throw new Error(
@@ -330,10 +340,56 @@ export const importCompany = (db: Database.Database, payload: unknown): ImportSu
     }
   }
 
+  // M13 PR-F Task 2: surface the goal-id remap so callers can correlate restored
+  // artifacts. Built from the internal map after the txn settled.
+  const goalIdMap: Record<string, string> = {};
+  for (const [oldId, newId] of maps.goals) {
+    goalIdMap[oldId] = newId;
+  }
+
+  // M13 PR-F Task 2: restore disk-backed artifacts (telos.md, per-goal isa.md)
+  // under the destination userData dir. Best-effort — per-file IO errors are
+  // recorded as warnings without aborting the import. We do not touch disk when
+  // the payload has no artifacts (legacy snapshots) or when userDataDir was not
+  // provided (older callers, tests).
+  if (userDataDir !== undefined && data.artifacts !== undefined) {
+    const telosBody = data.artifacts.companyTelos;
+    if (telosBody !== undefined && telosBody.length > 0) {
+      try {
+        const path = companyTelosPath(userDataDir, newCompanyId);
+        mkdirSync(dirname(path), { recursive: true });
+        writeFileSync(path, telosBody, "utf8");
+        createCompaniesRepository(db).setTelosPath(newCompanyId, relativeTelosPath(newCompanyId));
+      } catch (err) {
+        warnings.push(`telos.md restore skipped: ${(err as Error).message}`);
+      }
+    }
+    const goalIsas = data.artifacts.goalIsas;
+    if (goalIsas !== undefined) {
+      const goalsRepo = createGoalsRepository(db);
+      for (const [origGoalId, body] of Object.entries(goalIsas)) {
+        const newGoalId = goalIdMap[origGoalId];
+        if (newGoalId === undefined) {
+          warnings.push(`isa.md for unknown goal ${origGoalId} skipped`);
+          continue;
+        }
+        try {
+          const path = goalIsaPath(userDataDir, newCompanyId, newGoalId);
+          mkdirSync(dirname(path), { recursive: true });
+          writeFileSync(path, body, "utf8");
+          goalsRepo.setIsaPath(newGoalId, relativeIsaPath(newCompanyId, newGoalId));
+        } catch (err) {
+          warnings.push(`isa.md for goal ${origGoalId} skipped: ${(err as Error).message}`);
+        }
+      }
+    }
+  }
+
   return {
     newCompanyId,
     newCompanyName,
     counts,
+    goalIdMap,
     warnings,
   };
 };
