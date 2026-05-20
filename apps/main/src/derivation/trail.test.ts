@@ -139,6 +139,49 @@ describe("buildGoalTrail", () => {
     applyMigrations(db);
     expect(buildGoalTrail(db, "nope")).toBeNull();
   });
+
+  it("buildGoalTrail includes all criteria of the goal, with status and attempts", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','Acme',0)").run();
+    db.prepare(
+      `INSERT INTO goals (id, company_id, title, description, level, status, success_criteria, created_at, updated_at)
+       VALUES ('g1','c1','Ship it','desc','task','achieved','all green',0,0)`,
+    ).run();
+    // criterion 1: passed after 1 attempt (first try)
+    db.prepare(
+      `INSERT INTO goal_criteria (id, goal_id, sort_order, statement, kind, status, attempts, created_at, updated_at)
+       VALUES ('cr1','g1',1,'build passes','deterministic','passed',1,0,0)`,
+    ).run();
+    // criterion 2: passed after 3 attempts
+    db.prepare(
+      `INSERT INTO goal_criteria (id, goal_id, sort_order, statement, kind, status, attempts, created_at, updated_at)
+       VALUES ('cr2','g1',2,'all tests pass','judgment','passed',3,0,0)`,
+    ).run();
+    const trail = buildGoalTrail(db, "g1");
+    expect(trail).not.toBeNull();
+    expect(trail!.criteria).toBeDefined();
+    expect(trail!.criteria.length).toBe(2);
+    const passedFirstTry = trail!.criteria.find((c) => c.attempts === 1);
+    const passedAfterRetries = trail!.criteria.find((c) => c.attempts === 3);
+    expect(passedFirstTry).toBeDefined();
+    expect(passedFirstTry!.status).toBe("passed");
+    expect(passedAfterRetries).toBeDefined();
+    expect(passedAfterRetries!.status).toBe("passed");
+  });
+
+  it("buildGoalTrail returns an empty criteria array for a goal with no ISCs", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','Acme',0)").run();
+    db.prepare(
+      `INSERT INTO goals (id, company_id, title, description, level, status, success_criteria, created_at, updated_at)
+       VALUES ('g2','c1','Legacy goal','no criteria','task','achieved','',0,0)`,
+    ).run();
+    const trail = buildGoalTrail(db, "g2");
+    expect(trail).not.toBeNull();
+    expect(trail!.criteria).toEqual([]);
+  });
 });
 
 describe("buildApprovalTrail", () => {
@@ -203,6 +246,7 @@ describe("memory prompts", () => {
       description: "make it reliable",
       successCriteria: "no flakes",
       issues: [{ title: "Raise the pool", status: "done" }],
+      criteria: [],
     });
     expect(p).toContain("Ship the redis fix");
     expect(p).toContain("Raise the pool");

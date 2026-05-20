@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import { createIssuesRepository } from "../issues/repository.js";
+import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
 
 export type TrailEntry = { sender: string; content: string };
 
@@ -107,6 +108,7 @@ export type GoalTrail = {
   description: string;
   successCriteria: string;
   issues: Array<{ title: string; status: string }>;
+  criteria: TrailCriterion[]; // empty when the goal has no ISCs (legacy goal)
 };
 
 type GoalRow = { title: string; description: string | null; success_criteria: string | null };
@@ -122,11 +124,19 @@ export const buildGoalTrail = (db: Database.Database, goalId: string): GoalTrail
   const issues = db
     .prepare("SELECT title, status FROM issues WHERE goal_id = ? ORDER BY created_at ASC")
     .all(goalId) as GoalIssueRow[];
+  const allCriteria = createGoalCriteriaRepository(db).listByGoal(goalId);
+  const criteria: TrailCriterion[] = allCriteria.map((c) => ({
+    statement: c.statement,
+    kind: c.kind,
+    status: c.status,
+    attempts: c.attempts,
+  }));
   return {
     title: goal.title,
     description: goal.description ?? "",
     successCriteria: goal.success_criteria ?? "",
     issues,
+    criteria,
   };
 };
 
