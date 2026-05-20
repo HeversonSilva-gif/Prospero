@@ -109,6 +109,18 @@ export const createRoutinesRepository = (db: Database.Database): RoutinesReposit
   const setLastFiredStmt = db.prepare(
     "UPDATE routines SET last_fired_at = ?, updated_at = ? WHERE id = ?",
   );
+  const updateStmt = db.prepare(
+    `UPDATE routines SET
+       name = @name,
+       enabled = @enabled,
+       schedule_spec = @schedule_spec,
+       next_fire_at = @next_fire_at,
+       event_spec = @event_spec,
+       target_agent_id = @target_agent_id,
+       instruction = @instruction,
+       updated_at = @updated_at
+     WHERE id = @id`,
+  );
 
   return {
     create(input) {
@@ -176,18 +188,7 @@ export const createRoutinesRepository = (db: Database.Database): RoutinesReposit
         instruction: input.instruction ?? existing.instruction,
         updated_at: Date.now(),
       };
-      db.prepare(
-        `UPDATE routines SET
-           name = @name,
-           enabled = @enabled,
-           schedule_spec = @schedule_spec,
-           next_fire_at = @next_fire_at,
-           event_spec = @event_spec,
-           target_agent_id = @target_agent_id,
-           instruction = @instruction,
-           updated_at = @updated_at
-         WHERE id = @id`,
-      ).run(next);
+      updateStmt.run(next);
       return rowToRoutine(next);
     },
 

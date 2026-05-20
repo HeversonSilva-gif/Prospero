@@ -204,6 +204,13 @@ describe("RoutinesRepository", () => {
     expect((updated?.updatedAt ?? 0) > r.updatedAt).toBe(true);
   });
 
+  it("update — throws when id does not exist", () => {
+    const repo = createRoutinesRepository(db);
+    expect(() => repo.update({ id: "routine_does_not_exist", enabled: false })).toThrow(
+      /not found/,
+    );
+  });
+
   it("delete — removes the row", () => {
     const repo = createRoutinesRepository(db);
     const r = repo.create({
@@ -219,6 +226,23 @@ describe("RoutinesRepository", () => {
     });
     repo.delete(r.id);
     expect(repo.getById(r.id)).toBeNull();
+  });
+
+  it("setNextFireAt(id, null) — clears the next-fire timestamp", () => {
+    const repo = createRoutinesRepository(db);
+    const r = repo.create({
+      companyId: "c1",
+      name: "X",
+      enabled: true,
+      triggerType: "schedule",
+      scheduleSpec: { freq: "daily", atMinute: 540 },
+      nextFireAt: 100,
+      eventSpec: null,
+      targetAgentId: "a1",
+      instruction: "x",
+    });
+    repo.setNextFireAt(r.id, null);
+    expect(repo.getById(r.id)?.nextFireAt).toBeNull();
   });
 
   it("setNextFireAt + setLastFiredAt — write through and read back", () => {
