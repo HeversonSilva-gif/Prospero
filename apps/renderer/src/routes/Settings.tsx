@@ -9,6 +9,7 @@ import { useCompaniesStore } from "../stores/companies.js";
 import { AgentsMdImportSection } from "../components/settings/AgentsMdImportSection.js";
 import { MemorySettingsSection } from "../components/settings/MemorySettingsSection.js";
 import { RemoteExecutionSection } from "../components/settings/RemoteExecutionSection.js";
+import { SecurityZonesPanel } from "../components/settings/SecurityZonesPanel.js";
 
 export const Settings = () => {
   const { t } = useTranslation();
@@ -316,6 +317,7 @@ export const Settings = () => {
 
       <RemoteExecutionSection />
       <MemorySettingsSection />
+      <SecurityZonesPanel />
 
       <section className="bg-surface-card border border-surface-border rounded-lg p-5 mb-4">
         <h2 className="text-base font-semibold text-brand-dark mb-2">

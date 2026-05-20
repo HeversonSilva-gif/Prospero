@@ -741,6 +741,16 @@
       "overCap": "O texto passou do limite e será cortado ao entrar no prompt do agente.",
       "derivationBudgetLabel": "Orçamento de derivação",
       "derivationBudgetHint": "Máximo de skills e memórias derivadas automaticamente por agente por dia."
+    },
+    "security": {
+      "title": "Zonas de segurança",
+      "subtitle": "Cada agente é estruturalmente limitado à própria zona e à zona da empresa dele. Acesso cross-zone é negado e auditado.",
+      "loading": "Carregando zonas…",
+      "empty": "Nenhuma zona pra mostrar ainda — crie uma empresa primeiro.",
+      "kind": "Tipo",
+      "company": "Empresa",
+      "agent": "Agente",
+      "path": "Caminho de exemplo"
     }
   },
   "wizard": {

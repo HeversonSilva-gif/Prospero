@@ -741,6 +741,16 @@
       "overCap": "The text is over the limit and will be trimmed when it enters the agent prompt.",
       "derivationBudgetLabel": "Derivation budget",
       "derivationBudgetHint": "Maximum skills and memories auto-derived per agent per day."
+    },
+    "security": {
+      "title": "Security zones",
+      "subtitle": "Each agent is structurally limited to its own zone and its company's zone. Cross-zone access is denied and audited.",
+      "loading": "Loading zones…",
+      "empty": "No zones to show yet — create a company first.",
+      "kind": "Kind",
+      "company": "Company",
+      "agent": "Agent",
+      "path": "Sample path"
     }
   },
   "wizard": {
