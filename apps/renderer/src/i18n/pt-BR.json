@@ -4,6 +4,7 @@
   },
   "nav": {
     "briefing": "Briefing",
+    "routines": "Routines",
     "dashboard": "Dashboard",
     "inbox": "Inbox",
     "settings": "Configurações",
@@ -1232,5 +1233,80 @@
     "othersShow": "Mostrar o resto ({{count}})",
     "othersHide": "Esconder",
     "costFooter": "Gasto durante a noite: {{cost}}"
+  },
+  "routines": {
+    "title": "Routines",
+    "subtitle": "Agentes que acordam sozinhos",
+    "new": "Nova routine",
+    "empty": {
+      "title": "Nenhuma routine ainda",
+      "description": "Crie a primeira para que um agente acorde sozinho em horário ou por evento.",
+      "cta": "Criar primeira routine"
+    },
+    "form": {
+      "name": "Nome",
+      "trigger": "Gatilho",
+      "triggerSchedule": "Schedule",
+      "triggerEvent": "Evento",
+      "recurrence": "Recorrência",
+      "freq": {
+        "daily": "Diário",
+        "weekly": "Semanal",
+        "monthly": "Mensal",
+        "interval": "Intervalo"
+      },
+      "atMinute": "Horário",
+      "weekday": "Dia da semana",
+      "monthDay": "Dia do mês",
+      "everyMinutes": "A cada (minutos)",
+      "event": "Tipo de evento",
+      "events": {
+        "goal_achieved": "Objetivo alcançado",
+        "verification_failed": "Verificação falhou",
+        "issue_done": "Issue concluída",
+        "agent_recovered": "Agente recuperou"
+      },
+      "targetAgent": "Agente alvo",
+      "targetAgentPlaceholder": "— Selecione um agente —",
+      "targetAgentEmpty": "Nenhum agente disponível. Contrate um primeiro.",
+      "instruction": "Instrução",
+      "create": "Criar",
+      "save": "Salvar",
+      "saving": "Salvando…",
+      "cancel": "Cancelar",
+      "runNow": "Rodar agora",
+      "runNowFired": "Disparada",
+      "runNowError": "Erro",
+      "delete": "Excluir",
+      "deleteConfirm": "Excluir routine '{{name}}'?",
+      "notFound": "Routine não encontrada",
+      "back": "Voltar",
+      "header": {
+        "new": "Nova routine",
+        "edit": "Editar routine"
+      }
+    },
+    "row": {
+      "lastFired": "Último: {{when}}",
+      "nextFire": "Próximo: {{when}}",
+      "paused": "pausada",
+      "neverFired": "nunca"
+    },
+    "summary": {
+      "daily": "Toda dia {{time}}",
+      "weekly": "Toda {{weekday}} {{time}}",
+      "monthly": "Todo dia {{day}} às {{time}}",
+      "interval": "A cada {{minutes}} min",
+      "event": "Quando: {{event}}"
+    },
+    "weekday": {
+      "0": "domingo",
+      "1": "segunda",
+      "2": "terça",
+      "3": "quarta",
+      "4": "quinta",
+      "5": "sexta",
+      "6": "sábado"
+    }
   }
 }

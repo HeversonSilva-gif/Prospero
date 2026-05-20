@@ -4,6 +4,7 @@
   },
   "nav": {
     "briefing": "Briefing",
+    "routines": "Routines",
     "dashboard": "Dashboard",
     "inbox": "Inbox",
     "settings": "Settings",
@@ -1232,5 +1233,80 @@
     "othersShow": "Show the rest ({{count}})",
     "othersHide": "Hide",
     "costFooter": "Spent overnight: {{cost}}"
+  },
+  "routines": {
+    "title": "Routines",
+    "subtitle": "Agents that wake on their own",
+    "new": "New routine",
+    "empty": {
+      "title": "No routines yet",
+      "description": "Create the first one so an agent wakes on its own — on a schedule or in response to an event.",
+      "cta": "Create first routine"
+    },
+    "form": {
+      "name": "Name",
+      "trigger": "Trigger",
+      "triggerSchedule": "Schedule",
+      "triggerEvent": "Event",
+      "recurrence": "Recurrence",
+      "freq": {
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "interval": "Interval"
+      },
+      "atMinute": "Time of day",
+      "weekday": "Weekday",
+      "monthDay": "Day of month",
+      "everyMinutes": "Every (minutes)",
+      "event": "Event type",
+      "events": {
+        "goal_achieved": "Goal achieved",
+        "verification_failed": "Verification failed",
+        "issue_done": "Issue done",
+        "agent_recovered": "Agent recovered"
+      },
+      "targetAgent": "Target agent",
+      "targetAgentPlaceholder": "— Select an agent —",
+      "targetAgentEmpty": "No agents available. Hire one first.",
+      "instruction": "Instruction",
+      "create": "Create",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "runNow": "Run now",
+      "runNowFired": "Fired",
+      "runNowError": "Error",
+      "delete": "Delete",
+      "deleteConfirm": "Delete routine '{{name}}'?",
+      "notFound": "Routine not found",
+      "back": "Back",
+      "header": {
+        "new": "New routine",
+        "edit": "Edit routine"
+      }
+    },
+    "row": {
+      "lastFired": "Last: {{when}}",
+      "nextFire": "Next: {{when}}",
+      "paused": "paused",
+      "neverFired": "never"
+    },
+    "summary": {
+      "daily": "Every day at {{time}}",
+      "weekly": "Every {{weekday}} at {{time}}",
+      "monthly": "Every {{day}}th at {{time}}",
+      "interval": "Every {{minutes}} min",
+      "event": "When: {{event}}"
+    },
+    "weekday": {
+      "0": "Sunday",
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday"
+    }
   }
 }
