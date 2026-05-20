@@ -128,6 +128,54 @@ locus.
 - **Setup:** see `docs/m10-vps-setup-runbook.md` for VPS provisioning and the
   local-Docker smoke checklist.
 
+## Containment zones (M13 PR-E)
+
+A declared map of privacy zones layered on top of the per-agent sandbox CWD.
+Every absolute path that an FS tool tries to touch is classified by
+`apps/main/src/security/zones.ts`:
+
+- `companies/<cid>/...` and the equivalent suffix under the `agent-instructions/`
+  and `memory/` prefixes → **company** zone (when the path doesn't dive into a
+  specific agent).
+- `companies/<cid>/agents/<aid>/...` (and the equivalent under the other two
+  prefixes) → **agent** zone.
+- Anything outside this tree → no opinion (the existing path-fence decides).
+
+The gate denies any access that falls into a known zone the actor cannot
+reach:
+
+- An agent can touch its own agent zone and the company zone it belongs to.
+- Cross-company, cross-agent, and system zones are denied.
+
+Every deny is audited as a `security.zone_blocked` activity event and (since
+M13 PR-F) creates a non-actionable inbox card with the attempted path and
+reason, de-duplicated within a 5-minute window so an agent loop cannot spam
+the inbox. **This is defense-in-depth**: the path-fence is still the primary
+filter — the zone check can only add denials, never lift them.
+
+## Verification as an attack surface (M13 PR-B)
+
+The verification engine treats an issue as "done" when its criteria pass.
+That makes the criterion-check path itself a target: a misbehaving agent
+might mark criteria as `passed` without actually doing the work.
+
+Current mitigations:
+
+- `criterion_judge` records the `verified_by` agent id (audit row); a
+  judgment from agent A is always attributable to agent A.
+- Deterministic criteria (command, artifact, metric) cannot be self-judged
+  via `criterion_judge`; they only flip when the engine runs the check.
+
+Known gap (tracked for V2):
+
+- `criterion_check` is self-reported by the agent doing the work. There is
+  no enforcement that the judge of a judgment criterion is a different agent
+  than the implementer. A bad-actor agent that knows the gate exists can
+  still mark its own judgment criteria passed.
+
+The right hardening is forcing `criterion_judge` to require an actor distinct
+from the issue's assignee. Spec'd, not implemented in v1.
+
 ## Memory and skills as injection vectors
 
 Memory entries and skill bodies are injected verbatim into every agent system

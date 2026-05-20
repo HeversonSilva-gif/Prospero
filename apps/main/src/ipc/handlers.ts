@@ -22,6 +22,7 @@ import { registerIsaHandlers } from "./isa-handlers.js";
 import { registerTelosHandlers } from "./telos-handlers.js";
 import { registerSecurityHandlers } from "./security-handlers.js";
 import { initRecorder } from "../activity/index.js";
+import { initInbox, createInboxRepository } from "../inbox/index.js";
 import { initDerivation } from "../derivation/index.js";
 import { recoverStuckVerifications } from "../verification/index.js";
 import { buildVerificationDeps } from "../verification/deps.js";
@@ -30,6 +31,7 @@ export const registerIpcHandlers = (db: Database.Database): void => {
   ipcMain.handle(IPC.PING, () => "pong");
   const derivation = initDerivation(db);
   initRecorder(db, derivation.onActivity);
+  initInbox(createInboxRepository(db));
   // Fire-and-forget: at most a handful of goals can be stuck `verifying` at
   // restart (single-user scale) — no throttle needed.
   recoverStuckVerifications(db, buildVerificationDeps());

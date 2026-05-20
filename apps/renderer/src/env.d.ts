@@ -83,6 +83,7 @@ declare global {
           newCompanyId: string;
           newCompanyName: string;
           counts: Record<string, number>;
+          goalIdMap: Record<string, string>;
           warnings: string[];
         }>;
       };
