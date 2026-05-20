@@ -219,6 +219,99 @@ const memoryOutput = (body: string): RunDerivationResult => ({
   usage: { input: 50, output: 10, cacheCreation: 0, cacheRead: 0 },
 });
 
+const seedVerificationFailed = (): Database.Database => {
+  const db = seed();
+  db.prepare(
+    `INSERT INTO goals (id, company_id, title, description, status, created_at, updated_at)
+     VALUES ('g1','c1','Ship X','users can ship a release','verifying',0,0)`,
+  ).run();
+  db.prepare(
+    `INSERT INTO goal_criteria (id, goal_id, sort_order, statement, kind, status, attempts, last_result_json, created_at, updated_at)
+     VALUES ('cr1','g1',0,'build passes','deterministic','failed',3,'{"detail":"exit 1: tsc found 2 errors"}',0,0)`,
+  ).run();
+  return db;
+};
+
+describe("createDerivationWorker — verification_failed trigger", () => {
+  it("builds the prompt from the trail and runs derivation", async () => {
+    const db = seedVerificationFailed();
+    const captured: string[] = [];
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: (input) => {
+        captured.push(input.prompt);
+        return Promise.resolve({
+          text: '```json\n{"body":"always typecheck before shipping"}\n```',
+          usage: { input: 50, output: 10, cacheCreation: 0, cacheRead: 0 },
+        });
+      },
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    await worker.processJob({
+      trigger: "verification_failed",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      goalId: "g1",
+      failedCriterionIds: ["cr1"],
+    });
+    expect(captured).toHaveLength(1);
+    expect(captured[0]).toMatch(/Goal:/);
+    expect(captured[0]).toMatch(/build passes/);
+  });
+
+  it("skips when the goal does not exist", async () => {
+    const db = seedVerificationFailed();
+    let ran = false;
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: () => {
+        ran = true;
+        return Promise.resolve(memoryOutput("x"));
+      },
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    await worker.processJob({
+      trigger: "verification_failed",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      goalId: "no-such-goal",
+      failedCriterionIds: ["cr1"],
+    });
+    expect(ran).toBe(false);
+  });
+
+  it("handles missing failedCriterionIds gracefully (treats as empty list)", async () => {
+    const db = seedVerificationFailed();
+    const captured: string[] = [];
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: (input) => {
+        captured.push(input.prompt);
+        return Promise.resolve({
+          text: '```json\n{"body":"a lesson"}\n```',
+          usage: { input: 50, output: 10, cacheCreation: 0, cacheRead: 0 },
+        });
+      },
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    await worker.processJob({
+      trigger: "verification_failed",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      goalId: "g1",
+      // failedCriterionIds omitted intentionally
+    });
+    expect(captured).toHaveLength(1);
+    expect(captured[0]).toMatch(/Goal:/);
+  });
+});
+
 describe("createDerivationWorker — memory triggers", () => {
   let db: Database.Database;
   beforeEach(() => {

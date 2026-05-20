@@ -11,7 +11,9 @@ import {
   buildRecoveryPrompt,
   buildRetrospectivePrompt,
   buildPreferencePrompt,
+  buildVerificationFailedPrompt,
 } from "./prompts.js";
+import { buildVerificationFailedTrail } from "./verification-failed-trail.js";
 import { parseDerivationOutput, parseMemoryDerivation } from "./parse-output.js";
 import { createSkillCandidatesRepository } from "../memory/skill-candidates-repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
@@ -131,6 +133,17 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
           return;
         }
         prompt = buildPreferencePrompt(trail);
+      } else if (job.trigger === "verification_failed") {
+        const trail = buildVerificationFailedTrail(
+          db,
+          job.goalId ?? "",
+          job.failedCriterionIds ?? [],
+        );
+        if (trail === null) {
+          log(`verification_failed: goal ${job.goalId ?? "(none)"} not found — skipping`);
+          return;
+        }
+        prompt = buildVerificationFailedPrompt(trail);
       } else {
         // Exhaustiveness guard: a trigger added to DerivationJob without a
         // branch here becomes a compile error rather than silently running
