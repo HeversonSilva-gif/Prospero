@@ -12,6 +12,7 @@ import {
   OPERATING_MANUAL_NAME,
   OPERATING_MANUAL_DESCRIPTION,
 } from "../orchestrator/operating-manual.js";
+import { ALGORITHM, ALGORITHM_DESCRIPTION, ALGORITHM_NAME } from "../orchestrator/algorithm.js";
 import type { ToolContext } from "./tools.js";
 
 type Tool = {
@@ -66,6 +67,14 @@ const skillSearch: Tool = {
         shared: true,
       });
     }
+    if (ALGORITHM_NAME.includes(q) || ALGORITHM_DESCRIPTION.toLowerCase().includes(q)) {
+      skills.unshift({
+        id: ALGORITHM_NAME,
+        name: ALGORITHM_NAME,
+        description: ALGORITHM_DESCRIPTION,
+        shared: true,
+      });
+    }
     return JSON.stringify({ skills });
   },
 };
@@ -85,6 +94,9 @@ const skillRead: Tool = {
       // The operating manual is a bundled document, not a row — serve it here.
       if (name === OPERATING_MANUAL_NAME) {
         return JSON.stringify({ name: OPERATING_MANUAL_NAME, version: 1, body: OPERATING_MANUAL });
+      }
+      if (name === ALGORITHM_NAME) {
+        return JSON.stringify({ name: ALGORITHM_NAME, version: 1, body: ALGORITHM });
       }
       throw new Error(`skill not found: ${name}`);
     }
@@ -116,6 +128,9 @@ const skillCreate: Tool = {
     };
     if (name === OPERATING_MANUAL_NAME) {
       throw new Error(`"${OPERATING_MANUAL_NAME}" is a reserved bundled skill name`);
+    }
+    if (name === ALGORITHM_NAME) {
+      throw new Error(`"${ALGORITHM_NAME}" is a reserved bundled skill name`);
     }
     assertSane(body);
     assertSane(description);

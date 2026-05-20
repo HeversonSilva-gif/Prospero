@@ -190,6 +190,35 @@ describe("skill_promote tool", () => {
   });
 });
 
+describe("algorithm bundled skill fallbacks", () => {
+  it("skill_read returns the algorithm body when no DB row exists", async () => {
+    const ctx = newCtx();
+    const out = JSON.parse(await tool("skill_read").run({ name: "algorithm" }, ctx)) as {
+      name: string;
+      version: number;
+      body: string;
+    };
+    expect(out.name).toBe("algorithm");
+    expect(out.version).toBe(1);
+    expect(out.body).toMatch(/OBSERVE/);
+  });
+
+  it("skill_search surfaces the algorithm when the query matches its name", async () => {
+    const ctx = newCtx();
+    const out = JSON.parse(await tool("skill_search").run({ query: "algo" }, ctx)) as {
+      skills: { name: string }[];
+    };
+    expect(out.skills.some((s) => s.name === "algorithm")).toBe(true);
+  });
+
+  it("agents cannot create a skill named 'algorithm' (reserved)", async () => {
+    const ctx = newCtx();
+    await expect(
+      tool("skill_create").run({ name: "algorithm", description: "x", body: "x" }, ctx),
+    ).rejects.toThrow(/reserved/);
+  });
+});
+
 describe("session_search tool", () => {
   it("finds past messages by keyword", async () => {
     const ctx = newCtx();
