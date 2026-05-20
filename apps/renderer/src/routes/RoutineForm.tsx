@@ -1,4 +1,4 @@
-import { useEffect, useState, type FC, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FC, type FormEvent } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { EventSpec, ScheduleSpec } from "@prospero/shared";
@@ -42,6 +42,16 @@ export const RoutineForm: FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [runStatus, setRunStatus] = useState<"idle" | "fired" | "error">("idle");
+
+  const runStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (runStatusTimerRef.current !== null) {
+        clearTimeout(runStatusTimerRef.current);
+      }
+    };
+  }, []);
 
   // Load routines (for edit lookup) + agents.
   useEffect(() => {
@@ -138,13 +148,16 @@ export const RoutineForm: FC = () => {
 
   const handleRunNow = async (): Promise<void> => {
     if (!isEdit || id === undefined) return;
+    if (runStatusTimerRef.current !== null) {
+      clearTimeout(runStatusTimerRef.current);
+    }
     try {
       await runNowFn(id);
       setRunStatus("fired");
     } catch {
       setRunStatus("error");
     }
-    setTimeout(() => setRunStatus("idle"), 2000);
+    runStatusTimerRef.current = setTimeout(() => setRunStatus("idle"), 2000);
   };
 
   return (
