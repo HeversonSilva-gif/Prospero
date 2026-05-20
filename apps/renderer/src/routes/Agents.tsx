@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useAgentsStore } from "../stores/agents.js";
 import { RoleTemplateGalleryModal } from "../components/RoleTemplateGalleryModal.js";
+import { TrustTierBadge } from "../components/trust/TrustTierBadge.js";
 import type { AgentStatus } from "@prospero/shared";
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
@@ -58,6 +59,9 @@ export const Agents: FC = () => {
                   <span className="text-sm font-semibold text-ink truncate flex-1">{a.name}</span>
                 </div>
                 <div className="text-xs text-ink-muted">{a.role}</div>
+                <div className="mt-1">
+                  <TrustTierBadge tier={a.trustTier} />
+                </div>
                 {showAction && (
                   <div className="mt-2 text-[11px] italic text-ink-soft truncate">
                     {a.currentAction}
