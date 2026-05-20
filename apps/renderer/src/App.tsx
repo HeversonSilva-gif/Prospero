@@ -7,7 +7,10 @@ import { useMessagesStore } from "./stores/messages.js";
 import { useInboxStore } from "./stores/inbox.js";
 import { useCompaniesStore } from "./stores/companies.js";
 import { Dashboard } from "./routes/Dashboard.js";
-import { Settings } from "./routes/Settings.js";
+import { Ajustes } from "./routes/Ajustes.js";
+import { AjustesConta } from "./routes/AjustesConta.js";
+import { AjustesPreferencias } from "./routes/AjustesPreferencias.js";
+import { AjustesAvancado } from "./routes/AjustesAvancado.js";
 import { SetupWizard } from "./routes/SetupWizard.js";
 import { Agent as AgentRoute } from "./routes/Agent.js";
 import { OrgPlan } from "./routes/OrgPlan.js";
@@ -225,8 +228,40 @@ export const App = () => {
             path="/settings"
             element={
               <Layout>
-                <Settings />
+                <Ajustes />
               </Layout>
+            }
+          />
+          <Route
+            path="/settings/conta"
+            element={
+              hasToken ? (
+                <Layout>
+                  <AjustesConta />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/settings/preferencias"
+            element={
+              <Layout>
+                <AjustesPreferencias />
+              </Layout>
+            }
+          />
+          <Route
+            path="/settings/avancado"
+            element={
+              hasToken ? (
+                <Layout>
+                  <AjustesAvancado />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
             }
           />
           <Route
