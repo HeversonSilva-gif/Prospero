@@ -7,6 +7,7 @@ import { useCostsQuery } from "../../hooks/useCostsQuery.js";
 import { formatCents, formatTokens } from "../../lib/costs/formatCents.js";
 import { BudgetSection } from "./BudgetSection.js";
 import { Section, LoadingState } from "../ui/index.js";
+import { TrustHistoryPanel } from "./TrustHistoryPanel.js";
 
 type Props = { agentId: string };
 
@@ -139,6 +140,9 @@ export const StatsTab: FC<Props> = ({ agentId }) => {
           </Section>
         </div>
       </div>
+
+      {/* Full-width trust history below the two columns. */}
+      <TrustHistoryPanel agentId={agentId} />
     </div>
   );
 };
