@@ -54,6 +54,7 @@ import {
   type TrustEvent,
   type TierEvaluation,
   type Briefing,
+  type Routine,
 } from "@prospero/shared";
 
 contextBridge.exposeInMainWorld("prospero", {
@@ -480,6 +481,18 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.BRIEFING_GET, args) as Promise<Briefing>,
     markReviewed: (args: { companyId: string }) =>
       ipcRenderer.invoke(IPC.BRIEFING_MARK_REVIEWED, args) as Promise<void>,
+  },
+  routines: {
+    list: (args: { companyId: string }): Promise<Routine[]> =>
+      ipcRenderer.invoke(IPC.ROUTINES_LIST, args) as Promise<Routine[]>,
+    create: (args: { input: unknown }): Promise<Routine> =>
+      ipcRenderer.invoke(IPC.ROUTINES_CREATE, args) as Promise<Routine>,
+    update: (args: { input: unknown }): Promise<Routine> =>
+      ipcRenderer.invoke(IPC.ROUTINES_UPDATE, args) as Promise<Routine>,
+    delete: (args: { id: string }): Promise<{ ok: true }> =>
+      ipcRenderer.invoke(IPC.ROUTINES_DELETE, args) as Promise<{ ok: true }>,
+    runNow: (args: { id: string }): Promise<{ ok: true }> =>
+      ipcRenderer.invoke(IPC.ROUTINES_RUN_NOW, args) as Promise<{ ok: true }>,
   },
   remote: {
     testConnection: () =>

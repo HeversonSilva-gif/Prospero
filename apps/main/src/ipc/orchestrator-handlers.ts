@@ -63,6 +63,8 @@ import { createCostRecorder, type CostsBroadcast } from "../costs/recorder.js";
 import { checkAndPause, type EnforceBudgetDeps } from "../costs/enforce-budget.js";
 import { rollUpYesterdayIfNeeded } from "../costs/day-summary.js";
 import { createInboxRepository } from "../inbox/repository.js";
+import { tryGetRoutinesEngine } from "../routines/index.js";
+import { registerRoutinesHandlers } from "./routines-handlers.js";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -542,6 +544,22 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       },
     ).catch(onError);
   };
+
+  // M15 PR-A — wire the routines engine's bridge now that router and
+  // ensureAgentRunner are in scope. The engine ticks immediately on start
+  // so any due-on-boot routine fires from inside this call (catch-up).
+  const routinesEngine = tryGetRoutinesEngine();
+  if (routinesEngine !== null) {
+    routinesEngine.start({
+      getAgent: (id) => agents.getById(id),
+      ensureAgentRunner: (agent) => ensureAgentRunner(agent),
+      enqueue: (agentId, threadId, content, sender) =>
+        router.enqueue(agentId, threadId, content, sender),
+      primaryThreadId: (agentId) =>
+        messages.ensureThread(agents.getById(agentId)?.companyId ?? "", ["user", agentId]).id,
+    });
+  }
+  registerRoutinesHandlers(db);
 
   // Restart helper for config mutations. Trocar --model / --allowedTools /
   // --system-prompt exige re-spawn (claude lê esses args só na inicialização).

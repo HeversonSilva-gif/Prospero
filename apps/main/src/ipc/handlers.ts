@@ -26,13 +26,18 @@ import { registerBriefingHandlers } from "./briefing-handlers.js";
 import { initRecorder } from "../activity/index.js";
 import { initInbox, createInboxRepository } from "../inbox/index.js";
 import { initDerivation } from "../derivation/index.js";
+import { initRoutinesEngine, tryGetRoutinesEngine } from "../routines/index.js";
 import { recoverStuckVerifications } from "../verification/index.js";
 import { buildVerificationDeps } from "../verification/deps.js";
 
 export const registerIpcHandlers = (db: Database.Database): void => {
   ipcMain.handle(IPC.PING, () => "pong");
   const derivation = initDerivation(db);
-  initRecorder(db, derivation.onActivity);
+  initRecorder(db, (row) => {
+    derivation.onActivity(row);
+    tryGetRoutinesEngine()?.onActivity(row);
+  });
+  initRoutinesEngine(db);
   initInbox(createInboxRepository(db));
   // Fire-and-forget: at most a handful of goals can be stuck `verifying` at
   // restart (single-user scale) — no throttle needed.
