@@ -22,6 +22,8 @@ import { useIssuesStore } from "./stores/issues.js";
 import { Roles } from "./routes/Roles.js";
 import { Telos } from "./routes/Telos.js";
 import { Briefing } from "./routes/Briefing.js";
+import { Routines } from "./routes/Routines.js";
+import { RoutineForm } from "./routes/RoutineForm.js";
 import { Org } from "./routes/Org.js";
 import { AgentNew } from "./routes/AgentNew.js";
 import { SidebarFooter } from "./components/SidebarFooter.js";
@@ -65,6 +67,14 @@ const Sidebar = () => {
           }
         >
           {t("nav.briefing")}
+        </NavLink>
+        <NavLink
+          to="/routines"
+          className={({ isActive }) =>
+            `px-2 py-1 rounded ${isActive ? "bg-brand-bg text-brand" : "hover:bg-surface-soft"}`
+          }
+        >
+          {t("nav.routines")}
         </NavLink>
         <NavLink
           to="/dashboard"
@@ -348,6 +358,42 @@ export const App = () => {
               hasToken ? (
                 <Layout>
                   <Briefing />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/routines"
+            element={
+              hasToken ? (
+                <Layout>
+                  <Routines />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/routines/new"
+            element={
+              hasToken ? (
+                <Layout>
+                  <RoutineForm />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
+            }
+          />
+          <Route
+            path="/routines/:id"
+            element={
+              hasToken ? (
+                <Layout>
+                  <RoutineForm />
                 </Layout>
               ) : (
                 <Navigate to="/setup" replace />
