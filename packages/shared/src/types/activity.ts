@@ -57,6 +57,8 @@ export const ACTIVITY_ACTIONS = [
   "goal.narrated_step",
   // Verification (1) — M13 PR-D; dispatcher trigger
   "verification.failed",
+  // Security (1) — M13 PR-E; containment zone blocked
+  "security.zone_blocked",
   // Session / Cost (3) — session.* optional in PR-A; cost.day_summary depends M8
   "session.started",
   "session.ended",

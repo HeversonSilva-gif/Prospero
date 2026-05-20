@@ -143,4 +143,11 @@ export const ActivityPayloads = {
     goalId: stringId,
     failedCriteria: z.array(stringId),
   }),
+
+  // Security (1) — M13 PR-E containment zone blocked
+  "security.zone_blocked": z.object({
+    attemptedPath: z.string(),
+    zoneKind: z.enum(["company", "agent", "shared", "system"]),
+    reason: z.string(),
+  }),
 } satisfies Record<ActivityAction, z.ZodTypeAny>;
