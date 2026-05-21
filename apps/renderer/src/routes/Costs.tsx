@@ -2,9 +2,9 @@
 // This whole file is in the lazy chunk loaded by React.lazy in App.tsx.
 
 import { useEffect, useMemo, useState, type FC } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAgentsStore } from "../stores/agents.js";
+import { AjustesPageHeader } from "../components/ajustes/AjustesPageHeader.js";
 import { useProjectsStore } from "../stores/projects.js";
 import { useCostsQuery, type CostsQueryFilters } from "../hooks/useCostsQuery.js";
 import { useCostsToday } from "../hooks/useCostsToday.js";
@@ -37,21 +37,11 @@ const DEFAULT_FILTERS: CostsQueryFilters = {
 
 export const Costs: FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const companyId = useCompanyId();
 
-  // /costs is reached from Ajustes, the dashboard widget, and an agent's Stats
-  // tab — a fixed "back to Ajustes" link would be wrong from the others, so go
-  // back to wherever the user came from.
-  const backLink = (
-    <button
-      type="button"
-      onClick={() => navigate(-1)}
-      className="text-xs text-ink-muted hover:text-ink mb-4"
-    >
-      ← {t("common.back")}
-    </button>
-  );
+  // Gastos is an Ajustes sub-page — use the same breadcrumb header as Conta /
+  // Preferências / Avançado so the back affordance is consistent across screens.
+  const backLink = <AjustesPageHeader title={t("ajustes.gastos.title")} />;
   const agents = useAgentsStore((s) => s.agents);
   const projects = useProjectsStore((s) => s.projects);
 

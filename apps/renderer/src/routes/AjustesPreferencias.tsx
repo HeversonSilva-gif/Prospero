@@ -16,16 +16,12 @@ export const AjustesPreferencias: FC = () => {
       <h1 className="text-2xl font-bold text-ink mb-6">{t("ajustes.preferencias.title")}</h1>
 
       <section className="bg-surface-card border border-surface-border rounded-lg p-5 mb-4">
-        <h2 className="text-base font-semibold text-brand-dark mb-3">
-          {t("settings.theme.title", { defaultValue: "Theme" })}
-        </h2>
+        <h2 className="text-base font-semibold text-brand-dark mb-3">{t("settings.theme")}</h2>
         <ThemeToggle />
       </section>
 
       <section className="bg-surface-card border border-surface-border rounded-lg p-5 mb-4">
-        <h2 className="text-base font-semibold text-brand-dark mb-3">
-          {t("settings.language.title", { defaultValue: "Language" })}
-        </h2>
+        <h2 className="text-base font-semibold text-brand-dark mb-3">{t("settings.language")}</h2>
         <LanguageToggle />
       </section>
     </div>

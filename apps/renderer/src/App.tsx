@@ -135,6 +135,9 @@ export const App = () => {
           if (activeId === ev.companyId) void loadAgents(ev.companyId);
           break;
         }
+        case "trust-tier-changed":
+          applyTrustTier(ev.agentId, ev.tier);
+          break;
         case "tool-call":
         case "error":
           break;
