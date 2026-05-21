@@ -37,6 +37,7 @@ import {
   type GoalWithPlan,
   type CreateGoalInput,
   type ExecutePlanResult,
+  type UpdaterStatus,
   type Skill,
   type Memory,
   type SessionSearchHit,
@@ -439,6 +440,16 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.GOALS_NARRATED_RESUME, args) as Promise<{ ok: true }>,
     narratedRollback: (args: { goalId: string }) =>
       ipcRenderer.invoke(IPC.GOALS_NARRATED_ROLLBACK, args) as Promise<{ aborted: true }>,
+  },
+  updater: {
+    checkNow: () => ipcRenderer.invoke(IPC.UPDATER_CHECK_NOW) as Promise<void>,
+    status: () => ipcRenderer.invoke(IPC.UPDATER_STATUS) as Promise<UpdaterStatus>,
+    installNow: () => ipcRenderer.invoke(IPC.UPDATER_INSTALL_NOW) as Promise<void>,
+    onEvent: (cb: (status: UpdaterStatus) => void) => {
+      const handler = (_e: unknown, status: UpdaterStatus) => cb(status);
+      ipcRenderer.on(IPC.UPDATER_EVENT, handler);
+      return () => ipcRenderer.removeListener(IPC.UPDATER_EVENT, handler);
+    },
   },
   isa: {
     get: (args: { goalId: string }) =>

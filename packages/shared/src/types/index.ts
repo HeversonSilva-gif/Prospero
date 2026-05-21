@@ -23,4 +23,5 @@ export * from "./routine.js";
 export * from "./security.js";
 export * from "./trust.js";
 export * from "./briefing.js";
+export * from "./updater.js";
 export * from "./wire-protocol.js";

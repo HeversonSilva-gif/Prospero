@@ -54,6 +54,7 @@ import type {
   TierEvaluation,
   Briefing,
   Routine,
+  UpdaterStatus,
 } from "@prospero/shared";
 
 declare global {
@@ -358,6 +359,12 @@ declare global {
         update: (args: { input: unknown }) => Promise<Routine>;
         delete: (args: { id: string }) => Promise<{ ok: true }>;
         runNow: (args: { id: string }) => Promise<{ ok: true }>;
+      };
+      updater: {
+        checkNow: () => Promise<void>;
+        status: () => Promise<UpdaterStatus>;
+        installNow: () => Promise<void>;
+        onEvent: (cb: (status: UpdaterStatus) => void) => () => void;
       };
       remote: {
         testConnection: () => Promise<{ ok: boolean; message: string }>;

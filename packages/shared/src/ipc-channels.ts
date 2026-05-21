@@ -147,6 +147,10 @@ export const IPC = {
   ROUTINES_UPDATE: "routines:update",
   ROUTINES_DELETE: "routines:delete",
   ROUTINES_RUN_NOW: "routines:run-now",
+  UPDATER_CHECK_NOW: "updater:check-now",
+  UPDATER_STATUS: "updater:status",
+  UPDATER_INSTALL_NOW: "updater:install-now",
+  UPDATER_EVENT: "updater:event",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

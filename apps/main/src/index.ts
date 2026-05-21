@@ -21,6 +21,7 @@ import { createProjectsRepository } from "./projects/repository.js";
 import { getRecorder } from "./activity/index.js";
 import { startHeartbeat } from "./orchestrator/heartbeat.js";
 import { runMemoryMaintenance } from "./memory/maintenance.js";
+import { initUpdater, checkForUpdatesOnLaunch } from "./updater/index.js";
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -150,6 +151,11 @@ void app
     mainWindow = createMainWindow();
     registerWindowHandlers(mainWindow);
     tray = createTray(getWindow);
+
+    // M17 — auto-update: register the IPC bridge + event handlers, then kick off
+    // a background check (no-op in dev / unpackaged).
+    initUpdater();
+    checkForUpdatesOnLaunch();
 
     stopHeartbeat = startHeartbeat({
       db,
