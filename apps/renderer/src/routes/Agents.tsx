@@ -140,7 +140,7 @@ export const Agents: FC = () => {
           <svg
             width={svgWidth}
             height={svgHeight}
-            className="bg-surface-card rounded shadow-sm select-none"
+            className="mx-auto block select-none"
             onPointerMove={onSvgPointerMove}
             onPointerUp={onSvgPointerUp}
           >

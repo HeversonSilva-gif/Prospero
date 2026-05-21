@@ -18,6 +18,12 @@ const STATUS_FILL: Record<string, string> = {
   error: "#e2434a",
 };
 
+// SVG <text> does not wrap or ellipsize, so long role names (e.g. "Estrategista
+// de Conteúdo / Copywriter") overflowed the 180px card. Clip by character count;
+// the full value stays available via the <title> tooltip.
+const truncate = (s: string, max: number): string =>
+  s.length > max ? `${s.slice(0, max - 1)}…` : s;
+
 export const OrgNode: FC<Props> = ({
   node,
   selected,
@@ -58,10 +64,12 @@ export const OrgNode: FC<Props> = ({
         {node.name.slice(0, 2).toUpperCase()}
       </text>
       <text x={44} y={22} fontSize="13" fontWeight="700" fill="#1f2937" pointerEvents="none">
-        {node.name}
+        {truncate(node.name, 17)}
+        <title>{node.name}</title>
       </text>
       <text x={44} y={38} fontSize="10" fill="#6b7280" pointerEvents="none">
-        {node.role !== "" ? node.role : "—"}
+        {truncate(node.role !== "" ? node.role : "—", 22)}
+        <title>{node.role}</title>
       </text>
       <circle cx={20} cy={62} r={4} fill={fill} pointerEvents="none" />
       <text x={32} y={66} fontSize="10" fill="#6b7280" pointerEvents="none">
