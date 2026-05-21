@@ -83,8 +83,16 @@ export default defineConfig([
     outExtension: () => ({ js: ".cjs" }),
   },
   {
+    // 3. MCP server — CJS, NOT ESM. claude spawns this as a separate Node
+    //    process (ELECTRON_RUN_AS_NODE), and Node's ESM→CJS interop loader
+    //    crashes when an ESM entry imports a native CJS addon like better-sqlite3
+    //    ("cjsPreparseModuleExports: Cannot read properties of undefined" — seen
+    //    in the packaged app, giving claude "Available MCP tools: none"). A CJS
+    //    entry require()s native modules directly, with no ESM preparse. The main
+    //    process is ESM but is loaded by Electron's own loader, which handles the
+    //    interop — this child is not.
     entry: { "mcp/server": "src/mcp/server.ts" },
-    format: ["esm"],
+    format: ["cjs"],
     target: "node20",
     outDir: "dist",
     splitting: false,
@@ -92,9 +100,6 @@ export default defineConfig([
     clean: false,
     external: ["better-sqlite3", "fsevents"],
     noExternal: [/^(?!(electron|better-sqlite3|fsevents)$).+/],
-    // ESM output needs a real require() in scope (see index entry above).
-    banner: {
-      js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);",
-    },
+    outExtension: () => ({ js: ".cjs" }),
   },
 ]);

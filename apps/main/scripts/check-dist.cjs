@@ -6,11 +6,11 @@
 const { existsSync } = require("node:fs");
 const { resolve } = require("node:path");
 
-const required = ["dist/index.js", "dist/ipc/preload.cjs", "dist/mcp/server.js"];
+const required = ["dist/index.js", "dist/ipc/preload.cjs", "dist/mcp/server.cjs"];
 const missing = required.filter((p) => !existsSync(resolve(p)));
 
 if (missing.length > 0) {
   console.error(`[check-dist] FAIL — missing build outputs: ${missing.join(", ")}`);
   process.exit(1);
 }
-console.log("[check-dist] OK — index.js, ipc/preload.cjs, mcp/server.js all present");
+console.log("[check-dist] OK — index.js, ipc/preload.cjs, mcp/server.cjs all present");

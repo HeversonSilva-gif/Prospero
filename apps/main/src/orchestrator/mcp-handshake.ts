@@ -22,7 +22,9 @@ export type HandshakeResult = {
 // copy. In dev there is no app.asar segment, so this is a no-op.
 export const resolveMcpServerPath = (override?: string): string => {
   if (override !== undefined) return override;
-  const p = resolve(__dirname, "./mcp/server.js");
+  // .cjs — the MCP server is built as CommonJS (see apps/main/tsup.config.ts) so
+  // it can require() native modules when spawned as a plain Node process.
+  const p = resolve(__dirname, "./mcp/server.cjs");
   const asarSeg = `${sep}app.asar${sep}`;
   return p.includes(asarSeg) ? p.replace(asarSeg, `${sep}app.asar.unpacked${sep}`) : p;
 };
