@@ -9,6 +9,7 @@ export type BuildTelosBlockDeps = {
   userDataDir: string;
   companyId: string;
   agentRole: string;
+  agentTemplateId?: string | null;
 };
 
 // The injected CEO body is capped — token discipline (§11).
@@ -17,7 +18,8 @@ const TELOS_CAP = 4000;
 export const buildTelosBlock = (deps: BuildTelosBlockDeps): string | undefined => {
   const body = readTelos(deps.userDataDir, deps.companyId);
   if (body === null || body.trim() === "") return undefined;
-  const isCeo = deps.agentRole === "ceo" || deps.agentRole === "CEO";
+  const isCeo =
+    deps.agentRole === "ceo" || deps.agentRole === "CEO" || deps.agentTemplateId === "ceo";
   if (isCeo) {
     return `\n---\n\n# Company TELOS\n\nThis is what the company exists for — the north star every goal is accountable to:\n\n${body.trim().slice(0, TELOS_CAP)}\n`;
   }

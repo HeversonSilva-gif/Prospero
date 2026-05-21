@@ -66,7 +66,10 @@ export const applyOrgPlan = (
 
       const ceo = agentsRepo
         .listByCompany(plan.companyId)
-        .find((a) => a.role.toLowerCase() === "ceo" || a.templateId === "role-ceo");
+        .find(
+          (a) =>
+            a.templateId === "ceo" || a.role.toLowerCase() === "ceo" || a.templateId === "role-ceo",
+        );
       if (ceo === undefined) {
         throw Object.assign(new Error(`no CEO for company ${plan.companyId}`), {
           step: "lookup-ceo",

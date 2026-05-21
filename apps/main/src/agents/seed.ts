@@ -27,6 +27,12 @@ export const createCEOAgent = (
     companyId,
     name: "CEO",
     role: "Chief Executive Officer",
+    // Canonical CEO marker. Every CEO check (findCeo, build-args isCeo so the CEO
+    // gets the goals/org planning prompt, PedirAlgo, IssueCommentsList) keys off
+    // templateId === "ceo" (or role === "ceo"). Without this the CEO is invisible
+    // to all of them: no planning prompt, "Nenhum CEO" in Pedir algo, and
+    // requestPlan can't find it. `role` stays the human-readable display.
+    templateId: "ceo",
     systemPrompt,
     mode: "supervised",
     alwaysOn: false,

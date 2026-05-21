@@ -26,7 +26,7 @@ export const buildClaudeArgs = (
     canHire: agent.canHire,
     canAssign: agent.canAssign,
   });
-  const isCeo = agent.role === "ceo" || agent.role === "CEO";
+  const isCeo = agent.role === "ceo" || agent.role === "CEO" || agent.templateId === "ceo";
   const narratedBlock = opts.narratedActive === true ? buildNarratedBlock() : undefined;
   const args = [
     "--system-prompt",
