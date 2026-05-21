@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { ActivityEventRow, ActivityQueryFilters } from "@prospero/shared";
 import { useAgentsStore } from "../stores/agents.js";
+import { useActiveCompanyId } from "../hooks/useActiveCompanyId.js";
 import {
   ActivityFilters,
   whenKeyToSinceMs,
@@ -19,21 +20,10 @@ export const matchesSearch = (row: ActivityEventRow, query: string): boolean => 
   return haystack.includes(q);
 };
 
-const useCompanyId = (): string | null => {
-  const [companyId, setCompanyId] = useState<string | null>(null);
-  useEffect(() => {
-    void (async () => {
-      const companies = await window.prospero.companies.list();
-      if (companies.length > 0) setCompanyId(companies[0]!.id);
-    })();
-  }, []);
-  return companyId;
-};
-
 export const Activity: FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const companyId = useCompanyId();
+  const companyId = useActiveCompanyId();
   const agents = useAgentsStore((s) => s.agents);
 
   const [baseFilters, setBaseFilters] = useState<ActivityQueryFilters>({});

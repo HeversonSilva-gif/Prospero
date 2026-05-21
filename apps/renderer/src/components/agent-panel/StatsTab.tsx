@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import type { AgentStats } from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 import { useCostsQuery } from "../../hooks/useCostsQuery.js";
+import { useActiveCompanyId } from "../../hooks/useActiveCompanyId.js";
 import { formatCents, formatTokens } from "../../lib/costs/formatCents.js";
 import { BudgetSection } from "./BudgetSection.js";
 import { Section, LoadingState } from "../ui/index.js";
@@ -14,17 +15,6 @@ type Props = { agentId: string };
 const formatTimestamp = (ms: number | null): string => {
   if (ms === null) return "—";
   return new Date(ms).toLocaleString();
-};
-
-const useCompanyId = (): string | null => {
-  const [companyId, setCompanyId] = useState<string | null>(null);
-  useEffect(() => {
-    void (async () => {
-      const companies = await window.prospero.companies.list();
-      if (companies.length > 0) setCompanyId(companies[0]!.id);
-    })();
-  }, []);
-  return companyId;
 };
 
 /** Single stat cell — label on top, value below */
@@ -50,7 +40,7 @@ export const StatsTab: FC<Props> = ({ agentId }) => {
   const { t } = useTranslation();
   const fetchStats = useAgentsStore((s) => s.fetchStats);
   const [stats, setStats] = useState<AgentStats | null>(null);
-  const companyId = useCompanyId();
+  const companyId = useActiveCompanyId();
   const { result } = useCostsQuery(companyId, {
     range: "7d",
     scope: "agent",

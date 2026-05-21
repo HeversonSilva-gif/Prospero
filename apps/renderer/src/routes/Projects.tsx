@@ -4,6 +4,7 @@ import type { Project } from "@prospero/shared";
 import { useProjectsStore } from "../stores/projects.js";
 import { useAgentsStore } from "../stores/agents.js";
 import { useIssuesStore } from "../stores/issues.js";
+import { useActiveCompanyId } from "../hooks/useActiveCompanyId.js";
 import { ProjectListItem } from "../components/projects/ProjectListItem.js";
 import { ProjectDetail } from "../components/projects/ProjectDetail.js";
 import { ProjectFormModal } from "../components/projects/ProjectFormModal.js";
@@ -27,7 +28,7 @@ export const Projects: FC = () => {
   const removeIssue = useIssuesStore((s) => s.remove);
   const upsertIssue = useIssuesStore((s) => s.upsert);
 
-  const [companyId, setCompanyId] = useState<string | null>(null);
+  const companyId = useActiveCompanyId();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState<Project | null>(null);
@@ -36,15 +37,10 @@ export const Projects: FC = () => {
   const visible = showArchived ? projects : projects.filter((p) => p.archivedAt === null);
 
   useEffect(() => {
-    void (async () => {
-      const cs = await window.prospero.companies.list();
-      if (cs.length > 0) {
-        setCompanyId(cs[0]!.id);
-        void load(cs[0]!.id);
-        void loadIssues(cs[0]!.id);
-      }
-    })();
-  }, [load, loadIssues]);
+    if (companyId === null) return;
+    void load(companyId);
+    void loadIssues(companyId);
+  }, [companyId, load, loadIssues]);
 
   useEffect(() => {
     if (companyId === null) return;

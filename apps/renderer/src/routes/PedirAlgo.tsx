@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { isCeoAgent, type GoalWithPlan, type Message } from "@prospero/shared";
 import { useAgentsStore } from "../stores/agents.js";
+import { useActiveCompanyId } from "../hooks/useActiveCompanyId.js";
 import { MessageList } from "../components/MessageList.js";
 import { Composer } from "../components/Composer.js";
 import { deriveGoalTitle, scopeUserMessages } from "../lib/pedir.js";
@@ -18,19 +19,12 @@ export const PedirAlgo: FC = () => {
   const agents = useAgentsStore((s) => s.agents);
   const ceo = useMemo(() => agents.find(isCeoAgent) ?? null, [agents]);
 
-  const [companyId, setCompanyId] = useState<string | null>(null);
+  const companyId = useActiveCompanyId();
   const [draft, setDraft] = useState("");
   const [starting, setStarting] = useState(false);
   const [goal, setGoal] = useState<GoalWithPlan | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [requesting, setRequesting] = useState(false);
-
-  useEffect(() => {
-    void (async () => {
-      const cs = await window.prospero.companies.list();
-      if (cs.length > 0) setCompanyId(cs[0]!.id);
-    })();
-  }, []);
 
   // Load goal + scoped conversation when viewing an in-progress request.
   const reload = useCallback(async () => {

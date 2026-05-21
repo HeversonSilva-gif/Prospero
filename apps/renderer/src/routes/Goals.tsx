@@ -1,23 +1,13 @@
-import { useEffect, useState, type FC } from "react";
+import { useEffect, type FC } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useGoalsStore } from "../stores/goals.js";
+import { useActiveCompanyId } from "../hooks/useActiveCompanyId.js";
 import { GoalsTree } from "../components/GoalsTree.js";
-
-const useCompanyId = (): string | null => {
-  const [companyId, setCompanyId] = useState<string | null>(null);
-  useEffect(() => {
-    void (async () => {
-      const companies = await window.prospero.companies.list();
-      if (companies.length > 0) setCompanyId(companies[0]!.id);
-    })();
-  }, []);
-  return companyId;
-};
 
 export const Goals: FC = () => {
   const { t } = useTranslation();
-  const companyId = useCompanyId();
+  const companyId = useActiveCompanyId();
   const goals = useGoalsStore((s) => s.goals);
   const loaded = useGoalsStore((s) => s.loaded);
   const load = useGoalsStore((s) => s.load);

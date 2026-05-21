@@ -6,6 +6,7 @@ import type { Issue, IssueStatus, IssuePriority } from "@prospero/shared";
 import { useIssuesStore } from "../stores/issues.js";
 import { useProjectsStore } from "../stores/projects.js";
 import { useAgentsStore } from "../stores/agents.js";
+import { useActiveCompanyId } from "../hooks/useActiveCompanyId.js";
 import { KanbanColumn } from "../components/issues/KanbanColumn.js";
 import { IssueCard } from "../components/issues/IssueCard.js";
 import { IssueFormModal } from "../components/issues/IssueFormModal.js";
@@ -26,7 +27,7 @@ export const Issues: FC = () => {
   const projects = useProjectsStore((s) => s.projects);
   const agents = useAgentsStore((s) => s.agents);
 
-  const [companyId, setCompanyId] = useState<string | null>(null);
+  const companyId = useActiveCompanyId();
   const [showForm, setShowForm] = useState(false);
   const [filterProject, setFilterProject] = useState<string>("");
   const [filterAssignee, setFilterAssignee] = useState<string>("");
@@ -35,14 +36,9 @@ export const Issues: FC = () => {
   const selectedIssueId = searchParams.get("selected");
 
   useEffect(() => {
-    void (async () => {
-      const cs = await window.prospero.companies.list();
-      if (cs.length > 0) {
-        setCompanyId(cs[0]!.id);
-        void load(cs[0]!.id);
-      }
-    })();
-  }, [load]);
+    if (companyId === null) return;
+    void load(companyId);
+  }, [companyId, load]);
 
   useEffect(() => {
     // Targeted refresh: avoid replacing the whole array on every change. The

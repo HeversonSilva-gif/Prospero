@@ -1,10 +1,11 @@
 // /costs route — wires header + filters + charts + table to PR-A IPCs.
 // This whole file is in the lazy chunk loaded by React.lazy in App.tsx.
 
-import { useEffect, useMemo, useState, type FC } from "react";
+import { useMemo, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import { useAgentsStore } from "../stores/agents.js";
 import { AjustesPageHeader } from "../components/ajustes/AjustesPageHeader.js";
+import { useActiveCompanyId } from "../hooks/useActiveCompanyId.js";
 import { useProjectsStore } from "../stores/projects.js";
 import { useCostsQuery, type CostsQueryFilters } from "../hooks/useCostsQuery.js";
 import { useCostsToday } from "../hooks/useCostsToday.js";
@@ -17,17 +18,6 @@ import { CostsChartByAgent } from "../components/costs/CostsChartByAgent.js";
 import { CostsChartByProject } from "../components/costs/CostsChartByProject.js";
 import { CostsTableRecent } from "../components/costs/CostsTableRecent.js";
 
-const useCompanyId = (): string | null => {
-  const [companyId, setCompanyId] = useState<string | null>(null);
-  useEffect(() => {
-    void (async () => {
-      const companies = await window.prospero.companies.list();
-      if (companies.length > 0) setCompanyId(companies[0]!.id);
-    })();
-  }, []);
-  return companyId;
-};
-
 const DEFAULT_FILTERS: CostsQueryFilters = {
   range: "7d",
   scope: "company",
@@ -37,7 +27,7 @@ const DEFAULT_FILTERS: CostsQueryFilters = {
 
 export const Costs: FC = () => {
   const { t } = useTranslation();
-  const companyId = useCompanyId();
+  const companyId = useActiveCompanyId();
 
   // Gastos is an Ajustes sub-page — use the same breadcrumb header as Conta /
   // Preferências / Avançado so the back affordance is consistent across screens.

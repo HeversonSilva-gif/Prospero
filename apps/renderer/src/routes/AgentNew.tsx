@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAgentsStore } from "../stores/agents.js";
 import { useRolesStore } from "../stores/roles.js";
 import { useSettingsStore } from "../stores/settings.js";
+import { useActiveCompanyId } from "../hooks/useActiveCompanyId.js";
 
 export const AgentNew: FC = () => {
   const { t } = useTranslation();
@@ -16,7 +17,7 @@ export const AgentNew: FC = () => {
   const roles = useRolesStore((s) => s.roles);
   const loadRoles = useRolesStore((s) => s.load);
 
-  const [companyId, setCompanyId] = useState<string | null>(null);
+  const companyId = useActiveCompanyId();
   const [name, setName] = useState("");
   const [roleTemplateId, setRoleTemplateId] = useState<string>(initialTemplate);
   const [reportsTo, setReportsTo] = useState("");
@@ -27,10 +28,6 @@ export const AgentNew: FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void (async () => {
-      const cs = await window.prospero.companies.list();
-      if (cs.length > 0) setCompanyId(cs[0]!.id);
-    })();
     void loadRoles();
   }, [loadRoles]);
 
