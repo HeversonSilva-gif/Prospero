@@ -212,6 +212,20 @@ describe("submit_goal_plan", () => {
     expect(afterGoal?.status).toBe("proposed");
   });
 
+  it("accepts a plan passed as a stringified JSON object", async () => {
+    // The model often sends `plan` as a JSON string rather than an object.
+    const goalsRepo = createGoalsRepository(env.ctx.db);
+    const goal = goalsRepo.create({ companyId: env.companyId, title: "X" });
+    goalsRepo.updateStatus(goal.id, "planning");
+
+    const tool = findTool("submit_goal_plan");
+    const result = JSON.parse(
+      await tool.run({ goalId: goal.id, plan: JSON.stringify(validPayload) }, env.ctx),
+    ) as { version: number };
+    expect(result.version).toBe(1);
+    expect(goalsRepo.getById(goal.id)?.status).toBe("proposed");
+  });
+
   it("supersedes existing proposed plan when re-submitted in planning state", async () => {
     const goalsRepo = createGoalsRepository(env.ctx.db);
     const goal = goalsRepo.create({ companyId: env.companyId, title: "X" });

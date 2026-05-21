@@ -19,7 +19,20 @@ const submitOrgPlan: Tool = {
   inputSchema: z.object({ plan: z.unknown() }),
   // eslint-disable-next-line @typescript-eslint/require-await
   run: async (input, ctx) => {
-    const { plan } = submitOrgPlan.inputSchema.parse(input) as { plan: unknown };
+    const { plan: rawPlan } = submitOrgPlan.inputSchema.parse(input) as { plan: unknown };
+
+    // The model frequently passes `plan` as a stringified JSON object rather than
+    // a real object (seen live: "Expected object, received string"), which made
+    // the CEO retry until it gave up and nothing was proposed. Accept both:
+    // parse the string, then validate.
+    let plan: unknown = rawPlan;
+    if (typeof plan === "string") {
+      try {
+        plan = JSON.parse(plan);
+      } catch {
+        throw new Error("invalid_org_plan: plan must be a JSON object (could not parse string)");
+      }
+    }
 
     const parsed = OrgPlanPayloadSchema.safeParse(plan);
     if (!parsed.success) {

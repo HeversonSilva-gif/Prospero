@@ -208,7 +208,19 @@ const submitGoalPlan: Tool = {
       );
     }
 
-    const parsed = GoalPlanPayloadSchema.safeParse(parsedShell.plan);
+    // The model often passes `plan` as a stringified JSON object instead of a
+    // real object (same failure mode as submit_org_plan). Accept both: parse the
+    // string before validating.
+    let planValue: unknown = parsedShell.plan;
+    if (typeof planValue === "string") {
+      try {
+        planValue = JSON.parse(planValue);
+      } catch {
+        throw new Error("invalid_plan: plan must be a JSON object (could not parse string)");
+      }
+    }
+
+    const parsed = GoalPlanPayloadSchema.safeParse(planValue);
     if (!parsed.success) {
       const detail = parsed.error.issues.map((i) => ({
         path: i.path.join("."),

@@ -68,6 +68,17 @@ describe("submit_org_plan", () => {
     expect(inbox.map((i) => i.kind)).toEqual(["org_proposed"]);
   });
 
+  it("accepts a plan passed as a stringified JSON object", async () => {
+    // The model often sends `plan` as a JSON string rather than an object.
+    const out = JSON.parse(
+      await tool("submit_org_plan").run({ plan: JSON.stringify(validPayload) }, ctx),
+    ) as { orgPlanId: string };
+    expect(out.orgPlanId).toMatch(/^orgplan_/);
+    expect(createOrgPlansRepository(ctx.db).getById(out.orgPlanId)?.roles[0]?.name).toBe(
+      "Traffic Manager",
+    );
+  });
+
   it("supersedes a prior proposed plan", async () => {
     const first = JSON.parse(await tool("submit_org_plan").run({ plan: validPayload }, ctx)) as {
       orgPlanId: string;
