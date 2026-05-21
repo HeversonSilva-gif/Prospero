@@ -1,10 +1,18 @@
 import { z } from "zod";
-import { BrowserWindow } from "electron";
 import { IPC } from "@prospero/shared";
 import { createIssuesRepository } from "../issues/repository.js";
 import { createIssueCommentsRepository } from "../issues/comments-repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import type { ToolContext } from "./tools.js";
+
+// This module is bundled ONLY into the MCP server, which runs as a standalone
+// Node child (no Electron host) — importing "electron" crashed it ("Cannot find
+// module 'electron'") so claude saw no tools at all. There are no windows to
+// broadcast to here anyway; live UI updates flow through ctx.emit -> EVENTS_DIR.
+// This no-op shim keeps the (already dead) broadcast calls compiling.
+const BrowserWindow: {
+  getAllWindows: () => { webContents: { send: (channel: string, payload: unknown) => void } }[];
+} = { getAllWindows: () => [] };
 
 type Tool = {
   name: string;

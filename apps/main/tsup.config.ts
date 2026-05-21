@@ -99,7 +99,25 @@ export default defineConfig([
     sourcemap: true,
     clean: false,
     external: ["better-sqlite3", "fsevents"],
-    noExternal: [/^(?!(electron|better-sqlite3|fsevents)$).+/],
+    // NOTE: electron is intentionally NOT excluded here (unlike the other
+    // configs). Excluding it makes esbuild treat it as external and emit a bare
+    // require("electron") that the stub plugin below never sees. Keeping it in
+    // noExternal forces resolution, so the plugin can redirect it to the stub.
+    noExternal: [/^(?!(better-sqlite3|fsevents)$).+/],
     outExtension: () => ({ js: ".cjs" }),
+    // Modules shared with the main process (verification/deps.ts, db/path.ts)
+    // import "electron". The MCP server is a plain Node child with no Electron,
+    // so requiring it crashes the server (claude then sees zero tools). Resolve
+    // every "electron" import to an inert stub for THIS bundle only — the main
+    // bundle keeps the real electron.
+    esbuildPlugins: [
+      {
+        name: "stub-electron-in-mcp",
+        setup(build) {
+          const stub = resolve("src/mcp/electron-stub.ts");
+          build.onResolve({ filter: /^electron$/ }, () => ({ path: stub }));
+        },
+      },
+    ],
   },
 ]);
