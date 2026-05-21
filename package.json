@@ -4,6 +4,7 @@
   "private": true,
   "main": "apps/main/dist/index.js",
   "description": "Local orchestrator for Claude Code agents using Claude Max OAuth (no API key).",
+  "author": "Heverson Silva",
   "license": "MIT",
   "engines": {
     "node": ">=20",
@@ -43,6 +44,7 @@
     "@commitlint/config-conventional": "^19.5.0",
     "@eslint/js": "^9.10.0",
     "@playwright/test": "^1.60.0",
+    "electron": "33.0.2",
     "electron-builder": "^25.1.8",
     "electron-playwright-helpers": "^2.1.0",
     "eslint": "^9.10.0",
