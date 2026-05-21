@@ -143,18 +143,19 @@
 - **M15 PR-A ✅ MERGEADO** (2026-05-20) — engine backend das Routines. Migration `0035` (tabela `routines`) · shared types · 2 activity actions (`routine.fired`/`routine.skipped`) · zod input schemas · módulo `apps/main/src/routines/` (repository · `computeNextFire` · tick loop scheduler · event matcher · fireRoutine · engine composta com singleton lazy) · `Sender` ganha kind `"routine"` · 5 IPCs · wire em handlers + orchestrator + preload. Renderer-invisível. +66 testes.
 - **M15 PR-B ✅ MERGEADO** (2026-05-20) — UI das Routines. Rota `/routines` (linha rica com toggle inline + "Rodar agora" + summary formatter pt/en) · rota `/routines/new` e `/routines/:id` (form único com picker de recorrência em 4 tabs daily/weekly/monthly/interval + dropdown dos 4 eventos + agente-alvo + instrução · "Excluir" + "Rodar agora" inline). Bug-fix do PR-A absorvido: `routines:update` re-semeia `nextFireAt` quando `scheduleSpec` muda. SVG icons no lugar de emojis (regra do usuário). +26 testes.
 - **M15 PR-C ✅ MERGEADO** (2026-05-20) — consolidação. Painel de Histórico colapsável em `/routines/:id` lendo `activity_events` via `activity:query` (sem IPC novo). `SECURITY.md` seção Routines com threat model + gap V2. `roadmap.html` em tom leigo. Polish: dead i18n keys removidas, `setTimeout` cleanup em RoutineRow/RoutineForm, widen `TFunction` (elimina `as unknown as TFunction`), `formatRelative` extraído pra `lib/routines/`. +3 testes. **M15 3/3 PRs ✅ FECHADO.**
-- **1741 testes passing + 2 todo** · 0 lint/typecheck errors
-- HEAD `main`: M15 PR-C (consolidação — fecha o M15) mergeado (2026-05-20)
+- **M16 ✅ ESSENCIALMENTE COMPLETO** (9/10 PRs substantivos mergeados 2026-05-20) — redesign de interface pra "qualquer pessoa". Sidebar 11→5 itens (PR-A1); reskin Vitrine → Início (PR-B1); grade de Ajustes com 3 sub-páginas (PR-B2); organograma como `/agents` consolidando grid+`/org` (PR-C1); Página do funcionário só conversa + BreadcrumbBar (PR-C2); Ajustar com 5 abas absorvendo AgentStudio (PR-C3); GoalNew como split view "Pedir algo" (PR-D); Projects header M16 (PR-E); SetupWizard como "Boas-vindas" (PR-F); PR-G consolidação (dead i18n keys cleanup, este). PR-A2 (vocab pass profundo) deferido. ~52 commits totais em `main` na sessão.
+- **1747 testes passing + 2 todo** · 0 lint/typecheck errors
+- HEAD `main`: M16 PR-G (consolidação — fecha o M16) mergeado (2026-05-20)
 
 ### ▸ Próximo
 
 | Candidato | Escopo | Por quê |
 |---|---|---|
-| 🥇 **M16 Redesign da Interface** | Reembala a camada de apresentação pra "qualquer pessoa": barra 11→5 itens, linguagem comum, revelação progressiva. Spec em `docs/superpowers/specs/2026-05-18-m16-design.md`. | M15 fechado; o motor (M11-M15) está pronto. M16 reembala a interface antes de seguir pra V2 Tier 1 final. |
-| 🥈 **Workflow Plays** | Playbooks pré-prontos que já configuram org + goals + ISAs. Mata o cold-start. Tier 1 V2. | Próxima peça V2 depois do motor (M11-M15). |
-| 🥉 **Async governance** | Como uma escalada noturna se resolve sem o usuário (timeout + escalação inteligente). Tier 2. | Outra metade do loop assíncrono que o M14 começou. |
+| 🥇 **Workflow Plays** | Playbooks pré-prontos que já configuram org + goals + ISAs. Mata o cold-start. Tier 1 V2. | Próxima peça V2 depois do motor (M11-M15) e do redesign (M16). |
+| 🥈 **Async governance** | Como uma escalada noturna se resolve sem o usuário (timeout + escalação inteligente). Tier 2. | Outra metade do loop assíncrono que o M14 começou. |
+| ✅ **M16 Redesign da Interface** | **9/10 PRs fechados nesta sessão.** Sidebar 11→5 itens · Início (Vitrine reskin) · Ajustes (grade) · Minha equipe (organograma) · Página do funcionário · Ajustar 5 abas · Pedir algo · Projetos · Boas-vindas · consolidação. PR-A2 (vocab pass profundo) deferido. | Motor V2 + redesign de interface ambos completos. |
 
-**Recomendação:** decisão do próximo passo fica para o usuário em sessão futura. O motor V2 (M11-M15) está completo.
+**Recomendação:** decisão do próximo passo fica para o usuário em sessão futura. O motor V2 (M11-M15) E o redesign (M16) estão completos.
 
 ### ▸ Horizonte (v1 = M10 fechado · V2 começa em M11)
 
@@ -195,13 +196,13 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 |---|---|
 | Milestones fechados | M1–M6, **M7**, **M7.5**, **M7.7**, **M7.6**, **M8**, **M8.5**, **M8.6**, **M9**, **M10** (14/14 do v1 ✅) + **M11** (V2 anchor ✅) |
 | Concluído | **M11 ✅ fechado** 2026-05-18 — **6/6 PRs** ✅ (A capabilities rename · B schema+repos · C MCP tools + Learning tab · D1/D2 derivation pipeline + Candidates UI · E1/E2 role inheritance + org retrospectives · F decay/trust + Settings Memory + nudges + terminate-modal + docs). **V2 anchor fechado.** **M12 ✅ fechado** 2026-05-19 — **6/6 PRs** ✅ (A biblioteca de papéis + charters · B Manual Operacional embutido · C bundle de instruções por agente · D1/D2-backend/D3-UI/D4 geração de charter + CEO arquiteto de org + AGENTS.md com charters · E1/E2 aba Runs + budget + Run Policy · F Agent Studio redesenhado). |
-| Concluído recentemente | **M15 PR-C — consolidação (fecha o M15 inteiro)** mergeado 2026-05-20. ~8 tasks · ~10 commits em `main`. Entrega: (1) painel "Histórico de disparos" colapsável em `/routines/:id` — header com contador, botão refresh SVG, lista de linhas com bolinha verde/cinza + status PT + chip de reason. Reusa `activity:query` do M7.7 sem IPC novo. (2) `SECURITY.md` seção Routines com threat model (prompt injection N/A, agent escape gated pelo trust ladder, FK cascade entre companies/agents, skip de budget-paused, stale schedule mitigado pelo PR-B fix) + gap V2 conhecido (routines autoradas por agente). (3) `docs/roadmap.html` em tom leigo: Routines de ✅. (4) `ROADMAP.md` fechado (3/3). (5) Polish UI: `routines.empty.cta`/`empty.title` dead keys removidas; `setTimeout` cleanup via `useRef` em RoutineRow e RoutineForm; `TFunction` widened via type-only import de `i18next` (elimina o `as unknown as TFunction` cast em RoutineRow); `formatRelative` movido de RoutineRow pra `lib/routines/format-summary.ts` (compartilhado com RoutineHistoryRow). +3 testes (`formatRelative`). **M15 3/3 PRs ✅ FECHADO.** Antes: **M15 PR-B** (UI + bug-fix `nextFireAt`) mergeado 2026-05-20. |
-| Testes | **1741 passing + 2 todo**, 0 lint/typecheck errors |
+| Concluído recentemente | **M16 — Redesign da Interface (9/10 PRs substantivos)** mergeados 2026-05-20. ~52 commits em `main`. Sidebar enxuta 11→5 itens com SVG line icons (PR-A1, -191 LOC App.tsx); reskin Vitrine→Início M14↔M16 reconciliação (PR-B1); grade Ajustes com 3 sub-páginas + Settings.tsx -468 LOC distribuído (PR-B2); /agents grid+`/org` consolidados em organograma único (PR-C1, Org.tsx deletada); Página do funcionário só conversa + BreadcrumbBar reusable (PR-C2); Ajustar com 5 abas M16 absorvendo AgentStudio que foi deletado (PR-C3); GoalNew split view "Pedir algo" (PR-D); Projects M16 header (PR-E); SetupWizard "Boas-vindas" (PR-F); consolidação removeu 37 dead i18n keys/locale (PR-G). PR-A2 (vocab pass profundo) deferido. **M16 essencialmente fechado.** Antes: **M15 PR-C** (consolidação — fecha o M15 inteiro) mergeado 2026-05-20. |
+| Testes | **1747 passing + 2 todo**, 0 lint/typecheck errors |
 | Commits no main | ~845 |
 | LoC (apps + packages) | ~23k TS/TSX |
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
-| Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** M11 + M12 + M13 + M14 + **M15 fechado (3/3 PRs)**. Próximo: M16 (UI redesign) ou Workflow Plays (V2 Tier 1) ou Async governance (V2 Tier 2). |
+| Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** M11 + M12 + M13 + M14 + M15 + **M16 (9/10 PRs)** fechados. Próximo: Workflow Plays (V2 Tier 1) ou Async governance (V2 Tier 2). |
 | V2 anchor | **M11 Agent Memory & Learning Loop — ✅ COMPLETO** (2026-05-18, 6 PRs). Arquitetura: 3 camadas × 2 níveis, fluxo bidirecional. Spec: `docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md`. Docs: `docs/memory-architecture.md` + `docs/skills-format.md` + `docs/derivation-pipeline.md`. 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). Próximo V2: M12 Agent & Org Definition Layer. |
 
 ---
