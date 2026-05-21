@@ -1334,6 +1334,23 @@
       "empty": "Sem itens."
     }
   },
+  "updater": {
+    "title": "Atualizações",
+    "subtitle": "O Prospero se atualiza sozinho. Você também pode verificar agora.",
+    "statusLabel": "Status",
+    "checkNow": "Verificar atualizações",
+    "restartNow": "Reiniciar para atualizar",
+    "downloaded": "Atualização v{{version}} baixada.",
+    "later": "Depois",
+    "state": {
+      "idle": "Em dia",
+      "checking": "Verificando…",
+      "available": "Atualização disponível",
+      "downloading": "Baixando",
+      "downloaded": "Pronta para instalar",
+      "error": "Erro ao verificar"
+    }
+  },
   "routines": {
     "title": "Routines",
     "subtitle": "Agentes que acordam sozinhos",

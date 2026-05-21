@@ -1334,6 +1334,23 @@
       "empty": "No items."
     }
   },
+  "updater": {
+    "title": "Updates",
+    "subtitle": "Prospero updates itself automatically. You can also check now.",
+    "statusLabel": "Status",
+    "checkNow": "Check for updates",
+    "restartNow": "Restart to update",
+    "downloaded": "Update v{{version}} downloaded.",
+    "later": "Later",
+    "state": {
+      "idle": "Up to date",
+      "checking": "Checking…",
+      "available": "Update available",
+      "downloading": "Downloading",
+      "downloaded": "Ready to install",
+      "error": "Check failed"
+    }
+  },
   "routines": {
     "title": "Routines",
     "subtitle": "Agents that wake on their own",

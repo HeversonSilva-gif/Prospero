@@ -31,6 +31,7 @@ import { TitleBar } from "./components/TitleBar.js";
 import { AuthErrorBanner } from "./components/banners/AuthErrorBanner.js";
 import { OAuthExpiryBanner } from "./components/banners/OAuthExpiryBanner.js";
 import { RateLimitBanner } from "./components/banners/RateLimitBanner.js";
+import { UpdateBanner } from "./components/UpdateBanner.js";
 
 const Activity = lazy(() => import("./routes/Activity.js").then((m) => ({ default: m.Activity })));
 const Costs = lazy(() => import("./routes/Costs.js"));
@@ -47,6 +48,7 @@ const Shell = ({ children }: { children: React.ReactNode }) => (
     <OAuthExpiryBanner />
     <RateLimitBanner />
     <div className="flex-1 min-h-0 flex">{children}</div>
+    <UpdateBanner />
   </div>
 );
 

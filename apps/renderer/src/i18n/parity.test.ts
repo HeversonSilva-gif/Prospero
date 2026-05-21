@@ -374,4 +374,20 @@ describe("i18n parity", () => {
       expect(enKeys).toContain(k);
     }
   });
+
+  it("includes the M17 updater keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "updater.title",
+      "updater.checkNow",
+      "updater.restartNow",
+      "updater.downloaded",
+      "updater.state.downloaded",
+      "updater.state.error",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
 });
