@@ -60,93 +60,100 @@ export const Projects: FC = () => {
     .slice(0, 5);
 
   return (
-    <div className="flex h-full">
-      <div className="w-64 border-r border-surface-border p-3 flex flex-col">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-brand-dark">{t("projects.title")}</h2>
-        </div>
-        <div className="flex-1 overflow-auto">
-          {projects.length === 0 ? (
-            <p className="text-xs text-ink-muted px-2">{t("projects.empty")}</p>
-          ) : (
-            <div className="space-y-1">
-              {visible.map((p) => (
-                <ProjectListItem
-                  key={p.id}
-                  project={p}
-                  pathStatus={pathStatuses[p.id]}
-                  selected={selectedId === p.id}
-                  onClick={() => select(p.id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-        <label className="flex items-center gap-1 text-xs text-ink-muted mt-2 px-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-          />
-          {t("projects.list.showArchived")}
-        </label>
-        <button
-          type="button"
-          onClick={() => {
-            setEditing(null);
-            setShowForm(true);
-          }}
-          className="text-xs px-3 py-2 bg-brand text-brand-fg rounded font-semibold mt-2"
-        >
-          {t("projects.newButton")}
-        </button>
-      </div>
-      <div className="flex-1 overflow-auto">
-        {selected !== null && (
-          <ProjectDetail
-            project={selected}
-            pathStatus={pathStatuses[selected.id]}
-            agents={agents}
-            allProjects={projects}
-            recentIssues={recentIssues}
-            doingCount={doingCount}
-            onEdit={() => {
-              setEditing(selected);
+    <div className="flex flex-col h-full">
+      <header className="px-8 py-6 border-b border-surface-border bg-surface">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-ink">{t("projetos.title")}</h1>
+            <p className="mt-1 text-sm text-ink-soft">{t("projetos.subtitle")}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(null);
               setShowForm(true);
             }}
-            onDelete={() => setConfirmingDelete(selected)}
-            onOpenFolder={() => void window.prospero.projects.openFolder(selected.id)}
+            className="px-3 py-1.5 text-sm font-semibold bg-brand text-brand-fg rounded hover:opacity-90 whitespace-nowrap"
+          >
+            {t("projetos.novoProjeto")}
+          </button>
+        </div>
+      </header>
+      <div className="flex flex-1 min-h-0">
+        <div className="w-64 border-r border-surface-border p-3 flex flex-col">
+          <div className="flex-1 overflow-auto">
+            {projects.length === 0 ? (
+              <p className="text-xs text-ink-muted px-2">{t("projects.empty")}</p>
+            ) : (
+              <div className="space-y-1">
+                {visible.map((p) => (
+                  <ProjectListItem
+                    key={p.id}
+                    project={p}
+                    pathStatus={pathStatuses[p.id]}
+                    selected={selectedId === p.id}
+                    onClick={() => select(p.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+          <label className="flex items-center gap-1 text-xs text-ink-muted mt-2 px-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+            />
+            {t("projects.list.showArchived")}
+          </label>
+        </div>
+        <div className="flex-1 overflow-auto">
+          {selected !== null && (
+            <ProjectDetail
+              project={selected}
+              pathStatus={pathStatuses[selected.id]}
+              agents={agents}
+              allProjects={projects}
+              recentIssues={recentIssues}
+              doingCount={doingCount}
+              onEdit={() => {
+                setEditing(selected);
+                setShowForm(true);
+              }}
+              onDelete={() => setConfirmingDelete(selected)}
+              onOpenFolder={() => void window.prospero.projects.openFolder(selected.id)}
+            />
+          )}
+        </div>
+        {showForm && companyId !== null && (
+          <ProjectFormModal
+            {...(editing !== null ? { initial: editing } : {})}
+            onClose={() => setShowForm(false)}
+            onSubmit={async ({ name, path, color, icon }) => {
+              if (editing !== null) {
+                await updateProj({ id: editing.id, name, path, color });
+                await useProjectsStore.getState().setIcon(editing.id, icon);
+              } else {
+                const created = await createProj({ companyId, name, path, color });
+                if (icon !== null) await useProjectsStore.getState().setIcon(created.id, icon);
+              }
+            }}
+          />
+        )}
+        {confirmingDelete !== null && (
+          <ConfirmModal
+            title={confirmingDelete.name}
+            message={t("projects.form.confirmDelete")}
+            confirmLabel={t("common.delete")}
+            destructive
+            onConfirm={async () => {
+              await deleteProj(confirmingDelete.id);
+              setConfirmingDelete(null);
+            }}
+            onCancel={() => setConfirmingDelete(null)}
           />
         )}
       </div>
-      {showForm && companyId !== null && (
-        <ProjectFormModal
-          {...(editing !== null ? { initial: editing } : {})}
-          onClose={() => setShowForm(false)}
-          onSubmit={async ({ name, path, color, icon }) => {
-            if (editing !== null) {
-              await updateProj({ id: editing.id, name, path, color });
-              await useProjectsStore.getState().setIcon(editing.id, icon);
-            } else {
-              const created = await createProj({ companyId, name, path, color });
-              if (icon !== null) await useProjectsStore.getState().setIcon(created.id, icon);
-            }
-          }}
-        />
-      )}
-      {confirmingDelete !== null && (
-        <ConfirmModal
-          title={confirmingDelete.name}
-          message={t("projects.form.confirmDelete")}
-          confirmLabel={t("common.delete")}
-          destructive
-          onConfirm={async () => {
-            await deleteProj(confirmingDelete.id);
-            setConfirmingDelete(null);
-          }}
-          onCancel={() => setConfirmingDelete(null)}
-        />
-      )}
     </div>
   );
 };
