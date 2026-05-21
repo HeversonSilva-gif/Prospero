@@ -355,4 +355,23 @@ describe("i18n parity", () => {
       expect(enKeys).toContain(k);
     }
   });
+
+  it("includes the M16 pedir-algo keys in both locales", () => {
+    const ptKeys = flatten(ptBR);
+    const enKeys = flatten(enUS);
+    for (const k of [
+      "pedir.title",
+      "pedir.placeholder",
+      "pedir.buildPlan",
+      "pedir.viewPlan",
+      "pedir.plano.whatWillBeDone",
+      "pedir.plano.whoWillDo",
+      "pedir.plano.timeAndCost",
+      "pedir.plano.approve",
+      "pedir.plano.adjust",
+    ]) {
+      expect(ptKeys).toContain(k);
+      expect(enKeys).toContain(k);
+    }
+  });
 });

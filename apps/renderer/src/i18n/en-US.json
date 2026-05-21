@@ -1303,14 +1303,35 @@
   },
   "pedir": {
     "title": "Ask for something",
-    "subtitle": "Describe what you need. The CEO will turn it into a plan and route it to the team.",
-    "panel": {
-      "title": "What happens next",
-      "steps": [
-        "You describe what you need below.",
-        "The CEO reads it and proposes a plan.",
-        "You approve, the team executes."
-      ]
+    "subtitle": "Describe what you need. The CEO talks it through with you and builds a plan.",
+    "placeholder": "e.g. I want to open an online store for handmade candles and start selling this month…",
+    "start": "Ask",
+    "noCeo": "No CEO in your company yet.",
+    "ceoThinking": "The CEO is thinking…",
+    "buildPlan": "Build the plan",
+    "rebuildPlan": "Rebuild the plan",
+    "buildingPlan": "Building the plan…",
+    "planReady": "Your plan is ready.",
+    "viewPlan": "View plan",
+    "newRequest": "New request",
+    "plano": {
+      "title": "Your plan",
+      "for": "For",
+      "whatWillBeDone": "What will be done",
+      "whoWillDo": "Who will do it",
+      "newHires_one": "{{count}} new hire · {{roles}}",
+      "newHires_other": "{{count}} new hires · {{roles}}",
+      "noHires": "No new hires — your current team can handle it.",
+      "timeAndCost": "Time and cost",
+      "days_one": "about {{count}} day",
+      "days_other": "about {{count}} days",
+      "cost": "~{{value}} in AI usage",
+      "approve": "Approve and start",
+      "approving": "Starting…",
+      "adjust": "I want to adjust",
+      "backToChat": "Back to the conversation",
+      "notReady": "There is no ready plan for this request yet.",
+      "empty": "No items."
     }
   },
   "routines": {

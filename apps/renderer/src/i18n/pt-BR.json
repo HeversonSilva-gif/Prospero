@@ -1303,14 +1303,35 @@
   },
   "pedir": {
     "title": "Pedir algo",
-    "subtitle": "Descreva o que você precisa. O CEO transforma em um plano e direciona a equipe.",
-    "panel": {
-      "title": "O que acontece em seguida",
-      "steps": [
-        "Você descreve o que precisa aqui.",
-        "O CEO lê e propõe um plano.",
-        "Você aprova, a equipe executa."
-      ]
+    "subtitle": "Descreva o que você precisa. O CEO conversa com você e monta um plano.",
+    "placeholder": "Ex.: quero abrir uma loja online de velas artesanais e começar a vender ainda este mês…",
+    "start": "Pedir",
+    "noCeo": "Nenhum CEO na sua empresa ainda.",
+    "ceoThinking": "O CEO está pensando…",
+    "buildPlan": "Montar o plano",
+    "rebuildPlan": "Refazer o plano",
+    "buildingPlan": "Montando o plano…",
+    "planReady": "Seu plano está pronto.",
+    "viewPlan": "Ver plano",
+    "newRequest": "Novo pedido",
+    "plano": {
+      "title": "Seu plano",
+      "for": "Para",
+      "whatWillBeDone": "O que vai ser feito",
+      "whoWillDo": "Quem vai fazer",
+      "newHires_one": "{{count}} funcionário novo · {{roles}}",
+      "newHires_other": "{{count}} funcionários novos · {{roles}}",
+      "noHires": "Ninguém novo — sua equipe atual dá conta.",
+      "timeAndCost": "Tempo e custo",
+      "days_one": "cerca de {{count}} dia",
+      "days_other": "cerca de {{count}} dias",
+      "cost": "~{{value}} em uso de IA",
+      "approve": "Aprovar e começar",
+      "approving": "Começando…",
+      "adjust": "Quero ajustar",
+      "backToChat": "Voltar à conversa",
+      "notReady": "Ainda não há um plano pronto para este pedido.",
+      "empty": "Sem itens."
     }
   },
   "routines": {
