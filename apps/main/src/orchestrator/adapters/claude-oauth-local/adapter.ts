@@ -23,14 +23,16 @@ import { mergeSpawnEnv } from "../../util/env-merge.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Diagnostic file log — writes to dist/orchestrator.log so we can see what claude
-// emits even when stderr/stdout from the Electron main process is hidden.
-const logFile = resolve(__dirname, "../../orchestrator.log");
+// Diagnostic file log. The default path is next to the compiled code, which is
+// fine in dev but lives inside a READ-ONLY asar when packaged — so the writes
+// failed silently exactly when we needed them (debugging the packaged app).
+// start() redirects this to userData (writable) before the first write.
+let logFilePath = resolve(__dirname, "../../orchestrator.log");
 const dlog = (msg: string): void => {
   try {
-    const logDir = dirname(logFile);
+    const logDir = dirname(logFilePath);
     if (!existsSync(logDir)) mkdirSync(logDir, { recursive: true });
-    appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`, "utf8");
+    appendFileSync(logFilePath, `[${new Date().toISOString()}] ${msg}\n`, "utf8");
   } catch {
     /* ignore log errors */
   }
@@ -61,6 +63,12 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
 
     if (this.ctx.oauthToken === undefined) {
       throw new Error("claude-oauth-local requires oauthToken in SpawnContext");
+    }
+    // Redirect the diagnostic log to a writable location — the default sits
+    // inside the read-only asar when packaged. userData/prospero-debug.log is
+    // what to ask the user for when the agent misbehaves in the installed app.
+    if (this.ctx.userDataDir !== undefined) {
+      logFilePath = resolve(this.ctx.userDataDir, "prospero-debug.log");
     }
     const env = buildSpawnEnv(
       this.ctx.agent,
