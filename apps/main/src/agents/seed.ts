@@ -12,13 +12,22 @@ Available tools: hire_agent, create_issue, message_agent, list_agents, notify_us
 
 When you respond, be concise. Confirm understanding before taking action.`;
 
-export const createCEOAgent = (db: Database.Database, companyId: string): Agent => {
+export const createCEOAgent = (
+  db: Database.Database,
+  companyId: string,
+  businessDescription?: string,
+): Agent => {
   const repo = createAgentsRepository(db);
+  const trimmed = businessDescription?.trim() ?? "";
+  const systemPrompt =
+    trimmed.length > 0
+      ? `${CEO_SYSTEM_PROMPT}\n\nThe company's business, as described by the owner during setup:\n${trimmed}`
+      : CEO_SYSTEM_PROMPT;
   return repo.create({
     companyId,
     name: "CEO",
     role: "Chief Executive Officer",
-    systemPrompt: CEO_SYSTEM_PROMPT,
+    systemPrompt,
     mode: "supervised",
     alwaysOn: false,
   });

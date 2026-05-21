@@ -3,8 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.js";
 import { useSettingsStore } from "../stores/settings.js";
+import { useCompaniesStore } from "../stores/companies.js";
 
-type Step = "authSource" | "choose" | "manual" | "auto" | "apiKey";
+type Step = "authSource" | "choose" | "manual" | "auto" | "apiKey" | "company";
 
 export const SetupWizard = () => {
   const { t } = useTranslation();
@@ -12,10 +13,17 @@ export const SetupWizard = () => {
   const setToken = useAuthStore((s) => s.setToken);
   const setApiKey = useAuthStore((s) => s.setApiKey);
   const importDetected = useAuthStore((s) => s.importDetected);
+  const hasToken = useAuthStore((s) => s.status.hasToken);
   const setAuthMode = useSettingsStore((s) => s.setAuthMode);
-  const [step, setStep] = useState<Step>("authSource");
+  const createCompany = useCompaniesStore((s) => s.createOnboarding);
+  // If the user is already authenticated (e.g. relaunch with no company yet),
+  // skip straight to creating their company.
+  const [step, setStep] = useState<Step>(hasToken ? "company" : "authSource");
   const [tokenInput, setTokenInput] = useState("");
   const [apiKeyInput, setApiKeyInput] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [companyDesc, setCompanyDesc] = useState("");
+  const [creating, setCreating] = useState(false);
   // We only ever hold the masked prefix in renderer state — never the raw token.
   // The actual import is done main-side via importDetected (re-runs detection + saves).
   const [autoPrefix, setAutoPrefix] = useState<string | null>(null);
@@ -34,7 +42,7 @@ export const SetupWizard = () => {
     if (autoPrefix === null) return;
     try {
       await importDetected();
-      navigate("/dashboard");
+      setStep("company");
     } catch {
       setError(t("settings.auth.tokenInvalid"));
     }
@@ -44,9 +52,23 @@ export const SetupWizard = () => {
     setError(null);
     try {
       await setToken(tokenInput, "manual");
-      navigate("/dashboard");
+      setStep("company");
     } catch {
       setError(t("settings.auth.tokenInvalid"));
+    }
+  };
+
+  const createCompanyAndFinish = async () => {
+    const name = companyName.trim();
+    if (name.length === 0) return;
+    setError(null);
+    setCreating(true);
+    try {
+      await createCompany(name, companyDesc.trim() === "" ? undefined : companyDesc.trim());
+      navigate("/briefing");
+    } catch (err) {
+      setCreating(false);
+      setError(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -222,7 +244,7 @@ export const SetupWizard = () => {
                   setError(null);
                   try {
                     await setApiKey(apiKeyInput);
-                    navigate("/dashboard");
+                    setStep("company");
                   } catch (err) {
                     setError(err instanceof Error ? err.message : t("settings.auth.tokenInvalid"));
                   }
@@ -232,6 +254,48 @@ export const SetupWizard = () => {
                 type="button"
               >
                 {t("wizard.apiKey.save")}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === "company" && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-brand-dark">
+              {t("boasVindas.company.title")}
+            </h3>
+            <p className="text-xs text-ink-muted">{t("boasVindas.company.subtitle")}</p>
+            <label className="block text-xs font-medium text-ink mt-2">
+              {t("boasVindas.company.nameLabel")}
+            </label>
+            <input
+              type="text"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder={t("boasVindas.company.namePlaceholder")}
+              disabled={creating}
+              className="w-full px-3 py-2 bg-surface-soft border border-surface-border rounded text-sm"
+            />
+            <label className="block text-xs font-medium text-ink mt-2">
+              {t("boasVindas.company.descLabel")}
+            </label>
+            <textarea
+              value={companyDesc}
+              onChange={(e) => setCompanyDesc(e.target.value)}
+              placeholder={t("boasVindas.company.descPlaceholder")}
+              disabled={creating}
+              rows={4}
+              className="w-full px-3 py-2 bg-surface-soft border border-surface-border rounded text-sm resize-none"
+            />
+            {error !== null && <p className="text-xs text-semantic-danger">{error}</p>}
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => void createCompanyAndFinish()}
+                disabled={companyName.trim().length === 0 || creating}
+                className="px-4 py-2 bg-brand text-brand-fg text-sm font-semibold rounded disabled:opacity-50"
+                type="button"
+              >
+                {creating ? t("boasVindas.company.creating") : t("boasVindas.company.create")}
               </button>
             </div>
           </div>

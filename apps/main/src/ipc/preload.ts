@@ -86,6 +86,8 @@ contextBridge.exposeInMainWorld("prospero", {
     list: () => ipcRenderer.invoke(IPC.COMPANY_LIST) as Promise<Company[]>,
     createDemo: () => ipcRenderer.invoke(IPC.COMPANY_CREATE_DEMO) as Promise<Company>,
     create: (name: string) => ipcRenderer.invoke(IPC.COMPANY_CREATE, { name }) as Promise<Company>,
+    createOnboarding: (name: string, description?: string) =>
+      ipcRenderer.invoke(IPC.COMPANY_CREATE_ONBOARDING, { name, description }) as Promise<Company>,
     delete: (id: string) => ipcRenderer.invoke(IPC.COMPANY_DELETE, { id }) as Promise<{ ok: true }>,
     exportSnapshot: (id: string) =>
       ipcRenderer.invoke(IPC.COMPANY_EXPORT, { id }) as Promise<unknown>,

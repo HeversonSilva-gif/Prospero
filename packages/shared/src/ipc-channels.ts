@@ -14,6 +14,7 @@ export const IPC = {
   COMPANY_LIST: "company:list",
   COMPANY_CREATE_DEMO: "company:create-demo",
   COMPANY_CREATE: "company:create",
+  COMPANY_CREATE_ONBOARDING: "company:create-onboarding",
   COMPANY_DELETE: "company:delete",
   AGENT_LIST: "agent:list",
   AGENT_SEND_MESSAGE: "agent:send-message",

@@ -51,6 +51,44 @@ describe("companies handlers", () => {
     expect(() => handle!(null, { name: "   " })).toThrow(/name/);
   });
 
+  it("company:create-onboarding creates the company and seeds its CEO", async () => {
+    const db = setupDb();
+    const { registerCompaniesHandlers } = await import("./companies-handlers.js");
+    const { createAgentsRepository } = await import("../agents/repository.js");
+    registerCompaniesHandlers(db);
+    const handle = handlers.get("company:create-onboarding");
+    expect(handle).toBeDefined();
+    const company = (await handle!(null, {
+      name: "Acme",
+      description: "we sell handmade candles",
+    })) as { id: string; name: string };
+    expect(company.name).toBe("Acme");
+    const agents = createAgentsRepository(db).listByCompany(company.id);
+    expect(agents).toHaveLength(1);
+    expect(agents[0]!.name).toBe("CEO");
+    expect(agents[0]!.systemPrompt).toContain("we sell handmade candles");
+  });
+
+  it("company:create-onboarding works without a description", async () => {
+    const db = setupDb();
+    const { registerCompaniesHandlers } = await import("./companies-handlers.js");
+    const { createAgentsRepository } = await import("../agents/repository.js");
+    registerCompaniesHandlers(db);
+    const handle = handlers.get("company:create-onboarding");
+    const company = (await handle!(null, { name: "Bare" })) as { id: string };
+    const agents = createAgentsRepository(db).listByCompany(company.id);
+    expect(agents).toHaveLength(1);
+    expect(agents[0]!.name).toBe("CEO");
+  });
+
+  it("company:create-onboarding rejects empty name", async () => {
+    const db = setupDb();
+    const { registerCompaniesHandlers } = await import("./companies-handlers.js");
+    registerCompaniesHandlers(db);
+    const handle = handlers.get("company:create-onboarding");
+    expect(() => handle!(null, { name: "   " })).toThrow(/name/);
+  });
+
   it("company:delete removes the row and cascades", async () => {
     const db = setupDb();
     const repo = createCompaniesRepository(db);

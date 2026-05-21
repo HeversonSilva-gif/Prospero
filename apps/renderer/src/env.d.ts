@@ -81,6 +81,7 @@ declare global {
         list: () => Promise<Company[]>;
         createDemo: () => Promise<Company>;
         create: (name: string) => Promise<Company>;
+        createOnboarding: (name: string, description?: string) => Promise<Company>;
         delete: (id: string) => Promise<{ ok: true }>;
         exportSnapshot: (id: string) => Promise<unknown>;
         importSnapshot: (snapshot: unknown) => Promise<{

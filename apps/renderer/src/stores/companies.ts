@@ -7,6 +7,7 @@ type State = {
   loaded: boolean;
   load: () => Promise<void>;
   create: (name: string) => Promise<Company>;
+  createOnboarding: (name: string, description?: string) => Promise<Company>;
   delete: (id: string) => Promise<void>;
   setActive: (id: string | null) => Promise<void>;
 };
@@ -30,6 +31,13 @@ export const useCompaniesStore = create<State>((set, get) => ({
 
   create: async (name) => {
     const created = await window.prospero.companies.create(name);
+    set((s) => ({ companies: [...s.companies, created] }));
+    await get().setActive(created.id);
+    return created;
+  },
+
+  createOnboarding: async (name, description) => {
+    const created = await window.prospero.companies.createOnboarding(name, description);
     set((s) => ({ companies: [...s.companies, created] }));
     await get().setActive(created.id);
     return created;

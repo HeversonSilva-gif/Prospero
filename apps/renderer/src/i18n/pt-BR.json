@@ -853,7 +853,17 @@
   },
   "boasVindas": {
     "title": "Boas-vindas",
-    "subtitle": "Vamos conectar sua conta e começar sua empresa."
+    "subtitle": "Vamos conectar sua conta e começar sua empresa.",
+    "company": {
+      "title": "Conte sobre o seu negócio",
+      "subtitle": "Seu gerente vai usar isto para montar a equipe certa para você.",
+      "nameLabel": "Nome da empresa",
+      "namePlaceholder": "Ex.: Velas Aurora",
+      "descLabel": "O que a sua empresa faz?",
+      "descPlaceholder": "Ex.: quero abrir uma loja online de velas artesanais e começar a vender ainda este mês…",
+      "create": "Criar minha empresa",
+      "creating": "Criando…"
+    }
   },
   "banners": {
     "authError": {
