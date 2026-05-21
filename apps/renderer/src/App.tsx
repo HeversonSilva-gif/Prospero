@@ -140,7 +140,17 @@ export const App = () => {
           break;
         case "tool-call":
         case "error":
+        case "costs-new":
+        case "rate-limited":
+          // Handled by dedicated hooks/banners (useCostsStream, useCostsToday,
+          // RateLimitBanner), not this global reducer.
           break;
+        default: {
+          // Exhaustiveness guard: a new AgentEvent kind becomes a compile error
+          // here instead of being silently dropped.
+          const _never: never = ev;
+          void _never;
+        }
       }
     });
     return off;

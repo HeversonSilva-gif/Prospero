@@ -1,8 +1,28 @@
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
+import { access } from "node:fs/promises";
 import type { Project, ProjectPathStatus } from "@prospero/shared";
 import type { Recorder } from "../activity/recorder.js";
+
+// Resolves whether a path is reachable without blocking the main thread, and
+// without hanging on a slow/disconnected path: a path that doesn't answer within
+// the timeout is treated as "missing" rather than freezing the process
+// (relatorioClaudinho P2-B — checkPaths is polled every 30s by the UI).
+const pathAvailable = (p: string, timeoutMs = 2000): Promise<boolean> =>
+  new Promise((resolve) => {
+    let settled = false;
+    const done = (v: boolean): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(v);
+    };
+    const timer = setTimeout(() => done(false), timeoutMs);
+    access(p).then(
+      () => done(true),
+      () => done(false),
+    );
+  });
 
 type Row = {
   id: string;
@@ -52,7 +72,7 @@ export type ProjectsRepository = {
   archive(id: string): void;
   unarchive(id: string): void;
   delete(id: string): void;
-  checkPaths(companyId: string): Record<string, ProjectPathStatus>;
+  checkPaths(companyId: string): Promise<Record<string, ProjectPathStatus>>;
 };
 
 // Optional recorder enables dual-write to activity_events alongside the
@@ -153,11 +173,15 @@ export const createProjectsRepository = (
         });
       }
     },
-    checkPaths(companyId) {
+    async checkPaths(companyId) {
       const rows = byCompany.all(companyId) as Row[];
-      const out: Record<string, ProjectPathStatus> = {};
-      for (const r of rows) out[r.id] = existsSync(r.path) ? "available" : "missing";
-      return out;
+      const entries = await Promise.all(
+        rows.map(async (r): Promise<[string, ProjectPathStatus]> => {
+          const ok = await pathAvailable(r.path);
+          return [r.id, ok ? "available" : "missing"];
+        }),
+      );
+      return Object.fromEntries(entries);
     },
   };
 };

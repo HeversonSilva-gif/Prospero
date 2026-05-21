@@ -24,9 +24,6 @@ export const registerPermissionHandlers = (db: Database.Database): void => {
       const dir = getPermissionsDir(app.getPath("userData"));
       const filename = payload.resolution.behavior === "allow" ? "res.json" : "deny.json";
       const target = join(dir, `${payload.toolUseId}.${filename}`);
-      console.log(
-        `[m5/permission] resolve toolUseId=${payload.toolUseId} behavior=${payload.resolution.behavior} → writing ${target}`,
-      );
       writeFileSync(target, JSON.stringify(payload.resolution));
 
       // Prefer new format: approval row + inbox pointer.
@@ -34,9 +31,6 @@ export const registerPermissionHandlers = (db: Database.Database): void => {
       if (approval !== null) {
         const updated = inbox.markReadByApprovalId(approval.id);
         if (updated !== null) {
-          console.log(
-            `[m5/permission] resolve markRead HIT (new format) itemId=${updated.id} approvalId=${approval.id}`,
-          );
           broadcastInboxUpdate(updated.companyId);
           tryGetRecorder()?.recordActivity({
             companyId: updated.companyId,
@@ -58,12 +52,7 @@ export const registerPermissionHandlers = (db: Database.Database): void => {
       // Legacy fallback: payload_json LIKE %toolUseId%.
       const updatedLegacy = inbox.markReadByToolUseId(payload.toolUseId);
       if (updatedLegacy !== null) {
-        console.log(
-          `[m5/permission] resolve markRead HIT (legacy format) itemId=${updatedLegacy.id}`,
-        );
         broadcastInboxUpdate(updatedLegacy.companyId);
-      } else {
-        console.log(`[m5/permission] resolve markRead NO-HIT for ${payload.toolUseId}`);
       }
     },
   );

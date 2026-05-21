@@ -3,6 +3,57 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## [0.1.0] — Unreleased (consolidates M7–M18)
+
+First public release line. Entries below summarize milestones M7–M18; the
+detailed per-milestone history lives in `ROADMAP.md`.
+
+### Added
+
+- **Projects, Costs, Org chart** (M6) and **Issues / Inbox / Threads** (M5).
+- **Security hardening** (M7): capability-based tool gating, command blocklist,
+  per-agent filesystem sandbox.
+- **Adapter pattern** for agent execution: Claude Max OAuth (default), Anthropic
+  **API key** (M9), and **remote Docker** host (M10).
+- **Goals → plan → approval** flow with a CEO that drafts the plan (M8.5).
+- **Agent memory & learning** (M11): cross-session memory + skills, automatic
+  skill-candidate derivation, role/company promotion, org retrospectives.
+- **Roles & charters** (M12): editable role library, 8-section charters, an
+  embedded Operating Manual, per-agent instruction bundles, and a CEO that can
+  design the whole org (`submit_org_plan` → review → apply).
+- **Outcomes & verification** (M13): Ideal State Artifact, verification engine,
+  company TELOS, the Algorithm skill, and filesystem containment zones.
+- **Morning briefing & trust ladder** (M14): daily triage summary and autonomy
+  that compounds with a verified track record.
+- **Routines** (M15): agents that wake on a schedule or event.
+- **Plain-language UI redesign** (M16): 5-item sidebar, "Início", "Pedir algo",
+  "Minha equipe" org chart, "Ajustes" grid, onboarding wizard.
+- **Packaging & auto-update** (M17): NSIS installer + electron-updater.
+
+### Changed
+
+- "Contratar alguém" now leads with describing the team to the CEO; ready-made
+  templates are secondary (M18).
+- Onboarding is a centered 3-step wizard (connect → business → review & create).
+
+### Fixed (M18 — hardening from real-app testing)
+
+- CEO identity unified on the `role-ceo` template id so the CEO receives its
+  rich charter (was getting the blank skeleton).
+- Routes use the active company instead of `companies[0]`; repositories reject
+  cross-company relations.
+- White-screen on launch (packaging clean-race), bilingual rate-limit banner,
+  several PT-BR translation gaps, Gastos back-link, "import from Claude Code"
+  feedback, raw updater error dump.
+- POSIX verification sandbox kills the whole process group; project path checks
+  are async with a timeout; export reports partial-backup warnings.
+
+### Security
+
+- OAuth token encrypted at rest (DPAPI); per-agent project allowlist; always-on
+  command blocklist; containment zones; minimal (no-secrets) environment for
+  verification commands.
+
 ## M6.1 — Smoke-test hardening (2026-05-11)
 
 Follow-up pass on the M6 branch after smoke testing surfaced security gaps,

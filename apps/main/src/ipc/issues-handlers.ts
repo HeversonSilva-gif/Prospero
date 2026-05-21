@@ -51,9 +51,6 @@ export const registerIssuesHandlers = (db: Database.Database): void => {
       console.error(`[issues] notifyAssignee: agent ${issue.assigneeId} not found`);
       return;
     }
-    console.log(
-      `[issues] notifyAssignee: waking ${assignee.name} for issue ${issue.id} (${issue.title})`,
-    );
 
     const priority = issue.priority.toUpperCase();
     const lines = [

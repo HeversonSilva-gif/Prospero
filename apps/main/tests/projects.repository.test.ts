@@ -42,7 +42,7 @@ describe("projects repository", () => {
     expect(projects.getById(p.id)).toBeNull();
   });
 
-  it("checkPaths returns 'available' for existing dirs and 'missing' otherwise", () => {
+  it("checkPaths returns 'available' for existing dirs and 'missing' otherwise", async () => {
     const { projects, companyId } = setup();
     const tmp = process.cwd();
     const p1 = projects.create({ companyId, name: "Real", path: tmp, color: "#1D5DD7" });
@@ -52,7 +52,7 @@ describe("projects repository", () => {
       path: "C:/this/path/does/not/exist/xyz123",
       color: "#1D5DD7",
     });
-    const status = projects.checkPaths(companyId);
+    const status = await projects.checkPaths(companyId);
     expect(status[p1.id]).toBe("available");
     expect(status[p2.id]).toBe("missing");
   });

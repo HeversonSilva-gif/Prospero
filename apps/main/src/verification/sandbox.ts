@@ -30,8 +30,10 @@ export const minimalVerificationEnv = (): Record<string, string> => {
   return env;
 };
 
-// Kills the whole process tree of a shell child. On Windows `child.kill()`
-// only terminates cmd.exe and orphans the grandchild — taskkill /T fixes that.
+// Kills the whole process tree of a shell child. `child.kill()` alone only
+// terminates the shell and orphans its grandchildren. On Windows taskkill /T
+// walks the tree; on POSIX the child is spawned detached (its own process-group
+// leader) so killing the negative pid signals the whole group.
 const killTree = (child: ReturnType<typeof crossSpawn>): void => {
   const pid = child.pid;
   if (pid === undefined) {
@@ -48,7 +50,11 @@ const killTree = (child: ReturnType<typeof crossSpawn>): void => {
       child.kill();
     }
   } else {
-    child.kill("SIGKILL");
+    try {
+      process.kill(-pid, "SIGKILL");
+    } catch {
+      child.kill("SIGKILL");
+    }
   }
 };
 
@@ -64,6 +70,9 @@ export const runSandboxedCommand = (
       shell: true,
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
+      // POSIX: own process group so killTree can signal the whole group on
+      // timeout (Windows uses taskkill /T instead and keeps default grouping).
+      detached: process.platform !== "win32",
     });
     let stdout = "";
     let stderr = "";

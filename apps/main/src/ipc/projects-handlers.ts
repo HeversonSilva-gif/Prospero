@@ -42,7 +42,7 @@ export const registerProjectsHandlers = (db: Database.Database): void => {
 
   ipcMain.handle(
     IPC.PROJECTS_CHECK_PATHS,
-    (_e, payload: { companyId: string }): Record<string, ProjectPathStatus> =>
+    (_e, payload: { companyId: string }): Promise<Record<string, ProjectPathStatus>> =>
       repo.checkPaths(payload.companyId),
   );
 

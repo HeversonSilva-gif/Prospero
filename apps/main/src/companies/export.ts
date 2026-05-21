@@ -53,12 +53,16 @@ const safeCollect = (
 // never kills the whole export — consistent with safeCollect above. An empty file
 // body is treated as "no artifact" so the round-trip matches the import side,
 // which skips empty bodies to avoid stamping a path for a vacuous file.
-const safeRead = (path: string): string | null => {
+const safeRead = (path: string, onError?: (err: unknown) => void): string | null => {
   try {
     if (!existsSync(path)) return null;
     const body = readFileSync(path, "utf8");
     return body.length > 0 ? body : null;
-  } catch {
+  } catch (e) {
+    // A missing file returns null above; reaching here means the file exists but
+    // could not be read (e.g. permissions). Report it so the artifact isn't
+    // silently dropped from an otherwise "clean" export (relatorioClaudinho P3-E).
+    onError?.(e);
     return null;
   }
 };
@@ -174,7 +178,9 @@ export const exportCompany = (
   if (userDataDir !== undefined) {
     let companyTelos: string | null = null;
     try {
-      companyTelos = safeRead(companyTelosPath(userDataDir, companyId));
+      companyTelos = safeRead(companyTelosPath(userDataDir, companyId), (e) =>
+        warnings.push(`telos.md: ${e instanceof Error ? e.message : String(e)}`),
+      );
     } catch {
       companyTelos = null;
     }
@@ -183,7 +189,9 @@ export const exportCompany = (
     for (const g of goalRows) {
       if (typeof g.id !== "string" || g.id.length === 0) continue;
       try {
-        const body = safeRead(goalIsaPath(userDataDir, companyId, g.id));
+        const body = safeRead(goalIsaPath(userDataDir, companyId, g.id), (e) =>
+          warnings.push(`isa.md (goal ${g.id}): ${e instanceof Error ? e.message : String(e)}`),
+        );
         if (body !== null) goalIsas[g.id] = body;
       } catch {
         // unsafe goal id segment — skip silently, mirrors safeCollect's stance
