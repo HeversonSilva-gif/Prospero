@@ -6,6 +6,10 @@
   "description": "Local orchestrator for Claude Code agents using Claude Max OAuth (no API key).",
   "author": "Heverson Silva",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HeversonSilva-gif/Prospero.git"
+  },
   "engines": {
     "node": ">=20",
     "pnpm": ">=9"

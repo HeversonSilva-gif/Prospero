@@ -1,0 +1,44 @@
+name: Release
+
+# Cuts a GitHub Release with the Windows installer whenever a version tag is
+# pushed (e.g. `git push origin v0.1.0`). electron-builder uploads the .exe
+# plus latest.yml (the manifest electron-updater polls) to the release.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write # required so electron-builder can create the release
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm -r run build
+
+      - name: Rebuild native deps for Electron
+        run: pnpm --filter @prospero/main run rebuild:electron
+
+      - name: Build and publish installer
+        run: pnpm exec electron-builder --win --x64 --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

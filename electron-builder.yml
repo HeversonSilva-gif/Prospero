@@ -59,5 +59,11 @@ nsis:
   shortcutName: Prospero
   artifactName: "${productName}-Setup-${version}.${ext}"
 
-# No publish block here — that's PR-B. Without it, electron-builder writes
-# the installer to ./release/ but does not upload anywhere.
+# GitHub Releases is the distribution channel. electron-builder uploads the
+# installer + latest.yml here when invoked with `--publish always` (the CI
+# release workflow). Local `dist:win` has no `--publish`, so it only writes to
+# ./release/ and never uploads.
+publish:
+  - provider: github
+    owner: HeversonSilva-gif
+    repo: Prospero
