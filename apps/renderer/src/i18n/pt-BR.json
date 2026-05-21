@@ -876,6 +876,10 @@
     "confirm": "Confirmar",
     "delete": "Excluir"
   },
+  "boasVindas": {
+    "title": "Boas-vindas",
+    "subtitle": "Vamos conectar sua conta e começar sua empresa."
+  },
   "banners": {
     "authError": {
       "message": "Token de autenticação não configurado. Agentes não podem rodar.",

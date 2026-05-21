@@ -876,6 +876,10 @@
     "confirm": "Confirm",
     "delete": "Delete"
   },
+  "boasVindas": {
+    "title": "Welcome",
+    "subtitle": "Let's connect your account and get your company started."
+  },
   "banners": {
     "authError": {
       "message": "Authentication token not configured. Agents can't run.",

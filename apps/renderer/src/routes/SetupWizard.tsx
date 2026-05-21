@@ -53,8 +53,8 @@ export const SetupWizard = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-surface-soft">
       <div className="max-w-xl w-full bg-surface-card border border-surface-border rounded-xl p-8 shadow-sm">
-        <h1 className="text-2xl font-bold text-brand-dark mb-2">{t("wizard.title")}</h1>
-        <p className="text-sm text-ink-muted mb-6">{t("wizard.subtitle")}</p>
+        <h1 className="text-2xl font-bold text-ink mb-2">{t("boasVindas.title")}</h1>
+        <p className="text-sm text-ink-soft mb-6">{t("boasVindas.subtitle")}</p>
 
         {step === "authSource" && (
           <div className="space-y-3">
