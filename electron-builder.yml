@@ -27,6 +27,12 @@ asarUnpack:
   - "**/node_modules/better-sqlite3/**/*"
   - "**/node_modules/bindings/**/*"
   - "**/node_modules/file-uri-to-path/**/*"
+  # The MCP dashboard server is spawned by claude as a separate node process
+  # (ELECTRON_RUN_AS_NODE). Node's ESM loader can't read a module from inside an
+  # asar, so the server must live on disk — unpack it. apps/main/package.json
+  # ("type": "module") rides along so the ESM loader treats server.js as ESM.
+  - "apps/main/dist/mcp/**"
+  - "apps/main/package.json"
 
 files:
   # Compiled main process + preload + MCP server (tsup output)

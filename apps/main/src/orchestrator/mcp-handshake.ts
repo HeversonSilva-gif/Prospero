@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve, sep } from "node:path";
 import { writeMcpConfigFile } from "./mcp-config.js";
 import type { AnySpawnEnv } from "./env.js";
 
@@ -13,8 +13,19 @@ export type HandshakeResult = {
 // Resolves the bundled MCP server entry path. tsup bundles src/index.ts → dist/index.js
 // (single file, splitting:false), so at runtime __dirname resolves to dist/, not
 // dist/orchestrator/. The MCP server is a separate entry → dist/mcp/server.js.
-export const resolveMcpServerPath = (override?: string): string =>
-  override ?? resolve(__dirname, "./mcp/server.js");
+//
+// Packaged: the code lives inside app.asar (read-only), but claude spawns the MCP
+// server as a SEPARATE node process (ELECTRON_RUN_AS_NODE) and Node's ESM loader
+// cannot read a module from inside an asar — the server then provides zero tools
+// and every dashboard call fails ("Available MCP tools: none"). electron-builder
+// unpacks dist/mcp to app.asar.unpacked, so point the spawn at that real on-disk
+// copy. In dev there is no app.asar segment, so this is a no-op.
+export const resolveMcpServerPath = (override?: string): string => {
+  if (override !== undefined) return override;
+  const p = resolve(__dirname, "./mcp/server.js");
+  const asarSeg = `${sep}app.asar${sep}`;
+  return p.includes(asarSeg) ? p.replace(asarSeg, `${sep}app.asar.unpacked${sep}`) : p;
+};
 
 // Writes the per-spawn MCP config file pointing claude at our dashboard MCP server.
 // Returns both paths so the adapter can pass mcpConfigPath to claude args and use
