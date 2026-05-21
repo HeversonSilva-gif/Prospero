@@ -34,7 +34,13 @@ export const useProjectsStore = create<State>((set) => ({
       projects,
       pathStatuses,
       loaded: true,
-      selectedId: s.selectedId ?? projects[0]?.id ?? null,
+      // Keep the selection only if it still exists in the freshly-loaded list
+      // (e.g. after a company switch the old id is gone) — otherwise it would
+      // leave the detail pane stuck on a project from another company.
+      selectedId:
+        s.selectedId !== null && projects.some((p) => p.id === s.selectedId)
+          ? s.selectedId
+          : (projects[0]?.id ?? null),
     }));
   },
   refreshPaths: async (companyId) => {

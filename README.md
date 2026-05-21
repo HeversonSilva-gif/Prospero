@@ -1,8 +1,8 @@
 # Prospero
 
-Local orchestrator for Claude Code agents using the Claude Max OAuth login — no API key required.
+Local orchestrator for Claude Code agents. Runs on your Claude Max OAuth login (no API key needed), an Anthropic API key, or a remote Docker host — your choice per agent.
 
-> Status: in development. M1 (Foundation) is the current milestone.
+> Status: in development toward a first public release (v0.1.0). Milestones M1–M17 are built; see the table below and [`ROADMAP.md`](ROADMAP.md).
 
 ## What it is
 
@@ -16,19 +16,17 @@ If you already pay for Claude Max, you shouldn't need a separate API key just to
 
 ## Status
 
-- [x] M1 — Foundation (Electron + SQLite + tooling) ✓
-- [x] M2 — Auth & Settings (OAuth via safeStorage, i18n, themes, first-run wizard) ✓
-- [x] M3 — Orchestrator + MCP core (real Claude subprocess, tool calls, agent chat) ✓
-- [ ] M4 — Companies + Agents UI (next)
-- [ ] M3 — Orchestrator + MCP core
-- [ ] M4 — Companies + Agents UI
-- [ ] M5 — Issues + Inbox + Threads
-- [ ] M6 — Projects + Costs + Org
-- [ ] M7 — Security hardening
-- [ ] M8 — Token efficiency
-- [ ] M9 — Open-source readiness
+The v1 product (M1–M10) is complete, plus the V2 line: agent memory & learning
+(M11), org/role definition + charters (M12), outcomes & verification (M13),
+morning briefing & trust ladder (M14), routines (M15), the plain-language UI
+redesign (M16), and packaging + auto-update (M17). The team is hardening toward
+a first public release (v0.1.0) and fixing issues found in real-app testing
+(M18). Three auth modes are supported: Claude Max OAuth, Anthropic API key, and
+a remote Docker adapter.
 
-See [`docs/superpowers/specs/2026-05-09-prospero-design.md`](docs/superpowers/specs/2026-05-09-prospero-design.md) for the full design.
+See [`ROADMAP.md`](ROADMAP.md) for the milestone history and
+[`docs/superpowers/specs/2026-05-09-prospero-design.md`](docs/superpowers/specs/2026-05-09-prospero-design.md)
+for the original design.
 
 ## Disclaimer
 

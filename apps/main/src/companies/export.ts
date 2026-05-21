@@ -25,18 +25,25 @@ export type CompanyExportV1 = {
     companyTelos?: string;
     goalIsas?: Record<string, string>;
   };
+  // Non-empty only when one or more tables failed to collect (e.g. schema
+  // drift). Surfaces a partial backup instead of masking it as a clean one.
+  warnings?: string[];
 };
 
 // Best-effort row collect: try/catch per table so a missing column in one table
-// doesn't kill the whole export. Returns [] on any SQL error.
+// doesn't kill the whole export. Returns [] on error AND records a warning so a
+// partial backup is visible instead of silently incomplete (relatorioCodex P2).
 const safeCollect = (
   db: Database.Database,
+  table: string,
   sql: string,
   params: Record<string, unknown>,
+  warnings: string[],
 ): unknown[] => {
   try {
     return db.prepare(sql).all(params);
-  } catch {
+  } catch (e) {
+    warnings.push(`${table}: ${e instanceof Error ? e.message : String(e)}`);
     return [];
   }
 };
@@ -68,37 +75,94 @@ export const exportCompany = (
     throw new Error(`Company ${companyId} not found`);
   }
 
+  const warnings: string[] = [];
   const result: CompanyExportV1 = {
     schemaVersion: 1,
     exportedAt: Date.now(),
     company: { id: companyRow.id, name: companyRow.name, createdAt: companyRow.created_at },
-    agents: safeCollect(db, "SELECT * FROM agents WHERE company_id = @cid", { cid: companyId }),
-    projects: safeCollect(db, "SELECT * FROM projects WHERE company_id = @cid", {
-      cid: companyId,
-    }),
-    issues: safeCollect(db, "SELECT * FROM issues WHERE company_id = @cid", { cid: companyId }),
-    threads: safeCollect(db, "SELECT * FROM threads WHERE company_id = @cid", {
-      cid: companyId,
-    }),
+    agents: safeCollect(
+      db,
+      "agents",
+      "SELECT * FROM agents WHERE company_id = @cid",
+      {
+        cid: companyId,
+      },
+      warnings,
+    ),
+    projects: safeCollect(
+      db,
+      "projects",
+      "SELECT * FROM projects WHERE company_id = @cid",
+      {
+        cid: companyId,
+      },
+      warnings,
+    ),
+    issues: safeCollect(
+      db,
+      "issues",
+      "SELECT * FROM issues WHERE company_id = @cid",
+      {
+        cid: companyId,
+      },
+      warnings,
+    ),
+    threads: safeCollect(
+      db,
+      "threads",
+      "SELECT * FROM threads WHERE company_id = @cid",
+      {
+        cid: companyId,
+      },
+      warnings,
+    ),
     messages: safeCollect(
       db,
+      "messages",
       "SELECT m.* FROM messages m JOIN threads t ON m.thread_id = t.id WHERE t.company_id = @cid",
       { cid: companyId },
+      warnings,
     ),
-    inbox: safeCollect(db, "SELECT * FROM inbox_items WHERE company_id = @cid", {
-      cid: companyId,
-    }),
-    costEvents: safeCollect(db, "SELECT * FROM cost_events WHERE company_id = @cid", {
-      cid: companyId,
-    }),
-    activityEvents: safeCollect(db, "SELECT * FROM activity_events WHERE company_id = @cid", {
-      cid: companyId,
-    }),
-    goals: safeCollect(db, "SELECT * FROM goals WHERE company_id = @cid", { cid: companyId }),
+    inbox: safeCollect(
+      db,
+      "inbox",
+      "SELECT * FROM inbox_items WHERE company_id = @cid",
+      {
+        cid: companyId,
+      },
+      warnings,
+    ),
+    costEvents: safeCollect(
+      db,
+      "costEvents",
+      "SELECT * FROM cost_events WHERE company_id = @cid",
+      {
+        cid: companyId,
+      },
+      warnings,
+    ),
+    activityEvents: safeCollect(
+      db,
+      "activityEvents",
+      "SELECT * FROM activity_events WHERE company_id = @cid",
+      { cid: companyId },
+      warnings,
+    ),
+    goals: safeCollect(
+      db,
+      "goals",
+      "SELECT * FROM goals WHERE company_id = @cid",
+      {
+        cid: companyId,
+      },
+      warnings,
+    ),
     approvals: safeCollect(
       db,
+      "approvals",
       "SELECT a.* FROM approvals a JOIN agents ag ON a.agent_id = ag.id WHERE ag.company_id = @cid",
       { cid: companyId },
+      warnings,
     ),
   };
 
@@ -134,5 +198,6 @@ export const exportCompany = (
     }
   }
 
+  if (warnings.length > 0) result.warnings = warnings;
   return result;
 };
