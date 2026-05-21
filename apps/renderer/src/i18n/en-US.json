@@ -720,6 +720,8 @@
       "subtitle": "Edit what agents know about you and tune the auto-derivation budget.",
       "userMemoryLabel": "About you (user.md)",
       "import": "Import from Claude Code",
+      "importDone": "Imported from Claude Code (~/.claude/CLAUDE.md). Review and save.",
+      "importEmpty": "Nothing to import — no ~/.claude/CLAUDE.md with content was found.",
       "save": "Save",
       "saved": "Saved.",
       "overCap": "The text is over the limit and will be trimmed when it enters the agent prompt.",
@@ -849,11 +851,13 @@
     "cancel": "Cancel",
     "close": "Close",
     "confirm": "Confirm",
-    "delete": "Delete"
+    "delete": "Delete",
+    "back": "Back"
   },
   "boasVindas": {
     "title": "Welcome",
     "subtitle": "Let's connect your account and get your company started.",
+    "stepLabel": "Step {{n}} of 3",
     "company": {
       "title": "Tell us about your business",
       "subtitle": "Your manager will use this to build the right team for you.",

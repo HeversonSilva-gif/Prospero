@@ -17,6 +17,7 @@ export const MemorySettingsSection: FC = () => {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
 
   useEffect(() => {
     void window.prospero.learning.getUserMemory().then((r) => setUserMemory(r.content));
@@ -37,10 +38,22 @@ export const MemorySettingsSection: FC = () => {
   };
 
   const onImport = async (): Promise<void> => {
-    const r = await window.prospero.learning.importClaudeCodeMemory();
-    setUserMemory(r.content);
-    setDirty(true);
+    setImportMsg(null);
     setSaved(false);
+    try {
+      const r = await window.prospero.learning.importClaudeCodeMemory();
+      // No ~/.claude/CLAUDE.md (or it's empty): tell the user instead of
+      // silently clobbering the field with "" — which read as "nothing happened".
+      if (r.content.trim() === "") {
+        setImportMsg(t("settings.memory.importEmpty"));
+        return;
+      }
+      setUserMemory(r.content);
+      setDirty(true);
+      setImportMsg(t("settings.memory.importDone"));
+    } catch (err) {
+      setImportMsg(err instanceof Error ? err.message : String(err));
+    }
   };
 
   const overCap = userMemory.length > USER_MEMORY_CAP;
@@ -85,6 +98,7 @@ export const MemorySettingsSection: FC = () => {
         </button>
       </div>
       {saved && <p className="mt-1 text-xs text-semantic-success">{t("settings.memory.saved")}</p>}
+      {importMsg !== null && <p className="mt-1 text-xs text-ink-muted">{importMsg}</p>}
       {saveError !== null && <p className="mt-1 text-xs text-semantic-danger">{saveError}</p>}
       {overCap && (
         <p className="mt-1 text-xs text-semantic-danger">{t("settings.memory.overCap")}</p>

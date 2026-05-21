@@ -31,9 +31,12 @@ export const RateLimitBanner: FC = () => {
 
   if (!state.active) return null;
 
+  // Show only the localized message — state.message is the adapter's raw English
+  // string ("Rate limit reached. Pausing the agent.") and appending it produced a
+  // bilingual banner.
   return (
     <div className="bg-semantic-warning text-ink px-4 py-2 text-sm">
-      {t("banners.rateLimit.message")} — {state.message}
+      {t("banners.rateLimit.message")}
     </div>
   );
 };

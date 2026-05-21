@@ -2,6 +2,7 @@
 // This whole file is in the lazy chunk loaded by React.lazy in App.tsx.
 
 import { useEffect, useMemo, useState, type FC } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAgentsStore } from "../stores/agents.js";
 import { useProjectsStore } from "../stores/projects.js";
@@ -36,7 +37,21 @@ const DEFAULT_FILTERS: CostsQueryFilters = {
 
 export const Costs: FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const companyId = useCompanyId();
+
+  // /costs is reached from Ajustes, the dashboard widget, and an agent's Stats
+  // tab — a fixed "back to Ajustes" link would be wrong from the others, so go
+  // back to wherever the user came from.
+  const backLink = (
+    <button
+      type="button"
+      onClick={() => navigate(-1)}
+      className="text-xs text-ink-muted hover:text-ink mb-4"
+    >
+      ← {t("common.back")}
+    </button>
+  );
   const agents = useAgentsStore((s) => s.agents);
   const projects = useProjectsStore((s) => s.projects);
 
@@ -56,6 +71,7 @@ export const Costs: FC = () => {
   if (companyId === null) {
     return (
       <div className="p-8 max-w-5xl">
+        {backLink}
         <h1 className="text-2xl font-bold text-brand-dark mb-1">{t("costs.title")}</h1>
         <p className="text-sm text-ink-muted">{t("costs.empty")}</p>
       </div>
@@ -64,6 +80,7 @@ export const Costs: FC = () => {
 
   return (
     <div className="p-8 max-w-5xl">
+      {backLink}
       <h1 className="text-2xl font-bold text-brand-dark mb-1">{t("costs.title")}</h1>
       <p className="text-sm text-ink-muted mb-4">{t("costs.subtitle")}</p>
 

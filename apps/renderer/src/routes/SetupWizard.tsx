@@ -72,9 +72,26 @@ export const SetupWizard = () => {
     }
   };
 
+  // 3-step wizard (mockup A): 1 connect account · 2 about the business · 3 create.
+  // The auth sub-steps (choose/manual/auto/apiKey) are all part of step 1.
+  const wizardStep = creating ? 3 : step === "company" ? 2 : 1;
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-surface-soft">
+    // flex-1 fills the Shell content row; without a width the card hugged the
+    // left instead of centering. flex-col stacks the progress bar over the card.
+    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface-soft overflow-auto">
+      <div className="flex gap-2 mb-5">
+        {[1, 2, 3].map((n) => (
+          <span
+            key={n}
+            className={`w-7 h-1.5 rounded-full ${n <= wizardStep ? "bg-brand" : "bg-surface-border"}`}
+          />
+        ))}
+      </div>
       <div className="max-w-xl w-full bg-surface-card border border-surface-border rounded-xl p-8 shadow-sm">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-brand mb-1">
+          {t("boasVindas.stepLabel", { n: wizardStep })}
+        </p>
         <h1 className="text-2xl font-bold text-ink mb-2">{t("boasVindas.title")}</h1>
         <p className="text-sm text-ink-soft mb-6">{t("boasVindas.subtitle")}</p>
 
