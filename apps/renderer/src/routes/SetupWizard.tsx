@@ -5,7 +5,7 @@ import { useAuthStore } from "../stores/auth.js";
 import { useSettingsStore } from "../stores/settings.js";
 import { useCompaniesStore } from "../stores/companies.js";
 
-type Step = "authSource" | "choose" | "manual" | "auto" | "apiKey" | "company";
+type Step = "authSource" | "choose" | "manual" | "auto" | "apiKey" | "company" | "confirm";
 
 export const SetupWizard = () => {
   const { t } = useTranslation();
@@ -72,9 +72,9 @@ export const SetupWizard = () => {
     }
   };
 
-  // 3-step wizard (mockup A): 1 connect account · 2 about the business · 3 create.
-  // The auth sub-steps (choose/manual/auto/apiKey) are all part of step 1.
-  const wizardStep = creating ? 3 : step === "company" ? 2 : 1;
+  // 3-step wizard (mockup A): 1 connect account · 2 about the business ·
+  // 3 review & create. The auth sub-steps (choose/manual/auto/apiKey) are step 1.
+  const wizardStep = step === "confirm" || creating ? 3 : step === "company" ? 2 : 1;
 
   return (
     // flex-1 fills the Shell content row; without a width the card hugged the
@@ -307,8 +307,62 @@ export const SetupWizard = () => {
             {error !== null && <p className="text-xs text-semantic-danger">{error}</p>}
             <div className="flex justify-end pt-2">
               <button
+                onClick={() => {
+                  if (companyName.trim().length === 0) {
+                    setError(t("boasVindas.company.errorEmpty"));
+                    return;
+                  }
+                  setError(null);
+                  setStep("confirm");
+                }}
+                disabled={companyName.trim().length === 0}
+                className="px-4 py-2 bg-brand text-brand-fg text-sm font-semibold rounded disabled:opacity-50"
+                type="button"
+              >
+                {t("boasVindas.company.continue")}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === "confirm" && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-brand-dark">
+              {t("boasVindas.confirm.title")}
+            </h3>
+            <p className="text-xs text-ink-muted">{t("boasVindas.confirm.subtitle")}</p>
+            <dl className="mt-2 rounded-lg border border-surface-border bg-surface-soft p-3 text-sm space-y-2">
+              <div>
+                <dt className="text-[10px] uppercase tracking-wide text-ink-soft font-semibold">
+                  {t("boasVindas.company.nameLabel")}
+                </dt>
+                <dd className="text-ink">{companyName.trim()}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wide text-ink-soft font-semibold">
+                  {t("boasVindas.company.descLabel")}
+                </dt>
+                <dd className="text-ink whitespace-pre-wrap">
+                  {companyDesc.trim() === "" ? "—" : companyDesc.trim()}
+                </dd>
+              </div>
+            </dl>
+            {error !== null && <p className="text-xs text-semantic-danger">{error}</p>}
+            <div className="flex items-center justify-between pt-2">
+              <button
+                onClick={() => {
+                  setError(null);
+                  setStep("company");
+                }}
+                disabled={creating}
+                className="px-4 py-2 text-sm text-ink hover:bg-surface-soft rounded disabled:opacity-50"
+                type="button"
+              >
+                {t("wizard.back")}
+              </button>
+              <button
                 onClick={() => void createCompanyAndFinish()}
-                disabled={companyName.trim().length === 0 || creating}
+                disabled={creating}
                 className="px-4 py-2 bg-brand text-brand-fg text-sm font-semibold rounded disabled:opacity-50"
                 type="button"
               >

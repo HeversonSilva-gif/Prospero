@@ -865,8 +865,14 @@
       "namePlaceholder": "Ex.: Velas Aurora",
       "descLabel": "O que a sua empresa faz?",
       "descPlaceholder": "Ex.: quero abrir uma loja online de velas artesanais e começar a vender ainda este mês…",
+      "continue": "Continuar",
+      "errorEmpty": "Dê um nome à sua empresa.",
       "create": "Criar minha empresa",
       "creating": "Criando…"
+    },
+    "confirm": {
+      "title": "Pronto para criar sua empresa",
+      "subtitle": "Confira os dados. Ao criar, seu gerente (CEO) é montado junto."
     }
   },
   "banners": {
