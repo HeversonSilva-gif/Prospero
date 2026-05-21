@@ -897,6 +897,12 @@
     },
     "gallery": {
       "title": "Escolher template",
+      "hireTitle": "Contratar alguém",
+      "describeSubtitle": "Conte ao CEO quem ou que time você precisa — ele monta a proposta e você aprova depois.",
+      "describePlaceholder": "Ex.: preciso de um designer e um redator pra tocar a loja de velas",
+      "askCeo": "Pedir ao CEO",
+      "noCeo": "Nenhum CEO na sua empresa ainda.",
+      "orTemplate": "Ou comece de um modelo pronto",
       "subtitle": "Cada template traz persona, capacidades e modelo padrão. Você pode editar depois.",
       "empty": "Nenhum template disponível.",
       "agentsCount": "agente(s)"

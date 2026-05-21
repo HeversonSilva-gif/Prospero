@@ -897,6 +897,12 @@
     },
     "gallery": {
       "title": "Pick a template",
+      "hireTitle": "Hire someone",
+      "describeSubtitle": "Tell the CEO who or what team you need — it designs the proposal and you approve it.",
+      "describePlaceholder": "e.g. I need a designer and a copywriter to run the candle store",
+      "askCeo": "Ask the CEO",
+      "noCeo": "No CEO in your company yet.",
+      "orTemplate": "Or start from a template",
       "subtitle": "Each template brings persona, capabilities, and default model. You can edit after.",
       "empty": "No templates available.",
       "agentsCount": "agent(s)"
