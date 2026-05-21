@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { Agent, Message, PermissionRequest, PermissionResolution } from "@prospero/shared";
+import {
+  isCeoAgent,
+  type Agent,
+  type Message,
+  type PermissionRequest,
+  type PermissionResolution,
+} from "@prospero/shared";
 import { useAgentsStore } from "../../stores/agents.js";
 import { ApprovalCard } from "../ApprovalCard.js";
 import { MessageList } from "../MessageList.js";
 import { DelegationsPanel } from "../DelegationsPanel.js";
+import { OrgPlanProposedBanner } from "../OrgPlanProposedBanner.js";
 import { Composer } from "../Composer.js";
 import { TabBar } from "../ui/index.js";
 
@@ -86,6 +93,7 @@ export const AgentConversation: FC<Props> = ({ agent }) => {
           ]}
         />
       </div>
+      {sub === "chat" && isCeoAgent(agent) && <OrgPlanProposedBanner />}
       {sub === "chat" ? (
         <MessageList
           messages={chatMessages}

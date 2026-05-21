@@ -76,12 +76,30 @@ export const applyOrgPlan = (
         });
       }
 
+      // role_templates.name is globally UNIQUE (a shared library), but a CEO's
+      // plan often reuses a common name that already exists — a seed example, or
+      // a role from a previously approved/rejected org. Without this, approval
+      // failed with "UNIQUE constraint failed: role_templates.name". Disambiguate
+      // the TEMPLATE name with a numeric suffix; the agent's displayed role keeps
+      // the original name.
+      const takenNames = new Set(roleRepo.listAll().map((r) => r.name));
+      const uniqueRoleName = (desired: string): string => {
+        let candidate = desired;
+        let n = 2;
+        while (takenNames.has(candidate)) {
+          candidate = `${desired} (${n})`;
+          n += 1;
+        }
+        takenNames.add(candidate);
+        return candidate;
+      };
+
       // Pass 1 — roles.
       const roleIndexToId = new Map<number, string>();
       const createdRoleIds: string[] = [];
       for (const role of includedRoles) {
         const created = roleRepo.create({
-          name: role.name,
+          name: uniqueRoleName(role.name),
           description: role.description,
           icon: role.icon,
           defaultModel: role.model,

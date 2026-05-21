@@ -83,6 +83,32 @@ describe("applyOrgPlan", () => {
     expect(createOrgPlansRepository(db).getById(plan.id)?.status).toBe("approved");
   });
 
+  it("disambiguates role names that already exist instead of failing on the UNIQUE constraint", () => {
+    // A template named "Manager" already exists (e.g. a seed example or a prior org).
+    createRoleTemplatesRepository(db).create({
+      name: "Manager",
+      description: "existing",
+      icon: null,
+      defaultModel: "claude-sonnet-4-6",
+      defaultCapabilities: ["chat"],
+    });
+    const plan = createOrgPlansRepository(db).insert({
+      companyId: "c1",
+      proposedByAgentId: "ceo",
+      summary: "s",
+      roles,
+      agents,
+    });
+    const result = applyOrgPlan(db, userData, plan.id);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const roleRepo = createRoleTemplatesRepository(db);
+    expect(roleRepo.getById(result.createdRoleIds[0]!)?.name).toBe("Manager (2)");
+    // The agent still shows the original role name.
+    const ann = createAgentsRepository(db).getById(result.hiredAgentIds[0]!)!;
+    expect(ann.role).toBe("Manager");
+  });
+
   it("applies only the included subset", () => {
     const plan = createOrgPlansRepository(db).insert({
       companyId: "c1",
