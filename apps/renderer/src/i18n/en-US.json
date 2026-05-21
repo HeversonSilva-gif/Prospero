@@ -1341,6 +1341,7 @@
     "checkNow": "Check for updates",
     "restartNow": "Restart to update",
     "downloaded": "Update v{{version}} downloaded.",
+    "errorHint": "Couldn't check right now — try again later.",
     "later": "Later",
     "state": {
       "idle": "Up to date",

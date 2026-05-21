@@ -1341,6 +1341,7 @@
     "checkNow": "Verificar atualizações",
     "restartNow": "Reiniciar para atualizar",
     "downloaded": "Atualização v{{version}} baixada.",
+    "errorHint": "Não foi possível verificar agora — tente mais tarde.",
     "later": "Depois",
     "state": {
       "idle": "Em dia",

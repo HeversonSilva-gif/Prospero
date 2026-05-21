@@ -25,8 +25,8 @@ export const UpdatesSection: FC = () => {
         {status.state === "downloading" && status.percent !== null ? ` (${status.percent}%)` : ""}
         {status.version !== null ? ` · v${status.version}` : ""}
       </p>
-      {status.state === "error" && status.error !== null && (
-        <p className="mt-1 text-xs text-semantic-danger">{status.error}</p>
+      {status.state === "error" && (
+        <p className="mt-1 text-xs text-ink-soft">{t("updater.errorHint")}</p>
       )}
 
       <div className="flex gap-2 mt-3">
