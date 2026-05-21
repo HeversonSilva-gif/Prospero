@@ -268,7 +268,8 @@
     "rejectReasonPlaceholder": "Optional — why are you rejecting this?",
     "applied": {
       "title": "Organization created.",
-      "detail": "{{roles}} role(s) and {{agents}} agent(s) were created."
+      "detail": "{{roles}} role(s) and {{agents}} agent(s) were created.",
+      "viewTeam": "View my team"
     },
     "validation": {
       "agentRoleExcluded": "{{agent}} is included but its role {{role}} is excluded.",

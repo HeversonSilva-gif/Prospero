@@ -1,7 +1,10 @@
 import { type FC, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { ApplyOrgPlanResult, OrgPlan, ProposedAgent, ProposedRole } from "@prospero/shared";
 import { useOrgPlanStore } from "../stores/orgPlan.js";
+import { useAgentsStore } from "../stores/agents.js";
+import { useActiveCompanyId } from "../hooks/useActiveCompanyId.js";
 import { validateOrgPlanSelection, type OrgPlanFilter } from "../lib/orgPlanValidation.js";
 
 const RoleRow: FC<{
@@ -65,8 +68,11 @@ const AgentRow: FC<{
 
 export const OrgPlanReview: FC<{ plan: OrgPlan }> = ({ plan }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const companyId = useActiveCompanyId();
   const approve = useOrgPlanStore((s) => s.approve);
   const reject = useOrgPlanStore((s) => s.reject);
+  const loadAgents = useAgentsStore((s) => s.load);
 
   const [included, setIncluded] = useState<OrgPlanFilter>(() => ({
     includedRoleIndexes: new Set(plan.roles.map((r) => r.index)),
@@ -120,6 +126,10 @@ export const OrgPlanReview: FC<{ plan: OrgPlan }> = ({ plan }) => {
       const res = await approve(opts);
       setResult(res);
       if (!res.ok) setError(`${res.failedAtStep}: ${res.error}`);
+      // The new agents are created in the main process; the renderer's agents
+      // store doesn't observe that, so refresh it here — otherwise "Minha
+      // equipe" keeps showing only the CEO until a full reload.
+      else if (companyId !== null) await loadAgents(companyId);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -150,6 +160,15 @@ export const OrgPlanReview: FC<{ plan: OrgPlan }> = ({ plan }) => {
             agents: result.hiredAgentIds.length,
           })}
         </p>
+        {result.hiredAgentIds.length > 0 && (
+          <button
+            type="button"
+            onClick={() => navigate("/agents")}
+            className="mt-4 px-4 py-2 bg-brand text-brand-fg rounded font-semibold"
+          >
+            {t("orgPlan.applied.viewTeam")}
+          </button>
+        )}
       </div>
     );
   }

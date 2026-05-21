@@ -268,7 +268,8 @@
     "rejectReasonPlaceholder": "Opcional — por que está rejeitando?",
     "applied": {
       "title": "Organização criada.",
-      "detail": "{{roles}} papel(éis) e {{agents}} agente(s) criados."
+      "detail": "{{roles}} papel(éis) e {{agents}} agente(s) criados.",
+      "viewTeam": "Ver minha equipe"
     },
     "validation": {
       "agentRoleExcluded": "{{agent}} está incluído mas o papel {{role}} está excluído.",
