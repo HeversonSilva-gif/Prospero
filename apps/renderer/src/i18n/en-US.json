@@ -910,6 +910,20 @@
     "paused": "paused",
     "error": "error"
   },
+  "ajustar": {
+    "tabs": {
+      "identidade": "Identity",
+      "instrucoes": "Instructions",
+      "habilidades": "Abilities",
+      "comportamento": "Behavior",
+      "historico": "History"
+    },
+    "historico": {
+      "tarefas": "Tasks",
+      "metricas": "Metrics",
+      "execucoes": "Runs"
+    }
+  },
   "ajustes": {
     "title": "Settings",
     "backToAjustes": "Settings",

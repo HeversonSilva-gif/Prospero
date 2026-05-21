@@ -910,6 +910,20 @@
     "paused": "pausado",
     "error": "com erro"
   },
+  "ajustar": {
+    "tabs": {
+      "identidade": "Identidade",
+      "instrucoes": "Instruções",
+      "habilidades": "Habilidades",
+      "comportamento": "Comportamento",
+      "historico": "Histórico"
+    },
+    "historico": {
+      "tarefas": "Tarefas",
+      "metricas": "Métricas",
+      "execucoes": "Execuções"
+    }
+  },
   "ajustes": {
     "title": "Ajustes",
     "backToAjustes": "Ajustes",
