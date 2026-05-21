@@ -35,6 +35,9 @@
       "prettier --write"
     ]
   },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0"
+  },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",

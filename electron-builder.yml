@@ -26,8 +26,6 @@ files:
   # Compiled renderer bundle (vite output)
   - "apps/renderer/dist/**/*"
   - "apps/renderer/package.json"
-  # Shared package source (consumed via "exports" → src/index.ts, no build step)
-  - "packages/shared/**/*"
   # Root manifest is needed for productName + version + main
   - "package.json"
   # Exclude TS sources, sourcemaps, tests, dev-only files everywhere
@@ -43,7 +41,6 @@ win:
     - target: nsis
       arch:
         - x64
-  artifactName: "${productName}-Setup-${version}.${ext}"
 
 nsis:
   oneClick: true
