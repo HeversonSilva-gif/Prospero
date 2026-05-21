@@ -87,7 +87,11 @@ export const AgentConversation: FC<Props> = ({ agent }) => {
         />
       </div>
       {sub === "chat" ? (
-        <MessageList messages={chatMessages} agents={agents} />
+        <MessageList
+          messages={chatMessages}
+          agents={agents}
+          activeAgent={agents.find((a) => a.id === agent.id) ?? agent}
+        />
       ) : (
         <DelegationsPanel messages={delegationMessages} currentAgentId={agent.id} agents={agents} />
       )}

@@ -331,6 +331,11 @@
     "composerPlaceholder": "Message to the agent...",
     "send": "Send",
     "notFound": "Agent not found.",
+    "activity": {
+      "thinking": "thinking",
+      "working": "working",
+      "line": "{{name}} is {{action}}…"
+    },
     "tabs": {
       "chat": "Chat",
       "delegations": "Delegations",

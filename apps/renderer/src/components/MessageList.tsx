@@ -2,10 +2,15 @@ import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { Agent, Message, MessageKind } from "@prospero/shared";
 import { ToolCallCard } from "./ToolCallCard.js";
+import { AgentActivityIndicator } from "./AgentActivityIndicator.js";
 
 type Props = {
   messages: Message[];
   agents: Agent[];
+  // The agent we're waiting on in this conversation (CEO in Pedir algo, the
+  // open agent in the studio). When it's thinking/working, a live indicator is
+  // shown so a quiet turn doesn't read as frozen.
+  activeAgent?: Agent | null;
 };
 
 const initials = (name: string): string => name.slice(0, 2).toUpperCase();
@@ -17,18 +22,20 @@ const KIND_STYLES: Record<Exclude<MessageKind, "message">, string> = {
   observation: "bg-slate-100 text-slate-700 border-slate-300",
 };
 
-export const MessageList = ({ messages, agents }: Props) => {
+export const MessageList = ({ messages, agents, activeAgent }: Props) => {
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const agentsById = useMemo(() => new Map(agents.map((a) => [a.id, a])), [agents]);
 
-  // Auto-scroll to bottom whenever the message list grows or its last message changes.
-  // Captures both new appends and tool-call streaming updates within an existing message.
+  // Auto-scroll to bottom whenever the message list grows, its last message
+  // changes, or the activity indicator appears/changes — so the live status is
+  // visible without manual scrolling.
   const lastId = messages.length > 0 ? messages[messages.length - 1]!.id : null;
+  const activeStatus = activeAgent?.status ?? null;
   useEffect(() => {
     const el = scrollRef.current;
     if (el !== null) el.scrollTop = el.scrollHeight;
-  }, [messages.length, lastId]);
+  }, [messages.length, lastId, activeStatus]);
 
   return (
     <div ref={scrollRef} className="flex-1 overflow-auto px-7 py-6 flex flex-col gap-4">
@@ -89,6 +96,7 @@ export const MessageList = ({ messages, agents }: Props) => {
           </div>
         );
       })}
+      <AgentActivityIndicator agent={activeAgent} />
     </div>
   );
 };

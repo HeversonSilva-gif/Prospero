@@ -154,7 +154,7 @@ export const PedirAlgo: FC = () => {
         </div>
       )}
 
-      <MessageList messages={messages} agents={agents} />
+      <MessageList messages={messages} agents={agents} activeAgent={ceo} />
 
       <div className="px-6 py-2 border-t border-surface-border flex items-center gap-2">
         <button
