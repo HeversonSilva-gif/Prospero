@@ -1,0 +1,57 @@
+appId: com.prospero.app
+productName: Prospero
+copyright: Copyright © 2026 Heverson Silva
+
+directories:
+  output: release
+  buildResources: build
+
+# Single-package monorepo: root package.json is the app manifest.
+# tsup outputs are in apps/main/dist and apps/renderer/dist.
+asar: true
+
+# better-sqlite3 ships a .node native binary that cannot be require()'d from
+# inside an asar archive — Electron's asar shim only patches fs reads, not
+# native module loading. We unpack it (and any other native dep) to
+# app.asar.unpacked/, which is on disk next to app.asar.
+asarUnpack:
+  - "**/node_modules/better-sqlite3/**/*"
+  - "**/node_modules/bindings/**/*"
+  - "**/node_modules/file-uri-to-path/**/*"
+
+files:
+  # Compiled main process + preload + MCP server (tsup output)
+  - "apps/main/dist/**/*"
+  - "apps/main/package.json"
+  # Compiled renderer bundle (vite output)
+  - "apps/renderer/dist/**/*"
+  - "apps/renderer/package.json"
+  # Shared package source (consumed via "exports" → src/index.ts, no build step)
+  - "packages/shared/**/*"
+  # Root manifest is needed for productName + version + main
+  - "package.json"
+  # Exclude TS sources, sourcemaps, tests, dev-only files everywhere
+  - "!**/*.{ts,tsx,map}"
+  - "!**/{tsconfig,tsconfig.*,vite.config,vitest.config,tsup.config,postcss.config,tailwind.config}.*"
+  - "!**/{__tests__,tests,test,__snapshots__}/**"
+  - "!**/*.test.*"
+  - "!**/.eslintrc*"
+
+# Only Windows x64 for v1 (spec §2). Mac/Linux deferred to M18.
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: "${productName}-Setup-${version}.${ext}"
+
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  deleteAppDataOnUninstall: false
+  shortcutName: Prospero
+  artifactName: "${productName}-Setup-${version}.${ext}"
+
+# No publish block here — that's PR-B. Without it, electron-builder writes
+# the installer to ./release/ but does not upload anywhere.

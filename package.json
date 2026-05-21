@@ -1,7 +1,8 @@
 {
   "name": "prospero",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
+  "main": "apps/main/dist/index.js",
   "description": "Local orchestrator for Claude Code agents using Claude Max OAuth (no API key).",
   "license": "MIT",
   "engines": {
@@ -14,6 +15,7 @@
     "typecheck": "pnpm -r --parallel run typecheck",
     "test": "pnpm -r --parallel run test",
     "build": "pnpm -r run build",
+    "dist:win": "pnpm -r run build && electron-builder --win --x64",
     "dev": "pnpm --parallel --filter @prospero/main --filter @prospero/renderer run dev",
     "start": "pnpm --filter @prospero/main run start",
     "rebuild:native": "pnpm --filter @prospero/main run rebuild:native",
@@ -38,6 +40,7 @@
     "@commitlint/config-conventional": "^19.5.0",
     "@eslint/js": "^9.10.0",
     "@playwright/test": "^1.60.0",
+    "electron-builder": "^25.1.8",
     "electron-playwright-helpers": "^2.1.0",
     "eslint": "^9.10.0",
     "eslint-config-prettier": "^9.1.0",
