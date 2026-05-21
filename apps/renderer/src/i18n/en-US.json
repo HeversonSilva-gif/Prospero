@@ -1312,6 +1312,18 @@
     "voltarConversa": "Conversation",
     "title": "Team member"
   },
+  "pedir": {
+    "title": "Ask for something",
+    "subtitle": "Describe what you need. The CEO will turn it into a plan and route it to the team.",
+    "panel": {
+      "title": "What happens next",
+      "steps": [
+        "You describe what you need below.",
+        "The CEO reads it and proposes a plan.",
+        "You approve, the team executes."
+      ]
+    }
+  },
   "routines": {
     "title": "Routines",
     "subtitle": "Agents that wake on their own",

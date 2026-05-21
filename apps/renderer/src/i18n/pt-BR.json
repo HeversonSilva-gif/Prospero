@@ -1312,6 +1312,18 @@
     "voltarConversa": "Conversa",
     "title": "Funcionário"
   },
+  "pedir": {
+    "title": "Pedir algo",
+    "subtitle": "Descreva o que você precisa. O CEO transforma em um plano e direciona a equipe.",
+    "panel": {
+      "title": "O que acontece em seguida",
+      "steps": [
+        "Você descreve o que precisa aqui.",
+        "O CEO lê e propõe um plano.",
+        "Você aprova, a equipe executa."
+      ]
+    }
+  },
   "routines": {
     "title": "Routines",
     "subtitle": "Agentes que acordam sozinhos",
