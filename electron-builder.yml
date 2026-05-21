@@ -2,6 +2,15 @@ appId: com.prospero.app
 productName: Prospero
 copyright: Copyright © 2026 Heverson Silva
 
+# The main entry (apps/main/dist/index.js) is an ES module (tsup builds ESM).
+# Electron picks require() vs import() for the entry based on the APP-ROOT
+# package.json "type" field. The repo root is CommonJS, so the packaged app
+# would require() an ESM file and crash (ERR_REQUIRE_ESM). Inject type:module
+# into the PACKAGED package.json only — dev is unaffected (it runs from
+# apps/main, which already declares type:module).
+extraMetadata:
+  type: module
+
 directories:
   output: release
   buildResources: build
