@@ -37,8 +37,16 @@ export default defineConfig([
     splitting: false,
     sourcemap: true,
     clean: true,
-    external: ["electron", "better-sqlite3"],
-    noExternal: ["@prospero/shared"],
+    // Bundle every JS dep into the entry so the packaged app is self-contained.
+    // Only the native better-sqlite3 (electron is provided by the runtime;
+    // fsevents is optional/macOS-only) stays external and is collected separately.
+    external: ["electron", "better-sqlite3", "fsevents"],
+    noExternal: [/^(?!(electron|better-sqlite3|fsevents)$).+/],
+    // ESM output needs a real require() in scope: esbuild's __require shim and
+    // the bundled CJS deps (require("fs"), etc.) throw otherwise.
+    banner: {
+      js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);",
+    },
     onSuccess: async () => {
       // Copy tray asset
       mkdirSync(resolve("dist/resources"), { recursive: true });
@@ -46,12 +54,10 @@ export default defineConfig([
       // Copy SQL migrations to dist/migrations (where the bundled code looks for them).
       // The bundled code's __dirname resolves to dist/, so migrations must be at dist/migrations/.
       copyTreeIfExists(resolve("src/db/migrations"), resolve("dist/migrations"));
-      // Copy orchestrator preamble.md so runtime composeSystemPrompt can readFileSync it.
-      mkdirSync(resolve("dist/orchestrator"), { recursive: true });
-      copyFileSync(
-        resolve("src/orchestrator/preamble.md"),
-        resolve("dist/orchestrator/preamble.md"),
-      );
+      // Copy orchestrator preamble.md to dist/ root: everything is bundled into
+      // dist/index.js, so the reader's __dirname resolves to dist/ (same reason
+      // migrations land in dist/migrations, not dist/db/migrations).
+      copyFileSync(resolve("src/orchestrator/preamble.md"), resolve("dist/preamble.md"));
       // Launch electron in watch mode (dev.cjs is idempotent — uses lockfile to prevent multiple).
       launchDevElectron();
     },
@@ -64,8 +70,8 @@ export default defineConfig([
     splitting: false,
     sourcemap: true,
     clean: false, // first config already cleaned the dist dir
-    external: ["electron"],
-    noExternal: ["@prospero/shared"],
+    external: ["electron", "fsevents"],
+    noExternal: [/^(?!(electron|better-sqlite3|fsevents)$).+/],
     outExtension: () => ({ js: ".cjs" }),
   },
   {
@@ -76,7 +82,11 @@ export default defineConfig([
     splitting: false,
     sourcemap: true,
     clean: false,
-    external: ["better-sqlite3"],
-    noExternal: ["@prospero/shared", "@modelcontextprotocol/sdk"],
+    external: ["better-sqlite3", "fsevents"],
+    noExternal: [/^(?!(electron|better-sqlite3|fsevents)$).+/],
+    // ESM output needs a real require() in scope (see index entry above).
+    banner: {
+      js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);",
+    },
   },
 ]);
