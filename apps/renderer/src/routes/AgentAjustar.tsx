@@ -4,13 +4,28 @@ import { useTranslation } from "react-i18next";
 import type { Skill, Memory } from "@prospero/shared";
 import { useAgentsStore } from "../stores/agents.js";
 import { AgentHeader } from "../components/agent-panel/AgentHeader.js";
-import { AgentStudio, type StudioTab } from "../components/agent-panel/AgentStudio.js";
 import { BreadcrumbBar } from "../components/agent-panel/BreadcrumbBar.js";
 import { IssueFormModal } from "../components/issues/IssueFormModal.js";
+import { TabBar } from "../components/ui/index.js";
+import { IdentidadeTab } from "../components/agent-panel/IdentidadeTab.js";
+import { InstructionsTab } from "../components/agent-panel/InstructionsTab.js";
+import { HabilidadesTab } from "../components/agent-panel/HabilidadesTab.js";
+import { ConfigTab } from "../components/agent-panel/ConfigTab.js";
+import { HistoricoTab } from "../components/agent-panel/HistoricoTab.js";
 
-// M16 PR-C2 — /agents/:id/ajustar — placeholder. Renderiza AgentStudio
-// (6 abas existentes). PR-C3 vai substituir AgentStudio pelo layout
-// novo de 5 abas (Identidade · Instruções · Habilidades · Comportamento · Histórico).
+// M16 PR-C3 — /agents/:id/ajustar com 5 abas M16:
+// Identidade · Instruções · Habilidades · Comportamento · Histórico.
+// AgentStudio.tsx (M12 PR-F) foi deletado neste task.
+
+type AjustarTab = "identidade" | "instrucoes" | "habilidades" | "comportamento" | "historico";
+
+const TABS: AjustarTab[] = [
+  "identidade",
+  "instrucoes",
+  "habilidades",
+  "comportamento",
+  "historico",
+];
 
 export const AgentAjustar = () => {
   const { t } = useTranslation();
@@ -18,7 +33,7 @@ export const AgentAjustar = () => {
   const agent = useAgentsStore((s) => s.agents.find((a) => a.id === agentId));
   const [skills, setSkills] = useState<Skill[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [studioTab, setStudioTab] = useState<StudioTab>("config");
+  const [ajustarTab, setAjustarTab] = useState<AjustarTab>("identidade");
   const [showAssignTask, setShowAssignTask] = useState(false);
 
   useEffect(() => {
@@ -31,7 +46,7 @@ export const AgentAjustar = () => {
       setSkills(s);
       setMemories(m);
     })();
-  }, [agent, studioTab]);
+  }, [agent, ajustarTab]);
 
   if (agent === undefined) {
     return <div className="p-8 text-ink-muted">{t("agent.notFound")}</div>;
@@ -45,15 +60,29 @@ export const AgentAjustar = () => {
         onAssignTask={() => setShowAssignTask(true)}
         skillCount={skills.length}
         memoryCount={memories.length}
-        onOpenLearning={() => setStudioTab("learning")}
+        onOpenLearning={() => setAjustarTab("habilidades")}
       />
-      <AgentStudio
-        agent={agent}
-        tab={studioTab}
-        onTab={setStudioTab}
-        skills={skills}
-        memories={memories}
-      />
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="px-6">
+          <TabBar
+            variant="underline"
+            active={ajustarTab}
+            onSelect={(id) => setAjustarTab(id as AjustarTab)}
+            tabs={TABS.map((k) => ({ id: k, label: t(`ajustar.tabs.${k}`) }))}
+          />
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {ajustarTab === "identidade" && <IdentidadeTab agent={agent} />}
+          {ajustarTab === "instrucoes" && <InstructionsTab agentId={agent.id} />}
+          {ajustarTab === "habilidades" && (
+            <HabilidadesTab agentId={agent.id} skills={skills} memories={memories} />
+          )}
+          {ajustarTab === "comportamento" && <ConfigTab agent={agent} />}
+          {ajustarTab === "historico" && (
+            <HistoricoTab agentId={agent.id} companyId={agent.companyId} />
+          )}
+        </div>
+      </div>
       {showAssignTask && (
         <IssueFormModal
           companyId={agent.companyId}
