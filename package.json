@@ -16,10 +16,10 @@
     "typecheck": "pnpm -r --parallel run typecheck",
     "test": "pnpm -r --parallel run test",
     "build": "pnpm -r run build",
-    "dist:win": "pnpm -r run build && electron-builder --win --x64",
+    "dist:win": "pnpm -r run build && pnpm --filter @prospero/main run rebuild:electron && electron-builder --win --x64",
     "dev": "pnpm --parallel --filter @prospero/main --filter @prospero/renderer run dev",
     "start": "pnpm --filter @prospero/main run start",
-    "rebuild:native": "pnpm --filter @prospero/main run rebuild:native",
+    "rebuild:native": "pnpm --filter @prospero/main run rebuild:electron",
     "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts",
     "test:e2e:ui": "playwright test --ui --config=tests/e2e/playwright.config.ts",
     "prepare": "husky"
