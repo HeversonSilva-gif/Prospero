@@ -1293,6 +1293,11 @@
       "description": "Contrate alguém pra começar."
     }
   },
+  "funcionario": {
+    "ajustar": "Ajustar",
+    "voltarConversa": "Conversa",
+    "title": "Funcionário"
+  },
   "routines": {
     "title": "Routines",
     "subtitle": "Agentes que acordam sozinhos",

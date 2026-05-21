@@ -1293,6 +1293,11 @@
       "description": "Hire someone to get started."
     }
   },
+  "funcionario": {
+    "ajustar": "Adjust",
+    "voltarConversa": "Conversation",
+    "title": "Team member"
+  },
   "routines": {
     "title": "Routines",
     "subtitle": "Agents that wake on their own",
