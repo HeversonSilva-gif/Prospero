@@ -1,5 +1,10 @@
 import type Database from "better-sqlite3";
-import type { ApplyOrgPlanResult, ProposedAgent, ProposedRole } from "@prospero/shared";
+import {
+  isCeoAgent,
+  type ApplyOrgPlanResult,
+  type ProposedAgent,
+  type ProposedRole,
+} from "@prospero/shared";
 import { tryGetRecorder } from "../activity/index.js";
 import { createAgentsRepository } from "./repository.js";
 import { createRoleTemplatesRepository } from "./role-templates-repository.js";
@@ -64,12 +69,7 @@ export const applyOrgPlan = (
         options.includeAgentIndexes,
       );
 
-      const ceo = agentsRepo
-        .listByCompany(plan.companyId)
-        .find(
-          (a) =>
-            a.templateId === "ceo" || a.role.toLowerCase() === "ceo" || a.templateId === "role-ceo",
-        );
+      const ceo = agentsRepo.listByCompany(plan.companyId).find(isCeoAgent);
       if (ceo === undefined) {
         throw Object.assign(new Error(`no CEO for company ${plan.companyId}`), {
           step: "lookup-ceo",

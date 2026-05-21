@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { Agent } from "@prospero/shared";
+import { type Agent, CEO_TEMPLATE_ID } from "@prospero/shared";
 import { createAgentsRepository } from "./repository.js";
 
 const CEO_SYSTEM_PROMPT = `You are the CEO of a small company. Your role:
@@ -27,12 +27,12 @@ export const createCEOAgent = (
     companyId,
     name: "CEO",
     role: "Chief Executive Officer",
-    // Canonical CEO marker. Every CEO check (findCeo, build-args isCeo so the CEO
-    // gets the goals/org planning prompt, PedirAlgo, IssueCommentsList) keys off
-    // templateId === "ceo" (or role === "ceo"). Without this the CEO is invisible
-    // to all of them: no planning prompt, "Nenhum CEO" in Pedir algo, and
-    // requestPlan can't find it. `role` stays the human-readable display.
-    templateId: "ceo",
+    // Canonical CEO marker — the role_templates id, whose rich charter is then
+    // materialized into the agent's instruction bundle. Every CEO check goes
+    // through isCeoAgent (which keys off this id), so the CEO is found by goal
+    // planning, Pedir algo, build-args (gets the planning prompt), etc. `role`
+    // stays the human-readable display.
+    templateId: CEO_TEMPLATE_ID,
     systemPrompt,
     mode: "supervised",
     alwaysOn: false,

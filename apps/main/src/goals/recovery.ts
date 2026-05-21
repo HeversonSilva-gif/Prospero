@@ -1,4 +1,5 @@
 import type Database from "better-sqlite3";
+import { isCeoAgent } from "@prospero/shared";
 import { createGoalsRepository } from "./repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
@@ -27,9 +28,7 @@ export const scanPlanningWithoutPlan = (db: Database.Database, deps: RecoveryDep
   for (const row of stuck) {
     const goal = goalsRepo.getById(row.id);
     if (!goal) continue;
-    const ceo = agentsRepo
-      .listByCompany(row.company_id)
-      .find((a) => a.templateId === "ceo" || a.role === "ceo");
+    const ceo = agentsRepo.listByCompany(row.company_id).find(isCeoAgent);
     if (!ceo) continue;
     deps.deliverSystemMessage(ceo.id, formatGoalPlanRequest(goal));
     enqueued++;

@@ -52,3 +52,14 @@ export type AgentStats = {
   tokensOut: number | null;
   lastActivityAt: number | null;
 };
+
+// The canonical CEO marker. The CEO is the role_templates row "role-ceo"
+// (seeded by post-migration 0004; its rich charter lives in SEED_CHARTERS and
+// is materialized by resolveRoleCharter, whose regex requires the "role-"
+// prefix). Legacy/demo data may instead carry role "ceo"/"CEO". Every CEO
+// check — goal planning, org plans, Pedir algo, TELOS, build-args, charter
+// seeding — MUST go through this helper so the marker never drifts again.
+export const CEO_TEMPLATE_ID = "role-ceo";
+
+export const isCeoAgent = (agent: { role: string; templateId: string | null }): boolean =>
+  agent.templateId === CEO_TEMPLATE_ID || agent.role.toLowerCase() === "ceo";

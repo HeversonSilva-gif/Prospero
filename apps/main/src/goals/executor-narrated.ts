@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { ExecutePlanResult, ExecutionState } from "@prospero/shared";
+import { isCeoAgent, type ExecutePlanResult, type ExecutionState } from "@prospero/shared";
 import { createGoalsRepository } from "./repository.js";
 import { createGoalPlansRepository } from "./plans-repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
@@ -48,9 +48,7 @@ export const executePlanNarrated = (
         failedAtStep: "load-goal",
       };
     }
-    const ceo = agentsRepo
-      .listByCompany(goal.companyId)
-      .find((a) => a.templateId === "ceo" || a.role === "ceo");
+    const ceo = agentsRepo.listByCompany(goal.companyId).find(isCeoAgent);
     if (ceo === undefined) {
       return {
         ok: false,

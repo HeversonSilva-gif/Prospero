@@ -8,7 +8,12 @@ import { createIssueCriteriaRepository } from "./issue-criteria-repository.js";
 import { createSettingsRepository } from "../settings/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { executePlanNarrated } from "./executor-narrated.js";
-import type { AgentToHire, IssueToCreate, ExecutePlanResult } from "@prospero/shared";
+import {
+  isCeoAgent,
+  type AgentToHire,
+  type IssueToCreate,
+  type ExecutePlanResult,
+} from "@prospero/shared";
 
 export type ExecuteOptions = {
   includeAgentIndexes?: Set<number>;
@@ -87,7 +92,7 @@ export const executePlanAtomic = (
       const filteredIssues = filterByIndex(plan.issuesToCreate, options.includeIssueIndexes);
 
       const allAgents = agentsRepo.listByCompany(goal.companyId);
-      const ceo = allAgents.find((a) => a.templateId === "ceo" || a.role === "ceo");
+      const ceo = allAgents.find(isCeoAgent);
       if (!ceo) {
         throw Object.assign(new Error(`no CEO for company ${goal.companyId}`), {
           step: "lookup-ceo",

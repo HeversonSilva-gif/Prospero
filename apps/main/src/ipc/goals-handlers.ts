@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from "electron";
 import type Database from "better-sqlite3";
-import { IPC } from "@prospero/shared";
+import { IPC, isCeoAgent } from "@prospero/shared";
 import type { Goal, GoalWithPlan, CreateGoalInput, GoalStatus } from "@prospero/shared";
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalPlansRepository } from "../goals/plans-repository.js";
@@ -50,7 +50,7 @@ export const goalsHandlers = (deps: GoalsHandlersDeps): GoalsHandlers => {
   const agentsRepo = createAgentsRepository(deps.db, tryGetRecorder());
 
   const findCeo = (companyId: string): { id: string } | undefined =>
-    agentsRepo.listByCompany(companyId).find((a) => a.templateId === "ceo" || a.role === "ceo");
+    agentsRepo.listByCompany(companyId).find(isCeoAgent);
 
   return {
     list(args) {

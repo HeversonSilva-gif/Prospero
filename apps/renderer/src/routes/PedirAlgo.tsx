@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { GoalWithPlan, Message } from "@prospero/shared";
+import { isCeoAgent, type GoalWithPlan, type Message } from "@prospero/shared";
 import { useAgentsStore } from "../stores/agents.js";
 import { MessageList } from "../components/MessageList.js";
 import { Composer } from "../components/Composer.js";
@@ -16,10 +16,7 @@ export const PedirAlgo: FC = () => {
   const navigate = useNavigate();
   const { goalId } = useParams<{ goalId?: string }>();
   const agents = useAgentsStore((s) => s.agents);
-  const ceo = useMemo(
-    () => agents.find((a) => a.role === "ceo" || a.templateId === "ceo") ?? null,
-    [agents],
-  );
+  const ceo = useMemo(() => agents.find(isCeoAgent) ?? null, [agents]);
 
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");

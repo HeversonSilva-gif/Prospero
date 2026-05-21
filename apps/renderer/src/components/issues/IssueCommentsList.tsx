@@ -1,6 +1,6 @@
 import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-import type { IssueComment, Agent } from "@prospero/shared";
+import { isCeoAgent, type IssueComment, type Agent } from "@prospero/shared";
 
 type Props = { comments: IssueComment[]; agentMap: Map<string, Agent> };
 
@@ -27,7 +27,7 @@ const SenderBadge: FC<{
     );
   }
   const agent = comment.senderId !== null ? agentMap.get(comment.senderId) : undefined;
-  const isCeo = agent?.templateId === "ceo" || agent?.role === "ceo";
+  const isCeo = agent !== undefined && isCeoAgent(agent);
   if (isCeo) {
     return (
       <span className="text-[10px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded bg-brand-bg text-brand">
