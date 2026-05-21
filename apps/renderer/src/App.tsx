@@ -35,7 +35,7 @@ import { RateLimitBanner } from "./components/banners/RateLimitBanner.js";
 const Activity = lazy(() => import("./routes/Activity.js").then((m) => ({ default: m.Activity })));
 const Costs = lazy(() => import("./routes/Costs.js"));
 const Goals = lazy(() => import("./routes/Goals.js"));
-const GoalNew = lazy(() => import("./routes/GoalNew.js"));
+const PedirAlgo = lazy(() => import("./routes/PedirAlgo.js"));
 const GoalDetail = lazy(() => import("./routes/GoalDetail.js"));
 const Agents = lazy(() => import("./routes/Agents.js").then((m) => ({ default: m.Agents })));
 
@@ -390,7 +390,21 @@ export const App = () => {
                 appReady ? (
                   <Layout>
                     <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
-                      <GoalNew />
+                      <PedirAlgo />
+                    </Suspense>
+                  </Layout>
+                ) : (
+                  <Navigate to="/setup" replace />
+                )
+              }
+            />
+            <Route
+              path="/pedir/:goalId"
+              element={
+                appReady ? (
+                  <Layout>
+                    <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                      <PedirAlgo />
                     </Suspense>
                   </Layout>
                 ) : (
