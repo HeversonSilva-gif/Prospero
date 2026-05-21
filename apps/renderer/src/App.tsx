@@ -26,6 +26,7 @@ import { Sidebar } from "./components/layout/Sidebar.js";
 import { Routines } from "./routes/Routines.js";
 import { RoutineForm } from "./routes/RoutineForm.js";
 import { AgentNew } from "./routes/AgentNew.js";
+import { AgentAjustar } from "./routes/AgentAjustar.js";
 import { TitleBar } from "./components/TitleBar.js";
 import { AuthErrorBanner } from "./components/banners/AuthErrorBanner.js";
 import { OAuthExpiryBanner } from "./components/banners/OAuthExpiryBanner.js";
@@ -437,6 +438,18 @@ export const App = () => {
               <Layout>
                 <AgentRoute />
               </Layout>
+            }
+          />
+          <Route
+            path="/agents/:id/ajustar"
+            element={
+              hasToken ? (
+                <Layout>
+                  <AgentAjustar />
+                </Layout>
+              ) : (
+                <Navigate to="/setup" replace />
+              )
             }
           />
           <Route path="*" element={<Navigate to={hasToken ? "/briefing" : "/setup"} replace />} />
