@@ -304,3 +304,24 @@ Threat surface:
   other IPCs (inbox, goals, costs). No new data egress.
 - `briefing:mark-reviewed` is the only write. It accepts only a company id
   and stamps `Date.now()` — no user-controlled timestamp.
+
+## Distribution & auto-update (M17)
+
+The app is packaged with electron-builder (NSIS, per-user install, no admin)
+and distributed via GitHub Releases. A CI workflow (`.github/workflows/release.yml`)
+builds and publishes on a `v*` tag push; `electron-updater` polls the release's
+`latest.yml` at launch and downloads updates in the background.
+
+Threat model (v1 — no code signing yet):
+
+| Threat | Mitigation (v1) | Future |
+|---|---|---|
+| Tampered download (MITM) | electron-updater verifies the installer's SHA512 against `latest.yml`, which is fetched over HTTPS from GitHub. | Code-signing certs (sign the `.exe`; `latest.yml` becomes tamper-evident). |
+| Malicious release pushed by an attacker | CI uses the repo-scoped `GITHUB_TOKEN`; publishing requires write access to the repo. 2FA is on. | Branch protection on `main` + signed commits once the repo is public. |
+| Stale sideloaded build keeps running | electron-updater never force-installs; the next launch re-checks. | Optional "force update" flag for critical releases. |
+| Native deps (better-sqlite3) diverge dev↔release | CI rebuilds natives for the target Electron version (`rebuild:electron`) before packaging. | Automated post-build smoke in CI. |
+
+The updater never executes downloaded code without the user choosing to restart
+(or on the next quit, via `autoInstallOnAppQuit`). The network check is gated on
+`app.isPackaged`, so dev builds never hit the update endpoint. No telemetry or
+user data is sent during a check — it is a plain GET of the public `latest.yml`.
