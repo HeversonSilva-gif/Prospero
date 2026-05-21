@@ -5,11 +5,13 @@ import type { Skill, Memory } from "@prospero/shared";
 import { useAgentsStore } from "../stores/agents.js";
 import { AgentHeader } from "../components/agent-panel/AgentHeader.js";
 import { AgentConversation } from "../components/agent-panel/AgentConversation.js";
-import { AgentStudio, type StudioTab } from "../components/agent-panel/AgentStudio.js";
-import { TabBar } from "../components/ui/index.js";
+import { BreadcrumbBar } from "../components/agent-panel/BreadcrumbBar.js";
 import { IssueFormModal } from "../components/issues/IssueFormModal.js";
 
-type Mode = "conversa" | "estudio";
+// M16 PR-C2 — Página do funcionário (modo conversa).
+// /agents/:id agora é só a conversa + header com link "Ajustar" → /agents/:id/ajustar.
+// O Estúdio (6 abas) saiu desta rota — vive em /agents/:id/ajustar (AgentAjustar.tsx).
+// Mode TabBar removido; M16 spec §9 diz "a página É a conversa".
 
 export const Agent = () => {
   const { t } = useTranslation();
@@ -17,12 +19,9 @@ export const Agent = () => {
   const agent = useAgentsStore((s) => s.agents.find((a) => a.id === agentId));
   const [skills, setSkills] = useState<Skill[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [mode, setMode] = useState<Mode>("conversa");
-  const [studioTab, setStudioTab] = useState<StudioTab>("config");
   const [showAssignTask, setShowAssignTask] = useState(false);
 
-  // M11 skills/memory feed the header 🎓 badge and the Learning tab.
-  // Refetched whenever the studio (re-)opens the Learning tab.
+  // M11 skills/memory feed the AgentHeader 🎓 badge.
   useEffect(() => {
     if (agent === undefined) return;
     void (async () => {
@@ -33,7 +32,7 @@ export const Agent = () => {
       setSkills(s);
       setMemories(m);
     })();
-  }, [agent, mode, studioTab]);
+  }, [agent]);
 
   if (agent === undefined) {
     return <div className="p-8 text-ink-muted">{t("agent.notFound")}</div>;
@@ -41,38 +40,18 @@ export const Agent = () => {
 
   return (
     <div className="flex flex-col h-screen min-w-0">
+      <BreadcrumbBar agentId={agent.id} agentName={agent.name} mode="conversa" />
       <AgentHeader
         agent={agent}
         onAssignTask={() => setShowAssignTask(true)}
         skillCount={skills.length}
         memoryCount={memories.length}
         onOpenLearning={() => {
-          setMode("estudio");
-          setStudioTab("learning");
+          // M16 PR-C2: Learning tab moved into /agents/:id/ajustar (PR-C3 reskin).
+          // No-op here — Learning content is reachable via the Ajustar button.
         }}
       />
-      <div className="px-6 py-2 border-b border-surface-border">
-        <TabBar
-          variant="segmented"
-          active={mode}
-          onSelect={(id) => setMode(id as Mode)}
-          tabs={[
-            { id: "conversa", label: t("agent.mode.conversa") },
-            { id: "estudio", label: t("agent.mode.estudio") },
-          ]}
-        />
-      </div>
-      {mode === "conversa" ? (
-        <AgentConversation agent={agent} />
-      ) : (
-        <AgentStudio
-          agent={agent}
-          tab={studioTab}
-          onTab={setStudioTab}
-          skills={skills}
-          memories={memories}
-        />
-      )}
+      <AgentConversation agent={agent} />
       {showAssignTask && (
         <IssueFormModal
           companyId={agent.companyId}
