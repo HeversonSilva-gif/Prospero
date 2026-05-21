@@ -5,9 +5,33 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import Database from "better-sqlite3";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, appendFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
+
+// Self-log to a file. When claude spawns this MCP server, its stdout/stderr are
+// consumed by claude (the host only sees "Available MCP tools: none"), so this
+// file is the only window into how far the server actually gets. Path is derived
+// straight from DB_PATH so it works before any other setup.
+const slog = (msg: string): void => {
+  try {
+    const p = process.env["DB_PATH"];
+    if (p !== undefined) {
+      appendFileSync(join(dirname(p), "mcp-server.log"), `[${new Date().toISOString()}] ${msg}\n`);
+    }
+  } catch {
+    /* ignore */
+  }
+};
+slog(
+  `starting: node=${process.version} execPath=${process.execPath} argv=${process.argv.join(" ")}`,
+);
+process.on("uncaughtException", (e: unknown) => {
+  slog(`uncaughtException: ${e instanceof Error ? (e.stack ?? e.message) : String(e)}`);
+});
+process.on("unhandledRejection", (e: unknown) => {
+  slog(`unhandledRejection: ${e instanceof Error ? (e.stack ?? e.message) : String(e)}`);
+});
 import { toolDefinitions, type ToolContext } from "./tools.js";
 import { goalsToolDefinitions } from "./tools-goals.js";
 import { orgToolDefinitions } from "./tools-org.js";
@@ -41,8 +65,10 @@ if (dbPath === undefined || permissionsDir === undefined || eventsDir === undefi
   process.exit(1);
 }
 
+slog(`env ok; opening db at ${dbPath}`);
 const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");
+slog(`db opened`);
 
 const ctx: ToolContext = {
   agentId,
@@ -101,5 +127,10 @@ for (const def of allToolDefinitions) {
   );
 }
 
+slog(`registered ${allToolDefinitions.length} tools; connecting transport`);
 const transport = new StdioServerTransport();
-void server.connect(transport);
+void server.connect(transport).then(
+  () => slog(`transport connected`),
+  (e: unknown) =>
+    slog(`connect failed: ${e instanceof Error ? (e.stack ?? e.message) : String(e)}`),
+);
