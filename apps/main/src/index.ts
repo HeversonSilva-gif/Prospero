@@ -58,98 +58,108 @@ process.on("uncaughtException", (err) => {
   }, 5_000);
 });
 
-void app.whenReady().then(() => {
-  db = openDatabase(databasePath());
-  registerIpcHandlers(db);
+// Bootstrap runs inside whenReady().then(); a throw there becomes a rejected
+// promise. Without this, a packaged-app bootstrap failure (e.g. a native module
+// that fails to load) is silent — no dialog, no window, no log.
+process.on("unhandledRejection", (reason) => {
+  logEmergency(reason);
+});
 
-  // M11 PR-F1: decay/prune the memory store once per session.
-  try {
-    const maintenance = runMemoryMaintenance(db, Date.now());
-    if (maintenance.ran) {
-      console.warn(
-        `[memory] maintenance: decayed ${maintenance.decayed}, ` +
-          `warned ${maintenance.warned}, pruned ${maintenance.pruned}, ` +
-          `purged ${maintenance.purgedSkills} skills`,
-      );
+void app
+  .whenReady()
+  .then(() => {
+    db = openDatabase(databasePath());
+    registerIpcHandlers(db);
+
+    // M11 PR-F1: decay/prune the memory store once per session.
+    try {
+      const maintenance = runMemoryMaintenance(db, Date.now());
+      if (maintenance.ran) {
+        console.warn(
+          `[memory] maintenance: decayed ${maintenance.decayed}, ` +
+            `warned ${maintenance.warned}, pruned ${maintenance.pruned}, ` +
+            `purged ${maintenance.purgedSkills} skills`,
+        );
+      }
+    } catch (err) {
+      console.warn(`[memory] maintenance pass failed: ${String(err)}`);
     }
-  } catch (err) {
-    console.warn(`[memory] maintenance pass failed: ${String(err)}`);
-  }
 
-  // Permission watcher (M5 spec §6.4)
-  const agentsRepo = createAgentsRepository(db, getRecorder());
-  const projectsRepo = createProjectsRepository(db, getRecorder());
-  const inboxRepo = createInboxRepository(db);
-  const permissionsDir = getPermissionsDir(app.getPath("userData"));
-  const userDataDir = app.getPath("userData");
-  stopPermissionWatcher = startPermissionWatcher({
-    dir: permissionsDir,
-    getAgent: (id) => agentsRepo.getById(id),
-    getAllowedProjectPaths: (agentId: string) => {
-      const agent = agentsRepo.getById(agentId);
-      if (agent === null) return [];
-      const projects = projectsRepo.listByCompany(agent.companyId);
-      if (agent.allowedProjects.length === 0) return projects.map((p) => p.path);
-      return projects.filter((p) => agent.allowedProjects.includes(p.id)).map((p) => p.path);
-    },
-    getAgentCwd: (agentId: string) => getAgentSandboxCwd(userDataDir, agentId),
-    userDataDir,
-    onUserDecision: (req, reason) => {
-      console.log(
-        `[m5/permission] onUserDecision toolUseId=${req.toolUseId} agentId=${req.agentId} tool=${req.toolName} reason=${reason}`,
-      );
-      broadcastPermissionRequest(req);
-      const agent = agentsRepo.getById(req.agentId);
-      if (agent === null) return;
-      inboxRepo.create({
-        companyId: agent.companyId,
-        kind: "approval",
-        actorId: req.agentId,
-        title: `Approval needed: ${req.toolName}`,
-        preview:
-          typeof req.toolInput === "object" && req.toolInput !== null
-            ? JSON.stringify(req.toolInput).slice(0, 200)
-            : null,
-        requiresAction: true,
-        payloadJson: JSON.stringify({
-          toolUseId: req.toolUseId,
-          toolName: req.toolName,
-          toolInput: req.toolInput,
-          reason,
-        }),
-      });
-      broadcastInboxUpdate(agent.companyId);
-      agentsRepo.updateStatus(req.agentId, {
-        status: "waiting",
-        currentAction: `Awaiting approval: ${req.toolName}`.slice(0, 80),
-      });
-      for (const win of BrowserWindow.getAllWindows()) {
-        win.webContents.send(IPC.AGENT_EVENT, {
-          kind: "status",
-          agentId: req.agentId,
+    // Permission watcher (M5 spec §6.4)
+    const agentsRepo = createAgentsRepository(db, getRecorder());
+    const projectsRepo = createProjectsRepository(db, getRecorder());
+    const inboxRepo = createInboxRepository(db);
+    const permissionsDir = getPermissionsDir(app.getPath("userData"));
+    const userDataDir = app.getPath("userData");
+    stopPermissionWatcher = startPermissionWatcher({
+      dir: permissionsDir,
+      getAgent: (id) => agentsRepo.getById(id),
+      getAllowedProjectPaths: (agentId: string) => {
+        const agent = agentsRepo.getById(agentId);
+        if (agent === null) return [];
+        const projects = projectsRepo.listByCompany(agent.companyId);
+        if (agent.allowedProjects.length === 0) return projects.map((p) => p.path);
+        return projects.filter((p) => agent.allowedProjects.includes(p.id)).map((p) => p.path);
+      },
+      getAgentCwd: (agentId: string) => getAgentSandboxCwd(userDataDir, agentId),
+      userDataDir,
+      onUserDecision: (req, reason) => {
+        console.log(
+          `[m5/permission] onUserDecision toolUseId=${req.toolUseId} agentId=${req.agentId} tool=${req.toolName} reason=${reason}`,
+        );
+        broadcastPermissionRequest(req);
+        const agent = agentsRepo.getById(req.agentId);
+        if (agent === null) return;
+        inboxRepo.create({
+          companyId: agent.companyId,
+          kind: "approval",
+          actorId: req.agentId,
+          title: `Approval needed: ${req.toolName}`,
+          preview:
+            typeof req.toolInput === "object" && req.toolInput !== null
+              ? JSON.stringify(req.toolInput).slice(0, 200)
+              : null,
+          requiresAction: true,
+          payloadJson: JSON.stringify({
+            toolUseId: req.toolUseId,
+            toolName: req.toolName,
+            toolInput: req.toolInput,
+            reason,
+          }),
+        });
+        broadcastInboxUpdate(agent.companyId);
+        agentsRepo.updateStatus(req.agentId, {
           status: "waiting",
           currentAction: `Awaiting approval: ${req.toolName}`.slice(0, 80),
         });
-      }
-    },
-    // Note: inbox markRead + broadcast on user-decision approve/reject is handled
-    // directly inside the IPC permission:resolve handler (avoids a chokidar race
-    // where MCP child polling can unlink the fence file before chokidar fires `add`
-    // due to awaitWriteFinish stability window).
-  });
+        for (const win of BrowserWindow.getAllWindows()) {
+          win.webContents.send(IPC.AGENT_EVENT, {
+            kind: "status",
+            agentId: req.agentId,
+            status: "waiting",
+            currentAction: `Awaiting approval: ${req.toolName}`.slice(0, 80),
+          });
+        }
+      },
+      // Note: inbox markRead + broadcast on user-decision approve/reject is handled
+      // directly inside the IPC permission:resolve handler (avoids a chokidar race
+      // where MCP child polling can unlink the fence file before chokidar fires `add`
+      // due to awaitWriteFinish stability window).
+    });
 
-  mainWindow = createMainWindow();
-  registerWindowHandlers(mainWindow);
-  tray = createTray(getWindow);
+    mainWindow = createMainWindow();
+    registerWindowHandlers(mainWindow);
+    tray = createTray(getWindow);
 
-  stopHeartbeat = startHeartbeat({
-    db,
-    agents: agentsRepo,
-    inbox: inboxRepo,
-    broadcastInbox: broadcastInboxUpdate,
-    thresholdMs: 5 * 60_000,
-  });
-});
+    stopHeartbeat = startHeartbeat({
+      db,
+      agents: agentsRepo,
+      inbox: inboxRepo,
+      broadcastInbox: broadcastInboxUpdate,
+      thresholdMs: 5 * 60_000,
+    });
+  })
+  .catch(logEmergency);
 
 app.on("window-all-closed", () => {
   // Intentionally empty — keep app alive in tray.

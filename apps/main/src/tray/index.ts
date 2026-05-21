@@ -6,7 +6,9 @@ import { dirname, resolve } from "node:path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export const createTray = (getWindow: () => BrowserWindow | null): Tray => {
-  const iconPath = resolve(__dirname, "../resources/tray-icon.png");
+  // tsup copies the asset to dist/resources/ (next to the bundled entry), which
+  // is what gets packaged into app.asar. Resolve relative to __dirname (= dist/).
+  const iconPath = resolve(__dirname, "resources/tray-icon.png");
   const tray = new Tray(iconPath);
   tray.setToolTip("Prospero");
 
