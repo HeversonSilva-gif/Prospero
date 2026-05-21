@@ -52,6 +52,13 @@ export const buildClaudeArgs = (
     "--include-partial-messages",
     "--permission-mode",
     "default",
+    // Disable interactive Claude built-ins the dashboard can't render. The CEO
+    // called AskUserQuestion to ask a multiple-choice question and then waited
+    // forever for an answer the conversation UI never showed. Without these, the
+    // agent asks clarifying questions as normal chat messages (which we render)
+    // and plan/subagent modes don't strand the turn.
+    "--disallowedTools",
+    "AskUserQuestion,Task,EnterPlanMode,ExitPlanMode",
   ];
   // The MCP triplet — host-side adapters pass a host mcp.json path; the remote
   // adapter passes null because the agent-runner appends the triplet itself with

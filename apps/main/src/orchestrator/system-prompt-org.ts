@@ -35,4 +35,8 @@ Rules:
 - If \`submit_org_plan\` returns an \`invalid_org_plan\` error, correct the
   payload and resubmit (max 3 attempts).
 - Keep it lean — propose the roles the business actually needs, not more.
+- If you need to clarify something before proposing, ask it as a normal chat
+  message and end your turn — do NOT use interactive question prompts (they are
+  not rendered here). The owner replies in chat and you continue. When in doubt,
+  prefer proposing a sensible plan the owner can adjust on review.
 `;
