@@ -936,7 +936,20 @@
   "projetos": {
     "title": "Projects",
     "subtitle": "Each project is a folder. Pick a project to see its tasks and team access.",
-    "novoProjeto": "+ New project"
+    "novoProjeto": "+ New project",
+    "detail": {
+      "folder": "Folder",
+      "tasksProgress": "{{done}} of {{total}} tasks",
+      "addTask": "Add task",
+      "waitingAgent": "waiting for an agent to pick it up",
+      "needsReview": "Needs your OK",
+      "columns": {
+        "todo": "To do",
+        "doing": "Doing",
+        "review": "Review",
+        "done": "Done"
+      }
+    }
   },
   "projects": {
     "empty": "No projects yet — create one to start.",
@@ -963,8 +976,6 @@
       "agentsWithAccess": "Agents with access",
       "addAgent": "+ Agent",
       "removeAccessTitle": "Click to remove access",
-      "recentIssues": "Recent issues",
-      "counts": "{{agents}} agents · {{issues}} issues · {{doing}} doing",
       "pathMissing": "Path unavailable"
     }
   },

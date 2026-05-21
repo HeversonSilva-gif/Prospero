@@ -936,7 +936,20 @@
   "projetos": {
     "title": "Projetos",
     "subtitle": "Cada projeto é uma pasta. Escolha um projeto pra ver suas tarefas e acessos.",
-    "novoProjeto": "+ Novo projeto"
+    "novoProjeto": "+ Novo projeto",
+    "detail": {
+      "folder": "Pasta",
+      "tasksProgress": "{{done}} de {{total}} tarefas",
+      "addTask": "Adicionar tarefa",
+      "waitingAgent": "aguardando um agente pegar",
+      "needsReview": "Precisa do seu OK",
+      "columns": {
+        "todo": "A fazer",
+        "doing": "Fazendo",
+        "review": "Revisão",
+        "done": "Concluído"
+      }
+    }
   },
   "projects": {
     "empty": "Sem projetos ainda — crie um pra começar.",
@@ -963,8 +976,6 @@
       "agentsWithAccess": "Agentes com acesso",
       "addAgent": "+ Agente",
       "removeAccessTitle": "Clique para remover acesso",
-      "recentIssues": "Issues recentes",
-      "counts": "{{agents}} agentes · {{issues}} issues · {{doing}} doing",
       "pathMissing": "Pasta indisponível"
     }
   },

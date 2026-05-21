@@ -22,6 +22,10 @@ export const Projects: FC = () => {
   const deleteProj = useProjectsStore((s) => s.delete);
   const agents = useAgentsStore((s) => s.agents);
   const allIssues = useIssuesStore((s) => s.issues);
+  const loadIssues = useIssuesStore((s) => s.load);
+  const replaceIssue = useIssuesStore((s) => s.replace);
+  const removeIssue = useIssuesStore((s) => s.remove);
+  const upsertIssue = useIssuesStore((s) => s.upsert);
 
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -37,9 +41,10 @@ export const Projects: FC = () => {
       if (cs.length > 0) {
         setCompanyId(cs[0]!.id);
         void load(cs[0]!.id);
+        void loadIssues(cs[0]!.id);
       }
     })();
-  }, [load]);
+  }, [load, loadIssues]);
 
   useEffect(() => {
     if (companyId === null) return;
@@ -47,17 +52,46 @@ export const Projects: FC = () => {
     return () => clearInterval(interval);
   }, [companyId, refreshPaths]);
 
+  // Keep the embedded Kanban live: agents move tasks across columns in the
+  // background, so mirror the targeted-refresh subscription used by /issues.
+  useEffect(() => {
+    const off = window.prospero.issues.onChanged((ev) => {
+      if (companyId === null || ev.companyId !== companyId) return;
+      if (ev.kind === "deleted") {
+        removeIssue(ev.issueId);
+        return;
+      }
+      void (async () => {
+        const detail = await window.prospero.issues.get(ev.issueId);
+        if (detail === null) return;
+        if (ev.kind === "created") {
+          upsertIssue(detail.issue);
+        } else {
+          replaceIssue(detail.issue);
+        }
+      })();
+    });
+    return off;
+  }, [companyId, removeIssue, replaceIssue, upsertIssue]);
+
   const selected = projects.find((p) => p.id === selectedId) ?? null;
+
+  const countsByProject = useMemo(() => {
+    const m = new Map<string, { done: number; total: number }>();
+    for (const i of allIssues) {
+      if (i.projectId === null || i.status === "cancelled") continue;
+      const c = m.get(i.projectId) ?? { done: 0, total: 0 };
+      c.total += 1;
+      if (i.status === "done") c.done += 1;
+      m.set(i.projectId, c);
+    }
+    return m;
+  }, [allIssues]);
 
   const projectIssues = useMemo(
     () => allIssues.filter((i) => i.projectId === selected?.id),
     [allIssues, selected?.id],
   );
-  const doingCount = projectIssues.filter((i) => i.status === "doing").length;
-  const recentIssues = projectIssues
-    .slice()
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 5);
 
   return (
     <div className="flex flex-col h-full">
@@ -92,6 +126,7 @@ export const Projects: FC = () => {
                     project={p}
                     pathStatus={pathStatuses[p.id]}
                     selected={selectedId === p.id}
+                    counts={countsByProject.get(p.id) ?? null}
                     onClick={() => select(p.id)}
                   />
                 ))}
@@ -107,15 +142,15 @@ export const Projects: FC = () => {
             {t("projects.list.showArchived")}
           </label>
         </div>
-        <div className="flex-1 overflow-auto">
-          {selected !== null && (
+        <div className="flex-1 min-w-0 flex">
+          {selected !== null && companyId !== null && (
             <ProjectDetail
               project={selected}
               pathStatus={pathStatuses[selected.id]}
               agents={agents}
               allProjects={projects}
-              recentIssues={recentIssues}
-              doingCount={doingCount}
+              projectIssues={projectIssues}
+              companyId={companyId}
               onEdit={() => {
                 setEditing(selected);
                 setShowForm(true);

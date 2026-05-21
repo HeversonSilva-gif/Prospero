@@ -9,12 +9,19 @@ type Props = {
   companyId: string;
   parentId?: string;
   initialAssigneeId?: string | null;
+  defaultProjectId?: string;
   onClose: () => void;
 };
 
 const PRIORITIES: IssuePriority[] = ["low", "medium", "high", "urgent"];
 
-export const IssueFormModal: FC<Props> = ({ companyId, parentId, initialAssigneeId, onClose }) => {
+export const IssueFormModal: FC<Props> = ({
+  companyId,
+  parentId,
+  initialAssigneeId,
+  defaultProjectId,
+  onClose,
+}) => {
   const { t } = useTranslation();
   const projects = useProjectsStore((s) => s.projects);
   const agents = useAgentsStore((s) => s.agents);
@@ -22,7 +29,7 @@ export const IssueFormModal: FC<Props> = ({ companyId, parentId, initialAssignee
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [projectId, setProjectId] = useState<string>(projects[0]?.id ?? "");
+  const [projectId, setProjectId] = useState<string>(defaultProjectId ?? projects[0]?.id ?? "");
   const [assigneeId, setAssigneeId] = useState<string>(initialAssigneeId ?? "");
   const [priority, setPriority] = useState<IssuePriority>("medium");
   const [busy, setBusy] = useState(false);
