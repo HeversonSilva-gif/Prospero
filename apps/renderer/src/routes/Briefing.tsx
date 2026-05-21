@@ -7,6 +7,7 @@ import { useAgentsStore } from "../stores/agents.js";
 import { formatCents } from "../lib/costs/formatCents.js";
 import { StatCard } from "../components/inicio/StatCard.js";
 import { TeamMemberRow } from "../components/inicio/TeamMemberRow.js";
+import { OrgPlanProposedBanner } from "../components/OrgPlanProposedBanner.js";
 import {
   CheckCircleIcon,
   PlayIcon,
@@ -92,6 +93,8 @@ export const Briefing: FC = () => {
 
   return (
     <div className="p-8 max-w-3xl space-y-6">
+      <OrgPlanProposedBanner />
+
       {/* Saudação */}
       <header>
         <h1 className="text-2xl font-bold text-ink">{t("inicio.greeting")}</h1>

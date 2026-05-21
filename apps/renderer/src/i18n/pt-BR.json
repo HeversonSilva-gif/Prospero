@@ -251,6 +251,9 @@
   },
   "orgPlan": {
     "pageTitle": "Projeto da organização",
+    "proposedBanner_one": "O CEO propôs uma estrutura com {{count}} pessoa.",
+    "proposedBanner_other": "O CEO propôs uma estrutura com {{count}} pessoas.",
+    "reviewCta": "Revisar e aprovar",
     "none": "Nenhuma proposta de organização aguardando revisão.",
     "title": "Organização proposta",
     "roles": "Papéis ({{count}})",

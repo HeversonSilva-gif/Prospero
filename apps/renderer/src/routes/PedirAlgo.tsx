@@ -6,6 +6,7 @@ import { useAgentsStore } from "../stores/agents.js";
 import { useActiveCompanyId } from "../hooks/useActiveCompanyId.js";
 import { MessageList } from "../components/MessageList.js";
 import { Composer } from "../components/Composer.js";
+import { OrgPlanProposedBanner } from "../components/OrgPlanProposedBanner.js";
 import { deriveGoalTitle, scopeUserMessages } from "../lib/pedir.js";
 
 // M16 gap #3 — "Pedir algo" is now a real conversation with the CEO that ends
@@ -140,6 +141,8 @@ export const PedirAlgo: FC = () => {
           {t("pedir.newRequest")}
         </button>
       </header>
+
+      <OrgPlanProposedBanner />
 
       {planReady && (
         <div className="px-6 py-2 bg-semantic-success/10 border-b border-surface-border flex items-center gap-3">

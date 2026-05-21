@@ -251,6 +251,9 @@
   },
   "orgPlan": {
     "pageTitle": "Organization design",
+    "proposedBanner_one": "The CEO proposed an organization with {{count}} person.",
+    "proposedBanner_other": "The CEO proposed an organization with {{count}} people.",
+    "reviewCta": "Review and approve",
     "none": "No organization design is awaiting review.",
     "title": "Proposed organization",
     "roles": "Roles ({{count}})",
