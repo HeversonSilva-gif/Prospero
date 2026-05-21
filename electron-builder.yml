@@ -73,3 +73,7 @@ publish:
   - provider: github
     owner: HeversonSilva-gif
     repo: Prospero
+    # Publish as a real release, not a draft. electron-builder defaults to draft,
+    # but electron-updater (unauthenticated) only sees published releases — a
+    # draft leaves the installed app unable to find latest.yml ("error checking").
+    releaseType: release
