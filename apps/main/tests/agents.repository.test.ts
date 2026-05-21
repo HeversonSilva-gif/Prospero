@@ -29,6 +29,32 @@ describe("agents repository", () => {
     expect(agents.getById(ceo.id)?.name).toBe("CEO");
   });
 
+  it("setReportsTo rejects a manager from another company", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    const companies = createCompaniesRepository(db);
+    const agents = createAgentsRepository(db);
+    const a = companies.create({ name: "A" });
+    const b = companies.create({ name: "B" });
+    const worker = agents.create({
+      companyId: a.id,
+      name: "W",
+      role: "x",
+      systemPrompt: "x",
+      mode: "supervised",
+      alwaysOn: false,
+    });
+    const bossB = agents.create({
+      companyId: b.id,
+      name: "Boss",
+      role: "x",
+      systemPrompt: "x",
+      mode: "supervised",
+      alwaysOn: false,
+    });
+    expect(() => agents.setReportsTo(worker.id, bossB.id)).toThrow(/different company/);
+  });
+
   it("updateStatus mutates status and currentAction", () => {
     const { agents, companyId } = setup();
     const a = agents.create({

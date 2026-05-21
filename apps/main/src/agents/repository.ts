@@ -287,6 +287,14 @@ export const createAgentsRepository = (
         return;
       }
       if (newParentId === id) throw new Error("Agent cannot report to itself (cycle)");
+      // A manager must be in the same company. The FK only checks the id exists
+      // (relatorioCodex P1).
+      if (row !== undefined) {
+        const parentRow = byId.get(newParentId) as Row | undefined;
+        if (parentRow !== undefined && parentRow.company_id !== row.company_id) {
+          throw new Error("Agent cannot report to a manager in a different company");
+        }
+      }
       const stmt = db.prepare("SELECT reports_to FROM agents WHERE id = ?");
       let cursor: string | null = newParentId;
       const seen = new Set<string>();

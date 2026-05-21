@@ -153,7 +153,47 @@ export const createIssuesRepository = (
   );
   const getGoalIdStmt = db.prepare("SELECT goal_id FROM issues WHERE id = ?");
 
+  // FKs only guarantee the referenced id exists — not that it belongs to the
+  // same company. Combined with the (now-fixed) frontend that could pass another
+  // company's ids, that allowed cross-company issues (relatorioCodex P1). Guard
+  // the relations here: a referenced project/assignee/parent that exists but
+  // lives in a different company is rejected. Missing ids are left to the FK.
+  const projectCompanyStmt = db.prepare("SELECT company_id FROM projects WHERE id = ?");
+  const agentCompanyStmt = db.prepare("SELECT company_id FROM agents WHERE id = ?");
+  const assertSameCompany = (
+    companyId: string,
+    refs: {
+      projectId?: string | null | undefined;
+      assigneeId?: string | null | undefined;
+      parentId?: string | null | undefined;
+    },
+  ): void => {
+    if (refs.projectId != null) {
+      const r = projectCompanyStmt.get(refs.projectId) as { company_id: string } | undefined;
+      if (r !== undefined && r.company_id !== companyId) {
+        throw new Error(`project ${refs.projectId} belongs to a different company`);
+      }
+    }
+    if (refs.assigneeId != null) {
+      const r = agentCompanyStmt.get(refs.assigneeId) as { company_id: string } | undefined;
+      if (r !== undefined && r.company_id !== companyId) {
+        throw new Error(`assignee ${refs.assigneeId} belongs to a different company`);
+      }
+    }
+    if (refs.parentId != null) {
+      const r = byId.get(refs.parentId) as IssueRow | undefined;
+      if (r !== undefined && r.company_id !== companyId) {
+        throw new Error(`parent issue ${refs.parentId} belongs to a different company`);
+      }
+    }
+  };
+
   const createTx = db.transaction((input: CreateIssueInput, actor: ActorContext): Issue => {
+    assertSameCompany(input.companyId, {
+      projectId: input.projectId,
+      assigneeId: input.assigneeId,
+      parentId: input.parentId,
+    });
     const id = `iss_${randomUUID()}`;
     const now = Date.now();
     let issueNumber: number | null = null;
@@ -299,6 +339,10 @@ export const createIssuesRepository = (
     update(id, patch, actor) {
       const current = byId.get(id) as IssueRow | undefined;
       if (current === undefined) return null;
+      assertSameCompany(current.company_id, {
+        assigneeId: patch.assigneeId,
+        parentId: patch.parentId,
+      });
       const sets: string[] = ["updated_at = ?"];
       const params: unknown[] = [Date.now()];
       const events: Array<{ kind: IssueEventKind; payload: unknown }> = [];

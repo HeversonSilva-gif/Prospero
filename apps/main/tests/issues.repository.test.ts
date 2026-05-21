@@ -5,6 +5,7 @@ import { createCompaniesRepository } from "../src/companies/repository.js";
 import { createProjectsRepository } from "../src/projects/repository.js";
 import { createIssuesRepository } from "../src/issues/repository.js";
 import { createGoalsRepository } from "../src/goals/repository.js";
+import { createAgentsRepository } from "../src/agents/repository.js";
 
 const setup = () => {
   const db = new Database(":memory:");
@@ -41,6 +42,43 @@ describe("issues repository", () => {
       kind: string;
     }[];
     expect(events.map((e) => e.kind)).toEqual(["created"]);
+  });
+
+  it("rejects an issue referencing another company's project or assignee", () => {
+    const db = new Database(":memory:");
+    db.pragma("foreign_keys = OFF");
+    applyMigrations(db);
+    const companies = createCompaniesRepository(db);
+    const a = companies.create({ name: "A" });
+    const b = companies.create({ name: "B" });
+    const projB = createProjectsRepository(db).create({
+      companyId: b.id,
+      name: "B web",
+      path: "C:/b",
+      color: "#1D5DD7",
+    });
+    const agentB = createAgentsRepository(db).create({
+      companyId: b.id,
+      name: "Bob",
+      role: "Engineer",
+      systemPrompt: "x",
+      mode: "supervised",
+      alwaysOn: false,
+    });
+    const issues = createIssuesRepository(db);
+    const base = {
+      companyId: a.id,
+      title: "X",
+      description: null,
+      assigneeId: null,
+      priority: "medium" as const,
+      parentId: null,
+      createdBy: null,
+    };
+    expect(() => issues.create({ ...base, projectId: projB.id })).toThrow(/different company/);
+    expect(() => issues.create({ ...base, projectId: null, assigneeId: agentB.id })).toThrow(
+      /different company/,
+    );
   });
 
   it("update emits one event per changed field", () => {
