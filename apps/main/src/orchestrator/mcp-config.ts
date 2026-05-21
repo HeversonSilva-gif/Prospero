@@ -3,12 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AnySpawnEnv } from "./env.js";
 
-// In Electron's main process, `process.execPath` points to electron.exe, not node.
-// Spawning that to run a plain JS file launches a GUI app shell and hangs the MCP
-// handshake — claude then waits forever for the MCP server to initialize and never
-// emits any output. ELECTRON_RUN_AS_NODE=1 makes the Electron binary behave as a
-// regular Node runtime for that child process, which is the documented workaround.
-const isElectronBinary = /electron(\.exe)?$/i.test(process.execPath);
+// In Electron's main process, `process.execPath` is the Electron binary, not node.
+// Spawning it to run a plain JS file launches a GUI app shell instead of the MCP
+// server, so claude sees no tools. ELECTRON_RUN_AS_NODE=1 makes the binary behave
+// as a regular Node runtime for that child.
+//
+// Detect Electron via process.versions.electron, NOT the exe name: in the packaged
+// app the binary is renamed (e.g. Prospero.exe), so a /electron/ regex was false
+// there — ELECTRON_RUN_AS_NODE never got set, claude launched the GUI shell, and
+// every agent saw "Available MCP tools: none". This was THE packaged-only failure.
+const isElectronBinary = process.versions.electron !== undefined;
 
 export const writeMcpConfigFile = (mcpServerJsPath: string, env: AnySpawnEnv): string => {
   const dir = mkdtempSync(join(tmpdir(), "da-mcp-"));
