@@ -944,6 +944,11 @@
       "sub": "Onde os agentes rodam, salvar/carregar empresa."
     }
   },
+  "projetos": {
+    "title": "Projetos",
+    "subtitle": "Cada projeto é uma pasta. Escolha um projeto pra ver suas tarefas e acessos.",
+    "novoProjeto": "+ Novo projeto"
+  },
   "projects": {
     "title": "Projetos",
     "newButton": "+ Novo projeto",

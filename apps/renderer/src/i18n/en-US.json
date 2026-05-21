@@ -944,6 +944,11 @@
       "sub": "Where agents run, save/load company."
     }
   },
+  "projetos": {
+    "title": "Projects",
+    "subtitle": "Each project is a folder. Pick a project to see its tasks and team access.",
+    "novoProjeto": "+ New project"
+  },
   "projects": {
     "title": "Projects",
     "newButton": "+ New project",
