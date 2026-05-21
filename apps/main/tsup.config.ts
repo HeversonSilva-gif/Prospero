@@ -1,7 +1,15 @@
 import { defineConfig } from "tsup";
-import { copyFileSync, mkdirSync, readdirSync, existsSync } from "node:fs";
+import { copyFileSync, mkdirSync, readdirSync, existsSync, rmSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { spawn } from "node:child_process";
+
+// Clean dist ONCE, deterministically, at config-load time — before tsup starts
+// any build. This replaces `clean: true` on the first config below, which (since
+// tsup runs the three array configs concurrently) could wipe dist *after* the
+// preload config had written preload.cjs, shipping a packaged app with no
+// window.prospero bridge → white screen on launch (2026-05-21). Running here
+// guarantees the clean finishes before all three builds start.
+rmSync(resolve("dist"), { recursive: true, force: true });
 
 const copyTreeIfExists = (srcDir: string, destDir: string): void => {
   if (!existsSync(srcDir)) return;
@@ -36,7 +44,7 @@ export default defineConfig([
     outDir: "dist",
     splitting: false,
     sourcemap: true,
-    clean: true,
+    clean: false, // dist is cleaned once at config-load (see top of file) to avoid a race
     // Bundle every JS dep into the entry so the packaged app is self-contained.
     // Only the native better-sqlite3 (electron is provided by the runtime;
     // fsevents is optional/macOS-only) stays external and is collected separately.

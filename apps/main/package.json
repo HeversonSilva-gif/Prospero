@@ -9,7 +9,7 @@
     "dev": "tsup --watch",
     "prestart": "pnpm run rebuild:electron",
     "start": "pnpm exec cross-env RENDERER_URL= electron ./dist/index.js",
-    "build": "tsup",
+    "build": "tsup && node scripts/check-dist.cjs",
     "rebuild:electron": "electron-rebuild -f -w better-sqlite3",
     "rebuild:node": "pnpm rebuild better-sqlite3",
     "pretest": "pnpm run rebuild:node",
