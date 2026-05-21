@@ -871,7 +871,8 @@
       "action": "Configure"
     },
     "oauthExpiry": {
-      "message": "OAuth token expires in {{days}} days.",
+      "message_one": "OAuth token expires in {{count}} day.",
+      "message_other": "OAuth token expires in {{count}} days.",
       "action": "Renew"
     },
     "rateLimit": {

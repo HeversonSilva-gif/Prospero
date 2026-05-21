@@ -1,6 +1,10 @@
 import { spawn as nodeSpawn } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import crossSpawn from "cross-spawn";
 import { findClaudeExe } from "../orchestrator/adapters/claude-oauth-local/resolve-binary.js";
+import { seedSandboxCredentials } from "../orchestrator/adapters/claude-oauth-local/prepare-sandbox.js";
 
 // Token usage from one derivation run, normalized to the cost layer's shape.
 export type DerivationUsage = {
@@ -61,21 +65,48 @@ export const parseRunnerOutput = (stdout: string): RunDerivationResult => {
 };
 
 // The real process I/O: spawn `claude`, write the prompt to stdin, collect stdout.
+//
+// Auth: OAuth runs get an ephemeral CLAUDE_CONFIG_DIR seeded with the host's live
+// credentials file (which carries the long-lived refresh token), so claude rotates
+// the short-lived access token itself — exactly as the conversation adapter does.
+// Without this the run would rely on a bare CLAUDE_CODE_OAUTH_TOKEN snapshot that
+// expires ~1 day after import and silently breaks every background AI feature. The
+// merged process.env also gives claude the HOME/PATH it needs to start at all.
+// API-key mode needs no credentials file, so it skips the seeding (the empty config
+// dir still isolates the run from host hooks/skills/MCP servers).
 export const defaultRunProcess: RunProcess = (args, env, stdin) =>
   new Promise((resolve, reject) => {
+    const configDir = mkdtempSync(join(tmpdir(), "da-headless-cfg-"));
+    if ("CLAUDE_CODE_OAUTH_TOKEN" in env) seedSandboxCredentials(configDir);
+    const fullEnv: NodeJS.ProcessEnv = { ...process.env, ...env, CLAUDE_CONFIG_DIR: configDir };
+    const cleanup = (): void => {
+      try {
+        rmSync(configDir, { recursive: true, force: true });
+      } catch {
+        // best-effort temp cleanup; the OS reclaims tmpdir anyway
+      }
+    };
     const claudeExe = findClaudeExe();
     const child =
       claudeExe !== null
-        ? nodeSpawn(claudeExe, args, { env, stdio: ["pipe", "pipe", "pipe"], windowsHide: true })
-        : crossSpawn("claude", args, { env, stdio: ["pipe", "pipe", "pipe"] });
+        ? nodeSpawn(claudeExe, args, {
+            env: fullEnv,
+            stdio: ["pipe", "pipe", "pipe"],
+            windowsHide: true,
+          })
+        : crossSpawn("claude", args, { env: fullEnv, stdio: ["pipe", "pipe", "pipe"] });
     let stdout = "";
     child.stdout?.on("data", (d: Buffer) => {
       stdout += d.toString("utf8");
     });
     // Drain stderr so a chatty process can never stall on a full pipe buffer.
     child.stderr?.resume();
-    child.on("error", reject);
+    child.on("error", (err) => {
+      cleanup();
+      reject(err);
+    });
     child.on("close", (code) => {
+      cleanup();
       resolve({ stdout, exitCode: code ?? 0 });
     });
     child.stdin?.write(stdin);

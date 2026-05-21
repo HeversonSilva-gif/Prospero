@@ -871,7 +871,8 @@
       "action": "Configurar"
     },
     "oauthExpiry": {
-      "message": "Token OAuth expira em {{days}} dias.",
+      "message_one": "Token OAuth expira em {{count}} dia.",
+      "message_other": "Token OAuth expira em {{count}} dias.",
       "action": "Renovar"
     },
     "rateLimit": {

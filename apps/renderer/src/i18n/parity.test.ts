@@ -33,7 +33,8 @@ describe("i18n parity", () => {
     for (const k of [
       "banners.authError.message",
       "banners.authError.action",
-      "banners.oauthExpiry.message",
+      "banners.oauthExpiry.message_one",
+      "banners.oauthExpiry.message_other",
       "banners.oauthExpiry.action",
       "banners.rateLimit.message",
     ]) {
