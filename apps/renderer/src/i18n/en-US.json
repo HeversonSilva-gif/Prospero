@@ -3,20 +3,6 @@
     "title": "Prospero"
   },
   "nav": {
-    "briefing": "Briefing",
-    "routines": "Routines",
-    "dashboard": "Dashboard",
-    "inbox": "Inbox",
-    "settings": "Settings",
-    "agents": "Agents",
-    "projects": "Projects",
-    "issues": "Issues",
-    "goals": "Goals",
-    "roles": "Roles",
-    "orgChart": "Org Chart",
-    "activity": "Activity",
-    "costs": "Costs",
-    "telos": "TELOS",
     "inicio": "Home",
     "pedirAlgo": "Ask for something",
     "projetos": "Projects",
@@ -58,8 +44,6 @@
       "createFirst": "Create the first goal"
     },
     "new": {
-      "title": "New goal",
-      "subtitle": "Describe the desired outcome. The CEO will turn it into a plan with agents and issues.",
       "submit": "Create goal",
       "submitting": "Creating…",
       "cancel": "Cancel",
@@ -600,13 +584,6 @@
     }
   },
   "org": {
-    "empty": "No agents hired yet.",
-    "drawer": {
-      "model": "Model",
-      "status": "Status",
-      "openIssues": "Open issues",
-      "openAgent": "Open agent →"
-    },
     "reassign": {
       "title": "Change reporting line",
       "message": "Move {{child}} to report to {{parent}}?",
@@ -761,8 +738,6 @@
     }
   },
   "wizard": {
-    "title": "Welcome to Prospero",
-    "subtitle": "Let's set up your OAuth token to get started.",
     "chooseMethod": "How would you like to configure?",
     "manualOption": "Manual paste (step-by-step)",
     "autoOption": "Auto-detect from Claude Code CLI",
@@ -954,8 +929,6 @@
     "novoProjeto": "+ New project"
   },
   "projects": {
-    "title": "Projects",
-    "newButton": "+ New project",
     "empty": "No projects yet — create one to start.",
     "form": {
       "name": "Name",
@@ -1291,21 +1264,6 @@
       "approve": "Approve promotion",
       "approving": "Approving…"
     }
-  },
-  "briefing": {
-    "title": "Morning briefing",
-    "loading": "Loading briefing…",
-    "noCompany": "Select a company to see the briefing.",
-    "needsYou": "Needs you",
-    "needsYouEmpty": "Nothing waiting on you — clear morning.",
-    "markReviewed": "Mark as reviewed",
-    "verified": "Delivered",
-    "failed": "Failed",
-    "inProgress": "In progress",
-    "learned": "Learned",
-    "othersShow": "Show the rest ({{count}})",
-    "othersHide": "Hide",
-    "costFooter": "Spent overnight: {{cost}}"
   },
   "equipe": {
     "title": "My team",

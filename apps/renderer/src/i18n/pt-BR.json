@@ -3,20 +3,6 @@
     "title": "Prospero"
   },
   "nav": {
-    "briefing": "Briefing",
-    "routines": "Routines",
-    "dashboard": "Dashboard",
-    "inbox": "Inbox",
-    "settings": "Configurações",
-    "agents": "Agentes",
-    "projects": "Projetos",
-    "issues": "Issues",
-    "goals": "Objetivos",
-    "roles": "Funções",
-    "orgChart": "Organograma",
-    "activity": "Atividade",
-    "costs": "Custos",
-    "telos": "TELOS",
     "inicio": "Início",
     "pedirAlgo": "Pedir algo",
     "projetos": "Projetos",
@@ -58,8 +44,6 @@
       "createFirst": "Criar o primeiro objetivo"
     },
     "new": {
-      "title": "Novo objetivo",
-      "subtitle": "Descreva o resultado desejado. O CEO transformará em um plano com agentes e issues.",
       "submit": "Criar objetivo",
       "submitting": "Criando…",
       "cancel": "Cancelar",
@@ -600,13 +584,6 @@
     }
   },
   "org": {
-    "empty": "Nenhum agente contratado ainda.",
-    "drawer": {
-      "model": "Modelo",
-      "status": "Status",
-      "openIssues": "Issues abertas",
-      "openAgent": "Abrir agente →"
-    },
     "reassign": {
       "title": "Mudar reporting line",
       "message": "Mover {{child}} para reportar a {{parent}}?",
@@ -761,8 +738,6 @@
     }
   },
   "wizard": {
-    "title": "Bem-vindo ao Prospero",
-    "subtitle": "Vamos configurar seu OAuth token para começar.",
     "chooseMethod": "Como você prefere configurar?",
     "manualOption": "Cola manual (passo a passo)",
     "autoOption": "Detectar automaticamente do Claude Code CLI",
@@ -954,8 +929,6 @@
     "novoProjeto": "+ Novo projeto"
   },
   "projects": {
-    "title": "Projetos",
-    "newButton": "+ Novo projeto",
     "empty": "Sem projetos ainda — crie um pra começar.",
     "form": {
       "name": "Nome",
@@ -1291,21 +1264,6 @@
       "approve": "Aprovar promoção",
       "approving": "Aprovando…"
     }
-  },
-  "briefing": {
-    "title": "Vitrine matinal",
-    "loading": "Carregando briefing…",
-    "noCompany": "Selecione uma empresa pra ver o briefing.",
-    "needsYou": "Precisa de você",
-    "needsYouEmpty": "Nada esperando você — manhã tranquila.",
-    "markReviewed": "Marcar como revisado",
-    "verified": "Entregues",
-    "failed": "Falharam",
-    "inProgress": "Em andamento",
-    "learned": "Aprendeu",
-    "othersShow": "Mostrar o resto ({{count}})",
-    "othersHide": "Esconder",
-    "costFooter": "Gasto durante a noite: {{cost}}"
   },
   "equipe": {
     "title": "Minha equipe",
