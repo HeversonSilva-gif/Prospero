@@ -65,7 +65,9 @@ describe("buildClaudeArgs", () => {
   it("drops hire/fire tools from --allowedTools when canHire is false", () => {
     const agent = { ...baseAgent, capabilities: ["delegation", "issues"], canHire: false };
     const args = buildClaudeArgs(agent, "/tmp/mcp.json");
-    const allowed = args[args.indexOf("--allowedTools") + 1]!;
+    // Split into the exact tool list — substring checks would false-match
+    // hire_agent_for_plan against hire_agent.
+    const allowed = args[args.indexOf("--allowedTools") + 1]!.split(",");
     expect(allowed).not.toContain("mcp__dashboard__hire_agent");
     expect(allowed).not.toContain("mcp__dashboard__fire_agent");
     expect(allowed).toContain("mcp__dashboard__message_agent");
@@ -75,7 +77,7 @@ describe("buildClaudeArgs", () => {
   it("drops assign_issue from --allowedTools when canAssign is false", () => {
     const agent = { ...baseAgent, capabilities: ["delegation", "issues"], canAssign: false };
     const args = buildClaudeArgs(agent, "/tmp/mcp.json");
-    const allowed = args[args.indexOf("--allowedTools") + 1]!;
+    const allowed = args[args.indexOf("--allowedTools") + 1]!.split(",");
     expect(allowed).not.toContain("mcp__dashboard__assign_issue");
     expect(allowed).toContain("mcp__dashboard__hire_agent");
   });

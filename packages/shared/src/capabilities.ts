@@ -60,24 +60,44 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
   },
   delegation: {
     id: "delegation",
-    description: "Hire/fire/message other agents; list active agents; read threads.",
+    description: "Hire/fire/message agents; design the org and goal plans; orchestrate execution.",
     tools: [
       "mcp__dashboard__hire_agent",
       "mcp__dashboard__fire_agent",
       "mcp__dashboard__list_agents",
       "mcp__dashboard__message_agent",
       "mcp__dashboard__read_thread",
+      // Org design (CEO architect) + role library reads.
+      "mcp__dashboard__submit_org_plan",
+      "mcp__dashboard__list_role_templates",
+      // Goal planning + execution (M8.5). Without these the planning CEO hit the
+      // permission gate on every call and froze.
+      "mcp__dashboard__submit_goal_plan",
+      "mcp__dashboard__get_goal",
+      "mcp__dashboard__list_goals",
+      "mcp__dashboard__update_goal_status",
+      "mcp__dashboard__record_subgoal",
+      "mcp__dashboard__finalize_goal_execution",
+      "mcp__dashboard__create_issue_for_plan",
+      "mcp__dashboard__hire_agent_for_plan",
     ],
   },
   issues: {
     id: "issues",
-    description: "Create, update, assign, list issues; check status.",
+    description: "Create, update, assign, comment, list issues; projects; verification; artifacts.",
     tools: [
       "mcp__dashboard__create_issue",
       "mcp__dashboard__update_issue",
       "mcp__dashboard__assign_issue",
       "mcp__dashboard__list_issues",
       "mcp__dashboard__check_status",
+      "mcp__dashboard__comment_on_issue",
+      "mcp__dashboard__list_projects",
+      "mcp__dashboard__record_artifact",
+      // Verification (M13) + cost baseline reads.
+      "mcp__dashboard__criterion_check",
+      "mcp__dashboard__criterion_judge",
+      "mcp__dashboard__get_cost_baseline",
     ],
   },
   inbox: {
@@ -92,7 +112,8 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
   },
   memory: {
     id: "memory",
-    description: "Read/write the agent's memory and skills; search past sessions.",
+    description:
+      "Read/write the agent's memory and skills; search past sessions; read company TELOS/ISA.",
     tools: [
       "mcp__dashboard__skill_search",
       "mcp__dashboard__skill_read",
@@ -104,6 +125,10 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
       "mcp__dashboard__memory_remove",
       "mcp__dashboard__memory_search",
       "mcp__dashboard__session_search",
+      // Universal company-context reads (M13) — memory is force-added to every
+      // agent, so every agent can read the TELOS/ISA it is accountable to.
+      "mcp__dashboard__isa_read",
+      "mcp__dashboard__telos_read",
     ],
   },
 };

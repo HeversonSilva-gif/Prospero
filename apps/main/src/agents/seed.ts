@@ -36,5 +36,12 @@ export const createCEOAgent = (
     systemPrompt,
     mode: "supervised",
     alwaysOn: false,
+    // Match the role-ceo defaults (post-migration 0004). Without these the
+    // onboarding CEO was created with EMPTY capabilities, so its delegation /
+    // issues / org / goal tools were never in --allowedTools and every call hit
+    // the 30-min permission gate — the CEO froze. can_hire/can_assign default to
+    // 1 at the column level, so the CEO can hire and assign.
+    capabilities: ["delegation", "issues", "inbox", "chat", "fs-read"],
+    model: "claude-opus-4-7",
   });
 };
