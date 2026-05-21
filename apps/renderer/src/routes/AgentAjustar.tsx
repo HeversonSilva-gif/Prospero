@@ -53,7 +53,7 @@ export const AgentAjustar = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen min-w-0">
+    <div className="flex flex-col h-full min-w-0">
       <BreadcrumbBar agentId={agent.id} agentName={agent.name} mode="ajustar" />
       <AgentHeader
         agent={agent}

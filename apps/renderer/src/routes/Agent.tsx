@@ -39,7 +39,7 @@ export const Agent = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen min-w-0">
+    <div className="flex flex-col h-full min-w-0">
       <BreadcrumbBar agentId={agent.id} agentName={agent.name} mode="conversa" />
       <AgentHeader
         agent={agent}
