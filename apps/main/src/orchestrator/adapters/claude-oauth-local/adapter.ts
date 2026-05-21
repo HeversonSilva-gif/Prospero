@@ -38,6 +38,65 @@ const dlog = (msg: string): void => {
   }
 };
 
+// One-time diagnostic. Claude reports "Available MCP tools: none" but hides the
+// MCP server's own stderr — so we spawn the server exactly as claude does
+// (process.execPath as node via ELECTRON_RUN_AS_NODE) and log whether it loads
+// and what it prints. This is the only way to see WHY the server provides no
+// tools in the packaged app.
+let mcpHealthChecked = false;
+const mcpHealthCheckOnce = (
+  serverPath: string,
+  env: {
+    AGENT_ID: string;
+    COMPANY_ID: string;
+    DB_PATH: string;
+    PERMISSIONS_DIR: string;
+    EVENTS_DIR: string;
+  },
+): void => {
+  if (mcpHealthChecked) return;
+  mcpHealthChecked = true;
+  try {
+    dlog(
+      `[mcp-healthcheck] serverPath=${serverPath} exists=${String(existsSync(serverPath))} execPath=${process.execPath}`,
+    );
+    const child = nodeSpawn(process.execPath, [serverPath], {
+      env: {
+        ...process.env,
+        ELECTRON_RUN_AS_NODE: "1",
+        AGENT_ID: env.AGENT_ID,
+        COMPANY_ID: env.COMPANY_ID,
+        DB_PATH: env.DB_PATH,
+        PERMISSIONS_DIR: env.PERMISSIONS_DIR,
+        EVENTS_DIR: env.EVENTS_DIR,
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
+    let errOut = "";
+    child.stderr?.setEncoding("utf8");
+    child.stderr?.on("data", (d: string) => {
+      errOut += d;
+    });
+    child.on("error", (e) => dlog(`[mcp-healthcheck] spawn error: ${e.message}`));
+    child.on("exit", (code, signal) =>
+      dlog(
+        `[mcp-healthcheck] EXITED EARLY code=${String(code)} signal=${String(signal)} stderr=${errOut.slice(0, 1000)}`,
+      ),
+    );
+    setTimeout(() => {
+      if (child.exitCode === null && !child.killed) {
+        dlog(
+          `[mcp-healthcheck] alive after 2.5s — server loads OK; stderr=${errOut.slice(0, 400)}`,
+        );
+        child.kill();
+      }
+    }, 2500);
+  } catch (e) {
+    dlog(`[mcp-healthcheck] threw: ${e instanceof Error ? e.message : String(e)}`);
+  }
+};
+
 export class ClaudeOAuthLocalAdapter implements AgentAdapter {
   readonly name: AdapterName = "claude-oauth-local";
   readonly agentId: string;
@@ -79,6 +138,7 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
     );
 
     const handshake = setupMcpHandshake(env, this.ctx.mcpServerJsPath);
+    mcpHealthCheckOnce(handshake.mcpServerJsPath, env);
     const args = buildClaudeArgs(this.ctx.agent, handshake.mcpConfigPath, {
       ...(this.ctx.narratedActive === true ? { narratedActive: true } : {}),
       ...(this.ctx.telosBlock !== undefined ? { telosBlock: this.ctx.telosBlock } : {}),

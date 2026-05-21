@@ -20,6 +20,14 @@ export const writeMcpConfigFile = (mcpServerJsPath: string, env: AnySpawnEnv): s
     PERMISSIONS_DIR: env.PERMISSIONS_DIR,
     EVENTS_DIR: env.EVENTS_DIR,
   };
+  // OS essentials so the spawned binary actually launches. Claude spawns the MCP
+  // server with this env; if it does NOT merge its own environment, a child
+  // launched without SystemRoot/PATH fails to start on Windows (and the MCP
+  // handshake then yields "Available MCP tools: none"). These are non-secret.
+  for (const key of ["SystemRoot", "windir", "SystemDrive", "PATH", "PATHEXT", "TEMP", "TMP"]) {
+    const value = process.env[key];
+    if (value !== undefined) childEnv[key] = value;
+  }
   if (isElectronBinary) {
     childEnv.ELECTRON_RUN_AS_NODE = "1";
   }
