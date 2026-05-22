@@ -8,6 +8,8 @@ import { isReadOnlyTool } from "../trust/read-only-tools.js";
 import { tryGetInbox } from "../inbox/index.js";
 import { broadcastInboxUpdate } from "../ipc/inbox-handlers.js";
 
+export const ALWAYS_BLOCKED_TAG = "always-blocked";
+
 export type GateInput = {
   toolName: string;
   toolInput: unknown;
@@ -163,12 +165,12 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
   if (toolName === "Bash") {
     const cmd = typeof ti["command"] === "string" ? ti["command"] : "";
     if (matchesBlockedBash(cmd)) {
-      return { action: "request_user", reason: "always-blocked bash pattern" };
+      return { action: "request_user", reason: `${ALWAYS_BLOCKED_TAG} bash pattern` };
     }
     for (const tok of extractPathLikeTokens(cmd)) {
       const expanded = expandHome(tok);
       if (matchesBlockedPath(expanded)) {
-        return { action: "request_user", reason: "always-blocked path in bash arg" };
+        return { action: "request_user", reason: `${ALWAYS_BLOCKED_TAG} path in bash arg` };
       }
       if (!isAbsolute(expanded) && !tok.startsWith("..")) continue;
       if (!isInsideAnyAllowed(expanded, allowedProjectPaths, agentCwd)) {
@@ -186,7 +188,7 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
     if (path !== "") {
       const expanded = expandHome(path);
       if (matchesBlockedPath(expanded)) {
-        return { action: "request_user", reason: "always-blocked sensitive path" };
+        return { action: "request_user", reason: `${ALWAYS_BLOCKED_TAG} sensitive path` };
       }
       const abs = resolve(agentCwd, expanded);
       if (!isInsideAnyAllowed(abs, allowedProjectPaths, agentCwd)) {

@@ -600,17 +600,18 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       if (apv === null || apv.agentId === null) return;
       const agent = agents.getById(apv.agentId);
       if (agent === null) return;
-      const payload = JSON.parse(apv.payloadJson) as Record<string, string>;
+      const payload = JSON.parse(apv.payloadJson) as Record<string, unknown>;
+      const asStr = (v: unknown): string => (typeof v === "string" ? v : "");
       const isManager = apv.kind === "manager_request";
       inbox.create({
         companyId: agent.companyId,
         kind: isManager ? "manager_request" : "approval",
         actorId: agent.id,
         title: isManager
-          ? `Decisao pedida: ${payload["topic"] ?? ""}`
-          : `Approval needed: ${payload["tool_name"] ?? ""}`,
+          ? `Decisao pedida: ${asStr(payload["topic"])}`
+          : `Approval needed: ${asStr(payload["tool_name"])}`,
         preview: isManager
-          ? (payload["summary"] ?? "").slice(0, 200)
+          ? asStr(payload["summary"]).slice(0, 200)
           : JSON.stringify(payload["tool_input"] ?? {}).slice(0, 200),
         requiresAction: true,
         payloadJson: apv.payloadJson,
@@ -623,11 +624,12 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       if (apv === null || apv.agentId === null) return;
       const agent = agents.getById(apv.agentId);
       if (agent === null) return;
-      const payload = JSON.parse(apv.payloadJson) as Record<string, string>;
+      const payload = JSON.parse(apv.payloadJson) as Record<string, unknown>;
+      const asStr = (v: unknown): string => (typeof v === "string" ? v : "");
       const what =
         apv.kind === "manager_request"
-          ? (payload["topic"] ?? "decisao")
-          : (payload["tool_name"] ?? "ferramenta");
+          ? asStr(payload["topic"]) || "decisao"
+          : asStr(payload["tool_name"]) || "ferramenta";
       inbox.create({
         companyId: agent.companyId,
         kind: "ceo_decision",

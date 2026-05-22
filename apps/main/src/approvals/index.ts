@@ -37,15 +37,17 @@ const escalateToHuman = (
   timers?.cancel(approvalId);
   bridge.createHumanCard(approvalId);
   const companyId = apv.agentId !== null ? (bridge.getAgent(apv.agentId)?.companyId ?? "") : "";
-  bridge.recordActivity({
-    companyId,
-    actor: { kind: "system" },
-    action: "approval.escalated",
-    entityKind: "approval",
-    entityId: approvalId,
-    agentId: apv.agentId,
-    payload: { approvalId, reason },
-  });
+  if (companyId !== "") {
+    bridge.recordActivity({
+      companyId,
+      actor: { kind: "system" },
+      action: "approval.escalated",
+      entityKind: "approval",
+      entityId: approvalId,
+      agentId: apv.agentId,
+      payload: { approvalId, reason },
+    });
+  }
 };
 
 export const setApprovalEngineBridge = (b: ApprovalEngineBridge): void => {

@@ -1,4 +1,5 @@
 import type { ApprovalKind, ApprovalRoute, ManagerTopic } from "./types.js";
+import { ALWAYS_BLOCKED_TAG } from "../security/gate.js";
 
 export type RouteInput = {
   kind: ApprovalKind;
@@ -14,7 +15,7 @@ export type RouteInput = {
 export const routeApprovalRequest = (input: RouteInput): ApprovalRoute => {
   if (!input.ceoAvailable) return "user"; // 1
   if (input.requesterIsCeo) return "user"; // 2 (nao auto-aprova)
-  if (input.kind === "tool_call" && input.reason.includes("always-blocked")) return "user"; // 3
+  if (input.kind === "tool_call" && input.reason.includes(ALWAYS_BLOCKED_TAG)) return "user"; // 3
   if (input.kind === "manager_request") {
     if (input.managerTopic === "fire") return "user"; // 4
     if (input.budgetOverLimit === true) return "user"; // 5
