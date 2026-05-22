@@ -30,25 +30,32 @@ describe("wakeCeoForApproval", () => {
     );
     expect(ok).toBe(true);
     expect(d.ensureAgentRunner).toHaveBeenCalledWith(ceo);
-    // Verify agentId, threadId, and instruction content
+    // Verify agentId, threadId, sender, and instruction content. Both checks pin
+    // agentId+threadId so they can only match the same single enqueue call.
     expect(d.enqueue).toHaveBeenCalledWith(
       "ceo1",
       "th-ceo",
       expect.stringContaining("apv1"),
-      expect.objectContaining({ kind: "approval", id: "apv1" }),
+      expect.objectContaining({
+        kind: "approval",
+        id: "apv1",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        name: expect.stringContaining("Bot"),
+      }),
     );
     expect(d.enqueue).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
+      "ceo1",
+      "th-ceo",
       expect.stringContaining("decide_request"),
       expect.anything(),
     );
-    expect(d.enqueue).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      expect.objectContaining({ name: expect.stringContaining("Bot") }),
+    // Verify the approval.requested activity was recorded for the CEO.
+    expect(d.recordActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "approval.requested",
+        entityId: "apv1",
+        agentId: "ceo1",
+      }),
     );
   });
 
