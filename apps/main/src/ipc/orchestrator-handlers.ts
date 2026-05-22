@@ -66,6 +66,10 @@ import { createInboxRepository } from "../inbox/repository.js";
 import { tryGetRoutinesEngine } from "../routines/index.js";
 import { registerRoutinesHandlers } from "./routines-handlers.js";
 import { createAutoModeExpiry } from "../agents/auto-mode-expiry.js";
+import { setApprovalEngineBridge, escalatePendingOnBoot } from "../approvals/index.js";
+import { createApprovalsRepository } from "../approvals/repository.js";
+import { broadcastInboxUpdate } from "./inbox-handlers.js";
+import { isCeoAgent } from "@prospero/shared";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -562,6 +566,84 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     });
   }
   registerRoutinesHandlers(db);
+
+  // CEO approval engine: route approval requests to the CEO (or escalate to human).
+  const approvalRecorder = tryGetRecorder();
+  setApprovalEngineBridge({
+    db,
+    getAgent: (id) => agents.getById(id),
+    getCeo: (companyId) => {
+      const all = agents.listByCompany(companyId);
+      return (
+        all.find((a) => isCeoAgent(a) && a.status !== "terminated" && a.status !== "paused") ?? null
+      );
+    },
+    ensureAgentRunner: (agent) => ensureAgentRunner(agent),
+    enqueue: (agentId, threadId, content, sender) =>
+      router.enqueue(agentId, threadId, content, sender),
+    primaryThreadId: (agentId) =>
+      messages.ensureThread(agents.getById(agentId)?.companyId ?? "", ["user", agentId]).id,
+    recordActivity: (input) => {
+      approvalRecorder?.recordActivity(input);
+    },
+    createHumanCard: (approvalId) => {
+      const apv = createApprovalsRepository(db).getById(approvalId);
+      if (apv === null || apv.agentId === null) return;
+      const agent = agents.getById(apv.agentId);
+      if (agent === null) return;
+      const payload = JSON.parse(apv.payloadJson) as Record<string, string>;
+      const isManager = apv.kind === "manager_request";
+      inbox.create({
+        companyId: agent.companyId,
+        kind: isManager ? "manager_request" : "approval",
+        actorId: agent.id,
+        title: isManager
+          ? `Decisao pedida: ${payload["topic"] ?? ""}`
+          : `Approval needed: ${payload["tool_name"] ?? ""}`,
+        preview: isManager
+          ? (payload["summary"] ?? "").slice(0, 200)
+          : JSON.stringify(payload["tool_input"] ?? {}).slice(0, 200),
+        requiresAction: true,
+        payloadJson: apv.payloadJson,
+        approvalId: apv.id,
+      });
+      broadcastInboxUpdate(agent.companyId);
+    },
+    createCeoDecisionCard: (approvalId, decision) => {
+      const apv = createApprovalsRepository(db).getById(approvalId);
+      if (apv === null || apv.agentId === null) return;
+      const agent = agents.getById(apv.agentId);
+      if (agent === null) return;
+      const payload = JSON.parse(apv.payloadJson) as Record<string, string>;
+      const what =
+        apv.kind === "manager_request"
+          ? (payload["topic"] ?? "decisao")
+          : (payload["tool_name"] ?? "ferramenta");
+      inbox.create({
+        companyId: agent.companyId,
+        kind: "ceo_decision",
+        actorId: agent.id,
+        title: `CEO ${decision === "approved" ? "aprovou" : "rejeitou"}: ${what}`,
+        preview: `Requisitante: ${agent.name}`,
+        requiresAction: false,
+        payloadJson: JSON.stringify({ approvalId: apv.id, kind: apv.kind, decision }),
+        approvalId: apv.id,
+      });
+      broadcastInboxUpdate(agent.companyId);
+    },
+  });
+
+  // Escalate any approvals that were routed to the CEO but never decided before
+  // a restart (re-arming timers across restart is fragile; escalating is the safe side).
+  try {
+    const companyRows = db.prepare("SELECT id FROM companies").all() as { id: string }[];
+    escalatePendingOnBoot(
+      db,
+      companyRows.map((c) => c.id),
+    );
+  } catch (err) {
+    console.warn("[approvals] escalatePendingOnBoot failed", err);
+  }
 
   // P2-C — Auto-mode expiry: revert agents from 'auto' to 'supervised' after 24h.
   // Runs one tick immediately (catches agents that expired while the app was closed)
