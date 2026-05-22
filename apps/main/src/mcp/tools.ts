@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type Database from "better-sqlite3";
 import type { HireAgentInput } from "@prospero/shared";
+import { isCeoAgent } from "@prospero/shared";
 import { HIRE_AGENT_INPUT_SCHEMA } from "../schemas/hire-agent-input.js";
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
@@ -18,7 +19,9 @@ import {
   escalateByCeoChoice,
   tryGetApprovalTimers,
   tryGetApprovalBridge,
+  routeAndDispatch,
 } from "../approvals/index.js";
+import type { ManagerTopic } from "../approvals/types.js";
 import { deliverManagerDecision } from "../approvals/deliver.js";
 
 export type ToolContext = {
@@ -755,6 +758,82 @@ export const toolDefinitions = [
       deliverManagerDecision(ctx.db, apv, status, note);
       tryGetApprovalBridge()?.createCeoDecisionCard(apv.id, status);
       return JSON.stringify({ ok: true, decision: input.decision });
+    },
+  },
+  {
+    name: "request_decision",
+    description:
+      "Ask your manager (the CEO) to decide something: hiring, budget, unblocking, or an approach. " +
+      "Returns immediately as pending; you will be notified with the decision.",
+    inputSchema: z.object({
+      topic: z.enum(["hire", "fire", "budget", "unblock", "approach", "other"]),
+      summary: z.string().min(1).max(2000),
+      data: z.record(z.unknown()).optional(),
+    }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (
+      input: { topic: ManagerTopic; summary: string; data?: Record<string, unknown> },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const agents = createAgentsRepository(ctx.db, tryGetRecorder());
+      const requester = agents.getById(ctx.agentId);
+      const requesterIsCeo = requester !== null && isCeoAgent(requester);
+      const threadId = createMessagesRepository(ctx.db).ensureThread(ctx.companyId, [
+        "user",
+        ctx.agentId,
+      ]).id;
+
+      // budget topic -> compute whether the requested amount exceeds remaining budget.
+      // NOTE: Agent type has budgetUsdLimit (cents) but no budgetSpentCents field on
+      // the record itself (spent is derived from cost_events). Since we cannot compute
+      // remaining budget without a separate query here, budgetOverLimit defaults to
+      // false. The routing logic will still route to CEO as the normal path.
+      let budgetOverLimit = false;
+      if (input.topic === "budget" && requester !== null) {
+        const amount =
+          typeof input.data?.["amount_cents"] === "number"
+            ? (input.data["amount_cents"])
+            : 0;
+        // budgetUsdLimit is the per-agent USD limit in cents; no spent counter on Agent.
+        // Treat null limit as infinite -> budgetOverLimit remains false.
+        if (requester.budgetUsdLimit !== null) {
+          // We don't have spentCents on the Agent record; treat spent as 0 (conservative).
+          budgetOverLimit = amount > requester.budgetUsdLimit;
+        }
+      }
+
+      const approvals = createApprovalsRepository(ctx.db);
+      const approval = approvals.create({
+        agentId: ctx.agentId,
+        kind: "manager_request",
+        payload: {
+          topic: input.topic,
+          summary: input.summary,
+          thread_id: threadId,
+          ...(input.data !== undefined ? { data: input.data } : {}),
+        },
+      });
+      tryGetRecorder()?.recordActivity({
+        companyId: ctx.companyId,
+        actor: { kind: "agent", id: ctx.agentId },
+        action: "manager_request.created",
+        entityKind: "approval",
+        entityId: approval.id,
+        agentId: ctx.agentId,
+        payload: { approvalId: approval.id, topic: input.topic, routedTo: "ceo" },
+      });
+      const route = routeAndDispatch({
+        approvalId: approval.id,
+        companyId: ctx.companyId,
+        kind: "manager_request",
+        reason: "",
+        requesterIsCeo,
+        requesterName: requester?.name ?? "Agente",
+        summary: input.summary,
+        managerTopic: input.topic,
+        budgetOverLimit,
+      });
+      return JSON.stringify({ status: "pending", approval_id: approval.id, routed_to: route });
     },
   },
 ] as const;

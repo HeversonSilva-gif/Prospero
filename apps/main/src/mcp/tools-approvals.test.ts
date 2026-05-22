@@ -104,3 +104,20 @@ describe("decide_request", () => {
     expect(after?.decisionNote).toBe("ok");
   });
 });
+
+const reqDecisionTool = toolDefinitions.find((t) => t.name === "request_decision")!;
+
+describe("request_decision", () => {
+  it("creates a pending manager_request and returns its id immediately", async () => {
+    const env = setup();
+    const ctx = { ...env.ctx, agentId: "bot1" }; // requester is the worker, not the CEO
+    const out = JSON.parse(
+      await reqDecisionTool.run({ topic: "hire", summary: "Preciso de um designer" }, ctx),
+    ) as { status: string; approval_id: string };
+    expect(out.status).toBe("pending");
+    const repo = createApprovalsRepository(env.db);
+    const apv = repo.getById(out.approval_id);
+    expect(apv?.kind).toBe("manager_request");
+    expect(apv?.status).toBe("pending");
+  });
+});
