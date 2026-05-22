@@ -23,6 +23,7 @@ import { routeAndDispatch } from "./approvals/index.js";
 import { createProjectsRepository } from "./projects/repository.js";
 import { getRecorder } from "./activity/index.js";
 import { startHeartbeat } from "./orchestrator/heartbeat.js";
+import { getAdapter } from "./orchestrator/lifecycle.js";
 import { runMemoryMaintenance } from "./memory/maintenance.js";
 import { initUpdater, checkForUpdatesOnLaunch } from "./updater/index.js";
 
@@ -183,6 +184,10 @@ void app
       inbox: inboxRepo,
       broadcastInbox: broadcastInboxUpdate,
       thresholdMs: 5 * 60_000,
+      // Only flag agents whose claude process actually died. An alive-but-quiet
+      // agent is mid long-running turn (running tests, reading the repo) — it
+      // emits no activity_event for minutes but must not be marked "error".
+      isAlive: (agentId) => getAdapter(agentId)?.isAlive() ?? false,
     });
   })
   .catch(logEmergency);

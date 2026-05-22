@@ -3,7 +3,9 @@ import Database from "better-sqlite3";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { scanStaleAgents } from "./heartbeat.js";
+import { scanStaleAgents, tickHeartbeat, type HeartbeatDeps } from "./heartbeat.js";
+import { createAgentsRepository } from "../agents/repository.js";
+import { createInboxRepository } from "../inbox/repository.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -68,5 +70,56 @@ describe("scanStaleAgents", () => {
     const now = Date.now();
     insertAgent(db, "ag1", "working", now - 10 * 60_000); // updated 10 min ago, no activity
     expect(scanStaleAgents(db, 5 * 60_000).map((a) => a.id)).toEqual(["ag1"]);
+  });
+});
+
+describe("tickHeartbeat — only flags genuinely dead processes", () => {
+  const makeDeps = (db: Database.Database, alive: Set<string>): HeartbeatDeps => ({
+    db,
+    agents: createAgentsRepository(db),
+    inbox: createInboxRepository(db),
+    broadcastInbox: () => {},
+    thresholdMs: 5 * 60_000,
+    isAlive: (id) => alive.has(id),
+  });
+
+  it("does NOT flag a stale agent whose process is still alive (long turn)", () => {
+    const db = setupDb();
+    insertAgent(db, "ag1", "working", Date.now() - 10 * 60_000); // stale by activity
+    const deps = makeDeps(db, new Set(["ag1"])); // alive
+    expect(tickHeartbeat(deps)).toBe(0);
+    const row = db.prepare("SELECT status FROM agents WHERE id='ag1'").get() as { status: string };
+    expect(row.status).toBe("working"); // untouched
+    const cards = db
+      .prepare("SELECT COUNT(*) n FROM inbox_items WHERE kind='agent_unresponsive'")
+      .get() as { n: number };
+    expect(cards.n).toBe(0);
+  });
+
+  it("flags a stale agent whose process is dead (status set to error + one card)", () => {
+    const db = setupDb();
+    insertAgent(db, "ag1", "working", Date.now() - 10 * 60_000);
+    const deps = makeDeps(db, new Set()); // not alive
+    expect(tickHeartbeat(deps)).toBe(1);
+    const row = db.prepare("SELECT status FROM agents WHERE id='ag1'").get() as { status: string };
+    expect(row.status).toBe("error");
+    const cards = db
+      .prepare("SELECT COUNT(*) n FROM inbox_items WHERE kind='agent_unresponsive'")
+      .get() as { n: number };
+    expect(cards.n).toBe(1);
+  });
+
+  it("does not duplicate the unresponsive card on repeated ticks", () => {
+    const db = setupDb();
+    insertAgent(db, "ag1", "working", Date.now() - 10 * 60_000);
+    const deps = makeDeps(db, new Set());
+    tickHeartbeat(deps);
+    // Re-stale the agent (simulate oscillation back to working) and tick again.
+    db.prepare("UPDATE agents SET status='working' WHERE id='ag1'").run();
+    tickHeartbeat(deps);
+    const cards = db
+      .prepare("SELECT COUNT(*) n FROM inbox_items WHERE kind='agent_unresponsive'")
+      .get() as { n: number };
+    expect(cards.n).toBe(1); // de-duped
   });
 });
