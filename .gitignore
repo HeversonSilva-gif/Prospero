@@ -38,6 +38,10 @@ logs/
 # Brainstorm/design artifacts (local-only)
 .superpowers/
 
+# Personal notes, specs & plans — kept on the author's machine, not published.
+# (Older history still contains docs/; this only stops tracking it going forward.)
+docs/
+
 # Editors
 .vscode/*
 !.vscode/extensions.json
