@@ -17,6 +17,9 @@ import { broadcastPermissionRequest } from "./ipc/permission-handlers.js";
 import { broadcastInboxUpdate } from "./ipc/inbox-handlers.js";
 import { createInboxRepository } from "./inbox/repository.js";
 import { createAgentsRepository } from "./agents/repository.js";
+import { createApprovalsRepository } from "./approvals/repository.js";
+import { isCeoAgent } from "@prospero/shared";
+import { routeAndDispatch } from "./approvals/index.js";
 import { createProjectsRepository } from "./projects/repository.js";
 import { getRecorder } from "./activity/index.js";
 import { startHeartbeat } from "./orchestrator/heartbeat.js";
@@ -111,24 +114,41 @@ void app
         broadcastPermissionRequest(req);
         const agent = agentsRepo.getById(req.agentId);
         if (agent === null) return;
-        inboxRepo.create({
-          companyId: agent.companyId,
-          kind: "approval",
-          actorId: req.agentId,
-          title: `Approval needed: ${req.toolName}`,
-          preview:
-            typeof req.toolInput === "object" && req.toolInput !== null
-              ? JSON.stringify(req.toolInput).slice(0, 200)
-              : null,
-          requiresAction: true,
-          payloadJson: JSON.stringify({
-            toolUseId: req.toolUseId,
-            toolName: req.toolName,
-            toolInput: req.toolInput,
+
+        const approvals = createApprovalsRepository(db!);
+        const apv = approvals.findPendingByToolUseId(req.toolUseId);
+        if (apv !== null) {
+          routeAndDispatch({
+            approvalId: apv.id,
+            companyId: agent.companyId,
+            kind: "tool_call",
             reason,
-          }),
-        });
-        broadcastInboxUpdate(agent.companyId);
+            requesterIsCeo: isCeoAgent(agent),
+            requesterName: agent.name,
+            summary: `${req.toolName} ${JSON.stringify(req.toolInput).slice(0, 120)}`,
+          });
+        } else {
+          // Edge/legacy — no approval row: create the human card directly.
+          inboxRepo.create({
+            companyId: agent.companyId,
+            kind: "approval",
+            actorId: req.agentId,
+            title: `Approval needed: ${req.toolName}`,
+            preview:
+              typeof req.toolInput === "object" && req.toolInput !== null
+                ? JSON.stringify(req.toolInput).slice(0, 200)
+                : null,
+            requiresAction: true,
+            payloadJson: JSON.stringify({
+              toolUseId: req.toolUseId,
+              toolName: req.toolName,
+              toolInput: req.toolInput,
+              reason,
+            }),
+          });
+          broadcastInboxUpdate(agent.companyId);
+        }
+
         agentsRepo.updateStatus(req.agentId, {
           status: "waiting",
           currentAction: `Awaiting approval: ${req.toolName}`.slice(0, 80),

@@ -35,8 +35,8 @@ const setup = () => {
   return { db, ctx, dir };
 };
 
-describe("MCP request_permission writes approval + inbox pointer", () => {
-  it("creates a pending approval row and inbox item with approval_id when called", async () => {
+describe("MCP request_permission writes approval row (no eager inbox card)", () => {
+  it("creates a pending approval row but does NOT create an inbox card eagerly", async () => {
     const { db, ctx, dir } = setup();
 
     const toolUseId = "tu_test_1";
@@ -54,6 +54,7 @@ describe("MCP request_permission writes approval + inbox pointer", () => {
       ctx,
     );
 
+    // The approval ROW must still be created (routing depends on it).
     const row = db
       .prepare("SELECT id, agent_id, kind FROM approvals WHERE payload_json LIKE ?")
       .get(`%${toolUseId}%`) as { id: string; agent_id: string; kind: string } | undefined;
@@ -61,10 +62,11 @@ describe("MCP request_permission writes approval + inbox pointer", () => {
     expect(row?.kind).toBe("tool_call");
     expect(row?.agent_id).toBe("ag_1");
 
+    // The eager inbox card is now gone — routing (onUserDecision) creates the
+    // card only when the watcher fires, not here in the MCP tool.
     const inbox = db
       .prepare("SELECT id, approval_id, kind FROM inbox_items WHERE approval_id = ?")
       .get(row!.id) as { id: string; approval_id: string; kind: string } | undefined;
-    expect(inbox).toBeDefined();
-    expect(inbox?.kind).toBe("approval");
+    expect(inbox).toBeUndefined();
   });
 });

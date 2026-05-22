@@ -21,6 +21,9 @@ describe("migration 0007 — approvals", () => {
         "decision_note",
         "created_at",
         "resolved_at",
+        // Added by migration 0037 (feat/ceo-approves-requests):
+        "routed_to",
+        "escalated_at",
       ].sort(),
     );
   });

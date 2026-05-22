@@ -59,18 +59,25 @@ export const waitForResolution = async (
   dir: string,
   toolUseId: string,
   timeoutMs: number,
-): Promise<{ behavior: "allow" } | { behavior: "deny"; message: string }> => {
+): Promise<
+  | { behavior: "allow"; decidedBy?: string }
+  | { behavior: "deny"; message: string; decidedBy?: string }
+> => {
   const res = join(dir, `${toolUseId}.res.json`);
   const den = join(dir, `${toolUseId}.deny.json`);
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     if (existsSync(res)) {
-      const r = JSON.parse(readFileSync(res, "utf8")) as { behavior: "allow" };
+      const r = JSON.parse(readFileSync(res, "utf8")) as { behavior: "allow"; decidedBy?: string };
       safeUnlink(res);
       return r;
     }
     if (existsSync(den)) {
-      const d = JSON.parse(readFileSync(den, "utf8")) as { behavior: "deny"; message: string };
+      const d = JSON.parse(readFileSync(den, "utf8")) as {
+        behavior: "deny";
+        message: string;
+        decidedBy?: string;
+      };
       safeUnlink(den);
       return d;
     }
@@ -572,17 +579,6 @@ export const toolDefinitions = [
           tool_use_id: toolUseId,
         },
       });
-      const inbox = createInboxRepository(ctx.db);
-      inbox.create({
-        companyId: ctx.companyId,
-        kind: "approval",
-        actorId: ctx.agentId,
-        title: `Approval — ${rawInput.tool_name}`,
-        preview: null,
-        payloadJson: JSON.stringify({ approval_id: approval.id, tool_use_id: toolUseId }),
-        requiresAction: true,
-        approvalId: approval.id,
-      });
       tryGetRecorder()?.recordActivity({
         companyId: ctx.companyId,
         actor: { kind: "agent", id: ctx.agentId },
@@ -607,7 +603,7 @@ export const toolDefinitions = [
       approvals.decide(
         approval.id,
         result.behavior === "allow" ? "approved" : "rejected",
-        "user",
+        result.decidedBy ?? "user",
         result.behavior === "deny" ? result.message : undefined,
       );
       // M14 PR-A: a user decision is a track-record signal — recompute the
@@ -791,9 +787,7 @@ export const toolDefinitions = [
       let budgetOverLimit = false;
       if (input.topic === "budget" && requester !== null) {
         const amount =
-          typeof input.data?.["amount_cents"] === "number"
-            ? (input.data["amount_cents"])
-            : 0;
+          typeof input.data?.["amount_cents"] === "number" ? input.data["amount_cents"] : 0;
         // budgetUsdLimit is the per-agent USD limit in cents; no spent counter on Agent.
         // Treat null limit as infinite -> budgetOverLimit remains false.
         if (requester.budgetUsdLimit !== null) {

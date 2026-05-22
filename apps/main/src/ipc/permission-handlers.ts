@@ -24,7 +24,8 @@ export const registerPermissionHandlers = (db: Database.Database): void => {
       const dir = getPermissionsDir(app.getPath("userData"));
       const filename = payload.resolution.behavior === "allow" ? "res.json" : "deny.json";
       const target = join(dir, `${payload.toolUseId}.${filename}`);
-      writeFileSync(target, JSON.stringify(payload.resolution));
+      const resolution = { ...payload.resolution, decidedBy: "user" as const };
+      writeFileSync(target, JSON.stringify(resolution));
 
       // Prefer new format: approval row + inbox pointer.
       const approval = approvals.findPendingByToolUseId(payload.toolUseId);
