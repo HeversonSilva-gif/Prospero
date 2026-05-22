@@ -1,6 +1,12 @@
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type { Approval, ApprovalKind, ApprovalStatus, ToolCallPayload } from "./types.js";
+import type {
+  Approval,
+  ApprovalKind,
+  ApprovalRoute,
+  ApprovalStatus,
+  ToolCallPayload,
+} from "./types.js";
 
 type Row = {
   id: string;
@@ -12,6 +18,8 @@ type Row = {
   decision_note: string | null;
   created_at: number;
   resolved_at: number | null;
+  routed_to: string | null;
+  escalated_at: number | null;
 };
 
 const rowToApproval = (r: Row): Approval => ({
@@ -24,6 +32,8 @@ const rowToApproval = (r: Row): Approval => ({
   decisionNote: r.decision_note,
   createdAt: r.created_at,
   resolvedAt: r.resolved_at,
+  routedTo: (r.routed_to as ApprovalRoute | null) ?? null,
+  escalatedAt: r.escalated_at,
 });
 
 export type CreateApprovalInput = {
@@ -43,6 +53,9 @@ export type ApprovalsRepository = {
   ): void;
   findPendingByToolUseId(toolUseId: string): Approval | null;
   listByAgent(agentId: string): Approval[];
+  setRouted(id: string, route: ApprovalRoute): void;
+  setEscalated(id: string): void;
+  listPendingRoutedToCeo(companyId: string): Approval[];
 };
 
 export const createApprovalsRepository = (db: Database.Database): ApprovalsRepository => {
@@ -60,6 +73,14 @@ export const createApprovalsRepository = (db: Database.Database): ApprovalsRepos
   );
   const listAgent = db.prepare(
     "SELECT * FROM approvals WHERE agent_id = ? ORDER BY created_at DESC",
+  );
+  const setRoutedStmt = db.prepare("UPDATE approvals SET routed_to = ? WHERE id = ?");
+  const setEscalatedStmt = db.prepare("UPDATE approvals SET escalated_at = ? WHERE id = ?");
+  const listPendingCeo = db.prepare(
+    `SELECT ap.* FROM approvals ap
+       JOIN agents ag ON ag.id = ap.agent_id
+      WHERE ap.status = 'pending' AND ap.routed_to = 'ceo' AND ag.company_id = ?
+      ORDER BY ap.created_at ASC`,
   );
 
   return {
@@ -83,6 +104,15 @@ export const createApprovalsRepository = (db: Database.Database): ApprovalsRepos
     },
     listByAgent(agentId) {
       return (listAgent.all(agentId) as Row[]).map(rowToApproval);
+    },
+    setRouted(id, route) {
+      setRoutedStmt.run(route, id);
+    },
+    setEscalated(id) {
+      setEscalatedStmt.run(Date.now(), id);
+    },
+    listPendingRoutedToCeo(companyId) {
+      return (listPendingCeo.all(companyId) as Row[]).map(rowToApproval);
     },
   };
 };

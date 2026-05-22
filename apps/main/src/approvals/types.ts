@@ -3,9 +3,21 @@ export type ApprovalKind =
   | "code_review"
   | "hire_confirm"
   | "budget_override"
-  | "goal_plan";
+  | "goal_plan"
+  | "manager_request";
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "expired";
+
+export type ApprovalRoute = "ceo" | "user";
+
+export type ManagerTopic = "hire" | "fire" | "budget" | "unblock" | "approach" | "other";
+
+export type ManagerRequestPayload = {
+  topic: ManagerTopic;
+  summary: string;
+  thread_id: string;
+  data?: Record<string, unknown>;
+};
 
 export type Approval = {
   id: string;
@@ -17,6 +29,8 @@ export type Approval = {
   decisionNote: string | null;
   createdAt: number;
   resolvedAt: number | null;
+  routedTo: ApprovalRoute | null;
+  escalatedAt: number | null;
 };
 
 export type ToolCallPayload = {
