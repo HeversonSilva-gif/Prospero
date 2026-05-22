@@ -80,6 +80,9 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
       "mcp__dashboard__finalize_goal_execution",
       "mcp__dashboard__create_issue_for_plan",
       "mcp__dashboard__hire_agent_for_plan",
+      // Manager approval system: the CEO decides/queues other agents' requests.
+      "mcp__dashboard__decide_request",
+      "mcp__dashboard__list_pending_requests",
     ],
   },
   issues: {
@@ -107,8 +110,10 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
   },
   chat: {
     id: "chat",
-    description: "Permission prompt routing — required for filesystem gate to function.",
-    tools: ["mcp__dashboard__request_permission"],
+    description:
+      "Base agent comms: permission-prompt routing (required for the filesystem gate) " +
+      "and asking the manager (CEO) for a decision. Force-added to every agent.",
+    tools: ["mcp__dashboard__request_permission", "mcp__dashboard__request_decision"],
   },
   memory: {
     id: "memory",

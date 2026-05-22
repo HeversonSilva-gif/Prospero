@@ -96,8 +96,17 @@ describe("capabilitiesToTools", () => {
     expect(tools).toContain("mcp__dashboard__update_issue");
   });
 
-  it("returns request_permission for chat capability", () => {
-    expect(capabilitiesToTools(["chat"])).toEqual(["mcp__dashboard__request_permission"]);
+  it("returns request_permission + request_decision for chat capability", () => {
+    expect(capabilitiesToTools(["chat"])).toEqual([
+      "mcp__dashboard__request_permission",
+      "mcp__dashboard__request_decision",
+    ]);
+  });
+
+  it("returns the CEO approval tools for delegation", () => {
+    const tools = capabilitiesToTools(["delegation"]);
+    expect(tools).toContain("mcp__dashboard__decide_request");
+    expect(tools).toContain("mcp__dashboard__list_pending_requests");
   });
 
   it("ignores unknown capability ids (does not throw)", () => {
@@ -121,6 +130,11 @@ describe("resolveCapabilityTools (full resolver with chat safety-net)", () => {
 
   it("empty capability list still gets request_permission via chat safety-net", () => {
     expect(resolveCapabilityTools([])).toContain("mcp__dashboard__request_permission");
+  });
+
+  it("every agent can ask the manager (request_decision is universal via chat)", () => {
+    expect(resolveCapabilityTools([])).toContain("mcp__dashboard__request_decision");
+    expect(resolveCapabilityTools(["fs-write"])).toContain("mcp__dashboard__request_decision");
   });
 });
 
