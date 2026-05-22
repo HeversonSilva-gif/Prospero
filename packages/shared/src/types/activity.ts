@@ -40,10 +40,13 @@ export const ACTIVITY_ACTIONS = [
   "issue.comment_added",
   "issue.commented",
   "issue.unlocked_by_deps",
-  // Approval (3)
+  // Approval (6) — +3 from manager request feature
   "approval.requested",
+  "approval.escalated",
   "approval.approved",
   "approval.rejected",
+  "manager_request.created",
+  "manager_request.decided",
   // Project (3)
   "project.created",
   "project.updated",

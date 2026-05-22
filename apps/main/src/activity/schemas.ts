@@ -64,10 +64,14 @@ export const ActivityPayloads = {
     unlockedBy: stringId,
   }),
 
-  // Approval (3)
+  // Approval (6) — +3 from manager request feature
   "approval.requested": z.object({
     kind: z.string(),
     toolName: z.string().optional(),
+  }),
+  "approval.escalated": z.object({
+    approvalId: z.string(),
+    reason: z.enum(["ceo_choice", "timeout", "rule", "restart", "no_ceo"]),
   }),
   "approval.approved": z.object({
     approvalId: stringId,
@@ -76,6 +80,16 @@ export const ActivityPayloads = {
   "approval.rejected": z.object({
     approvalId: stringId,
     note: z.string().optional(),
+  }),
+  "manager_request.created": z.object({
+    approvalId: z.string(),
+    topic: z.string(),
+    routedTo: z.enum(["ceo", "user"]),
+  }),
+  "manager_request.decided": z.object({
+    approvalId: z.string(),
+    decision: z.enum(["approved", "rejected"]),
+    decidedBy: z.string(),
   }),
 
   // Project (3)
