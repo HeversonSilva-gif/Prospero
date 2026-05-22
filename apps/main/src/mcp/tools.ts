@@ -14,6 +14,12 @@ import { createApprovalsRepository } from "../approvals/repository.js";
 import { createArtifactsRepository } from "../artifacts/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { recomputeAgentTrust } from "../trust/engine.js";
+import {
+  escalateByCeoChoice,
+  tryGetApprovalTimers,
+  tryGetApprovalBridge,
+} from "../approvals/index.js";
+import { deliverManagerDecision } from "../approvals/deliver.js";
 
 export type ToolContext = {
   agentId: string;
@@ -667,6 +673,88 @@ export const toolDefinitions = [
       });
       ctx.emit({ kind: "issue.updated", payload: { issueId: resolvedId } });
       return JSON.stringify({ id: artifact.id, issue_id: resolvedId, kind: artifact.kind });
+    },
+  },
+  {
+    name: "list_pending_requests",
+    description: "List approval requests currently routed to you (the CEO) awaiting a decision.",
+    inputSchema: z.object({}),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (_input: unknown, ctx: ToolContext): Promise<string> => {
+      const repo = createApprovalsRepository(ctx.db);
+      const pending = repo.listPendingRoutedToCeo(ctx.companyId);
+      return JSON.stringify({
+        pending: pending.map((a) => ({
+          approval_id: a.id,
+          kind: a.kind,
+          requester_agent_id: a.agentId,
+          payload: JSON.parse(a.payloadJson) as unknown,
+        })),
+      });
+    },
+  },
+  {
+    name: "decide_request",
+    description:
+      "Decide an approval request routed to you. decision: approve | reject | escalate. " +
+      "For tool permissions this unblocks (or denies) the requesting agent immediately. " +
+      "Use escalate to hand the decision to the human operator.",
+    inputSchema: z.object({
+      approval_id: z.string(),
+      decision: z.enum(["approve", "reject", "escalate"]),
+      note: z.string().max(2000).optional(),
+    }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (
+      input: { approval_id: string; decision: "approve" | "reject" | "escalate"; note?: string },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const repo = createApprovalsRepository(ctx.db);
+      const apv = repo.getById(input.approval_id);
+      if (apv === null) return JSON.stringify({ ok: false, error: "not found" });
+      if (apv.status !== "pending" || apv.routedTo !== "ceo") {
+        return JSON.stringify({ ok: false, error: "already resolved or not routed to you" });
+      }
+
+      if (input.decision === "escalate") {
+        escalateByCeoChoice(apv.id);
+        return JSON.stringify({ ok: true, escalated: true });
+      }
+
+      const note = input.note ?? "";
+      if (apv.kind === "tool_call") {
+        const payload = JSON.parse(apv.payloadJson) as { tool_use_id: string };
+        const file = input.decision === "approve" ? "res.json" : "deny.json";
+        const body =
+          input.decision === "approve"
+            ? { behavior: "allow", decidedBy: ctx.agentId }
+            : { behavior: "deny", message: note, decidedBy: ctx.agentId };
+        writeFileSync(
+          join(ctx.permissionsDir, `${payload.tool_use_id}.${file}`),
+          JSON.stringify(body),
+        );
+        tryGetApprovalTimers()?.cancel(apv.id);
+        tryGetApprovalBridge()?.createCeoDecisionCard(
+          apv.id,
+          input.decision === "approve" ? "approved" : "rejected",
+        );
+        return JSON.stringify({ ok: true, decision: input.decision });
+      }
+
+      // manager_request: no poll — decide here + deliver result to requester.
+      const status = input.decision === "approve" ? "approved" : "rejected";
+      repo.decide(apv.id, status, ctx.agentId, note);
+      tryGetApprovalTimers()?.cancel(apv.id);
+      if (apv.agentId !== null) {
+        try {
+          recomputeAgentTrust(ctx.db, apv.agentId);
+        } catch (err) {
+          console.warn("[approval] trust", err);
+        }
+      }
+      deliverManagerDecision(ctx.db, apv, status, note);
+      tryGetApprovalBridge()?.createCeoDecisionCard(apv.id, status);
+      return JSON.stringify({ ok: true, decision: input.decision });
     },
   },
 ] as const;
