@@ -4,6 +4,7 @@ import {
   IPC,
   MODEL_ID_REGEX,
   type Agent,
+  type AgentAdapter,
   type AgentEvent,
   type AgentMode,
   type AgentStats,
@@ -355,6 +356,15 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       agentTemplateId: agent.templateId,
     });
 
+    // Guard against stale exits: capture the adapter instance returned by
+    // ensureAdapter so onExit can verify it is still the current spawn for
+    // this agent. When restartIfRunning / AGENT_KILL / AGENTS_TERMINATE kill
+    // the process, they remove the adapter from the lifecycle Map *before* the
+    // OS delivers the async exit event. Without this guard, the delayed exit
+    // overwrites the intentionally-set status ("idle"/"terminated") with
+    // "error", and incorrectly marks the recovery tracker as errored.
+    let thisSpawn: AgentAdapter | null = null;
+
     void ensureAdapter(
       {
         agent,
@@ -538,7 +548,15 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         },
         onExit: (code) => {
           console.error(`[claude:${agent.id}] exit code: ${String(code)}`);
+          // Guard: if the adapter was already removed from the lifecycle Map
+          // before this exit arrived (e.g. restartIfRunning for a mode/model
+          // change, AGENT_KILL, or AGENTS_TERMINATE), this is a stale exit
+          // from a process we intentionally killed. Do NOT overwrite the
+          // status that was deliberately set, and do NOT corrupt the recovery
+          // tracker by marking an intentional kill as an error.
+          const isCurrent = thisSpawn !== null && getAdapter(agent.id) === thisSpawn;
           removeAdapter(agent.id);
+          if (!isCurrent) return;
           if (code !== 0) {
             recoveryTracker.markErrored(agent.id);
             agents.clearSessionId(agent.id);
@@ -557,7 +575,11 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
           broadcast({ kind: "current-action-changed", agentId: agent.id, action: null });
         },
       },
-    ).catch(onError);
+    )
+      .then((a) => {
+        thisSpawn = a;
+      })
+      .catch(onError);
   };
 
   // M15 PR-A — wire the routines engine's bridge now that router and
