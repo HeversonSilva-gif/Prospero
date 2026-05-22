@@ -18,7 +18,9 @@ export type InboxKind =
   | "verification_review"
   | "security_zone_blocked"
   | "trust_promotion_suggested"
-  | "auto_mode_expired";
+  | "auto_mode_expired"
+  | "manager_request"
+  | "ceo_decision";
 
 export type InboxItem = {
   id: string;

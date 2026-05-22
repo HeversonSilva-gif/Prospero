@@ -1,4 +1,8 @@
-export type Sender = { kind: "user" | "agent" | "routine"; id: string | null; name: string };
+export type Sender = {
+  kind: "user" | "agent" | "routine" | "approval";
+  id: string | null;
+  name: string;
+};
 
 type State = {
   currentTurnThreadId: string | null;

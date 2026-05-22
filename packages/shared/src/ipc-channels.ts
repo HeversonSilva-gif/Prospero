@@ -27,6 +27,7 @@ export const IPC = {
   INBOX_UPDATE: "inbox:update",
   PERMISSION_REQUEST: "permission:request",
   PERMISSION_RESOLVE: "permission:resolve",
+  MANAGER_REQUEST_DECIDE: "manager-request:decide",
   PROJECTS_LIST: "projects:list",
   PROJECTS_CREATE: "projects:create",
   PROJECTS_UPDATE: "projects:update",

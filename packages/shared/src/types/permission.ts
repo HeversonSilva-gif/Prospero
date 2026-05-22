@@ -5,4 +5,6 @@ export type PermissionRequest = {
   toolInput: unknown;
 };
 
-export type PermissionResolution = { behavior: "allow" } | { behavior: "deny"; message: string };
+export type PermissionResolution =
+  | { behavior: "allow"; decidedBy?: string }
+  | { behavior: "deny"; message: string; decidedBy?: string };
