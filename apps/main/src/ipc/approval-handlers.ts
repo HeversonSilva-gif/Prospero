@@ -6,6 +6,8 @@ import { tryGetApprovalBridge } from "../approvals/index.js";
 import { deliverManagerDecision } from "../approvals/deliver.js";
 import { recomputeAgentTrust } from "../trust/engine.js";
 import { tryGetRecorder } from "../activity/index.js";
+import { createInboxRepository } from "../inbox/repository.js";
+import { broadcastInboxUpdate } from "./inbox-handlers.js";
 
 export const registerApprovalHandlers = (db: Database.Database): void => {
   ipcMain.handle(
@@ -18,6 +20,9 @@ export const registerApprovalHandlers = (db: Database.Database): void => {
       const apv = repo.getById(payload.approvalId);
       if (apv === null || apv.status !== "pending" || apv.kind !== "manager_request") return;
       repo.decide(apv.id, payload.decision, "user", payload.note);
+      const inbox = createInboxRepository(db);
+      const updated = inbox.markReadByApprovalId(apv.id);
+      if (updated !== null) broadcastInboxUpdate(updated.companyId);
       if (apv.agentId !== null) {
         try {
           recomputeAgentTrust(db, apv.agentId);
