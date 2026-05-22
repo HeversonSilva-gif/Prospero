@@ -56,7 +56,12 @@ import {
   type AgentEvent as AgentSideEvent,
 } from "../orchestrator/events-watcher.js";
 import { broadcastIssueChanged } from "./issue-events-broadcast.js";
-import { enqueueOrPark, drainPausedBacklog, pauseBacklog } from "./agents-pause-backlog.js";
+import {
+  enqueueOrPark,
+  drainPausedBacklog,
+  pauseBacklog,
+  pauseAndStopAgent,
+} from "./agents-pause-backlog.js";
 import { HIRE_FROM_UI_INPUT_SCHEMA } from "../schemas/hire-agent-input.js";
 import { createCostsRepository } from "../costs/repository.js";
 import { createBudgetsRepository } from "../costs/budgets-repository.js";
@@ -126,7 +131,13 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     costsRepo,
     budgetsRepo,
     pauseAgent: (agentId, reason) => {
-      agents.pause(agentId, reason);
+      // Stop the running turn too — pausing the DB row alone lets the in-flight
+      // turn keep spending. Kill + remove (onExit guard then keeps it "paused").
+      pauseAndStopAgent(agentId, reason, {
+        getAdapter,
+        removeAdapter,
+        pause: (id, r) => agents.pause(id, r),
+      });
       broadcast({
         kind: "status-changed",
         agentId,
@@ -492,14 +503,21 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
             const nudge = nudgeTracker.recordTurn(agent.id, { toolUseCount, memoryNearFull });
             if (nudge !== null) router.setPendingNudge(agent.id, nudge);
             const stillBusy = router.getCurrentThread(agent.id) !== null;
-            const status = stillBusy ? "thinking" : "idle";
-            agents.updateStatus(agent.id, { status, currentAction: null });
-            broadcast({
-              kind: "status-changed",
-              agentId: agent.id,
-              status,
-              updatedAt: Date.now(),
-            });
+            // Respect a status the budget enforcer (checkAndPause, above) or a
+            // concurrent pause/terminate just set — do not clobber it back to
+            // thinking/idle, which would un-pause the agent and let it keep
+            // spending.
+            const live = agents.getById(agent.id);
+            if (live === null || (live.status !== "paused" && live.status !== "terminated")) {
+              const status = stillBusy ? "thinking" : "idle";
+              agents.updateStatus(agent.id, { status, currentAction: null });
+              broadcast({
+                kind: "status-changed",
+                agentId: agent.id,
+                status,
+                updatedAt: Date.now(),
+              });
+            }
             currentActionDebouncer.flush(agent.id);
             currentActionDebouncer.schedule(agent.id, null);
             // Refresh agents roster on every turn-complete. Covers the case where this
@@ -950,7 +968,12 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       const agent = agents.getById(payload.agentId);
       if (agent === null) throw new Error("Agent not found");
       if (agent.status === "terminated") throw new Error("Cannot pause a terminated agent");
-      agents.pause(payload.agentId, payload.reason);
+      // Stop the running turn too (not just park new messages).
+      pauseAndStopAgent(payload.agentId, payload.reason, {
+        getAdapter,
+        removeAdapter,
+        pause: (id, r) => agents.pause(id, r),
+      });
       broadcast({
         kind: "status-changed",
         agentId: payload.agentId,
