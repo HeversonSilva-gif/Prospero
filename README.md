@@ -79,9 +79,7 @@ The v1 product (M1–M10) is complete, plus the V2 line: agent memory & learning
 (M11), org/role definition + charters (M12), outcomes & verification (M13),
 morning briefing & trust ladder (M14), routines (M15), the plain-language UI
 redesign (M16), packaging + auto-update (M17), and hardening from real-app
-testing (M18). See [`ROADMAP.md`](ROADMAP.md) for the full milestone history and
-[`docs/superpowers/specs/2026-05-09-prospero-design.md`](docs/superpowers/specs/2026-05-09-prospero-design.md)
-for the original design.
+testing (M18). See [`ROADMAP.md`](ROADMAP.md) for the full milestone history.
 
 ## Disclaimer
 
