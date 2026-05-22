@@ -85,4 +85,22 @@ describe("decide_request", () => {
     expect(existsSync(join(env.dir, "tu3.res.json"))).toBe(false);
     expect(out).toContain("already");
   });
+
+  it("approve on a manager_request decides the row (decidedBy = ceo)", async () => {
+    const repo = createApprovalsRepository(env.db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "manager_request",
+      payload: { topic: "hire", summary: "Preciso de um designer", thread_id: "th1" },
+    });
+    repo.setRouted(apv.id, "ceo");
+    const out = JSON.parse(
+      await decideTool.run({ approval_id: apv.id, decision: "approve", note: "ok" }, env.ctx),
+    ) as { ok: boolean; decision: string };
+    expect(out.ok).toBe(true);
+    const after = repo.getById(apv.id);
+    expect(after?.status).toBe("approved");
+    expect(after?.decidedBy).toBe("ceo1");
+    expect(after?.decisionNote).toBe("ok");
+  });
 });
