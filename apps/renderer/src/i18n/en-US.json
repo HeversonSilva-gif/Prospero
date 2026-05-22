@@ -822,7 +822,9 @@
       "security_zone_blocked": "Zone blocks",
       "goal_proposed": "Proposed plans",
       "goal_executing": "Executing",
-      "goal_error": "Goal failures"
+      "goal_error": "Goal failures",
+      "manager_request": "Manager requests",
+      "ceo_decision": "CEO decisions"
     },
     "skillPromotion": {
       "review": "Review",

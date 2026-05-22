@@ -72,6 +72,8 @@ const FILTERS: FilterKey[] = [
   "goal_proposed",
   "goal_executing",
   "goal_error",
+  "manager_request",
+  "ceo_decision",
 ];
 
 export const Inbox: FC = () => {
@@ -90,6 +92,12 @@ export const Inbox: FC = () => {
       ? { behavior: "allow" }
       : { behavior: "deny", message: "User rejected via inbox" };
     await window.prospero.permissions.resolve(payload.toolUseId, resolution);
+    await markRead(item.id);
+  };
+
+  const decideManagerRequest = async (item: InboxItem, approve: boolean) => {
+    if (item.approvalId === null) return;
+    await window.prospero.managerRequest.decide(item.approvalId, approve ? "approved" : "rejected");
     await markRead(item.id);
   };
 
@@ -140,6 +148,24 @@ export const Inbox: FC = () => {
                   </button>
                   <button
                     onClick={() => void resolveApproval(item, false)}
+                    type="button"
+                    className="text-xs px-3 py-1 bg-semantic-danger text-white rounded font-semibold"
+                  >
+                    {t("inbox.reject")}
+                  </button>
+                </div>
+              )}
+              {item.kind === "manager_request" && item.requiresAction && item.readAt === null && (
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => void decideManagerRequest(item, true)}
+                    type="button"
+                    className="text-xs px-3 py-1 bg-semantic-success text-white rounded font-semibold"
+                  >
+                    {t("inbox.approve")}
+                  </button>
+                  <button
+                    onClick={() => void decideManagerRequest(item, false)}
                     type="button"
                     className="text-xs px-3 py-1 bg-semantic-danger text-white rounded font-semibold"
                   >
