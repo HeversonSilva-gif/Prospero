@@ -2,10 +2,10 @@
 
 > Living doc. Atualizar a cada feature/fix mergeado em `master`.
 >
-> **Spec base:** [docs/superpowers/specs/2026-05-09-prospero-design.md](docs/superpowers/specs/2026-05-09-prospero-design.md)
+> **Spec base:** docs/superpowers/specs/2026-05-09-prospero-design.md
 > **Referência ativa de UX/código:** [Paperclip](https://github.com/paperclipai/paperclip) — clone funcional via OAuth Max em vez de API key
-> **Comparação técnica:** [docs/paperclip-comparison.md](docs/paperclip-comparison.md) — origem dos itens em M7.5 e V2
-> **Gaps UX/governance:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md) — origem dos M7.6, M7.7, M8.5
+> **Comparação técnica:** docs/paperclip-comparison.md — origem dos itens em M7.5 e V2
+> **Gaps UX/governance:** docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md — origem dos M7.6, M7.7, M8.5
 > **Última atualização:** 2026-05-21 — M12–M18 mergeados localmente; **o estado atual da release vive no [README.md](README.md)** (este doc mantém o histórico técnico abaixo). Histórico: **M11 ✅ MERGEADO COMPLETO · V2 anchor fechado.** 6 PRs (A–F): capabilities rename · schema + 9 MCP tools + tab Learning · motor de auto-derivação + Candidates UI · herança por role + `skill_promote` · org retrospectives + Org Learnings · decay/trust + Settings Memory + nudges fallback + terminate-modal promote + docs (`memory-architecture.md`, `skills-format.md`, `derivation-pipeline.md`, SECURITY.md). Arquitetura: 3 camadas × 2 níveis (individual + coletivo), fluxo bidirecional. **M12 ✅ COMPLETO 2026-05-19** — PR-A: `role_templates` vira biblioteca editável (criar/clonar/editar/excluir em `/roles`) + charter de 8 seções por papel. PR-B: Manual Operacional ("como esta empresa opera") entregue como skill embutida — todo agente o recebe com progressive disclosure (linha no prompt + corpo sob demanda). PR-C: cada agente ganha um bundle de instruções editável em disco (charter + extras), aba Instructions no Agent Studio, e o charter passa a ser injetado de verdade no prompt do agente. PR-D1: gerar um charter de 8 seções a partir de uma descrição em linguagem natural, via uma chamada one-shot ao Claude (reusa o runner headless do M11). PR-D2 + PR-D3: o CEO projeta a empresa inteira — propõe papéis (com charter), agentes e hierarquia via `submit_org_plan`; a proposta cai numa tela de revisão (acessível pelo inbox) onde você inclui/exclui papéis e agentes e aprova; aprovar cria tudo numa transação two-pass. PR-D4: o `AGENTS.md` passa a carregar os papéis e seus charters — uma empresa inteira (papéis + charters + agentes) vira um arquivo único, versionável e re-importável. PR-E1: aba Runs no Agent Studio — histórico de sessões derivado do `cost_events` existente, sem nova tabela. PR-E2: budget por agente (teto de tokens e USD configurável por funcionário, enforcement pós-turno) + Run Policy (dois toggles por agente — pode contratar/demitir e pode atribuir issues — que filtram as ferramentas no spawn) — configurável na aba Config, resumo na aba Stats. **PR-F: Agent Studio redesenhado** — tela `/agents/:id` com dois modos (Conversa / Estúdio), 6 abas full-width no Estúdio (Config, Instructions, Learning, Issues, Runs, Stats), primitivos de UI compartilhados (`Section`, `EmptyState`, `LoadingState`, `TabBar`) e doc `docs/agent-studio.md`. **1329 testes**.
 >
 > **Distribuição (decisão 2026-05-11):** **hybrid** — Electron desktop continua como default e UI. Adapter pattern (M7.5 foundation, M9 API key, **M10 VPS Docker**) permite spawnar agentes localmente OU em containers Docker numa VPS remota. Usuário escolhe per-agent (CEO local pra latência, engenheiros remotos pra isolamento). Sem rewrite — adapter pattern absorve o segundo lifecycle.
@@ -207,7 +207,7 @@ M8 ✅ ──▶ M8.5 Goals ✅ ──▶ M8.6 Live Exec ✅ ──▶ M9 Dashbo
 | Stack | Electron 33 · React 18 · Vite · Tailwind · zustand · better-sqlite3 (WAL) · MCP SDK · zod · vitest · Playwright (E2E, skipped) |
 | Distribuição planejada | Hybrid: desktop default + VPS Docker remote opcional (M10) |
 | Restante pra v1 | **Nada — v1 fechado em 2026-05-15.** M11 + M12 + M13 + M14 + M15 + **M16 (9/10 PRs)** fechados. Próximo: Workflow Plays (V2 Tier 1) ou Async governance (V2 Tier 2). |
-| V2 anchor | **M11 Agent Memory & Learning Loop — ✅ COMPLETO** (2026-05-18, 6 PRs). Arquitetura: 3 camadas × 2 níveis, fluxo bidirecional. Spec: `docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md`. Docs: `docs/memory-architecture.md` + `docs/skills-format.md` + `docs/derivation-pipeline.md`. 3 inflexões deliberadas sobre [Hermes Agent](docs/hermes-memory-learning-system.md). Próximo V2: M12 Agent & Org Definition Layer. |
+| V2 anchor | **M11 Agent Memory & Learning Loop — ✅ COMPLETO** (2026-05-18, 6 PRs). Arquitetura: 3 camadas × 2 níveis, fluxo bidirecional. Spec: `docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md`. Docs: `docs/memory-architecture.md` + `docs/skills-format.md` + `docs/derivation-pipeline.md`. 3 inflexões deliberadas sobre Hermes Agent. Próximo V2: M12 Agent & Org Definition Layer. |
 
 ---
 
@@ -360,7 +360,7 @@ M11 (Agent Memory & Learning Loop — âncora V2 ✅) ─── V2
 **Por que junto:** ambos são views/edits sobre dados que já existem (`reports_to` e `skills_json`). Sem novos backend handlers grandes — UI-heavy.
 
 **Decisão arquitetural (após Paperclip comparison):**
-- **Org Chart:** SVG handcrafted no client, não React Flow nem D3. ~300 linhas, zero deps. Razão: Paperclip faz server-side com 5 temas; pra nós, SVG no DOM é suficiente, controle total, fácil estender com transitions CSS. ([docs/paperclip-comparison.md §13](docs/paperclip-comparison.md))
+- **Org Chart:** SVG handcrafted no client, não React Flow nem D3. ~300 linhas, zero deps. Razão: Paperclip faz server-side com 5 temas; pra nós, SVG no DOM é suficiente, controle total, fácil estender com transitions CSS. (docs/paperclip-comparison.md §13)
 - **Skills:** manter modelo tag-based (`agents.skills_json` string array). **NÃO** imitar Paperclip code-module + source sync (GitHub/NPM) — fora do nosso threat model. Hard-gate via system prompt + MCP tool whitelist.
 - **Model selection:** preset enum em `packages/shared` + escape "custom". Dropdown mostra **cost hints relativos** (Opus 5× / Sonnet 1× / Haiku 0.2× — referência simbólica). Memory `feedback_token_efficiency` exige aviso ao selecionar Opus pra subagente leve.
 
@@ -389,7 +389,7 @@ M11 (Agent Memory & Learning Loop — âncora V2 ✅) ─── V2
 
 ### ✅ M7.5 — Foundations & Paperclip Refactors (**FECHADO 2026-05-12**)
 
-**Origem:** itens 🔴 (alta prioridade) e parte dos 🟡 da [Paperclip comparison](docs/paperclip-comparison.md). Refatorações estruturais e melhorias UX/governança que preparam M8/M9/M10 — especialmente o **adapter pattern**, que é pré-requisito do API key (M9) e do VPS Docker remote (M10).
+**Origem:** itens 🔴 (alta prioridade) e parte dos 🟡 da Paperclip comparison. Refatorações estruturais e melhorias UX/governança que preparam M8/M9/M10 — especialmente o **adapter pattern**, que é pré-requisito do API key (M9) e do VPS Docker remote (M10).
 
 **Entregue em 3 PRs sequenciais** (todos mergeados em master):
 - **PR-A** (`a633e41`, 2026-05-11) — Adapter pattern foundation + lifecycle.ts shrink 388→72 LOC + composeSystemPrompt + preamble.md external + migration 0004
@@ -444,7 +444,7 @@ M11 (Agent Memory & Learning Loop — âncora V2 ✅) ─── V2
 
 - [x] **`infra/docker/agent-runner/Dockerfile` stub** — placeholder com `FROM node:22-alpine` + TODOs M10 (non-root user, tini, healthz endpoint, claude CLI install). **PR-C 🟢**
 - [x] **`infra/docker/compose.yml` stub** — env vars (`ADAPTER_WIRE_PROTOCOL_VERSION`, `CLAUDE_API_KEY`, `DASHBOARD_MCP_URL`, `HEALTH_PORT`), ports 9700 (wss) + 9701 (health), volume `agent-state`. **PR-C 🟢**
-- [x] **Wire protocol document** — [docs/m10-adapter-wire-protocol.md](docs/m10-adapter-wire-protocol.md) com 217 LOC: handshake/spawn/stdin-write/kill/event/stderr/exit/health methods + 7 error codes + transports stdio (local) + WSS (remote) + security section. **PR-C 🟢**
+- [x] **Wire protocol document** — docs/m10-adapter-wire-protocol.md com 217 LOC: handshake/spawn/stdin-write/kill/event/stderr/exit/health methods + 7 error codes + transports stdio (local) + WSS (remote) + security section. **PR-C 🟢**
 
 #### Não-regressão
 
@@ -456,7 +456,7 @@ M11 (Agent Memory & Learning Loop — âncora V2 ✅) ─── V2
 
 ### 🆕 M7.7 — Activity Stream — **foundation pra M7.6/M8/M8.5**
 
-**Origem:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md §4](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md). Print do user mostrou que o Paperclip oferece "visão e controle do todo" via `/activity` cross-cutting — único surface da sidebar COMPANY que não temos equivalente.
+**Origem:** docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md §4. Print do user mostrou que o Paperclip oferece "visão e controle do todo" via `/activity` cross-cutting — único surface da sidebar COMPANY que não temos equivalente.
 
 **Por que antes do M7.6 apesar do número:** infra do `recordActivity()` vira pré-req de TODO IPC novo que M7.6 introduz (pause/terminate/set-mode/etc). Sem ela, cada novo IPC duplica lógica de logging.
 
@@ -512,7 +512,7 @@ M11 (Agent Memory & Learning Loop — âncora V2 ✅) ─── V2
 
 ### 🆕 M7.6 — Agent Studio — completion sobre M7-C
 
-**Origem:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md §1](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md). Completa a liberdade de mexer no agente direto pela UI (M7-C entregou base; faltam ações stateful + alguns toggles + form de criação + Runs timeline).
+**Origem:** docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md §1. Completa a liberdade de mexer no agente direto pela UI (M7-C entregou base; faltam ações stateful + alguns toggles + form de criação + Runs timeline).
 
 **Decisão arquitetural:**
 - **Layout chat-first híbrido** (NÃO Paperclip 1:1 com 6 tabs). Chat segue centro, right panel já existe (M7-C), header sticky novo com ações, modal full-screen pra Runs.
@@ -591,7 +591,7 @@ M11 (Agent Memory & Learning Loop — âncora V2 ✅) ─── V2
 
 **Decisão arquitetural (após Paperclip comparison):**
 - Schema `cost_events` (nome novo, drop legacy `costs_log` se vazio) compatível com adapter pattern do M7.5 — cada adapter reporta cost via interface comum `estimateUsage(events)`.
-- **Soft-stop at `turn-complete`** (não heartbeat — não temos heartbeat polling). Agente ultrapassou budget → `notify_user(kind=security_alert)` + `agents.status='paused'` + bloqueia próximo `enqueue` no router. ([docs/paperclip-comparison.md §15 M8 lookahead](docs/paperclip-comparison.md))
+- **Soft-stop at `turn-complete`** (não heartbeat — não temos heartbeat polling). Agente ultrapassou budget → `notify_user(kind=security_alert)` + `agents.status='paused'` + bloqueia próximo `enqueue` no router. (docs/paperclip-comparison.md §15 M8 lookahead)
 
 - [ ] **Backend:**
   - [ ] Schema `cost_events (id, company_id, agent_id, adapter_name, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, cost_cents_estimate, occurred_at)` — adapter-agnóstico
@@ -614,7 +614,7 @@ M11 (Agent Memory & Learning Loop — âncora V2 ✅) ─── V2
 
 > **Status (2026-05-14):** **PR-A backend ✅ MERGEADO** (16 tasks, 65 testes novos, master HEAD `6925a5c`). Schema (migration 0012), goals/plans repos, Zod GoalPlanPayloadSchema com DAG validation, 6 MCP tools (list/get/update_status/record_subgoal/get_cost_baseline/submit_goal_plan), CEO system prompt block, executor atomic (topo-sorted hires + issues + goal_id linking), recovery scan, 7 IPC handlers + preload, integration tests. **PR-B UI ainda não iniciado** — rota `/goals` tree + `/goals/:id` PR-review UI.
 
-**Origem:** [docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md §2](docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md). User cria Goal → clica "Ask CEO to plan" → CEO lê e propõe **plano estruturado** (agents a contratar, issues a criar, estimates de tempo/tokens/custo, riscos) → user aprova em **PR-review UI** → executor atômico cria agents+issues.
+**Origem:** docs/superpowers/specs/2026-05-11-paperclip-gaps-ux-governance-design.md §2. User cria Goal → clica "Ask CEO to plan" → CEO lê e propõe **plano estruturado** (agents a contratar, issues a criar, estimates de tempo/tokens/custo, riscos) → user aprova em **PR-review UI** → executor atômico cria agents+issues.
 
 **Por que evolução além do Paperclip:** lá Goals são puramente declarativos (CRUD). O CEO-planner automático é nosso diferencial — combina Goals + agentic planning + approval gate.
 
@@ -709,7 +709,7 @@ M11 (Agent Memory & Learning Loop — âncora V2 ✅) ─── V2
 
 **Custos:** 9-11 dias (refinado pós-brainstorming 2026-05-12; spec base 10-12 dias). **Pré-req:** ✅ M8 (cost_events), ✅ M7.5 (composeSystemPrompt), ✅ M7.6 (hire-from-ui), ✅ M7.7 (activity slot).
 
-**Spec de implementação:** [docs/superpowers/specs/2026-05-12-m8-5-goals-implementation-design.md](docs/superpowers/specs/2026-05-12-m8-5-goals-implementation-design.md) — 2 PRs decididos no brainstorming (PR-A backend + PR-B UI, M8-style).
+**Spec de implementação:** docs/superpowers/specs/2026-05-12-m8-5-goals-implementation-design.md — 2 PRs decididos no brainstorming (PR-A backend + PR-B UI, M8-style).
 
 ---
 
@@ -741,8 +741,8 @@ M11 (Agent Memory & Learning Loop — âncora V2 ✅) ─── V2
 - ✅ CommentComposer UI continua funcionando como user-side
 - ✅ M8.5 inbox kinds (`goal_proposed`/`executing`/`error`) reusados (sem novos)
 
-**Spec:** [docs/superpowers/specs/2026-05-14-m8.6-live-execution-design.md](docs/superpowers/specs/2026-05-14-m8.6-live-execution-design.md)
-**Plans:** [pr-a backend](docs/superpowers/plans/2026-05-14-m8.6-pr-a-narrated-backend.md) · [pr-b ui](docs/superpowers/plans/2026-05-14-m8.6-pr-b-narrated-ui.md)
+**Spec:** docs/superpowers/specs/2026-05-14-m8.6-live-execution-design.md
+**Plans:** pr-a backend · pr-b ui
 **Memory:** [project_m8_6_lessons](../d--Projetos-pessoais-Prospero/memory/project_m8_6_lessons.md)
 
 **Pendente:** smoke manual (user vai rodar depois de V2 estar pronta).
@@ -846,7 +846,7 @@ Closing items pra v1 ficar feature-complete contra spec §4. **Aproveita foundat
 
 ### ✅ M11 — Agent Memory & Learning Loop — **V2 anchor · COMPLETO (2026-05-18)**
 
-**Origem:** pesquisa Hermes Agent ([NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent), 2026-05-12). Doc completo em [docs/hermes-memory-learning-system.md](docs/hermes-memory-learning-system.md). Substitui o item v2+ "Memory / Knowledge base" por implementação concreta — **inspirada** no closed learning loop do Hermes mas com **3 inflexões deliberadas** que aproveitam vantagens estruturais do nosso codebase (Activity stream, Issues, Goals, CEO-planner).
+**Origem:** pesquisa Hermes Agent ([NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent), 2026-05-12). Doc completo em docs/hermes-memory-learning-system.md. Substitui o item v2+ "Memory / Knowledge base" por implementação concreta — **inspirada** no closed learning loop do Hermes mas com **3 inflexões deliberadas** que aproveitam vantagens estruturais do nosso codebase (Activity stream, Issues, Goals, CEO-planner).
 
 **Por que V2 começa aqui:** v1 = M10 está locked; mexer antes adicionaria 1-2 semanas no critical path sem desbloquear v1. Pós-M10, M11 vira **âncora da V2** porque memória persistente é o que muda a natureza do produto — de "chat com agentes" pra "time que aprende com sua experiência". A tese V2 "1-person business" depende disso: solo founder cria leverage apoiado numa empresa de agentes que **compounda** know-how em vez de reiniciar a cada conversa. Sem M11 antes, as outras apostas V2 (Enforced Outcomes, Routines, Plays) viram features sólidas mas estáticas.
 
@@ -860,7 +860,7 @@ Decomposto em **6 PRs (A-F)** — na execução o **PR-D** foi dividido em **D1*
 Learnings); o **PR-F** foi dividido em **F1** (decay/trust/purge) + **F2**
 (Settings Memory + nudges + terminate-modal + docs). O texto de planejamento
 abaixo é o original; a **spec reconciliada**
-([docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md](docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md))
+(docs/superpowers/specs/2026-05-15-m11-agent-memory-design.md)
 é a fonte de verdade — corrigiu vários pontos do plano abaixo: migrations `0017`
 (rename) + `0018` (schema), **não** "M11-01"; filesystem em `userData/memory/`,
 **não** `~/.prospero/`; a tab Learning é a **3ª** tab de `/agents/:id`, não a 4ª;
@@ -882,7 +882,7 @@ heurística NLP; novo evento `agent.recovered`.
 
 #### 🔀 As 3 inflexões vs Hermes
 
-> Discussão completa em [docs/hermes-memory-learning-system.md §11](docs/hermes-memory-learning-system.md).
+> Discussão completa em docs/hermes-memory-learning-system.md §11.
 
 **Inflexão 1 — Skills > MEMORY.md (inverter ênfase).** Hermes equilibra declarativa e procedural; nós focamos procedural. Skills L0 budget sobe de ~3 KB pra ~4 KB. MEMORY.md cai de ~2 KB pra ~1 KB (só identity + rules duras). **Razão:** "user prefere tabs" é CLAUDE.md territory (já cobre); "como migrar schema X em 12 passos" é skill — valor 4× maior e carrega só quando precisa (progressive disclosure).
 
@@ -1088,7 +1088,7 @@ Auto-narração via MCP tool (`memory_add`, `skill_create`) **vira fallback** �
 
 ### 🆕 M12 — Agent & Org Definition Layer — **V2, logo após o M11**
 
-**Origem:** brainstorm 2026-05-15 — "por que os nossos agentes parecem mais burros e menos configuráveis que os do Paperclip, e como viramos uma máquina de criar 1-person business de qualquer ramo?". Doc de design completo em [docs/m12-agent-org-definition-layer.md](docs/m12-agent-org-definition-layer.md).
+**Origem:** brainstorm 2026-05-15 — "por que os nossos agentes parecem mais burros e menos configuráveis que os do Paperclip, e como viramos uma máquina de criar 1-person business de qualquer ramo?". Doc de design completo em docs/m12-agent-org-definition-layer.md.
 
 **O problema:** os 14 milestones do v1 construíram a máquina de orquestração — mas os agentes a dirigem com um manual de um parágrafo. `role_templates` shipam com prompts de 1-2 frases; a única instrução editável por agente é uma textarea. O agente tem as tools MCP, mas não tem o playbook: nada diz quando, como e com que padrão usar cada uma.
 
@@ -1126,7 +1126,7 @@ Auto-narração via MCP tool (`memory_add`, `skill_create`) **vira fallback** �
 | Ordem | Aposta | Custo | Pré-req | Por que aqui |
 |---|---|---|---|---|
 | **V2.0** | **M11 — Agent Memory & Learning Loop** | 10-14d | M10 | **Fundação.** 3 camadas Hermes (declarativa/procedural/episódica) × 2 níveis (individual/coletivo). Fluxo bidirecional: descendente via inheritance (`hire_agent` carrega skills + memories role-scoped), ascendente via `skill_promote` + `memory_add({applies_to_role})` + retrospectivas CEO em `goal.achieved`. Sem isso, Tier 1 vira estático. |
-| **V2.1** | **M12 — Agent & Org Definition Layer** | ~18-24d | M11 | Inteligência *autorada*: charters ricos (8 seções) + Manual Operacional + editor multi-arquivo de instruções + autoria de organização (CEO projeta a empresa de qualquer ramo). M11 entrega o agente que *aprende*; M12, o que já *nasce esperto*. Fortalece Plays e Enforced Outcomes. Ver [docs/m12-agent-org-definition-layer.md](docs/m12-agent-org-definition-layer.md). |
+| **V2.1** | **M12 — Agent & Org Definition Layer** | ~18-24d | M11 | Inteligência *autorada*: charters ricos (8 seções) + Manual Operacional + editor multi-arquivo de instruções + autoria de organização (CEO projeta a empresa de qualquer ramo). M11 entrega o agente que *aprende*; M12, o que já *nasce esperto*. Fortalece Plays e Enforced Outcomes. Ver docs/m12-agent-org-definition-layer.md. |
 | **V2 Tier 1** | **Enforced Outcomes** — `done` que significa `done` | 8-10d | M11 | Solo founder não consegue revisar 50 saídas/dia. Issue só passa pra `done` após quality gates executáveis (tests/build/lint/bench). Skills M11 carregam "como rodar gate X". Falha → vira sub-issue automática. |
 | **V2 Tier 1** | **Routines** — agentes que acordam sozinhos | 5-7d | M11 | Pra 1 pessoa, leverage assíncrono É o produto. Cron-like + smart triggers (M11 enriquece com padrões aprendidos pra disparar follow-ups inteligentes). |
 | **V2 Tier 1** | **Workflow Plays** — playbooks pré-prontos pro CEO | 6-8d | M11 + M8.5 | Mata cold-start. CEO escolhe play ("Migrar auth", "Investigar incidente prod", "Lançar feature X com tests") → spawna agentes + issues + gates pré-configurados. Evolui com retrospectivas que CEO grava em company memory. |
@@ -1195,7 +1195,7 @@ Detalhes em [project_repo_will_be_public.md](memory).
 
 ## Paperclip wishlist tracker
 
-Mapeamento de cada item da wishlist do [Paperclip](https://github.com/paperclipai/paperclip) com nosso status. **Nem tudo do Paperclip é desejado pra nós** — alguns explicitamente fora de escopo. Decisões detalhadas em [docs/paperclip-comparison.md](docs/paperclip-comparison.md).
+Mapeamento de cada item da wishlist do [Paperclip](https://github.com/paperclipai/paperclip) com nosso status. **Nem tudo do Paperclip é desejado pra nós** — alguns explicitamente fora de escopo. Decisões detalhadas em docs/paperclip-comparison.md.
 
 | Item Paperclip | Status nosso | Onde |
 |---|---|---|
@@ -1220,7 +1220,7 @@ Mapeamento de cada item da wishlist do [Paperclip](https://github.com/paperclipa
 | **Scheduled Routines** | 🆕 v2+ | Routines — cron-like recurring tasks |
 | **Plugin system** | 🆕 v2+ | Knowledge base / custom tracing / queues como sub-features. Big architectural change |
 | **Get OpenClaw / claw-style agent employees** | 🆕 v2+ | Marketplace/template-store de agent personas (extensão do `role_templates`) |
-| **Memory / Knowledge** | 🆕 M11 | Per-agent `MEMORY.md` + skills procedurais auto-criados + FTS5 session search + nudges em turn-complete. Inspirado em [Hermes Agent](docs/hermes-memory-learning-system.md). Vector embeddings ficam v1.2. |
+| **Memory / Knowledge** | 🆕 M11 | Per-agent `MEMORY.md` + skills procedurais auto-criados + FTS5 session search + nudges em turn-complete. Inspirado em Hermes Agent. Vector embeddings ficam v1.2. |
 | **Enforced Outcomes** | 🆕 v2+ | Garantia de "tests passam", "compile OK" antes de marcar issue=done |
 | **Deep Planning** | 🆕 v2+ | Plan-mode estendido (claude já tem `--permission-mode plan`) |
 | **MAXIMIZER MODE** | 🆕 v2+ | Aggressive auto mode — requer API key opcional (Max não cobre) |
