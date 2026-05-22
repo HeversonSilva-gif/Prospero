@@ -360,6 +360,13 @@ declare global {
         delete: (args: { id: string }) => Promise<{ ok: true }>;
         runNow: (args: { id: string }) => Promise<{ ok: true }>;
       };
+      managerRequest: {
+        decide: (
+          approvalId: string,
+          decision: "approved" | "rejected",
+          note?: string,
+        ) => Promise<void>;
+      };
       updater: {
         checkNow: () => Promise<void>;
         status: () => Promise<UpdaterStatus>;

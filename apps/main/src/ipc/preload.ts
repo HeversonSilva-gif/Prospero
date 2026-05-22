@@ -507,6 +507,10 @@ contextBridge.exposeInMainWorld("prospero", {
     runNow: (args: { id: string }): Promise<{ ok: true }> =>
       ipcRenderer.invoke(IPC.ROUTINES_RUN_NOW, args) as Promise<{ ok: true }>,
   },
+  managerRequest: {
+    decide: (approvalId: string, decision: "approved" | "rejected", note?: string) =>
+      ipcRenderer.invoke(IPC.MANAGER_REQUEST_DECIDE, { approvalId, decision, note }),
+  },
   remote: {
     testConnection: () =>
       ipcRenderer.invoke(IPC.REMOTE_TEST_CONNECTION) as Promise<{
