@@ -1167,7 +1167,7 @@ V2 Tier 2 (AI reviewer + adapters + RAG + governance) adiciona +20-30d, mas pode
 
 Listados aqui pra não esquecer. Memorias têm contexto.
 
-- [ ] **Auto mode 24h timer** (§8.4) — agente em auto sem interação humana volta pra supervised
+- [x] **Auto mode 24h timer** (§8.4) — **M18 P2-C COMPLETO**: `createAutoModeExpiry` (tick a cada 5 min, boot-check imediato, error-isolation por agente), migração `0036` (`auto_mode_set_at` + índice parcial + inbox kind `auto_mode_expired`), `listExpiredAutoAgents` no repositório, dual-write de atividade, wired em `orchestrator-handlers.ts` com broadcast `roster-changed` + `status-changed`
 - [ ] **Auto degradado para Bash** toggle (§8.4) — em auto ainda confirma Bash
 - [ ] **Anti-prompt-injection avançado** (§8.6) — heurística estática + diff suspeito + tool call rate
 - [ ] **File watcher de `~/.claude/projects/`** (§5.1 D10) — observar sessões claude iniciadas fora do dashboard
@@ -1297,7 +1297,7 @@ Tudo daqui pra baixo é post-v1. Organizado por tema. **Sequência V2 priorizada
 ### Sandbox / Security avançado
 
 - **Anti-prompt-injection avançado** [M5] — heurística estática + diff suspeito + tool call rate
-- **Auto mode 24h timer** [M5] — agente em auto sem interação humana volta pra supervised
+- ~~**Auto mode 24h timer** [M5]~~ — **CONCLUÍDO em M18 P2-C** (ver Débito técnico de M5 acima)
 - **Auto degradado para Bash toggle** [M5] — em auto ainda confirma Bash
 - **Scopes de auto** [M5] — "auto pra Read, supervised pra Bash"
 - **CSP restritivo no renderer** [M5] — auditoria pendente
