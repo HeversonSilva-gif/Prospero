@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { existsSync, readFileSync, mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -20,15 +20,19 @@ function setup() {
     ).run(id, "c1", id, Date.now(), Date.now());
   }
   const dir = mkdtempSync(join(tmpdir(), "perm-"));
+  // The CEO-side tools now EMIT events instead of touching the engine bridge
+  // directly (the bridge is null in the MCP child). Capture emitted events so
+  // the tests assert the cross-process contract.
+  const emit = vi.fn();
   const ctx: ToolContext = {
     agentId: "ceo1",
     companyId: "c1",
     db,
     permissionsDir: dir,
     userDataDir: dir,
-    emit: () => {},
+    emit,
   };
-  return { db, ctx, dir };
+  return { db, ctx, dir, emit };
 }
 
 describe("decide_request", () => {
@@ -53,6 +57,16 @@ describe("decide_request", () => {
     };
     expect(body.behavior).toBe("allow");
     expect(body.decidedBy).toBe("ceo1");
+    // MAIN handles the timer-cancel + decision card off the emitted event.
+    expect(env.emit).toHaveBeenCalledWith({
+      kind: "approval.decided",
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      payload: expect.objectContaining({
+        approvalId: apv.id,
+        decision: "approve",
+        kind: "tool_call",
+      }),
+    });
   });
 
   it("reject on a tool_call writes the .deny.json with the note", async () => {
@@ -70,6 +84,15 @@ describe("decide_request", () => {
     };
     expect(body.behavior).toBe("deny");
     expect(body.message).toBe("no");
+    expect(env.emit).toHaveBeenCalledWith({
+      kind: "approval.decided",
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      payload: expect.objectContaining({
+        approvalId: apv.id,
+        decision: "reject",
+        kind: "tool_call",
+      }),
+    });
   });
 
   it("is a no-op when the approval is already resolved", async () => {
@@ -86,7 +109,7 @@ describe("decide_request", () => {
     expect(out).toContain("already");
   });
 
-  it("approve on a manager_request decides the row (decidedBy = ceo)", async () => {
+  it("approve on a manager_request emits the decision (MAIN decides the row)", async () => {
     const repo = createApprovalsRepository(env.db);
     const apv = repo.create({
       agentId: "bot1",
@@ -98,17 +121,27 @@ describe("decide_request", () => {
       await decideTool.run({ approval_id: apv.id, decision: "approve", note: "ok" }, env.ctx),
     ) as { ok: boolean; decision: string };
     expect(out.ok).toBe(true);
+    // The decision now happens in MAIN (handleApprovalEvent), not in the tool —
+    // the tool only emits and the row stays pending until MAIN processes it.
     const after = repo.getById(apv.id);
-    expect(after?.status).toBe("approved");
-    expect(after?.decidedBy).toBe("ceo1");
-    expect(after?.decisionNote).toBe("ok");
+    expect(after?.status).toBe("pending");
+    expect(env.emit).toHaveBeenCalledWith({
+      kind: "approval.decided",
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      payload: expect.objectContaining({
+        approvalId: apv.id,
+        decision: "approve",
+        kind: "manager_request",
+        note: "ok",
+      }),
+    });
   });
 });
 
 const reqDecisionTool = toolDefinitions.find((t) => t.name === "request_decision")!;
 
 describe("request_decision", () => {
-  it("creates a pending manager_request and returns its id immediately", async () => {
+  it("creates a pending manager_request and emits approval.route", async () => {
     const env = setup();
     const ctx = { ...env.ctx, agentId: "bot1" }; // requester is the worker, not the CEO
     const out = JSON.parse(
@@ -119,5 +152,14 @@ describe("request_decision", () => {
     const apv = repo.getById(out.approval_id);
     expect(apv?.kind).toBe("manager_request");
     expect(apv?.status).toBe("pending");
+    // Routing (CEO wake / human card) now happens in MAIN off the emitted event.
+    expect(env.emit).toHaveBeenCalledWith({
+      kind: "approval.route",
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      payload: expect.objectContaining({
+        approvalId: out.approval_id,
+        managerTopic: "hire",
+      }),
+    });
   });
 });

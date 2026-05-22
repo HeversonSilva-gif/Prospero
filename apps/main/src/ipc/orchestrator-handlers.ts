@@ -67,6 +67,7 @@ import { tryGetRoutinesEngine } from "../routines/index.js";
 import { registerRoutinesHandlers } from "./routines-handlers.js";
 import { createAutoModeExpiry } from "../agents/auto-mode-expiry.js";
 import { setApprovalEngineBridge, escalatePendingOnBoot } from "../approvals/index.js";
+import { handleApprovalEvent } from "../approvals/event-handler.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
 import { broadcastInboxUpdate } from "./inbox-handlers.js";
 import { isCeoAgent } from "@prospero/shared";
@@ -288,6 +289,14 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
           companyId: issueRow.company_id,
         });
       }
+    } else if (
+      kind === "approval.route" ||
+      kind === "approval.decided" ||
+      kind === "approval.escalate"
+    ) {
+      // CEO-side approval tools run in the MCP child (no engine bridge there);
+      // they emit these events so MAIN does the routing/decision work.
+      handleApprovalEvent({ kind, agentId: event.agentId, companyId, payload });
     }
   };
 

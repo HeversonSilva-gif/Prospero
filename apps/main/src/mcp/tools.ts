@@ -15,14 +15,7 @@ import { createApprovalsRepository } from "../approvals/repository.js";
 import { createArtifactsRepository } from "../artifacts/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { recomputeAgentTrust } from "../trust/engine.js";
-import {
-  escalateByCeoChoice,
-  tryGetApprovalTimers,
-  tryGetApprovalBridge,
-  routeAndDispatch,
-} from "../approvals/index.js";
 import type { ManagerTopic } from "../approvals/types.js";
-import { deliverManagerDecision } from "../approvals/deliver.js";
 
 export type ToolContext = {
   agentId: string;
@@ -715,8 +708,14 @@ export const toolDefinitions = [
         return JSON.stringify({ ok: false, error: "already resolved or not routed to you" });
       }
 
+      // This tool runs in the MCP child where the engine bridge/recorder are
+      // null. All decision side-effects (repo.decide for manager_request,
+      // trust, delivery, decision card, timer-cancel, escalation, audit) happen
+      // in MAIN via handleApprovalEvent. We only do the filesystem write for
+      // tool_call here (the requester's request_permission poll reads it
+      // directly, and the filesystem is shared across processes).
       if (input.decision === "escalate") {
-        escalateByCeoChoice(apv.id);
+        ctx.emit({ kind: "approval.escalate", payload: { approvalId: apv.id } });
         return JSON.stringify({ ok: true, escalated: true });
       }
 
@@ -732,27 +731,18 @@ export const toolDefinitions = [
           join(ctx.permissionsDir, `${payload.tool_use_id}.${file}`),
           JSON.stringify(body),
         );
-        tryGetApprovalTimers()?.cancel(apv.id);
-        tryGetApprovalBridge()?.createCeoDecisionCard(
-          apv.id,
-          input.decision === "approve" ? "approved" : "rejected",
-        );
+        ctx.emit({
+          kind: "approval.decided",
+          payload: { approvalId: apv.id, decision: input.decision, note, kind: "tool_call" },
+        });
         return JSON.stringify({ ok: true, decision: input.decision });
       }
 
-      // manager_request: no poll — decide here + deliver result to requester.
-      const status = input.decision === "approve" ? "approved" : "rejected";
-      repo.decide(apv.id, status, ctx.agentId, note);
-      tryGetApprovalTimers()?.cancel(apv.id);
-      if (apv.agentId !== null) {
-        try {
-          recomputeAgentTrust(ctx.db, apv.agentId);
-        } catch (err) {
-          console.warn("[approval] trust", err);
-        }
-      }
-      deliverManagerDecision(ctx.db, apv, status, note);
-      tryGetApprovalBridge()?.createCeoDecisionCard(apv.id, status);
+      // manager_request: MAIN decides the row + delivers to the requester.
+      ctx.emit({
+        kind: "approval.decided",
+        payload: { approvalId: apv.id, decision: input.decision, note, kind: "manager_request" },
+      });
       return JSON.stringify({ ok: true, decision: input.decision });
     },
   },
@@ -807,27 +797,21 @@ export const toolDefinitions = [
           ...(input.data !== undefined ? { data: input.data } : {}),
         },
       });
-      tryGetRecorder()?.recordActivity({
-        companyId: ctx.companyId,
-        actor: { kind: "agent", id: ctx.agentId },
-        action: "manager_request.created",
-        entityKind: "approval",
-        entityId: approval.id,
-        agentId: ctx.agentId,
-        payload: { approvalId: approval.id, topic: input.topic, routedTo: "ceo" },
+      // This tool runs in the MCP child where the engine bridge is null —
+      // routing (CEO wake / human card), the manager_request.created activity,
+      // and timer-arming all happen in MAIN via handleApprovalEvent.
+      ctx.emit({
+        kind: "approval.route",
+        payload: {
+          approvalId: approval.id,
+          requesterIsCeo,
+          requesterName: requester?.name ?? "Agente",
+          summary: input.summary,
+          managerTopic: input.topic,
+          budgetOverLimit,
+        },
       });
-      const route = routeAndDispatch({
-        approvalId: approval.id,
-        companyId: ctx.companyId,
-        kind: "manager_request",
-        reason: "",
-        requesterIsCeo,
-        requesterName: requester?.name ?? "Agente",
-        summary: input.summary,
-        managerTopic: input.topic,
-        budgetOverLimit,
-      });
-      return JSON.stringify({ status: "pending", approval_id: approval.id, routed_to: route });
+      return JSON.stringify({ status: "pending", approval_id: approval.id });
     },
   },
 ] as const;
