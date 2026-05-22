@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Agent, TrustTier } from "@prospero/shared";
 import { evaluatePermission } from "../src/security/gate.js";
 import { _setRecorderForTest } from "../src/activity/index.js";
@@ -31,6 +31,7 @@ const baseAgent = (tier: TrustTier, mode: "supervised" | "auto" = "supervised"):
   canHire: true,
   canAssign: true,
   trustTier: tier,
+  autoModeSetAt: null,
 });
 
 type Rec = { action: string };

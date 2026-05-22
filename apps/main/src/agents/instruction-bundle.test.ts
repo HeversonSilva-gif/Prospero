@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import { mkdtempSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -43,6 +43,7 @@ const agent = (over: Partial<Agent> = {}): Agent => ({
   canHire: true,
   canAssign: true,
   trustTier: "novato",
+  autoModeSetAt: null,
   ...over,
 });
 

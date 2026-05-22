@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { buildSpawnEnv, buildSpawnEnvApiKey } from "../src/orchestrator/env.js";
 import type { Agent } from "@prospero/shared";
 
@@ -28,6 +28,7 @@ const baseAgent = (): Agent => ({
   canHire: true,
   canAssign: true,
   trustTier: "novato",
+  autoModeSetAt: null,
 });
 
 describe("buildSpawnEnv", () => {
@@ -59,6 +60,7 @@ describe("buildSpawnEnv", () => {
         canHire: true,
         canAssign: true,
         trustTier: "novato",
+        autoModeSetAt: null,
       },
       "sk-ant-oat-PRODUCTION_TOKEN_VALUE_HERE_xyz123",
       "/tmp/db/prospero.db",

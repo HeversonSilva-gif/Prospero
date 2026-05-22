@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -31,6 +31,7 @@ const baseAgent: Agent = {
   canHire: true,
   canAssign: true,
   trustTier: "novato",
+  autoModeSetAt: null,
 };
 
 const baseCtx = (): SpawnContext => ({

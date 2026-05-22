@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+﻿import { describe, it, expect, vi } from "vitest";
 import type { Agent, Routine } from "@prospero/shared";
 import { fireRoutine, type FireRoutineDeps } from "./fire.js";
 
@@ -31,6 +31,7 @@ const liveAgent = (overrides: Partial<Agent> = {}): Agent =>
     alwaysOn: false,
     capabilities: [],
     trustTier: "novato",
+    autoModeSetAt: null,
     pauseReason: null,
     ...overrides,
   }) as Agent;

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { evaluatePermission } from "../src/security/gate.js";
 import type { Agent } from "@prospero/shared";
 
@@ -28,6 +28,7 @@ const fakeAgent = (mode: "supervised" | "auto" = "auto"): Agent => ({
   canHire: true,
   canAssign: true,
   trustTier: "novato",
+  autoModeSetAt: null,
 });
 
 describe("evaluatePermission with project allowlist", () => {

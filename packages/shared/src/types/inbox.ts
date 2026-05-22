@@ -17,7 +17,8 @@ export type InboxKind =
   | "verification_failed"
   | "verification_review"
   | "security_zone_blocked"
-  | "trust_promotion_suggested";
+  | "trust_promotion_suggested"
+  | "auto_mode_expired";
 
 export type InboxItem = {
   id: string;

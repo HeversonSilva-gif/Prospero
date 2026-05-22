@@ -28,6 +28,7 @@ const sampleAgent = (overrides: Partial<Agent> = {}): Agent => ({
   canHire: true,
   canAssign: true,
   trustTier: "novato",
+  autoModeSetAt: null,
   ...overrides,
 });
 

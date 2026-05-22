@@ -28,6 +28,7 @@ const mkAgent = (id: string, reportsTo: string | null): Agent => ({
   canHire: true,
   canAssign: true,
   trustTier: "novato",
+  autoModeSetAt: null,
 });
 
 describe("layoutTree", () => {

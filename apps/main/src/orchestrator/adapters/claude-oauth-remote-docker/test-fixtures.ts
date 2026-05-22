@@ -1,4 +1,4 @@
-import { EventEmitter } from "node:events";
+﻿import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import type { Agent, SpawnContext } from "@prospero/shared";
 import type { McpServerProcess } from "./mcp-relay.js";
@@ -57,6 +57,7 @@ const baseAgent: Agent = {
   canHire: true,
   canAssign: true,
   trustTier: "novato",
+  autoModeSetAt: null,
 };
 
 /** A minimal SpawnContext for remote-adapter tests. Test-only. */

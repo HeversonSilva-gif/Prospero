@@ -44,6 +44,8 @@ export type Agent = {
   canHire: boolean;
   canAssign: boolean;
   trustTier: TrustTier;
+  /** Unix timestamp (ms) when mode was last set to 'auto'. Null when in supervised mode. */
+  autoModeSetAt: number | null;
 };
 
 export type AgentStats = {

@@ -104,7 +104,7 @@
 - Cada agente só consegue mexer nos **projetos que você liberou** explicitamente
 - **Lista de comandos sempre bloqueados** (`rm -rf /`, leitura de `.ssh/`, exfiltração via `curl`) — mesmo em modo auto
 - **Sandbox de filesystem por agente** — não confia só no `--cwd`, valida cada path (zonas de contenção, M13)
-- Modo auto é **opt-in por agente** e você pode voltar pra supervised quando quiser (degradação automática por timer de 24h e heurística anti-prompt-injection são débito aberto do M5 — ainda não implementados)
+- Modo auto é **opt-in por agente** e você pode voltar pra supervised quando quiser — **degradação automática por timer de 24h implementada** (P2-C, M18): agentes em modo auto voltam automaticamente para supervised após 24h, com notificação no inbox; heurística anti-prompt-injection permanece débito aberto do M5
 
 ### 🌍 Personalização
 - Tema **claro ou escuro** (paleta monocromática)

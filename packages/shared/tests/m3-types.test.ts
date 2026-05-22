@@ -42,6 +42,7 @@ describe("m3 types and channels", () => {
       canHire: true,
       canAssign: true,
       trustTier: "novato",
+      autoModeSetAt: null,
     };
     expect(a.status).toBe("idle");
   });

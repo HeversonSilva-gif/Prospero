@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { buildClaudeArgs } from "../src/orchestrator/adapters/claude-oauth-local/build-args.js";
 import type { Agent } from "@prospero/shared";
 
@@ -28,6 +28,7 @@ const baseAgent: Agent = {
   canHire: true,
   canAssign: true,
   trustTier: "novato",
+  autoModeSetAt: null,
 };
 
 describe("buildClaudeArgs", () => {

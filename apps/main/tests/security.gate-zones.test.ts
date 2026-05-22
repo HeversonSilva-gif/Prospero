@@ -1,4 +1,4 @@
-// M13 PR-E containment zones — gate-level integration. Asserts that
+﻿// M13 PR-E containment zones — gate-level integration. Asserts that
 // evaluatePermission denies + audits cross-zone FS access AFTER the
 // path-fence has accepted the absolute path, and leaves intra-zone /
 // unclassified paths untouched.
@@ -53,6 +53,7 @@ const agent = (companyId: string, id: string): Agent => ({
   canHire: true,
   canAssign: true,
   trustTier: "novato",
+  autoModeSetAt: null,
 });
 
 type RecordedCall = { action: string; payload: unknown; agentId: string | null | undefined };

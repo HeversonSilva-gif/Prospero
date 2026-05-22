@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Database from "better-sqlite3";
 import type { Agent } from "@prospero/shared";
 import { applyMigrations } from "../src/db/migrations.js";
@@ -38,6 +38,7 @@ const liveAgent = (): Agent =>
     alwaysOn: false,
     capabilities: [],
     trustTier: "novato",
+    autoModeSetAt: null,
     pauseReason: null,
   }) as unknown as Agent;
 

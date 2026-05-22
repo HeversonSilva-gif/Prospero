@@ -39,6 +39,7 @@ type Row = {
   can_hire: number;
   can_assign: number;
   trust_tier: string;
+  auto_mode_set_at: number | null;
   created_at: number;
   updated_at: number;
 };
@@ -69,6 +70,7 @@ const rowToAgent = (r: Row): Agent => ({
   canHire: r.can_hire === 1,
   canAssign: r.can_assign === 1,
   trustTier: r.trust_tier as TrustTier,
+  autoModeSetAt: r.auto_mode_set_at,
 });
 
 // Internal enforcement view of an agent's budget — includes budget_warned_period,
@@ -124,6 +126,12 @@ export type AgentsRepository = {
   pause(id: string, reason?: string): void;
   resume(id: string): void;
   terminate(id: string, reason?: string): void;
+  /**
+   * Returns all non-terminated agents in 'auto' mode whose auto_mode_set_at
+   * is at least `expiryMs` milliseconds before `now`.
+   * Used by the auto-mode expiry checker.
+   */
+  listExpiredAutoAgents(now: number, expiryMs: number): Agent[];
 };
 
 // `recorder` is optional so existing test setups (`createAgentsRepository(db)`)
@@ -325,11 +333,13 @@ export const createAgentsRepository = (
     setMode(id, mode) {
       const row = byId.get(id) as Row | undefined;
       if (row === undefined) return;
-      db.prepare("UPDATE agents SET mode = ?, updated_at = ? WHERE id = ?").run(
-        mode,
-        Date.now(),
-        id,
-      );
+      const now = Date.now();
+      // Track when 'auto' was activated so the expiry checker can revert it
+      // after 24h. Clear the timestamp when returning to supervised.
+      const autoModeSetAt = mode === "auto" ? now : null;
+      db.prepare(
+        "UPDATE agents SET mode = ?, auto_mode_set_at = ?, updated_at = ? WHERE id = ?",
+      ).run(mode, autoModeSetAt, now, id);
       recorder?.recordActivity({
         companyId: row.company_id,
         actor: { kind: "user" },
@@ -488,6 +498,22 @@ export const createAgentsRepository = (
         agentId: id,
         payload: reason !== undefined ? { reason } : {},
       });
+    },
+    listExpiredAutoAgents(now, expiryMs) {
+      // Returns agents in 'auto' mode whose auto_mode_set_at is older than
+      // expiryMs milliseconds. Excludes terminated agents — they are no longer
+      // active, so reverting their mode is pointless.
+      const cutoff = now - expiryMs;
+      const rows = db
+        .prepare(
+          `SELECT * FROM agents
+           WHERE mode = 'auto'
+             AND auto_mode_set_at IS NOT NULL
+             AND auto_mode_set_at <= ?
+             AND status != 'terminated'`,
+        )
+        .all(cutoff) as Row[];
+      return rows.map(rowToAgent);
     },
     setRole(id, roleTemplateId, opts) {
       const role = db

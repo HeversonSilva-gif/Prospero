@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "vitest";
+﻿import { describe, expect, it, beforeEach } from "vitest";
 import type { Agent } from "@prospero/shared";
 import { createRouter } from "../orchestrator/router.js";
 import { enqueueOrPark, drainPausedBacklog, pauseBacklog } from "./agents-pause-backlog.js";
@@ -29,6 +29,7 @@ const baseAgent: Agent = {
   canHire: true,
   canAssign: true,
   trustTier: "novato",
+  autoModeSetAt: null,
 };
 
 describe("enqueueOrPark", () => {

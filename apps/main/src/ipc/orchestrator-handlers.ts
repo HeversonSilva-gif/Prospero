@@ -65,6 +65,7 @@ import { rollUpYesterdayIfNeeded } from "../costs/day-summary.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { tryGetRoutinesEngine } from "../routines/index.js";
 import { registerRoutinesHandlers } from "./routines-handlers.js";
+import { createAutoModeExpiry } from "../agents/auto-mode-expiry.js";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -561,6 +562,32 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     });
   }
   registerRoutinesHandlers(db);
+
+  // P2-C — Auto-mode expiry: revert agents from 'auto' to 'supervised' after 24h.
+  // Runs one tick immediately (catches agents that expired while the app was closed)
+  // then checks every 5 minutes. The checker is intentionally not exposed for
+  // stop() — it lives for the lifetime of the app and is garbage-collected on exit.
+  const autoExpiryRecorder = tryGetRecorder();
+  createAutoModeExpiry({
+    now: () => Date.now(),
+    listExpiredAutoAgents: (now, expiryMs) => agents.listExpiredAutoAgents(now, expiryMs),
+    setModeToSupervised: (agentId) => agents.setMode(agentId, "supervised"),
+    createInboxItem: (input) => inbox.create(input),
+    // Only pass recorder when defined — exactOptionalPropertyTypes forbids
+    // passing { recorder: undefined } for an optional field.
+    ...(autoExpiryRecorder !== undefined ? { recorder: autoExpiryRecorder } : {}),
+    onAgentReverted: (agentId, companyId) => {
+      broadcast({ kind: "roster-changed", companyId });
+      // Broadcast a status-changed so the renderer's agent card immediately
+      // reflects the mode revert without waiting for a full roster refresh.
+      broadcast({
+        kind: "status-changed",
+        agentId,
+        status: agents.getById(agentId)?.status ?? "idle",
+        updatedAt: Date.now(),
+      });
+    },
+  }).start();
 
   // Restart helper for config mutations. Trocar --model / --allowedTools /
   // --system-prompt exige re-spawn (claude lê esses args só na inicialização).
