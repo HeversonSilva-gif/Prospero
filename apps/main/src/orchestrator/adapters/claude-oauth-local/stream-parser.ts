@@ -185,16 +185,31 @@ export const parseStreamLine = (line: string): ParsedEvent | null => {
     if (status === "allowed") {
       return { kind: "unknown", raw: data };
     }
-    const resetsAtSec = typeof info["resetsAt"] === "number" ? info["resetsAt"] : null;
+    // Accept both camelCase and snake_case — the rest of the stream uses
+    // snake_case, and the real rate-limit payload shape isn't pinned down, so
+    // tolerate either rather than silently no-op if the casing differs.
+    const resetsAtRaw =
+      typeof info["resetsAt"] === "number"
+        ? info["resetsAt"]
+        : typeof info["reset_at"] === "number"
+          ? info["reset_at"]
+          : null;
+    const resetsAtSec = resetsAtRaw;
     const resetsAt = resetsAtSec !== null ? resetsAtSec * 1000 : null;
     const retryAfterSec =
       resetsAtSec !== null ? Math.max(0, Math.round(resetsAtSec - Date.now() / 1000)) : null;
+    const limitType =
+      typeof info["rateLimitType"] === "string"
+        ? info["rateLimitType"]
+        : typeof info["rate_limit_type"] === "string"
+          ? info["rate_limit_type"]
+          : status;
     console.error(`[claude] rate limit hit (status=${status}); resetsAt=${String(resetsAtSec)}`);
     return {
       kind: "rate-limited",
       resetsAt,
       retryAfterSec,
-      message: typeof info["rateLimitType"] === "string" ? info["rateLimitType"] : status,
+      message: limitType,
     };
   }
 

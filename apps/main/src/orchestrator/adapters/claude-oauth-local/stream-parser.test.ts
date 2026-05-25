@@ -39,4 +39,19 @@ describe("parseStreamLine rate_limit_event", () => {
     expect(ev.resetsAt).toBe(1779400800 * 1000);
     expect(ev.message).toBe("five_hour");
   });
+
+  it("also accepts snake_case fields (reset_at / rate_limit_type)", () => {
+    // The real wire shape isn't pinned down and the rest of the stream is
+    // snake_case — the parser must fire either way, not silently no-op.
+    const ev = parseStreamLine(
+      JSON.stringify({
+        type: "rate_limit_event",
+        rate_limit_info: { status: "rejected", reset_at: 1779400800, rate_limit_type: "five_hour" },
+      }),
+    );
+    expect(ev?.kind).toBe("rate-limited");
+    if (ev?.kind !== "rate-limited") return;
+    expect(ev.resetsAt).toBe(1779400800 * 1000);
+    expect(ev.message).toBe("five_hour");
+  });
 });

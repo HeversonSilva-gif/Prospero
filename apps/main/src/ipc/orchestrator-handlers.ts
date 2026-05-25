@@ -729,8 +729,9 @@ export const registerOrchestratorHandlers = (
           } else if (ev.kind === "rate-limited") {
             const until = ev.resetsAt ?? Date.now() + 60 * 60_000; // fallback 1h if no resetsAt
             const prev = settingsRepo.read().rateLimitedUntil;
-            const isNewWindow = prev === null || until > prev;
-            settingsRepo.write({ rateLimitedUntil: until });
+            const wasGated = prev !== null && Date.now() < prev; // already parked in an active window?
+            // Extend (never shrink) the window — a later event may push the reset out.
+            settingsRepo.write({ rateLimitedUntil: Math.max(until, prev ?? 0) });
             // Account-wide limit → park every running agent. Reason "rate_limited"
             // marks them for auto-resume (distinct from a manual/budget pause).
             for (const id of listAdapterAgentIds()) {
@@ -746,7 +747,7 @@ export const registerOrchestratorHandlers = (
                 updatedAt: Date.now(),
               });
             }
-            if (isNewWindow) {
+            if (!wasGated) {
               const when = new Date(until).toLocaleString();
               inbox.create({
                 companyId: agent.companyId,
