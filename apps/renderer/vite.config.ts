@@ -7,4 +7,8 @@ export default defineConfig({
   base: "./",
   server: { port: 5173, strictPort: true },
   build: { outDir: "dist", sourcemap: true },
+  test: {
+    // react-dom/server works in Node — no jsdom needed for server-render tests
+    environment: "node",
+  },
 });

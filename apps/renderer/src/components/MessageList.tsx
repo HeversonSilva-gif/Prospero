@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { Agent, Message, MessageKind } from "@prospero/shared";
 import { ToolCallCard } from "./ToolCallCard.js";
 import { AgentActivityIndicator } from "./AgentActivityIndicator.js";
+import { MarkdownContent } from "./MarkdownContent.js";
 
 type Props = {
   messages: Message[];
@@ -82,11 +83,11 @@ export const MessageList = ({ messages, agents, activeAgent }: Props) => {
               )}
               {m.content !== "" && (
                 <div
-                  className={`px-3.5 py-3 rounded-lg text-sm leading-snug ${
+                  className={`px-3.5 py-3 rounded-lg text-sm ${
                     isUser ? "bg-brand-bg text-brand-dark" : "bg-surface-soft text-ink"
                   }`}
                 >
-                  {m.content}
+                  <MarkdownContent content={m.content} isUser={isUser} />
                 </div>
               )}
               {m.toolCalls?.map((tc) => (
