@@ -32,7 +32,15 @@ import { createNudgeTracker } from "../orchestrator/nudge.js";
 import { loadDecryptedToken } from "../auth/token-storage.js";
 import { loadDecryptedApiKey } from "../auth/api-key-storage.js";
 import { getActiveAuthMode } from "../auth/auth-mode.js";
-import { ensureAdapter, getAdapter, removeAdapter } from "../orchestrator/lifecycle.js";
+import {
+  ensureAdapter,
+  getAdapter,
+  removeAdapter,
+  activeAdapterCount,
+  MAX_CONCURRENT_AGENTS,
+  listAdapterAgentIds,
+} from "../orchestrator/lifecycle.js";
+import { pickIdleEvictionVictim } from "../orchestrator/eviction.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
 import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
 import { resolveAdapterCredentials } from "../orchestrator/adapter-credentials.js";
@@ -77,7 +85,8 @@ import { createInboxRepository } from "../inbox/repository.js";
 import { tryGetRoutinesEngine } from "../routines/index.js";
 import { registerRoutinesHandlers } from "./routines-handlers.js";
 import { createAutoModeExpiry } from "../agents/auto-mode-expiry.js";
-import { setApprovalEngineBridge, escalatePendingOnBoot } from "../approvals/index.js";
+import { setApprovalEngineBridge } from "../approvals/index.js";
+import { wakeCeoForApproval } from "../approvals/ceo-wake.js";
 import { handleApprovalEvent } from "../approvals/event-handler.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
 import { broadcastInboxUpdate } from "./inbox-handlers.js";
@@ -447,6 +456,29 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   const ensureAgentRunner = (agent: Agent): void => {
     const existing = getAdapter(agent.id);
     if (existing !== undefined && existing.isAlive()) return;
+
+    // Concurrency cap: the Claude Max ToS allows ~4 parallel OAuth sessions. If
+    // we're at the cap, free a slot by evicting an IDLE agent's adapter (kill +
+    // preserve its session so it --resumes on next wake) instead of throwing,
+    // which used to mark the new agent `error` permanently. Rotates the 4 slots.
+    if (activeAdapterCount() >= MAX_CONCURRENT_AGENTS) {
+      const victim = pickIdleEvictionVictim(
+        listAdapterAgentIds(),
+        (id) => agents.getById(id)?.status ?? null,
+        agent.id,
+      );
+      if (victim !== null) {
+        getAdapter(victim)?.kill();
+        removeAdapter(victim);
+        // NOTE: do NOT clearSessionId(victim) — preserve context for --resume.
+      } else {
+        // All slots held by non-idle (busy/waiting) agents. Don't error — skip
+        // spawning now; the agent stays idle and a later wake retries when a
+        // slot frees. (Rare; avoids killing an agent mid-turn.)
+        console.warn(`[concurrency] no idle slot to evict for ${agent.id}; deferring spawn`);
+        return;
+      }
+    }
 
     const adapterName = agent.adapterName ?? "claude-oauth-local";
     const { oauthToken, apiKey } = resolveAdapterCredentials(adapterName, {
@@ -840,16 +872,53 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     },
   });
 
-  // Escalate any approvals that were routed to the CEO but never decided before
-  // a restart (re-arming timers across restart is fragile; escalating is the safe side).
+  // Re-wake the CEO for any approvals routed to the CEO but not yet decided
+  // before restart. Escalating to human (old behavior) would stall CEO-driven
+  // workflows; instead we re-wake the CEO so it can decide them normally.
   try {
     const companyRows = db.prepare("SELECT id FROM companies").all() as { id: string }[];
-    escalatePendingOnBoot(
-      db,
-      companyRows.map((c) => c.id),
-    );
+    const approvalsRepo = createApprovalsRepository(db);
+    for (const { id: companyId } of companyRows) {
+      const pending = approvalsRepo.listPendingRoutedToCeo(companyId);
+      if (pending.length === 0) continue;
+      const ceo =
+        agents
+          .listByCompany(companyId)
+          .find((a) => isCeoAgent(a) && a.status !== "terminated" && a.status !== "paused") ?? null;
+      if (ceo === null) {
+        // No active CEO in this company — nothing to re-wake; leave pending for
+        // human resolution (the human can decide via inbox).
+        console.warn(`[approvals] boot: no active CEO for company ${companyId}; skipping re-wake`);
+        continue;
+      }
+      for (const apv of pending) {
+        const payloadParsed = JSON.parse(apv.payloadJson) as Record<string, unknown>;
+        const asStr = (v: unknown): string => (typeof v === "string" ? v : "");
+        const requesterAgent = apv.agentId !== null ? agents.getById(apv.agentId) : null;
+        const requesterName = requesterAgent?.name ?? "Agente";
+        const summary =
+          apv.kind === "manager_request"
+            ? asStr(payloadParsed["summary"])
+            : asStr(payloadParsed["tool_name"]);
+        wakeCeoForApproval(
+          { approvalId: apv.id, companyId, requesterName, summary, kind: apv.kind },
+          {
+            getCeo: (_cid) => ceo,
+            ensureAgentRunner: (a) => ensureAgentRunner(a),
+            enqueue: (agentId, threadId, content, sender) =>
+              router.enqueue(agentId, threadId, content, sender),
+            primaryThreadId: (agentId) =>
+              messages.ensureThread(agents.getById(agentId)?.companyId ?? "", ["user", agentId]).id,
+            recordActivity: (input) => {
+              tryGetRecorder()?.recordActivity(input);
+            },
+          },
+        );
+        console.log(`[approvals] boot: re-woke CEO for pending approval ${apv.id}`);
+      }
+    }
   } catch (err) {
-    console.warn("[approvals] escalatePendingOnBoot failed", err);
+    console.warn("[approvals] boot CEO re-wake failed", err);
   }
 
   // P2-C — Auto-mode expiry: revert agents from 'auto' to 'supervised' after 24h.

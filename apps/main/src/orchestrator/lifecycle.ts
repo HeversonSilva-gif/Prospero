@@ -27,6 +27,9 @@ export const activeAdapterCount = (): number => {
   return count;
 };
 
+/** Agent ids that currently hold a live (or registered) adapter. */
+export const listAdapterAgentIds = (): string[] => Array.from(adapters.keys());
+
 export type EnsureAdapterOptions = SpawnContext;
 
 export type AdapterCallbacks = {
