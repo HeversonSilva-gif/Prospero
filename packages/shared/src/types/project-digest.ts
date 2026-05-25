@@ -1,19 +1,17 @@
-// Fase 1 Memória de Contexto — shared types for the live project digest (digest.json).
-// The "map" tiers — the small, always-injected top-level digest. Deep-dives
-// (per-area, on-demand) arrive in Phase 2.
+// Fase 1/2 Memória de Contexto — shared types for the live project digest (digest.json).
+
 export const DIGEST_SECTIONS = [
-  "architecture", // how the system splits
-  "layout", // where things live (key dirs/modules)
-  "conventions", // patterns this codebase follows
-  "gotchas", // traps (ABI, exactOptionalPropertyTypes, etc.)
-  "glossary", // domain terms
+  "architecture",
+  "layout",
+  "conventions",
+  "gotchas",
+  "glossary",
 ] as const;
 
 export type DigestSection = (typeof DIGEST_SECTIONS)[number];
 
-// One distilled fact about the project, with provenance so freshness can be
-// checked: sourceFiles are repo-relative paths the fact was derived from, and
-// contentHash is a hash of those files' contents at derivation time.
+// Trust/decay fields (Fase 2) mirror the memory model: trust gates injection,
+// accessCount slows decay, lastAccessed/derivedAt drive read-time decay.
 export interface DigestEntry {
   id: string;
   section: DigestSection;
@@ -21,11 +19,29 @@ export interface DigestEntry {
   sourceFiles: string[];
   contentHash: string;
   derivedAt: number;
+  trust: number; // 0..1
+  accessCount: number;
+  lastAccessed: number | null;
+}
+
+// A deeper, per-area note (Fase 2) — longer than a map entry, loaded on demand
+// via project_context_read, authored/corrected via project_context_note.
+export interface DeepDive {
+  id: string;
+  area: string;
+  body: string;
+  sourceFiles: string[];
+  contentHash: string;
+  derivedAt: number;
+  trust: number;
+  accessCount: number;
+  lastAccessed: number | null;
 }
 
 export interface ProjectDigest {
   version: 1;
   entries: DigestEntry[];
+  deepDives: DeepDive[];
 }
 
-export const emptyDigest = (): ProjectDigest => ({ version: 1, entries: [] });
+export const emptyDigest = (): ProjectDigest => ({ version: 1, entries: [], deepDives: [] });

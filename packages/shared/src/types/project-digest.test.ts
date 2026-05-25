@@ -8,6 +8,10 @@ describe("project-digest types", () => {
     expect(d.entries).toEqual([]);
   });
 
+  it("emptyDigest has an empty deepDives array", () => {
+    expect(emptyDigest().deepDives).toEqual([]);
+  });
+
   it("DIGEST_SECTIONS lists the map tiers", () => {
     expect(DIGEST_SECTIONS).toContain("architecture");
     expect(DIGEST_SECTIONS).toContain("gotchas");
