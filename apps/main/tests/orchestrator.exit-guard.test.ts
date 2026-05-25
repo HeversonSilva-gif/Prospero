@@ -148,8 +148,8 @@ async function wireWithGuard(ctx: SpawnContext): Promise<{
     onExit: (code) => {
       // --- exact guard logic from orchestrator-handlers.ts ---
       const isCurrent = thisSpawn !== null && getAdapter(ctx.agent.id) === thisSpawn;
+      if (!isCurrent) return; // stale exit — a newer adapter (or none) owns the id; don't touch the Map
       removeAdapter(ctx.agent.id);
-      if (!isCurrent) return; // stale exit — intentionally killed
       if (code !== 0) {
         recoveryTracker.markErrored(ctx.agent.id);
         erroredIds.push(ctx.agent.id);
@@ -239,5 +239,8 @@ describe("onExit stale-exit guard", () => {
 
     expect(statusUpdates).toHaveLength(0);
     expect(erroredIds).toHaveLength(0);
+    // Regression (model/config change "agent dies"): the stale exit must NOT
+    // remove the freshly-respawned adapter from the Map. The new adapter survives.
+    expect(getAdapter(baseAgent.id)).toBe(secondAdapter);
   });
 });

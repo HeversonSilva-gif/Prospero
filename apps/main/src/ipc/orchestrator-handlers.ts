@@ -724,8 +724,13 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
           // status that was deliberately set, and do NOT corrupt the recovery
           // tracker by marking an intentional kill as an error.
           const isCurrent = thisSpawn !== null && getAdapter(agent.id) === thisSpawn;
-          removeAdapter(agent.id);
+          // Bail BEFORE removeAdapter. A stale exit means a NEWER adapter (from
+          // restartIfRunning's resume re-spawn on a model/config change) — or
+          // nothing — now owns this agentId. Calling removeAdapter here would
+          // orphan that fresh adapter (the "agent dies on model change" bug).
+          // Only the CURRENT adapter's own exit should clean the Map.
           if (!isCurrent) return;
+          removeAdapter(agent.id);
           if (code !== 0) {
             recoveryTracker.markErrored(agent.id);
             agents.clearSessionId(agent.id);
