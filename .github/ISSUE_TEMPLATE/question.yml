@@ -1,0 +1,42 @@
+name: Question / help
+description: Ask a question about using or contributing to Prospero.
+title: "question: <short description>"
+labels: ["question", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Tip**: Quick questions often get faster answers in [GitHub Discussions](https://github.com/HeversonSilva-gif/Prospero/discussions).
+        Use this form if your question is closely tied to a specific code path or bug you suspect.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: What are you trying to do?
+      description: A clear description of the goal or task.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you already tried?
+      description: Steps you've taken, docs you've read, errors you've seen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment (if relevant)
+      value: |
+        - Prospero version:
+        - OS:
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched the README, CONTRIBUTING.md, and existing issues/discussions.
+          required: true

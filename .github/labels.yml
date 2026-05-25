@@ -1,0 +1,106 @@
+# Prospero — canonical label set
+# Sync with: npx github-label-sync --access-token $GH_TOKEN --labels .github/labels.yml HeversonSilva-gif/Prospero
+
+# ── Type ──────────────────────────────────────────────────────────────────────
+- name: bug
+  color: "d73a4a"
+  description: "Something isn't working"
+
+- name: feature
+  color: "a2eeef"
+  description: "New feature or request"
+
+- name: question
+  color: "d876e3"
+  description: "Further information is requested"
+
+- name: documentation
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+
+- name: chore
+  color: "fef2c0"
+  description: "Maintenance: deps, CI, tooling"
+
+- name: security
+  color: "ee0701"
+  description: "Security-related issue — handle with care"
+
+- name: performance
+  color: "fbca04"
+  description: "Performance improvement"
+
+# ── Status ────────────────────────────────────────────────────────────────────
+- name: needs-triage
+  color: "ededed"
+  description: "Waiting for maintainer classification"
+
+- name: good first issue
+  color: "7057ff"
+  description: "Good for newcomers — well-scoped, has clear acceptance criteria"
+
+- name: help wanted
+  color: "008672"
+  description: "Extra attention or outside expertise is needed"
+
+- name: blocked
+  color: "e4e669"
+  description: "Blocked on another issue or external dependency"
+
+- name: duplicate
+  color: "cfd3d7"
+  description: "This issue or PR already exists"
+
+- name: wont-fix
+  color: "ffffff"
+  description: "This will not be worked on (see comment for reason)"
+
+- name: invalid
+  color: "e4e669"
+  description: "This doesn't seem right"
+
+# ── Area ──────────────────────────────────────────────────────────────────────
+- name: "area: agents"
+  color: "bfd4f2"
+  description: "Claude Code agent system — skills, delegation, tools"
+
+- name: "area: electron"
+  color: "bfd4f2"
+  description: "Electron shell, installer, native APIs"
+
+- name: "area: ui"
+  color: "bfd4f2"
+  description: "React renderer / chat UI"
+
+- name: "area: database"
+  color: "bfd4f2"
+  description: "SQLite persistence layer"
+
+- name: "area: ci"
+  color: "bfd4f2"
+  description: "CI/CD, build scripts, release pipeline"
+
+- name: "area: docs"
+  color: "bfd4f2"
+  description: "README, CONTRIBUTING, guides"
+
+- name: "area: community"
+  color: "bfd4f2"
+  description: "Issue templates, CoC, onboarding"
+
+# ── Priority ──────────────────────────────────────────────────────────────────
+- name: "priority: low"
+  color: "0e8a16"
+  description: "Nice to have, no urgency"
+
+- name: "priority: medium"
+  color: "fbca04"
+  description: "Important but not blocking"
+
+- name: "priority: high"
+  color: "e99695"
+  description: "High priority — tackle this sprint"
+
+- name: "priority: critical"
+  color: "b60205"
+  description: "Blocker — drop everything"
