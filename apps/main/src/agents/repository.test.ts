@@ -249,6 +249,60 @@ describe("budget + run policy", () => {
   });
 });
 
+describe("resetStuckAgents", () => {
+  it("resets error/working/thinking/waiting agents to idle; leaves paused, terminated, and already-idle alone; returns count reset", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+
+    const now = Date.now();
+
+    // Insert agents directly with explicit statuses to avoid going through create()
+    // which always sets status='idle'.
+    const insertAgent = (id: string, status: string, extra: Record<string, unknown> = {}) => {
+      db.prepare(
+        `INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json, mode, always_on, status, created_at, updated_at)
+         VALUES (?, 'c1', ?, 'tester', 'p', '[]', '[]', 'supervised', 0, ?, ?, ?)`,
+      ).run(id, id, status, now, now);
+      if (extra.paused_at !== undefined) {
+        db.prepare("UPDATE agents SET paused_at = ? WHERE id = ?").run(
+          extra.paused_at,
+          id,
+        );
+      }
+      if (extra.terminated_at !== undefined) {
+        db.prepare("UPDATE agents SET terminated_at = ? WHERE id = ?").run(
+          extra.terminated_at,
+          id,
+        );
+      }
+    };
+
+    insertAgent("a-error", "error");
+    insertAgent("a-working", "working");
+    insertAgent("a-thinking", "thinking");
+    insertAgent("a-waiting", "waiting");
+    insertAgent("a-idle", "idle");
+    insertAgent("a-paused", "paused", { paused_at: now });
+    insertAgent("a-terminated", "working", { terminated_at: now }); // working but terminated_at set
+
+    const count = repo.resetStuckAgents();
+
+    expect(count).toBe(4); // error, working, thinking, waiting (non-terminated)
+
+    expect(repo.getById("a-error")?.status).toBe("idle");
+    expect(repo.getById("a-working")?.status).toBe("idle");
+    expect(repo.getById("a-thinking")?.status).toBe("idle");
+    expect(repo.getById("a-waiting")?.status).toBe("idle");
+    expect(repo.getById("a-idle")?.status).toBe("idle");
+    expect(repo.getById("a-paused")?.status).toBe("paused");
+    // Terminated agent: status was 'working' but terminated_at set — must not be reset
+    const terminated = repo.getById("a-terminated")!;
+    expect(terminated.terminatedAt).not.toBeNull();
+    // status stays as whatever it was (not reset, terminated_at is set)
+    expect(terminated.status).not.toBe("idle"); // still 'working', untouched
+  });
+});
+
 describe("trust tier (M14 PR-A)", () => {
   it("rowToAgent reads trust_tier — defaults to novato for a fresh hire", () => {
     const db = setupDb();

@@ -99,6 +99,13 @@ const broadcast = (event: AgentEvent): void => {
 
 export const registerOrchestratorHandlers = (db: Database.Database): void => {
   const agents = createAgentsRepository(db, tryGetRecorder());
+
+  // Boot recovery: agents left in a transient/error state by a crash, an app
+  // update restart, or the (now-fixed) config-change bug have no live process at
+  // boot — reset them to idle so they are usable again. Paused/terminated stay.
+  const stuckReset = agents.resetStuckAgents();
+  if (stuckReset > 0) console.warn(`[boot] reset ${String(stuckReset)} stuck agent(s) to idle`);
+
   const messages = createMessagesRepository(db);
   const inbox = createInboxRepository(db);
   const costsRepo = createCostsRepository(db);

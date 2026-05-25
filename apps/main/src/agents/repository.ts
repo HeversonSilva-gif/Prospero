@@ -132,6 +132,10 @@ export type AgentsRepository = {
    * Used by the auto-mode expiry checker.
    */
   listExpiredAutoAgents(now: number, expiryMs: number): Agent[];
+  /** Boot recovery: reset agents stuck in a transient/error state (no live
+   *  process after a restart) back to idle. Leaves paused & terminated agents
+   *  alone and preserves session ids. Returns the number reset. */
+  resetStuckAgents(): number;
 };
 
 // `recorder` is optional so existing test setups (`createAgentsRepository(db)`)
@@ -514,6 +518,15 @@ export const createAgentsRepository = (
         )
         .all(cutoff) as Row[];
       return rows.map(rowToAgent);
+    },
+    resetStuckAgents() {
+      const stmt = db.prepare(
+        `UPDATE agents
+            SET status = 'idle', current_action = NULL, updated_at = ?
+          WHERE status IN ('error', 'working', 'thinking', 'waiting')
+            AND terminated_at IS NULL`,
+      );
+      return stmt.run(Date.now()).changes;
     },
     setRole(id, roleTemplateId, opts) {
       const role = db
