@@ -327,6 +327,11 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   const eventsDir = getEventsDir(app.getPath("userData"));
   void startEventsWatcher({ dir: eventsDir, onEvent: dispatchAgentEvent });
 
+  // Serializes compaction per project (same-agent overlap AND two agents on one
+  // project): the digest write is a non-atomic read-modify-write and a redundant
+  // distill costs real money. Key = `${companyId}:${projectId}`.
+  const compactionInFlight = new Set<string>();
+
   // Memória de Contexto de Projeto (Fase 1): after an idle turn, if the session
   // re-read more cached context than the threshold, distill the session into the
   // project digest (folding durable knowledge), then RESET the agent's session
@@ -347,60 +352,67 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       const live = agents.getById(agent.id);
       if (live === null || live.status === "paused" || live.status === "terminated") return;
 
-      const trail = buildRecoveryTrail(db, agent.id, 200);
-      if (trail === null || trail.messages.length === 0) return;
-      const transcript = trail.messages.map((m) => `${m.sender}: ${m.content}`).join("\n");
+      const compactionKey = `${agent.companyId}:${proj.id}`;
+      if (compactionInFlight.has(compactionKey)) return; // a compaction for this project is already running
+      compactionInFlight.add(compactionKey);
+      try {
+        const trail = buildRecoveryTrail(db, agent.id, 200);
+        if (trail === null || trail.messages.length === 0) return;
+        const transcript = trail.messages.map((m) => `${m.sender}: ${m.content}`).join("\n");
 
-      const worker = createCompactionWorker({
-        userDataDir: app.getPath("userData"),
-        runDistill: ({ prompt, model }) =>
-          runDerivation(
-            { runProcess: defaultRunProcess },
-            { prompt, model, env: buildAuthEnv(db) },
-          ),
-        hashSources: (files) =>
-          hashSources(files, (rel) => readFileSync(join(proj.path, rel), "utf8")),
-        newId: () => `dig_${randomUUID()}`,
-        now: () => Date.now(),
-        onCost: (usage, model) =>
-          costsRepo.insert({
-            companyId: agent.companyId,
-            agentId: agent.id,
-            projectId: proj.id,
-            issueId: null,
-            adapterName: "compaction",
-            model,
-            sessionId: null,
-            inputTokens: usage.input,
-            outputTokens: usage.output,
-            cacheCreationTokens: usage.cacheCreation,
-            cacheReadTokens: usage.cacheRead,
-            costCentsEstimate: estimateCostCents(model, {
-              input: usage.input,
-              output: usage.output,
-              cache_creation: usage.cacheCreation,
-              cache_read: usage.cacheRead,
+        const worker = createCompactionWorker({
+          userDataDir: app.getPath("userData"),
+          runDistill: ({ prompt, model }) =>
+            runDerivation(
+              { runProcess: defaultRunProcess },
+              { prompt, model, env: buildAuthEnv(db) },
+            ),
+          hashSources: (files) =>
+            hashSources(files, (rel) => readFileSync(join(proj.path, rel), "utf8")),
+          newId: () => `dig_${randomUUID()}`,
+          now: () => Date.now(),
+          onCost: (usage, model) =>
+            costsRepo.insert({
+              companyId: agent.companyId,
+              agentId: agent.id,
+              projectId: proj.id,
+              issueId: null,
+              adapterName: "compaction",
+              model,
+              sessionId: null,
+              inputTokens: usage.input,
+              outputTokens: usage.output,
+              cacheCreationTokens: usage.cacheCreation,
+              cacheReadTokens: usage.cacheRead,
+              costCentsEstimate: estimateCostCents(model, {
+                input: usage.input,
+                output: usage.output,
+                cache_creation: usage.cacheCreation,
+                cache_read: usage.cacheRead,
+              }),
+              occurredAt: Date.now(),
             }),
-            occurredAt: Date.now(),
-          }),
-      });
+        });
 
-      await worker.compact({
-        companyId: agent.companyId,
-        projectId: proj.id,
-        agentId: agent.id,
-        transcript,
-      });
+        await worker.compact({
+          companyId: agent.companyId,
+          projectId: proj.id,
+          agentId: agent.id,
+          transcript,
+        });
 
-      // Re-check after the async distill: only reset if STILL idle and live.
-      const live2 = agents.getById(agent.id);
-      if (live2 === null || live2.status === "paused" || live2.status === "terminated") return;
-      if (router.getCurrentThread(agent.id) !== null) return; // became busy again
-      agents.clearSessionId(agent.id);
-      const adapter = getAdapter(agent.id);
-      if (adapter !== undefined) {
-        adapter.kill();
-        removeAdapter(agent.id);
+        // Re-check after the async distill: only reset if STILL idle and live.
+        const live2 = agents.getById(agent.id);
+        if (live2 === null || live2.status === "paused" || live2.status === "terminated") return;
+        if (router.getCurrentThread(agent.id) !== null) return; // became busy again
+        agents.clearSessionId(agent.id);
+        const adapter = getAdapter(agent.id);
+        if (adapter !== undefined) {
+          adapter.kill();
+          removeAdapter(agent.id);
+        }
+      } finally {
+        compactionInFlight.delete(compactionKey);
       }
     } catch (err) {
       console.warn(`[compaction] agent ${agent.id} failed: ${String(err)}`);
