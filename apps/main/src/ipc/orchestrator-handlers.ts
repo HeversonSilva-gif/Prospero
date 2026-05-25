@@ -40,7 +40,7 @@ import {
   MAX_CONCURRENT_AGENTS,
   listAdapterAgentIds,
 } from "../orchestrator/lifecycle.js";
-import { pickIdleEvictionVictim } from "../orchestrator/eviction.js";
+import { pickEvictionVictim } from "../orchestrator/eviction.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
 import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
 import { resolveAdapterCredentials } from "../orchestrator/adapter-credentials.js";
@@ -85,7 +85,7 @@ import { createInboxRepository } from "../inbox/repository.js";
 import { tryGetRoutinesEngine } from "../routines/index.js";
 import { registerRoutinesHandlers } from "./routines-handlers.js";
 import { createAutoModeExpiry } from "../agents/auto-mode-expiry.js";
-import { setApprovalEngineBridge } from "../approvals/index.js";
+import { setApprovalEngineBridge, tryGetApprovalTimers } from "../approvals/index.js";
 import { wakeCeoForApproval } from "../approvals/ceo-wake.js";
 import { handleApprovalEvent } from "../approvals/event-handler.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
@@ -458,25 +458,35 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     if (existing !== undefined && existing.isAlive()) return;
 
     // Concurrency cap: the Claude Max ToS allows ~4 parallel OAuth sessions. If
-    // we're at the cap, free a slot by evicting an IDLE agent's adapter (kill +
-    // preserve its session so it --resumes on next wake) instead of throwing,
-    // which used to mark the new agent `error` permanently. Rotates the 4 slots.
+    // we're at the cap, free a slot by evicting an agent's adapter (prefer idle
+    // — clean eviction; else LRU by updatedAt). Always spawns the new agent so
+    // the enqueued message is never silently lost.
     if (activeAdapterCount() >= MAX_CONCURRENT_AGENTS) {
-      const victim = pickIdleEvictionVictim(
+      const victim = pickEvictionVictim(
         listAdapterAgentIds(),
-        (id) => agents.getById(id)?.status ?? null,
+        (id) => {
+          const a = agents.getById(id);
+          return a === null ? null : { status: a.status, updatedAt: a.updatedAt ?? 0 };
+        },
         agent.id,
       );
       if (victim !== null) {
+        const victimStatus = agents.getById(victim)?.status;
         getAdapter(victim)?.kill();
         removeAdapter(victim);
-        // NOTE: do NOT clearSessionId(victim) — preserve context for --resume.
-      } else {
-        // All slots held by non-idle (busy/waiting) agents. Don't error — skip
-        // spawning now; the agent stays idle and a later wake retries when a
-        // slot frees. (Rare; avoids killing an agent mid-turn.)
-        console.warn(`[concurrency] no idle slot to evict for ${agent.id}; deferring spawn`);
-        return;
+        // Preserve session (no clearSessionId) so the victim --resumes on its
+        // next wake. If it was mid-work, mark it idle so it isn't stranded in a
+        // "working"/"waiting" status with no live process. (The onExit guard
+        // returns early for the killed adapter, so it won't override this.)
+        if (victimStatus !== undefined && victimStatus !== "idle") {
+          agents.updateStatus(victim, { status: "idle", currentAction: null });
+          broadcast({
+            kind: "status-changed",
+            agentId: victim,
+            status: "idle",
+            updatedAt: Date.now(),
+          });
+        }
       }
     }
 
@@ -914,6 +924,11 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
             },
           },
         );
+        // Arm the escalation timer so a CEO who never decides gets escalated to
+        // the human after CEO_DECISION_TIMEOUT_MS. The runtime path (routeAndDispatch)
+        // arms it via timers.arm(); the boot re-wake path was missing this, leaving
+        // approvals pending forever. Decide-on-either-kind already cancels the timer.
+        tryGetApprovalTimers()?.arm(apv.id);
         console.log(`[approvals] boot: re-woke CEO for pending approval ${apv.id}`);
       }
     }

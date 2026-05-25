@@ -46,6 +46,8 @@ export type Agent = {
   trustTier: TrustTier;
   /** Unix timestamp (ms) when mode was last set to 'auto'. Null when in supervised mode. */
   autoModeSetAt: number | null;
+  /** Unix timestamp (ms) of the last DB write to this agent row. */
+  updatedAt?: number;
 };
 
 export type AgentStats = {

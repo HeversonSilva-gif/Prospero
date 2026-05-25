@@ -71,6 +71,7 @@ const rowToAgent = (r: Row): Agent => ({
   canAssign: r.can_assign === 1,
   trustTier: r.trust_tier as TrustTier,
   autoModeSetAt: r.auto_mode_set_at,
+  updatedAt: r.updated_at,
 });
 
 // Internal enforcement view of an agent's budget — includes budget_warned_period,
