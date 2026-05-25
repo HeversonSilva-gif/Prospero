@@ -117,4 +117,61 @@ describe("approval engine routeAndDispatch", () => {
     expect(repo.getById(apv.id)?.escalatedAt).not.toBeNull();
     expect(bridge.createHumanCard).toHaveBeenCalledWith(apv.id);
   });
+
+  it("routeAndDispatch is a no-op when the approval is already routed (duplicate event guard)", () => {
+    // Simulates a duplicate approval.route event arriving after the first routing.
+    // Without the guard, wakeCeoForApproval would be called twice, causing the CEO
+    // to receive two notification messages for the same approval (wasted turns).
+    const bridge = makeBridge(db);
+    setApprovalEngineBridge(bridge);
+    const repo = createApprovalsRepository(db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "manager_request",
+      payload: { topic: "hire", summary: "Need designer", thread_id: "th1" },
+    });
+    // Already routed on the first event
+    repo.setRouted(apv.id, "ceo");
+    // Second (duplicate) event
+    const result = routeAndDispatch({
+      approvalId: apv.id,
+      companyId: "c1",
+      kind: "manager_request",
+      reason: "",
+      requesterIsCeo: false,
+      requesterName: "Bot",
+      summary: "Need designer",
+    });
+    // Returns existing route without re-waking the CEO.
+    expect(result).toBe("ceo");
+    expect(bridge.enqueue).not.toHaveBeenCalled(); // no double-wake
+    expect(bridge.createHumanCard).not.toHaveBeenCalled();
+  });
+
+  it("routeAndDispatch is a no-op when the approval is already decided", () => {
+    // Guards against stale events where decide_request already resolved the row
+    // (via immediate repo.decide()) before the approval.route event reaches MAIN.
+    const bridge = makeBridge(db);
+    setApprovalEngineBridge(bridge);
+    const repo = createApprovalsRepository(db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "tool_call",
+      payload: { tool_name: "Write", tool_input: {}, tool_use_id: "tu9" },
+    });
+    repo.setRouted(apv.id, "ceo");
+    repo.decide(apv.id, "approved", "ceo1");
+    const result = routeAndDispatch({
+      approvalId: apv.id,
+      companyId: "c1",
+      kind: "tool_call",
+      reason: "",
+      requesterIsCeo: false,
+      requesterName: "Bot",
+      summary: "Write file",
+    });
+    expect(result).toBe("ceo"); // existing routedTo
+    expect(bridge.enqueue).not.toHaveBeenCalled();
+    expect(bridge.createHumanCard).not.toHaveBeenCalled();
+  });
 });
