@@ -40,7 +40,8 @@ import {
   MAX_CONCURRENT_AGENTS,
   listAdapterAgentIds,
 } from "../orchestrator/lifecycle.js";
-import { pickEvictionVictim } from "../orchestrator/eviction.js";
+import { computeScheduleActions } from "../orchestrator/scheduler.js";
+import { startSchedulerTick } from "../orchestrator/scheduler-tick.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
 import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
 import { resolveAdapterCredentials } from "../orchestrator/adapter-credentials.js";
@@ -106,7 +107,9 @@ const broadcast = (event: AgentEvent): void => {
   }
 };
 
-export const registerOrchestratorHandlers = (db: Database.Database): void => {
+export const registerOrchestratorHandlers = (
+  db: Database.Database,
+): { stopScheduler: () => void } => {
   const agents = createAgentsRepository(db, tryGetRecorder());
 
   // Boot recovery: agents left in a transient/error state by a crash, an app
@@ -239,6 +242,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       const a = getAdapter(agentId);
       if (a !== undefined && a.isAlive()) a.sendInput(content);
     },
+    hasLiveAdapter: (id) => getAdapter(id)?.isAlive() ?? false,
   });
 
   // Dispatch agent-emitted side-channel events (inter-agent delivery, hire/fire,
@@ -457,38 +461,11 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     const existing = getAdapter(agent.id);
     if (existing !== undefined && existing.isAlive()) return;
 
-    // Concurrency cap: the Claude Max ToS allows ~4 parallel OAuth sessions. If
-    // we're at the cap, free a slot by evicting an agent's adapter (prefer idle
-    // — clean eviction; else LRU by updatedAt). Always spawns the new agent so
-    // the enqueued message is never silently lost.
-    if (activeAdapterCount() >= MAX_CONCURRENT_AGENTS) {
-      const victim = pickEvictionVictim(
-        listAdapterAgentIds(),
-        (id) => {
-          const a = agents.getById(id);
-          return a === null ? null : { status: a.status, updatedAt: a.updatedAt ?? 0 };
-        },
-        agent.id,
-      );
-      if (victim !== null) {
-        const victimStatus = agents.getById(victim)?.status;
-        getAdapter(victim)?.kill();
-        removeAdapter(victim);
-        // Preserve session (no clearSessionId) so the victim --resumes on its
-        // next wake. If it was mid-work, mark it idle so it isn't stranded in a
-        // "working"/"waiting" status with no live process. (The onExit guard
-        // returns early for the killed adapter, so it won't override this.)
-        if (victimStatus !== undefined && victimStatus !== "idle") {
-          agents.updateStatus(victim, { status: "idle", currentAction: null });
-          broadcast({
-            kind: "status-changed",
-            agentId: victim,
-            status: "idle",
-            updatedAt: Date.now(),
-          });
-        }
-      }
-    }
+    // Concurrency cap: if we are at or above the limit, do NOT spawn — the
+    // router is already holding the message safely. The drain scheduler will
+    // pick this agent up when a slot frees (turn-complete, onExit, or periodic
+    // tick). This replaces the old ad-hoc eviction block.
+    if (activeAdapterCount() >= MAX_CONCURRENT_AGENTS) return;
 
     const adapterName = agent.adapterName ?? "claude-oauth-local";
     const { oauthToken, apiKey } = resolveAdapterCredentials(adapterName, {
@@ -729,6 +706,9 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
             if (ev.usage !== undefined && !stillBusy) {
               void maybeCompactAfterTurn(agent, ev.usage.cache_read ?? 0);
             }
+            // A completed turn may have freed a slot (agent now idle) or the
+            // agent had queued work for another agent — wake the drain.
+            drainScheduler();
           } else if (ev.kind === "api-retry") {
             broadcast({
               kind: "error",
@@ -789,14 +769,47 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
           });
           currentActionDebouncer.cancel(agent.id);
           broadcast({ kind: "current-action-changed", agentId: agent.id, action: null });
+          // A slot just freed — wake the drain so waiting agents can spawn.
+          drainScheduler();
         },
       },
     )
       .then((a) => {
         thisSpawn = a;
+        // Deliver any message that was held in the router queue while the
+        // adapter was being spawned (e.g. enqueue called before isAlive).
+        router.deliverQueued(agent.id);
       })
       .catch(onError);
   };
+
+  // Continuous drain: keeps the ≤MAX_CONCURRENT_AGENTS slots filled whenever
+  // an agent has pending work but no live adapter. Called on turn-complete,
+  // onExit, and a periodic 8-second tick so the org is always in motion.
+  const drainScheduler = (): void => {
+    const running = listAdapterAgentIds().map((id) => ({
+      id,
+      hasWork: (agents.getById(id)?.status ?? "idle") !== "idle" || router.hasPendingWork(id),
+    }));
+    const runningSet = new Set(running.map((r) => r.id));
+    const waiting = router.listPendingAgentIds().filter((id) => !runningSet.has(id)); // pending work but no live adapter
+    if (running.length === 0 && waiting.length === 0) return; // short-circuit common idle case
+    const { toSpawn, toEvict } = computeScheduleActions(running, waiting, MAX_CONCURRENT_AGENTS);
+    for (const id of toEvict) {
+      // Only evict idle agents (no work) — safe: they have no in-flight turn.
+      // Preserve session (no clearSessionId) so the victim --resumes on wake.
+      getAdapter(id)?.kill();
+      removeAdapter(id);
+    }
+    for (const id of toSpawn) {
+      const a = agents.getById(id);
+      if (a !== null) ensureAgentRunner(a); // slot is free → spawns + deliverQueued fires in .then
+    }
+  };
+
+  // Periodic tick: 8 s — ensures an org that is stalled due to a missed event
+  // catches up within one tick window.
+  const stopScheduler = startSchedulerTick(drainScheduler, 8_000);
 
   // M15 PR-A — wire the routines engine's bridge now that router and
   // ensureAgentRunner are in scope. The engine ticks immediately on start
@@ -1419,4 +1432,15 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   } catch (e) {
     console.error("[goals/narrated] recovery scan failed", e);
   }
+
+  // Boot drain: after all recovery scans have re-enqueued pending messages,
+  // immediately attempt to spawn waiting agents so they don't stall until the
+  // first periodic tick (8 s).
+  try {
+    drainScheduler();
+  } catch (e) {
+    console.error("[scheduler] boot drain failed", e);
+  }
+
+  return { stopScheduler };
 };

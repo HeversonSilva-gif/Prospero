@@ -6,6 +6,7 @@ describe("router state machine", () => {
     const writes: Array<{ agentId: string; content: string }> = [];
     const r = createRouter({
       writeStdin: (agentId, content) => writes.push({ agentId, content }),
+      hasLiveAdapter: () => true,
     });
     r.enqueue("a1", "thr1", "do X", { kind: "user", id: null, name: "User" });
     expect(writes).toHaveLength(1);
@@ -17,6 +18,7 @@ describe("router state machine", () => {
     const writes: Array<{ agentId: string; content: string }> = [];
     const r = createRouter({
       writeStdin: (agentId, content) => writes.push({ agentId, content }),
+      hasLiveAdapter: () => true,
     });
     r.enqueue("a1", "thr1", "msg1", { kind: "user", id: null, name: "U" });
     r.enqueue("a1", "thr2", "msg2", { kind: "agent", id: "ceo", name: "CEO" });
@@ -31,7 +33,10 @@ describe("router state machine", () => {
 
   it("formats sender prefix in stdin", () => {
     const writes: string[] = [];
-    const r = createRouter({ writeStdin: (_a, c) => writes.push(c) });
+    const r = createRouter({
+      writeStdin: (_a, c) => writes.push(c),
+      hasLiveAdapter: () => true,
+    });
     r.enqueue("a1", "thr1", "hello", { kind: "agent", id: "ceo", name: "CEO" });
     expect(writes[0]).toBe("[from: CEO] hello");
   });
@@ -40,6 +45,7 @@ describe("router state machine", () => {
     const writes: Array<{ agentId: string; content: string }> = [];
     const r = createRouter({
       writeStdin: (agentId, content) => writes.push({ agentId, content }),
+      hasLiveAdapter: () => true,
     });
     r.enqueue("a1", "thr1", "for a1", { kind: "user", id: null, name: "U" });
     r.enqueue("a2", "thr2", "for a2", { kind: "user", id: null, name: "U" });

@@ -15,10 +15,21 @@ type State = {
 
 export type RouterOptions = {
   writeStdin: (agentId: string, content: string) => void;
+  /** Returns true when the agent has a live adapter that can accept input now. */
+  hasLiveAdapter: (agentId: string) => boolean;
 };
 
 export type Router = {
   enqueue(agentId: string, threadId: string, content: string, sender: Sender): void;
+  /** Flush one held message to a newly-spawned agent. Call right after a spawn succeeds. */
+  deliverQueued(agentId: string): void;
+  /** True when the agent has an in-flight turn OR messages waiting in the queue. */
+  hasPendingWork(agentId: string): boolean;
+  /** All agent ids (in insertion order) that have pending work. */
+  listPendingAgentIds(): string[];
+  /** Reset currentTurnThreadId to null (use when an in-turn agent is evicted so
+   *  its queued messages can be re-delivered once it re-spawns). */
+  resetTurn(agentId: string): void;
   onTurnComplete(agentId: string): void;
   getCurrentThread(agentId: string): string | null;
   // M11 PR-F2: park a nudge to ride along with the agent's next turn.
@@ -60,11 +71,39 @@ export const createRouter = (opts: RouterOptions): Router => {
     enqueue(agentId, threadId, content, sender) {
       const s = ensure(agentId);
       const formatted = formatSender(sender, content);
-      if (s.currentTurnThreadId === null) {
+      if (s.currentTurnThreadId === null && opts.hasLiveAdapter(agentId)) {
         s.currentTurnThreadId = threadId;
         opts.writeStdin(agentId, consumePending(s, formatted));
       } else {
         s.queue.push({ threadId, content: formatted, sender });
+      }
+    },
+    deliverQueued(agentId) {
+      const s = ensure(agentId);
+      if (s.currentTurnThreadId === null && s.queue.length > 0 && opts.hasLiveAdapter(agentId)) {
+        const next = s.queue.shift()!;
+        s.currentTurnThreadId = next.threadId;
+        opts.writeStdin(agentId, consumePending(s, next.content));
+      }
+    },
+    hasPendingWork(agentId) {
+      const s = states.get(agentId);
+      if (s === undefined) return false;
+      return s.currentTurnThreadId !== null || s.queue.length > 0;
+    },
+    listPendingAgentIds() {
+      const result: string[] = [];
+      for (const [id, s] of states) {
+        if (s.currentTurnThreadId !== null || s.queue.length > 0) {
+          result.push(id);
+        }
+      }
+      return result;
+    },
+    resetTurn(agentId) {
+      const s = states.get(agentId);
+      if (s !== undefined) {
+        s.currentTurnThreadId = null;
       }
     },
     onTurnComplete(agentId) {

@@ -1,4 +1,4 @@
-﻿import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
 import type { Agent } from "@prospero/shared";
 import { createRouter } from "../orchestrator/router.js";
 import {
@@ -45,7 +45,10 @@ describe("enqueueOrPark", () => {
 
   it("forwards to router when agent is idle", () => {
     const writes: string[] = [];
-    const router = createRouter({ writeStdin: (_, content) => writes.push(content) });
+    const router = createRouter({
+      writeStdin: (_, content) => writes.push(content),
+      hasLiveAdapter: () => true,
+    });
     enqueueOrPark(baseAgent, router, "thr_1", "hello", {
       kind: "user",
       id: null,
@@ -58,7 +61,10 @@ describe("enqueueOrPark", () => {
 
   it("parks message when agent is paused", () => {
     const writes: string[] = [];
-    const router = createRouter({ writeStdin: (_, content) => writes.push(content) });
+    const router = createRouter({
+      writeStdin: (_, content) => writes.push(content),
+      hasLiveAdapter: () => true,
+    });
     const paused: Agent = { ...baseAgent, status: "paused" };
     enqueueOrPark(paused, router, "thr_1", "queued msg", {
       kind: "user",
@@ -72,7 +78,10 @@ describe("enqueueOrPark", () => {
 
   it("parks message when agent is terminated", () => {
     const writes: string[] = [];
-    const router = createRouter({ writeStdin: (_, content) => writes.push(content) });
+    const router = createRouter({
+      writeStdin: (_, content) => writes.push(content),
+      hasLiveAdapter: () => true,
+    });
     const terminated: Agent = { ...baseAgent, status: "terminated" };
     enqueueOrPark(terminated, router, "thr_1", "no-op", {
       kind: "user",
@@ -85,7 +94,10 @@ describe("enqueueOrPark", () => {
 
   it("drainPausedBacklog flushes parked messages through router on resume", () => {
     const writes: string[] = [];
-    const router = createRouter({ writeStdin: (_, content) => writes.push(content) });
+    const router = createRouter({
+      writeStdin: (_, content) => writes.push(content),
+      hasLiveAdapter: () => true,
+    });
     const paused: Agent = { ...baseAgent, status: "paused" };
     enqueueOrPark(paused, router, "thr_1", "first", {
       kind: "user",
