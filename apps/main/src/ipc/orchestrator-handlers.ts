@@ -870,9 +870,14 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   // --system-prompt exige re-spawn (claude lê esses args só na inicialização).
   // Kills runner if alive, zera claude_session_id pra próxima mensagem não
   // tentar --resume com session stale, e broadcast roster pra UI re-render.
-  const restartIfRunning = (agentId: string, companyId: string): void => {
+  const restartIfRunning = (
+    agentId: string,
+    companyId: string,
+    opts: { resume?: boolean } = {},
+  ): void => {
     const a = getAdapter(agentId);
-    if (a !== undefined && a.isAlive()) {
+    const wasRunning = a !== undefined && a.isAlive();
+    if (wasRunning) {
       a.kill();
       removeAdapter(agentId);
     }
@@ -881,6 +886,24 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
     currentActionDebouncer.cancel(agentId);
     broadcast({ kind: "current-action-changed", agentId, action: null });
     broadcast({ kind: "roster-changed", companyId });
+    // A config change that needs new spawn args (model / role / system prompt /
+    // capabilities / permissions) must NOT strand an agent that was actively
+    // working: re-spawn it and wake it to continue, otherwise it sits idle
+    // forever (the "agents stop and never resume" bug). Reset-session callers
+    // omit resume — they intentionally want a clean stop.
+    if (wasRunning && opts.resume === true) {
+      const fresh = agents.getById(agentId);
+      if (fresh !== null) {
+        ensureAgentRunner(fresh);
+        const thread = messages.ensureThread(companyId, ["user", agentId]);
+        router.enqueue(
+          agentId,
+          thread.id,
+          "[CONFIG UPDATED] Your configuration changed and your session was restarted. Continue your current task from where you left off — re-read the relevant issue, thread, or project context to re-orient if needed.",
+          { kind: "user", id: null, name: "System" },
+        );
+      }
+    }
   };
 
   ipcMain.handle(IPC.AGENT_LIST, (_e, payload: { companyId: string }): Agent[] =>
@@ -947,7 +970,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       const agent = agents.getById(payload.agentId);
       if (agent === null) throw new Error("Agent not found");
       agents.setModel(payload.agentId, payload.model);
-      restartIfRunning(payload.agentId, agent.companyId);
+      restartIfRunning(payload.agentId, agent.companyId, { resume: true });
       return { ok: true };
     },
   );
@@ -963,7 +986,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       agents.setRole(payload.agentId, payload.roleTemplateId, {
         preserveModel: payload.preserveModel === true,
       });
-      restartIfRunning(payload.agentId, agent.companyId);
+      restartIfRunning(payload.agentId, agent.companyId, { resume: true });
       return { ok: true };
     },
   );
@@ -974,7 +997,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       const agent = agents.getById(payload.agentId);
       if (agent === null) throw new Error("Agent not found");
       agents.setSystemPrompt(payload.agentId, payload.systemPrompt);
-      restartIfRunning(payload.agentId, agent.companyId);
+      restartIfRunning(payload.agentId, agent.companyId, { resume: true });
       return { ok: true };
     },
   );
@@ -1014,7 +1037,12 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       const agent = agents.getById(payload.agentId);
       if (agent === null) throw new Error("Agent not found");
       agents.setMode(payload.agentId, payload.mode);
-      restartIfRunning(payload.agentId, agent.companyId);
+      // Mode (supervised/auto) is enforced LIVE by the gate per permission
+      // request (permission-watcher fetches the agent fresh → gate reads
+      // agent.mode), so it needs NO respawn. The old restartIfRunning here
+      // killed the working agent and stranded it idle — the bug where switching
+      // to auto made the agent "stop and never return". Just persist + refresh UI.
+      broadcast({ kind: "roster-changed", companyId: agent.companyId });
       return { ok: true };
     },
   );
@@ -1044,7 +1072,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       if (agent === null) throw new Error("Agent not found");
       agents.setCapabilities(payload.agentId, payload.capabilities);
       // capabilities afeta --allowedTools no spawn → exige re-spawn.
-      restartIfRunning(payload.agentId, agent.companyId);
+      restartIfRunning(payload.agentId, agent.companyId, { resume: true });
       return { ok: true };
     },
   );
@@ -1086,7 +1114,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         canAssign: payload.canAssign,
       });
       // can_hire/can_assign affect --allowedTools at spawn → re-spawn.
-      restartIfRunning(payload.agentId, agent.companyId);
+      restartIfRunning(payload.agentId, agent.companyId, { resume: true });
       return { ok: true };
     },
   );
