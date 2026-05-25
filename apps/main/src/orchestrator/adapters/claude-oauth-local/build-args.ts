@@ -20,6 +20,7 @@ export const buildClaudeArgs = (
     memoryBlock?: string;
     instructionsBlock?: string;
     telosBlock?: string;
+    projectContextBlock?: string;
   } = {},
 ): string[] => {
   const allowedTools = applyRunPolicy(resolveCapabilityTools(agent.capabilities), {
@@ -39,6 +40,9 @@ export const buildClaudeArgs = (
       ...(narratedBlock !== undefined ? { narratedBlock } : {}),
       ...(opts.telosBlock !== undefined ? { telosBlock: opts.telosBlock } : {}),
       ...(opts.memoryBlock !== undefined ? { memoryBlock: opts.memoryBlock } : {}),
+      ...(opts.projectContextBlock !== undefined
+        ? { projectContextBlock: opts.projectContextBlock }
+        : {}),
     }),
     "--model",
     agent.model,

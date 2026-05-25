@@ -33,6 +33,7 @@ export type ComposeArgs = {
   narratedBlock?: string;
   telosBlock?: string;
   memoryBlock?: string;
+  projectContextBlock?: string;
 };
 
 export const composeSystemPrompt = (args: ComposeArgs): string => {
@@ -62,6 +63,7 @@ your role.
   const narratedBlock = args.narratedBlock ?? "";
   const telosBlock = args.telosBlock ?? "";
   const memoryBlock = args.memoryBlock ?? "";
+  const projectContextBlock = args.projectContextBlock ?? "";
   return (
     preamble +
     roleBlock +
@@ -70,7 +72,8 @@ your role.
     goalsBlock +
     narratedBlock +
     telosBlock +
-    memoryBlock
+    memoryBlock +
+    projectContextBlock
   );
 };
 
