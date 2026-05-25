@@ -57,6 +57,11 @@ describe("decide_request", () => {
     };
     expect(body.behavior).toBe("allow");
     expect(body.decidedBy).toBe("ceo1");
+    // decide_request now marks the row decided immediately so list_pending_requests
+    // stops showing this approval — prevents CEO from re-deciding in the next turn.
+    const after = repo.getById(apv.id);
+    expect(after?.status).toBe("approved");
+    expect(after?.decidedBy).toBe("ceo1");
     // MAIN handles the timer-cancel + decision card off the emitted event.
     expect(env.emit).toHaveBeenCalledWith({
       kind: "approval.decided",
@@ -84,6 +89,10 @@ describe("decide_request", () => {
     };
     expect(body.behavior).toBe("deny");
     expect(body.message).toBe("no");
+    // Row must be decided immediately (same as approve path).
+    const after = repo.getById(apv.id);
+    expect(after?.status).toBe("rejected");
+    expect(after?.decidedBy).toBe("ceo1");
     expect(env.emit).toHaveBeenCalledWith({
       kind: "approval.decided",
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

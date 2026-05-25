@@ -204,7 +204,11 @@ describe("handleApprovalEvent", () => {
     expect(bridge.createCeoDecisionCard).not.toHaveBeenCalled();
   });
 
-  it("approval.decided tool_call drops a CEO decision card without deciding the DB row", () => {
+  it("approval.decided tool_call cancels timer + drops CEO card; MAIN does not call repo.decide()", () => {
+    // Note: decide_request.run() (MCP child) now calls repo.decide() immediately
+    // before emitting this event. MAIN's handleApprovalEvent intentionally does
+    // NOT call repo.decide() for tool_call — it only cancels the escalation timer
+    // and drops the CEO decision card. This test asserts that invariant.
     const bridge = makeBridge(db);
     setApprovalEngineBridge(bridge);
     const repo = createApprovalsRepository(db);
@@ -220,7 +224,9 @@ describe("handleApprovalEvent", () => {
       companyId: "c1",
       payload: { approvalId: apv.id, decision: "approve", note: "", kind: "tool_call" },
     });
-    // The requester's request_permission poll owns repo.decide for tool_call.
+    // MAIN does not own repo.decide for tool_call (decide_request in the MCP
+    // child already did it). Status is still "pending" here because this test
+    // calls handleApprovalEvent in isolation without going through decide_request.
     expect(repo.getById(apv.id)?.status).toBe("pending");
     expect(bridge.createCeoDecisionCard).toHaveBeenCalledWith(apv.id, "approved");
   });

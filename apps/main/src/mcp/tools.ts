@@ -720,6 +720,10 @@ export const toolDefinitions = [
       }
 
       const note = input.note ?? "";
+      // Derived DB status (Exclude<ApprovalStatus,"pending">) used for both kinds.
+      const resolvedStatus: "approved" | "rejected" =
+        input.decision === "approve" ? "approved" : "rejected";
+
       if (apv.kind === "tool_call") {
         const payload = JSON.parse(apv.payloadJson) as { tool_use_id: string };
         const file = input.decision === "approve" ? "res.json" : "deny.json";
@@ -731,6 +735,12 @@ export const toolDefinitions = [
           join(ctx.permissionsDir, `${payload.tool_use_id}.${file}`),
           JSON.stringify(body),
         );
+        // Mark the row decided immediately so list_pending_requests stops
+        // showing this approval as pending. The shared SQLite file is accessible
+        // from the MCP child (same process path as MAIN). The requester's
+        // request_permission poll will call repo.decide() again after reading
+        // the file — that second UPDATE is idempotent and harmless.
+        repo.decide(apv.id, resolvedStatus, ctx.agentId, note !== "" ? note : undefined);
         ctx.emit({
           kind: "approval.decided",
           payload: { approvalId: apv.id, decision: input.decision, note, kind: "tool_call" },

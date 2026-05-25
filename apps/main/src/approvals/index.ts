@@ -75,6 +75,17 @@ export const routeAndDispatch = (input: {
 }): "ceo" | "user" => {
   if (bridge === null) return "user";
   const repo = createApprovalsRepository(bridge.db);
+
+  // Guard: skip stale or duplicate events — only route an approval that is still
+  // pending and has not been routed yet. Prevents CEO double-wake when the same
+  // approval.route event fires more than once (e.g. file-watcher dedup race or
+  // a re-queued boot event), or when decide_request's immediate repo.decide()
+  // already resolved the row before the event reaches MAIN.
+  const currentApv = repo.getById(input.approvalId);
+  if (currentApv === null || currentApv.status !== "pending" || currentApv.routedTo !== null) {
+    return currentApv?.routedTo === "ceo" ? "ceo" : "user";
+  }
+
   const ceoAvailable = bridge.getCeo(input.companyId) !== null;
   const route = routeApprovalRequest({
     kind: input.kind,
