@@ -243,6 +243,12 @@ export const registerOrchestratorHandlers = (
       if (a !== undefined && a.isAlive()) a.sendInput(content);
     },
     hasLiveAdapter: (id) => getAdapter(id)?.isAlive() ?? false,
+    // Immediately drain when a message is held for an agent with no live adapter
+    // (e.g. 4 idle-but-alive agents hold all slots and a 5th gets work). Without
+    // this the slot frees only on the next 8s tick → up to 8s apparent latency.
+    requestDrain: () => {
+      drainScheduler();
+    },
   });
 
   // Dispatch agent-emitted side-channel events (inter-agent delivery, hire/fire,

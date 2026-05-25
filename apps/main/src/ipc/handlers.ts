@@ -31,7 +31,7 @@ import { initRoutinesEngine, tryGetRoutinesEngine } from "../routines/index.js";
 import { recoverStuckVerifications } from "../verification/index.js";
 import { buildVerificationDeps } from "../verification/deps.js";
 
-export const registerIpcHandlers = (db: Database.Database): void => {
+export const registerIpcHandlers = (db: Database.Database): { stopScheduler: () => void } => {
   ipcMain.handle(IPC.PING, () => "pong");
   const derivation = initDerivation(db);
   initRecorder(db, (row) => {
@@ -47,7 +47,7 @@ export const registerIpcHandlers = (db: Database.Database): void => {
   registerAuthHandlers(db);
   registerCompaniesHandlers(db);
   registerMessagesHandlers(db);
-  registerOrchestratorHandlers(db);
+  const { stopScheduler } = registerOrchestratorHandlers(db);
   registerPermissionHandlers(db);
   registerInboxHandlers(db);
   registerProjectsHandlers(db);
@@ -66,4 +66,5 @@ export const registerIpcHandlers = (db: Database.Database): void => {
   registerTrustHandlers(db);
   registerBriefingHandlers(db);
   registerApprovalHandlers(db);
+  return { stopScheduler };
 };

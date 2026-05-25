@@ -32,6 +32,7 @@ let tray: Tray | null = null;
 let db: Database.Database | null = null;
 let stopPermissionWatcher: (() => Promise<void>) | null = null;
 let stopHeartbeat: (() => void) | null = null;
+let stopScheduler: (() => void) | null = null;
 
 const getWindow = (): BrowserWindow | null => mainWindow;
 
@@ -74,7 +75,7 @@ void app
   .whenReady()
   .then(() => {
     db = openDatabase(databasePath());
-    registerIpcHandlers(db);
+    ({ stopScheduler } = registerIpcHandlers(db));
 
     // M11 PR-F1: decay/prune the memory store once per session.
     try {
@@ -203,6 +204,8 @@ app.on("activate", () => {
 });
 
 app.on("before-quit", () => {
+  stopScheduler?.();
+  stopScheduler = null;
   stopHeartbeat?.();
   stopHeartbeat = null;
   void stopPermissionWatcher?.();

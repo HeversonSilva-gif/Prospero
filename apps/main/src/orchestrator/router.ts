@@ -17,6 +17,9 @@ export type RouterOptions = {
   writeStdin: (agentId: string, content: string) => void;
   /** Returns true when the agent has a live adapter that can accept input now. */
   hasLiveAdapter: (agentId: string) => boolean;
+  /** Called when a message is held for an agent with no live adapter, so the
+   *  scheduler can spawn/drain immediately instead of waiting for the next tick. */
+  requestDrain?: () => void;
 };
 
 export type Router = {
@@ -27,9 +30,6 @@ export type Router = {
   hasPendingWork(agentId: string): boolean;
   /** All agent ids (in insertion order) that have pending work. */
   listPendingAgentIds(): string[];
-  /** Reset currentTurnThreadId to null (use when an in-turn agent is evicted so
-   *  its queued messages can be re-delivered once it re-spawns). */
-  resetTurn(agentId: string): void;
   onTurnComplete(agentId: string): void;
   getCurrentThread(agentId: string): string | null;
   // M11 PR-F2: park a nudge to ride along with the agent's next turn.
@@ -76,6 +76,7 @@ export const createRouter = (opts: RouterOptions): Router => {
         opts.writeStdin(agentId, consumePending(s, formatted));
       } else {
         s.queue.push({ threadId, content: formatted, sender });
+        if (!opts.hasLiveAdapter(agentId)) opts.requestDrain?.();
       }
     },
     deliverQueued(agentId) {
@@ -99,12 +100,6 @@ export const createRouter = (opts: RouterOptions): Router => {
         }
       }
       return result;
-    },
-    resetTurn(agentId) {
-      const s = states.get(agentId);
-      if (s !== undefined) {
-        s.currentTurnThreadId = null;
-      }
     },
     onTurnComplete(agentId) {
       const s = ensure(agentId);

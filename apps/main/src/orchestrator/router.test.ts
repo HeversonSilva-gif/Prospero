@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { createRouter } from "./router.js";
 
 const user = { kind: "user" as const, id: null, name: "CEO" };
@@ -181,19 +181,41 @@ describe("createRouter — hasLiveAdapter guard (message-hold)", () => {
     const pending = router.listPendingAgentIds();
     expect(pending).toEqual(["a1", "a2", "a3"]);
   });
+});
 
-  it("resetTurn sets currentTurnThreadId to null", () => {
-    const { router } = makeRouter(new Set(["a1"]));
-    router.enqueue("a1", "t1", "msg", user); // starts turn, currentTurnThreadId = "t1"
-    expect(router.getCurrentThread("a1")).toBe("t1");
-    router.resetTurn("a1");
-    expect(router.getCurrentThread("a1")).toBeNull();
-    // After reset, hasPendingWork is false (no queue either)
-    expect(router.hasPendingWork("a1")).toBe(false);
+describe("createRouter — requestDrain callback", () => {
+  it("calls requestDrain once when message is held (no live adapter)", () => {
+    const requestDrain = vi.fn();
+    const router = createRouter({
+      writeStdin: () => {},
+      hasLiveAdapter: () => false,
+      requestDrain,
+    });
+    router.enqueue("a1", "t1", "hello", user);
+    expect(requestDrain).toHaveBeenCalledTimes(1);
   });
 
-  it("resetTurn on unknown agent is a no-op", () => {
-    const { router } = makeRouter();
-    expect(() => router.resetTurn("nope")).not.toThrow();
+  it("does NOT call requestDrain when message is delivered immediately (live adapter)", () => {
+    const requestDrain = vi.fn();
+    const router = createRouter({
+      writeStdin: () => {},
+      hasLiveAdapter: () => true,
+      requestDrain,
+    });
+    router.enqueue("a1", "t1", "hello", user);
+    expect(requestDrain).not.toHaveBeenCalled();
+  });
+
+  it("does NOT call requestDrain when held because a turn is already in flight (live adapter)", () => {
+    const requestDrain = vi.fn();
+    const router = createRouter({
+      writeStdin: () => {},
+      hasLiveAdapter: () => true,
+      requestDrain,
+    });
+    router.enqueue("a1", "t1", "first", user); // delivered — starts turn
+    requestDrain.mockClear();
+    router.enqueue("a1", "t2", "second", user); // held: turn in flight, but adapter IS live
+    expect(requestDrain).not.toHaveBeenCalled();
   });
 });
