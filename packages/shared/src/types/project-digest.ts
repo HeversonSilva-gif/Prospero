@@ -1,3 +1,4 @@
+// Fase 1 Memória de Contexto — shared types for the live project digest (digest.json).
 // The "map" tiers — the small, always-injected top-level digest. Deep-dives
 // (per-area, on-demand) arrive in Phase 2.
 export const DIGEST_SECTIONS = [
@@ -13,18 +14,18 @@ export type DigestSection = (typeof DIGEST_SECTIONS)[number];
 // One distilled fact about the project, with provenance so freshness can be
 // checked: sourceFiles are repo-relative paths the fact was derived from, and
 // contentHash is a hash of those files' contents at derivation time.
-export type DigestEntry = {
+export interface DigestEntry {
   id: string;
   section: DigestSection;
   body: string;
   sourceFiles: string[];
   contentHash: string;
   derivedAt: number;
-};
+}
 
-export type ProjectDigest = {
+export interface ProjectDigest {
   version: 1;
   entries: DigestEntry[];
-};
+}
 
 export const emptyDigest = (): ProjectDigest => ({ version: 1, entries: [] });
