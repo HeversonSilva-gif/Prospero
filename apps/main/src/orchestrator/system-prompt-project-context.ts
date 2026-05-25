@@ -26,14 +26,15 @@ export const renderProjectContextBlock = (
   for (const section of DIGEST_SECTIONS) {
     const inSection = ordered.filter((e) => e.section === section);
     if (inSection.length === 0) continue;
-    let chunk = `\n## ${SECTION_TITLES[section]}\n\n`;
+    const header = `\n## ${SECTION_TITLES[section]}\n\n`;
+    let chunk = header;
     for (const e of inSection) {
       const flag = e.stale ? " _(possibly stale — verify before relying)_" : "";
       const line = `- ${e.body.trim()}${flag}\n`;
       if (body.length + chunk.length + line.length > cap) break;
       chunk += line;
     }
-    body += chunk;
+    if (chunk !== header) body += chunk; // only flush a section that got >=1 line
   }
   if (body.trim().length === 0) return undefined;
   return `\n---\n\n# Project context\n\nWhat matters about this project (distilled from prior readings). Trust it to skip re-reading, but verify anything marked stale.\n${body}`;

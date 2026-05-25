@@ -43,4 +43,15 @@ describe("renderProjectContextBlock", () => {
     const out = renderProjectContextBlock(many, 500)!;
     expect(out.length).toBeLessThanOrEqual(700); // cap + header overhead
   });
+
+  it("does not emit empty section headers when the cap cuts a later section", () => {
+    const entries = [
+      { ...e({ section: "architecture", body: "A".repeat(80) }), stale: false },
+      { ...e({ id: "g", section: "gotchas", body: "G".repeat(80) }), stale: false },
+    ];
+    // cap lets the architecture line fit but not the gotchas line
+    const out = renderProjectContextBlock(entries, 150)!;
+    expect(out).toContain("## Architecture");
+    expect(out).not.toContain("## Gotchas");
+  });
 });
