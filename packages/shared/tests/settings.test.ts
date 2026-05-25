@@ -33,6 +33,7 @@ describe("settings types and channels", () => {
       defaultAlwaysOn: false,
       derivationsPerDayPerAgent: 3,
       compactionCacheReadThreshold: 300_000,
+      rateLimitedUntil: null,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",

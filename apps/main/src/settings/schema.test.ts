@@ -80,6 +80,16 @@ describe("AppSettingsSchema", () => {
     const parsed = AppSettingsSchema.parse({ compactionCacheReadThreshold: 500_000 });
     expect(parsed.compactionCacheReadThreshold).toBe(500_000);
   });
+
+  it("defaults rateLimitedUntil to null", () => {
+    expect(AppSettingsSchema.parse({}).rateLimitedUntil).toBeNull();
+  });
+
+  it("accepts a rateLimitedUntil timestamp", () => {
+    expect(AppSettingsSchema.parse({ rateLimitedUntil: 1779400800000 }).rateLimitedUntil).toBe(
+      1779400800000,
+    );
+  });
 });
 
 describe("parseSettings remoteExecution", () => {

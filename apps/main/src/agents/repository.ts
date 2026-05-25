@@ -126,6 +126,7 @@ export type AgentsRepository = {
   getBudgetState(id: string): AgentBudgetState | null;
   pause(id: string, reason?: string): void;
   resume(id: string): void;
+  listByPauseReason(reason: string): Agent[];
   terminate(id: string, reason?: string): void;
   /**
    * Returns all non-terminated agents in 'auto' mode whose auto_mode_set_at
@@ -486,6 +487,14 @@ export const createAgentsRepository = (
         agentId: id,
         payload: {},
       });
+    },
+    listByPauseReason(reason) {
+      const rows = db
+        .prepare(
+          "SELECT * FROM agents WHERE pause_reason = ? AND status = 'paused' AND terminated_at IS NULL",
+        )
+        .all(reason) as Row[];
+      return rows.map(rowToAgent);
     },
     terminate(id, reason) {
       const row = byId.get(id) as Row | undefined;

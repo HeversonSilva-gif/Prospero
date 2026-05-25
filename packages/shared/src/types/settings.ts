@@ -45,6 +45,8 @@ export type AppSettings = {
   defaultAlwaysOn: boolean;
   derivationsPerDayPerAgent: number;
   compactionCacheReadThreshold: number;
+  // Epoch ms until which the Max account is rate-limited; the team auto-resumes after. null = not limited.
+  rateLimitedUntil: number | null;
   remoteExecution: RemoteExecutionSettings;
 };
 
@@ -60,6 +62,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultAlwaysOn: false,
   derivationsPerDayPerAgent: 3,
   compactionCacheReadThreshold: 300_000,
+  rateLimitedUntil: null,
   remoteExecution: {
     enabled: false,
     mode: "local-docker",

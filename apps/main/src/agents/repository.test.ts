@@ -264,16 +264,10 @@ describe("resetStuckAgents", () => {
          VALUES (?, 'c1', ?, 'tester', 'p', '[]', '[]', 'supervised', 0, ?, ?, ?)`,
       ).run(id, id, status, now, now);
       if (extra.paused_at !== undefined) {
-        db.prepare("UPDATE agents SET paused_at = ? WHERE id = ?").run(
-          extra.paused_at,
-          id,
-        );
+        db.prepare("UPDATE agents SET paused_at = ? WHERE id = ?").run(extra.paused_at, id);
       }
       if (extra.terminated_at !== undefined) {
-        db.prepare("UPDATE agents SET terminated_at = ? WHERE id = ?").run(
-          extra.terminated_at,
-          id,
-        );
+        db.prepare("UPDATE agents SET terminated_at = ? WHERE id = ?").run(extra.terminated_at, id);
       }
     };
 
@@ -335,5 +329,19 @@ describe("trust tier (M14 PR-A)", () => {
         tier: "confiavel",
       }),
     );
+  });
+});
+
+describe("listByPauseReason", () => {
+  it("returns only agents paused with the given reason, excluding other reasons", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const a1 = repo.create(baseInput({ name: "Agent1" }));
+    const a2 = repo.create(baseInput({ name: "Agent2" }));
+    repo.pause(a1.id, "rate_limited");
+    repo.pause(a2.id, "budget_exceeded_daily");
+    const results = repo.listByPauseReason("rate_limited");
+    expect(results).toHaveLength(1);
+    expect(results[0]?.id).toBe(a1.id);
   });
 });
