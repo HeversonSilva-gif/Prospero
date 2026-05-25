@@ -12,7 +12,7 @@ what matters. Read the transcript and produce STRICT JSON with two keys.
 a future agent skip re-reading files. Each item:
   { "section": one of ${JSON.stringify(DIGEST_SECTIONS)},
     "body": one concise sentence (a fact, no preamble),
-    "source_files": repo-relative paths this fact came from }
+    "source_files": [array of repo-relative path strings this fact came from] }
 Only include facts grounded in files actually read this session. No speculation.
 If nothing durable was learned, use an empty array.
 
