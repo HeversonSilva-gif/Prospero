@@ -1,6 +1,6 @@
 {
   "name": "prospero",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "private": true,
   "main": "apps/main/dist/index.js",
   "description": "Local orchestrator for Claude Code agents — Claude Max OAuth, Anthropic API key, or remote Docker.",
