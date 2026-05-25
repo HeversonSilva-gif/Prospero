@@ -8,6 +8,7 @@ import {
   bumpEntryAccess,
 } from "../context/digest-store.js";
 import type { DeepDive } from "@prospero/shared";
+import { sanitizeMemoryBody } from "../memory/sanitizer.js";
 import { createRateLimiter } from "./rate-limiter.js";
 import type { ToolContext } from "./tools.js";
 
@@ -33,7 +34,14 @@ const projectContextRead: Tool = {
   name: "project_context_read",
   description:
     "Read this project's distilled context. With no args, returns the map (short facts about the codebase). With an area, returns the deep-dive note for that area. Use this to orient yourself before reading raw files.",
-  inputSchema: z.object({ area: z.string().min(1).max(120).optional() }),
+  inputSchema: z.object({
+    area: z
+      .string()
+      .min(1)
+      .max(120)
+      .regex(/^[a-z0-9-]+$/, "area must be lowercase kebab-case")
+      .optional(),
+  }),
   // eslint-disable-next-line @typescript-eslint/require-await
   run: async (input, ctx) => {
     const { area } = projectContextRead.inputSchema.parse(input) as { area?: string };
@@ -60,7 +68,11 @@ const projectContextNote: Tool = {
   description:
     "Record or correct durable project knowledge. Writes a per-area deep-dive note (area = a short kebab-case topic like 'gate' or 'spawn-flow'). Pass supersedes=<entry id> when you are correcting a map entry you found wrong — it lowers that entry's trust.",
   inputSchema: z.object({
-    area: z.string().min(1).max(120),
+    area: z
+      .string()
+      .min(1)
+      .max(120)
+      .regex(/^[a-z0-9-]+$/, "area must be lowercase kebab-case"),
     body: z.string().min(1).max(NOTE_MAX),
     supersedes: z.string().min(1).optional(),
   }),
@@ -71,12 +83,21 @@ const projectContextNote: Tool = {
       body: string;
       supersedes?: string;
     };
+    // The note body is injected verbatim into future system prompts (same path
+    // as memory/skill bodies), so it must pass the prompt-injection sanitizer.
+    const sane = sanitizeMemoryBody(body);
+    if (!sane.ok) throw new Error(`body rejected by sanitizer: ${sane.reason}`);
     if (!noteLimiter.tryConsume(ctx.agentId)) {
       throw new Error("project context write rate limit exceeded — try again shortly");
     }
     const projectId = soleProjectId(ctx);
     if (projectId === null) throw new Error("agent is not scoped to a single project");
     const digest = readDigest(ctx.userDataDir, ctx.companyId, projectId);
+    // A supersedes target that doesn't exist would silently no-op the trust
+    // decay — surface it as an error so the caller knows nothing was lowered.
+    if (supersedes !== undefined && !digest.entries.some((e) => e.id === supersedes)) {
+      throw new Error(`supersedes target "${supersedes}" not found in map entries`);
+    }
     const dive: DeepDive = {
       id: `dd_${randomUUID()}`,
       area,
