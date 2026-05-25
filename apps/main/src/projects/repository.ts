@@ -33,6 +33,7 @@ type Row = {
   slug: string | null;
   icon: string | null;
   archived_at: number | null;
+  digest_path: string | null;
   created_at: number;
 };
 
@@ -45,6 +46,7 @@ const rowToProject = (r: Row): Project => ({
   slug: r.slug,
   icon: r.icon,
   archivedAt: r.archived_at,
+  digestPath: r.digest_path,
   createdAt: r.created_at,
 });
 
@@ -69,6 +71,7 @@ export type ProjectsRepository = {
   update(id: string, patch: UpdateProjectInput): Project | null;
   setSlug(id: string, slug: string): void;
   setIcon(id: string, icon: string | null): void;
+  setDigestPath(id: string, digestPath: string): void;
   archive(id: string): void;
   unarchive(id: string): void;
   delete(id: string): void;
@@ -91,6 +94,7 @@ export const createProjectsRepository = (
   const del = db.prepare("DELETE FROM projects WHERE id = ?");
   const updateSlug = db.prepare("UPDATE projects SET slug = ? WHERE id = ?");
   const updateIcon = db.prepare("UPDATE projects SET icon = ? WHERE id = ?");
+  const updateDigestPath = db.prepare("UPDATE projects SET digest_path = ? WHERE id = ?");
   const updateArchived = db.prepare("UPDATE projects SET archived_at = ? WHERE id = ?");
 
   return {
@@ -152,6 +156,9 @@ export const createProjectsRepository = (
     },
     setIcon(id, icon) {
       updateIcon.run(icon, id);
+    },
+    setDigestPath(id, digestPath) {
+      updateDigestPath.run(digestPath, id);
     },
     archive(id) {
       updateArchived.run(Date.now(), id);

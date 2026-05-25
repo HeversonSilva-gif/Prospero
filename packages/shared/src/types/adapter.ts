@@ -29,6 +29,8 @@ export type SpawnContext = {
   instructionsBlock?: string;
   // M13 PR-C: the company TELOS system-prompt block.
   telosBlock?: string;
+  // feat/memoria-contexto-projeto: pre-assembled project context system-prompt block.
+  projectContextBlock?: string;
 };
 
 export type AssistantContentBlock =

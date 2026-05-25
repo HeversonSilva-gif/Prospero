@@ -134,6 +134,9 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
       // agent, so every agent can read the TELOS/ISA it is accountable to.
       "mcp__dashboard__isa_read",
       "mcp__dashboard__telos_read",
+      // Project context distillation (Phase 2) — agents read/annotate the digest.
+      "mcp__dashboard__project_context_read",
+      "mcp__dashboard__project_context_note",
     ],
   },
 };

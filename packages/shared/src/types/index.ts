@@ -25,3 +25,4 @@ export * from "./trust.js";
 export * from "./briefing.js";
 export * from "./updater.js";
 export * from "./wire-protocol.js";
+export * from "./project-digest.js";

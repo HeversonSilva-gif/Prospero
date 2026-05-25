@@ -24,6 +24,7 @@ describe("settings repository", () => {
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
       derivationsPerDayPerAgent: 3,
+      compactionCacheReadThreshold: 300000,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
@@ -48,6 +49,7 @@ describe("settings repository", () => {
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
       derivationsPerDayPerAgent: 3,
+      compactionCacheReadThreshold: 300000,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
@@ -72,6 +74,7 @@ describe("settings repository", () => {
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
       derivationsPerDayPerAgent: 3,
+      compactionCacheReadThreshold: 300000,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",

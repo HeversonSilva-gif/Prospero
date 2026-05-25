@@ -61,6 +61,9 @@ export class ClaudeRemoteDockerAdapter implements AgentAdapter {
       ...(this.ctx.narratedActive === true ? { narratedActive: true } : {}),
       ...(this.ctx.telosBlock !== undefined ? { telosBlock: this.ctx.telosBlock } : {}),
       ...(this.ctx.memoryBlock !== undefined ? { memoryBlock: this.ctx.memoryBlock } : {}),
+      ...(this.ctx.projectContextBlock !== undefined
+        ? { projectContextBlock: this.ctx.projectContextBlock }
+        : {}),
       ...(this.ctx.instructionsBlock !== undefined
         ? { instructionsBlock: this.ctx.instructionsBlock }
         : {}),

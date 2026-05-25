@@ -70,6 +70,16 @@ describe("AppSettingsSchema", () => {
   it("rejects a negative derivationsPerDayPerAgent", () => {
     expect(() => AppSettingsSchema.parse({ derivationsPerDayPerAgent: -1 })).toThrow();
   });
+
+  it("defaults compactionCacheReadThreshold to 300000", () => {
+    const parsed = AppSettingsSchema.parse({});
+    expect(parsed.compactionCacheReadThreshold).toBe(300_000);
+  });
+
+  it("accepts an explicit compactionCacheReadThreshold", () => {
+    const parsed = AppSettingsSchema.parse({ compactionCacheReadThreshold: 500_000 });
+    expect(parsed.compactionCacheReadThreshold).toBe(500_000);
+  });
 });
 
 describe("parseSettings remoteExecution", () => {
