@@ -176,17 +176,26 @@ export const parseStreamLine = (line: string): ParsedEvent | null => {
     return null;
   }
 
-  // Claude Code emits rate_limit_event as informational telemetry about the
-  // account's CURRENT rate-limit status (frequently "allowed"), NOT a "blocked
-  // now" signal — claude handles real limits itself by waiting/retrying within
-  // the turn. M9 (2ea68e4) surfaced it as a fatal pause, which wrongly froze
-  // agents whose account was fine (verified: a terminal `claude` on the same
-  // login works while the agent showed "rate limited"). Ignore it for control
-  // flow (fall through to unknown), but log the raw payload — if an agent ever
-  // does stall here, this reveals exactly what claude sent (visible in dev).
   if (data["type"] === "rate_limit_event") {
-    console.error(`[claude] rate_limit_event (ignored): ${JSON.stringify(data).slice(0, 300)}`);
-    return { kind: "unknown", raw: data };
+    const info = isObject(data["rate_limit_info"]) ? data["rate_limit_info"] : {};
+    const status = typeof info["status"] === "string" ? info["status"] : "allowed";
+    // "allowed" is benign telemetry (emitted constantly) — ignore. Any other
+    // status means the account is throttled now; resetsAt (UNIX seconds) is when
+    // the window reopens.
+    if (status === "allowed") {
+      return { kind: "unknown", raw: data };
+    }
+    const resetsAtSec = typeof info["resetsAt"] === "number" ? info["resetsAt"] : null;
+    const resetsAt = resetsAtSec !== null ? resetsAtSec * 1000 : null;
+    const retryAfterSec =
+      resetsAtSec !== null ? Math.max(0, Math.round(resetsAtSec - Date.now() / 1000)) : null;
+    console.error(`[claude] rate limit hit (status=${status}); resetsAt=${String(resetsAtSec)}`);
+    return {
+      kind: "rate-limited",
+      resetsAt,
+      retryAfterSec,
+      message: typeof info["rateLimitType"] === "string" ? info["rateLimitType"] : status,
+    };
   }
 
   return { kind: "unknown", raw: data };

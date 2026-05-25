@@ -16,4 +16,27 @@ describe("parseStreamLine rate_limit_event", () => {
     const bare = parseStreamLine(JSON.stringify({ type: "rate_limit_event" }));
     expect(bare?.kind).toBe("unknown");
   });
+
+  it("ignores rate_limit_event when status is allowed", () => {
+    const ev = parseStreamLine(
+      JSON.stringify({
+        type: "rate_limit_event",
+        rate_limit_info: { status: "allowed", resetsAt: 1779400800, rateLimitType: "five_hour" },
+      }),
+    );
+    expect(ev?.kind).not.toBe("rate-limited");
+  });
+
+  it("emits rate-limited when status is not allowed, carrying resetsAt in ms", () => {
+    const ev = parseStreamLine(
+      JSON.stringify({
+        type: "rate_limit_event",
+        rate_limit_info: { status: "rejected", resetsAt: 1779400800, rateLimitType: "five_hour" },
+      }),
+    );
+    expect(ev?.kind).toBe("rate-limited");
+    if (ev?.kind !== "rate-limited") return;
+    expect(ev.resetsAt).toBe(1779400800 * 1000);
+    expect(ev.message).toBe("five_hour");
+  });
 });
