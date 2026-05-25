@@ -26,7 +26,13 @@ export type CostEventInsert = {
 
 export type CostEventRow = CostEventInsert & { id: string };
 
-export type CostTotal = { tokens: number; cents: number };
+export type CostTotal = {
+  /** All tokens including cache_read — for display/reporting. */
+  tokens: number;
+  /** input + output + cache_creation only — excludes cache_read for budget caps. */
+  billableTokens: number;
+  cents: number;
+};
 
 export type CostsRepository = {
   insert(input: CostEventInsert): CostEventRow;
@@ -49,6 +55,15 @@ const totalTokens = (row: {
   cache_read_tokens: number;
 }): number =>
   row.input_tokens + row.output_tokens + row.cache_creation_tokens + row.cache_read_tokens;
+
+// Tokens that represent real work/spend for budgeting: excludes cache_read,
+// which is the model re-reading already-established context (cheap, and it
+// dominates long-context agents like the CEO — counting it false-trips the cap).
+const billableTokens = (row: {
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation_tokens: number;
+}): number => row.input_tokens + row.output_tokens + row.cache_creation_tokens;
 
 export const createCostsRepository = (db: Database.Database): CostsRepository => {
   const insertStmt = db.prepare(`
@@ -117,7 +132,11 @@ export const createCostsRepository = (db: Database.Database): CostsRepository =>
       cache_read_tokens: number;
       cost_cents_estimate: number;
     };
-    return { tokens: totalTokens(row), cents: row.cost_cents_estimate };
+    return {
+      tokens: totalTokens(row),
+      billableTokens: billableTokens(row),
+      cents: row.cost_cents_estimate,
+    };
   };
 
   const getIssueTotal = (issueId: string): CostTotal => {
@@ -128,7 +147,11 @@ export const createCostsRepository = (db: Database.Database): CostsRepository =>
       cache_read_tokens: number;
       cost_cents_estimate: number;
     };
-    return { tokens: totalTokens(row), cents: row.cost_cents_estimate };
+    return {
+      tokens: totalTokens(row),
+      billableTokens: billableTokens(row),
+      cents: row.cost_cents_estimate,
+    };
   };
 
   const hasAgentRowsForDay = (agentId: string, day: Date): boolean => {
@@ -178,7 +201,11 @@ export const createCostsRepository = (db: Database.Database): CostsRepository =>
       cache_read_tokens: number;
       cost_cents_estimate: number;
     };
-    return { tokens: totalTokens(row), cents: row.cost_cents_estimate };
+    return {
+      tokens: totalTokens(row),
+      billableTokens: billableTokens(row),
+      cents: row.cost_cents_estimate,
+    };
   };
 
   return {

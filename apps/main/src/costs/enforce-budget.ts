@@ -58,11 +58,14 @@ export const checkAndPause = (
   deps: EnforceBudgetDeps,
   ctx: EnforceBudgetContext,
 ): EnforceBudgetResult => {
+  // All token-cap comparisons use billableTokens (input + output + cache_creation),
+  // excluding cache_read — re-reading established context is cheap and dominates
+  // long-context agents like the CEO; counting it would false-trip the cap.
   const budgets = deps.budgetsRepo.read();
 
   // --- M8 global daily cap ---
   const daily = deps.costsRepo.getAgentDailyTotal(ctx.agentId, new Date());
-  if (daily.tokens > budgets.maxTokensPerDayPerAgent) {
+  if (daily.billableTokens > budgets.maxTokensPerDayPerAgent) {
     const reason: PauseReason = "budget_exceeded_daily";
     deps.pauseAgent(ctx.agentId, reason);
     deps.notifySecurityAlert({
@@ -70,18 +73,23 @@ export const checkAndPause = (
       agentId: ctx.agentId,
       reason,
       metric: "tokens",
-      tokens: daily.tokens,
+      tokens: daily.billableTokens,
       limit: budgets.maxTokensPerDayPerAgent,
       issueId: null,
     });
     deps.recordPauseActivity({ companyId: ctx.companyId, agentId: ctx.agentId, reason });
-    return { paused: true, reason, tokens: daily.tokens, limit: budgets.maxTokensPerDayPerAgent };
+    return {
+      paused: true,
+      reason,
+      tokens: daily.billableTokens,
+      limit: budgets.maxTokensPerDayPerAgent,
+    };
   }
 
   // --- M8 global per-issue cap ---
   if (ctx.issueId !== null) {
     const issueTotal = deps.costsRepo.getIssueTotal(ctx.issueId);
-    if (issueTotal.tokens > budgets.maxTokensPerIssue) {
+    if (issueTotal.billableTokens > budgets.maxTokensPerIssue) {
       const reason: PauseReason = "budget_exceeded_issue";
       deps.pauseAgent(ctx.agentId, reason);
       deps.notifySecurityAlert({
@@ -89,12 +97,17 @@ export const checkAndPause = (
         agentId: ctx.agentId,
         reason,
         metric: "tokens",
-        tokens: issueTotal.tokens,
+        tokens: issueTotal.billableTokens,
         limit: budgets.maxTokensPerIssue,
         issueId: ctx.issueId,
       });
       deps.recordPauseActivity({ companyId: ctx.companyId, agentId: ctx.agentId, reason });
-      return { paused: true, reason, tokens: issueTotal.tokens, limit: budgets.maxTokensPerIssue };
+      return {
+        paused: true,
+        reason,
+        tokens: issueTotal.billableTokens,
+        limit: budgets.maxTokensPerIssue,
+      };
     }
   }
 
@@ -106,11 +119,11 @@ export const checkAndPause = (
     // USD is only enforced on cost-bearing adapters; OAuth has no real $ cost.
     const costBearing = budget.adapterName.startsWith("claude-api-key");
 
-    const tokenOver = budget.tokensLimit !== null && total.tokens >= budget.tokensLimit;
+    const tokenOver = budget.tokensLimit !== null && total.billableTokens >= budget.tokensLimit;
     const usdOver = costBearing && budget.usdLimit !== null && total.cents >= budget.usdLimit;
     if (tokenOver || usdOver) {
       const reason: PauseReason = "budget_exceeded_agent";
-      const tokens = tokenOver ? total.tokens : total.cents;
+      const tokens = tokenOver ? total.billableTokens : total.cents;
       const limit = tokenOver ? budget.tokensLimit! : budget.usdLimit!;
       deps.pauseAgent(ctx.agentId, reason);
       deps.notifySecurityAlert({
@@ -129,7 +142,8 @@ export const checkAndPause = (
     // 80% — one Inbox warning per period, deduped via budget_warned_period.
     const key = periodKey(budget.period, now);
     if (budget.warnedPeriod !== key) {
-      const tokenWarn = budget.tokensLimit !== null && total.tokens >= 0.8 * budget.tokensLimit;
+      const tokenWarn =
+        budget.tokensLimit !== null && total.billableTokens >= 0.8 * budget.tokensLimit;
       const usdWarn =
         costBearing && budget.usdLimit !== null && total.cents >= 0.8 * budget.usdLimit;
       if (tokenWarn || usdWarn) {
@@ -137,7 +151,7 @@ export const checkAndPause = (
           companyId: ctx.companyId,
           agentId: ctx.agentId,
           metric: tokenWarn ? "tokens" : "usd",
-          used: tokenWarn ? total.tokens : total.cents,
+          used: tokenWarn ? total.billableTokens : total.cents,
           limit: tokenWarn ? budget.tokensLimit! : budget.usdLimit!,
           period: budget.period,
         });

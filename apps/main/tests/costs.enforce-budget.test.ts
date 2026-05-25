@@ -6,11 +6,11 @@ import { periodKey } from "../src/costs/period.js";
 const makeDeps = (overrides: Partial<EnforceBudgetDeps> = {}): EnforceBudgetDeps => ({
   costsRepo: {
     insert: vi.fn(),
-    getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
-    getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+    getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+    getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
     hasAgentRowsForDay: vi.fn().mockReturnValue(false),
     listRunsByAgent: vi.fn().mockReturnValue([]),
-    getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+    getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
   },
   budgetsRepo: {
     read: vi.fn().mockReturnValue({
@@ -38,11 +38,11 @@ describe("checkAndPause — global M8 caps (unchanged)", () => {
     const deps = makeDeps({
       costsRepo: {
         insert: vi.fn(),
-        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 500, cents: 0 }),
-        getIssueTotal: vi.fn().mockReturnValue({ tokens: 100, cents: 0 }),
+        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 500, billableTokens: 500, cents: 0 }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 100, billableTokens: 100, cents: 0 }),
         hasAgentRowsForDay: vi.fn().mockReturnValue(false),
         listRunsByAgent: vi.fn().mockReturnValue([]),
-        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
       },
     });
     const r = checkAndPause(deps, { ...ctx, issueId: "iss_1" });
@@ -54,11 +54,13 @@ describe("checkAndPause — global M8 caps (unchanged)", () => {
     const deps = makeDeps({
       costsRepo: {
         insert: vi.fn(),
-        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 1500, cents: 5 }),
-        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+        getAgentDailyTotal: vi
+          .fn()
+          .mockReturnValue({ tokens: 1500, billableTokens: 1500, cents: 5 }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         hasAgentRowsForDay: vi.fn().mockReturnValue(false),
         listRunsByAgent: vi.fn().mockReturnValue([]),
-        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
       },
     });
     const r = checkAndPause(deps, ctx);
@@ -71,11 +73,11 @@ describe("checkAndPause — global M8 caps (unchanged)", () => {
     const deps = makeDeps({
       costsRepo: {
         insert: vi.fn(),
-        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 100, cents: 0 }),
-        getIssueTotal: vi.fn().mockReturnValue({ tokens: 600, cents: 1 }),
+        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 100, billableTokens: 100, cents: 0 }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 600, billableTokens: 600, cents: 1 }),
         hasAgentRowsForDay: vi.fn().mockReturnValue(false),
         listRunsByAgent: vi.fn().mockReturnValue([]),
-        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
       },
     });
     const r = checkAndPause(deps, { ...ctx, issueId: "iss_1" });
@@ -112,11 +114,13 @@ describe("checkAndPause — per-agent budget", () => {
       }),
       costsRepo: {
         insert: vi.fn(),
-        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
-        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         hasAgentRowsForDay: vi.fn().mockReturnValue(false),
         listRunsByAgent: vi.fn().mockReturnValue([]),
-        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 1000, cents: 0 }),
+        getAgentPeriodTotal: vi
+          .fn()
+          .mockReturnValue({ tokens: 1000, billableTokens: 1000, cents: 0 }),
       },
     });
     const r = checkAndPause(deps, ctx);
@@ -137,11 +141,13 @@ describe("checkAndPause — per-agent budget", () => {
       }),
       costsRepo: {
         insert: vi.fn(),
-        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
-        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         hasAgentRowsForDay: vi.fn().mockReturnValue(false),
         listRunsByAgent: vi.fn().mockReturnValue([]),
-        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 850, cents: 0 }),
+        getAgentPeriodTotal: vi
+          .fn()
+          .mockReturnValue({ tokens: 850, billableTokens: 850, cents: 0 }),
       },
     });
     const r = checkAndPause(deps, ctx);
@@ -161,11 +167,13 @@ describe("checkAndPause — per-agent budget", () => {
       }),
       costsRepo: {
         insert: vi.fn(),
-        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
-        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         hasAgentRowsForDay: vi.fn().mockReturnValue(false),
         listRunsByAgent: vi.fn().mockReturnValue([]),
-        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 850, cents: 0 }),
+        getAgentPeriodTotal: vi
+          .fn()
+          .mockReturnValue({ tokens: 850, billableTokens: 850, cents: 0 }),
       },
     });
     checkAndPause(deps, ctx);
@@ -183,11 +191,13 @@ describe("checkAndPause — per-agent budget", () => {
       }),
       costsRepo: {
         insert: vi.fn(),
-        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
-        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         hasAgentRowsForDay: vi.fn().mockReturnValue(false),
         listRunsByAgent: vi.fn().mockReturnValue([]),
-        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 850, cents: 0 }),
+        getAgentPeriodTotal: vi
+          .fn()
+          .mockReturnValue({ tokens: 850, billableTokens: 850, cents: 0 }),
       },
     });
     checkAndPause(deps, ctx);
@@ -205,11 +215,11 @@ describe("checkAndPause — per-agent budget", () => {
       }),
       costsRepo: {
         insert: vi.fn(),
-        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
-        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         hasAgentRowsForDay: vi.fn().mockReturnValue(false),
         listRunsByAgent: vi.fn().mockReturnValue([]),
-        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 999 }),
+        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 999 }),
       },
     });
     const r = checkAndPause(deps, ctx);
@@ -228,11 +238,11 @@ describe("checkAndPause — per-agent budget", () => {
       }),
       costsRepo: {
         insert: vi.fn(),
-        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
-        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         hasAgentRowsForDay: vi.fn().mockReturnValue(false),
         listRunsByAgent: vi.fn().mockReturnValue([]),
-        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 100 }),
+        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 100 }),
       },
     });
     const r = checkAndPause(deps, ctx);
@@ -251,11 +261,13 @@ describe("checkAndPause — per-agent budget", () => {
       }),
       costsRepo: {
         insert: vi.fn(),
-        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
-        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, cents: 0 }),
+        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         hasAgentRowsForDay: vi.fn().mockReturnValue(false),
         listRunsByAgent: vi.fn().mockReturnValue([]),
-        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 1000, cents: 100 }),
+        getAgentPeriodTotal: vi
+          .fn()
+          .mockReturnValue({ tokens: 1000, billableTokens: 1000, cents: 100 }),
       },
     });
     const r = checkAndPause(deps, ctx);
@@ -267,5 +279,58 @@ describe("checkAndPause — per-agent budget", () => {
     }
     expect(deps.pauseAgent).toHaveBeenCalledTimes(1); // exactly one pause
     expect(deps.notifySecurityAlert).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("checkAndPause — cache_read regression (CEO false-pause)", () => {
+  // The CEO re-reads a large context every turn (~629K cache_read/turn).
+  // Before the fix, cache_read inflated `tokens` and false-tripped the daily cap.
+  // After the fix, caps use `billableTokens` (input+output+cache_creation only).
+
+  it("REGRESSION: huge cache_read but low billableTokens — must NOT pause on daily cap", () => {
+    // Simulate: tokens >> cap (old bug: would pause), but billableTokens < cap (new: no pause).
+    // Test budget cap is 1000 (from makeDeps default).
+    const deps = makeDeps({
+      costsRepo: {
+        insert: vi.fn(),
+        getAgentDailyTotal: vi.fn().mockReturnValue({
+          tokens: 11_600_000, // includes ~11M cache_read — would have false-tripped old cap
+          billableTokens: 500, // only real work — under the 1000-token test cap
+          cents: 3100,
+        }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+        hasAgentRowsForDay: vi.fn().mockReturnValue(false),
+        listRunsByAgent: vi.fn().mockReturnValue([]),
+        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+      },
+    });
+    const r = checkAndPause(deps, ctx);
+    expect(r.paused).toBe(false);
+    expect(deps.pauseAgent).not.toHaveBeenCalled();
+  });
+
+  it("pauses when billableTokens (not cache_read) actually exceeds the daily cap", () => {
+    // Simulate: billableTokens genuinely over the 2M cap, cache_read irrelevant
+    const deps = makeDeps({
+      costsRepo: {
+        insert: vi.fn(),
+        getAgentDailyTotal: vi.fn().mockReturnValue({
+          tokens: 13_000_000,
+          billableTokens: 2_100_000, // over the 1000-token cap used in test budgets
+          cents: 8000,
+        }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+        hasAgentRowsForDay: vi.fn().mockReturnValue(false),
+        listRunsByAgent: vi.fn().mockReturnValue([]),
+        getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+      },
+    });
+    const r = checkAndPause(deps, ctx);
+    expect(r.paused).toBe(true);
+    if (r.paused) {
+      expect(r.reason).toBe("budget_exceeded_daily");
+      expect(r.tokens).toBe(2_100_000); // reports billableTokens, not total
+    }
+    expect(deps.pauseAgent).toHaveBeenCalledWith("agent_x", "budget_exceeded_daily");
   });
 });

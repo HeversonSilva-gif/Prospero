@@ -133,7 +133,75 @@ describe("getAgentPeriodTotal", () => {
     insertAt(Date.UTC(2026, 4, 3, 9)); // earlier same month, not same day
 
     const now = new Date(Date.UTC(2026, 4, 18, 12));
-    expect(repo.getAgentPeriodTotal(agentId, "daily", now)).toEqual({ tokens: 100, cents: 7 });
-    expect(repo.getAgentPeriodTotal(agentId, "monthly", now)).toEqual({ tokens: 200, cents: 14 });
+    expect(repo.getAgentPeriodTotal(agentId, "daily", now)).toEqual({
+      tokens: 100,
+      billableTokens: 100,
+      cents: 7,
+    });
+    expect(repo.getAgentPeriodTotal(agentId, "monthly", now)).toEqual({
+      tokens: 200,
+      billableTokens: 200,
+      cents: 14,
+    });
+  });
+});
+
+describe("getAgentDailyTotal / getIssueTotal — billableTokens excludes cache_read", () => {
+  it("includes cache_read in tokens but not billableTokens for daily total", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+    const agentId = makeAgent(db, co.id, "CEO");
+    const repo = createCostsRepository(db);
+
+    const now = new Date(Date.UTC(2026, 4, 18, 10));
+    repo.insert(
+      turn({
+        companyId: co.id,
+        agentId,
+        inputTokens: 1_000,
+        outputTokens: 500,
+        cacheCreationTokens: 2_000,
+        cacheReadTokens: 629_000, // large cache_read, as the CEO produces
+        occurredAt: Date.UTC(2026, 4, 18, 9),
+      }),
+    );
+
+    const daily = repo.getAgentDailyTotal(agentId, now);
+    // tokens = all four columns summed
+    expect(daily.tokens).toBe(1_000 + 500 + 2_000 + 629_000);
+    // billableTokens = input + output + cache_creation only (excludes cache_read)
+    expect(daily.billableTokens).toBe(1_000 + 500 + 2_000);
+    expect(daily.cents).toBeGreaterThan(0);
+  });
+
+  it("includes cache_read in tokens but not billableTokens for issue total", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+    const agentId = makeAgent(db, co.id, "CEO");
+    const repo = createCostsRepository(db);
+
+    // insert the issue row so the FK constraint is satisfied
+    const issueId = "iss_ceo_cache_test";
+    db.prepare(
+      `INSERT INTO issues (id, company_id, title, status, priority, created_at, updated_at)
+       VALUES (?, ?, ?, 'todo', 'medium', 0, 0)`,
+    ).run(issueId, co.id, "CEO cache test issue");
+
+    repo.insert(
+      turn({
+        companyId: co.id,
+        agentId,
+        issueId,
+        inputTokens: 500,
+        outputTokens: 200,
+        cacheCreationTokens: 1_000,
+        cacheReadTokens: 400_000,
+        occurredAt: Date.UTC(2026, 4, 18, 9),
+      }),
+    );
+
+    const issueTotal = repo.getIssueTotal(issueId);
+    expect(issueTotal.tokens).toBe(500 + 200 + 1_000 + 400_000);
+    expect(issueTotal.billableTokens).toBe(500 + 200 + 1_000);
   });
 });
