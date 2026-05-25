@@ -1,7 +1,44 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import type { ProjectDigest, DigestEntry } from "@prospero/shared";
+import type { ProjectDigest, DigestEntry, DeepDive } from "@prospero/shared";
 import { emptyDigest } from "@prospero/shared";
 import { getProjectDigestDir, projectDigestPath } from "./digest-dir.js";
+
+const num = (v: unknown, dflt: number): number => (typeof v === "number" ? v : dflt);
+
+const normEntry = (e: Record<string, unknown>): DigestEntry => {
+  const id = typeof e.id === "string" ? e.id : "";
+  const body = typeof e.body === "string" ? e.body : "";
+  const contentHash = typeof e.contentHash === "string" ? e.contentHash : "";
+  return {
+    id,
+    section: e.section as DigestEntry["section"],
+    body,
+    sourceFiles: Array.isArray(e.sourceFiles) ? (e.sourceFiles as string[]) : [],
+    contentHash,
+    derivedAt: num(e.derivedAt, 0),
+    trust: num(e.trust, 0.5),
+    accessCount: num(e.accessCount, 0),
+    lastAccessed: typeof e.lastAccessed === "number" ? e.lastAccessed : null,
+  };
+};
+
+const normDeep = (d: Record<string, unknown>): DeepDive => {
+  const id = typeof d.id === "string" ? d.id : "";
+  const area = typeof d.area === "string" ? d.area : "";
+  const body = typeof d.body === "string" ? d.body : "";
+  const contentHash = typeof d.contentHash === "string" ? d.contentHash : "";
+  return {
+    id,
+    area,
+    body,
+    sourceFiles: Array.isArray(d.sourceFiles) ? (d.sourceFiles as string[]) : [],
+    contentHash,
+    derivedAt: num(d.derivedAt, 0),
+    trust: num(d.trust, 0.5),
+    accessCount: num(d.accessCount, 0),
+    lastAccessed: typeof d.lastAccessed === "number" ? d.lastAccessed : null,
+  };
+};
 
 export const readDigest = (
   userDataDir: string,
@@ -13,7 +50,13 @@ export const readDigest = (
   try {
     const parsed = JSON.parse(readFileSync(path, "utf8")) as ProjectDigest;
     if (parsed.version !== 1 || !Array.isArray(parsed.entries)) return emptyDigest();
-    return parsed;
+    return {
+      version: 1,
+      entries: (parsed.entries as unknown as Record<string, unknown>[]).map(normEntry),
+      deepDives: Array.isArray(parsed.deepDives)
+        ? (parsed.deepDives as unknown as Record<string, unknown>[]).map(normDeep)
+        : [],
+    };
   } catch {
     // A corrupt digest must never crash a spawn — treat as empty.
     return emptyDigest();
@@ -51,3 +94,18 @@ export const foldEntries = (base: DigestEntry[], incoming: DigestEntry[]): Diges
   }
   return out;
 };
+
+export const foldDeepDives = (base: DeepDive[], incoming: DeepDive[]): DeepDive[] => {
+  const out = [...base];
+  for (const inc of incoming) {
+    const idx = out.findIndex((d) => d.area === inc.area);
+    if (idx >= 0) out[idx] = inc;
+    else out.push(inc);
+  }
+  return out;
+};
+
+export const bumpEntryAccess = <T extends { accessCount: number; lastAccessed: number | null }>(
+  entry: T,
+  now: number,
+): T => ({ ...entry, accessCount: entry.accessCount + 1, lastAccessed: now });
