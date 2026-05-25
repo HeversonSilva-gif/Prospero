@@ -21,6 +21,8 @@ import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { buildMemoryBlock, agentMemoryNearFull } from "../orchestrator/system-prompt-memory.js";
 import { buildTelosBlock } from "../orchestrator/system-prompt-telos.js";
+import { buildProjectContextBlock } from "../orchestrator/system-prompt-project-context.js";
+import { createProjectsRepository } from "../projects/repository.js";
 import { composeInstructions } from "../agents/instruction-bundle.js";
 import { createRecoveryTracker } from "../orchestrator/recovery-tracker.js";
 import { createNudgeTracker } from "../orchestrator/nudge.js";
@@ -367,6 +369,22 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
       agentTemplateId: agent.templateId,
     });
 
+    // Memória de Contexto de Projeto: inject the per-project digest map when the
+    // agent is scoped to exactly one project (so the digest target is unambiguous).
+    let projectContextBlock: string | undefined;
+    const ctxProjectIds = agent.allowedProjects;
+    if (ctxProjectIds.length === 1) {
+      const proj = createProjectsRepository(db).getById(ctxProjectIds[0]!);
+      if (proj !== null) {
+        projectContextBlock = buildProjectContextBlock({
+          userDataDir: app.getPath("userData"),
+          companyId: agent.companyId,
+          projectId: proj.id,
+          projectPath: proj.path,
+        });
+      }
+    }
+
     // Guard against stale exits: capture the adapter instance returned by
     // ensureAdapter so onExit can verify it is still the current spawn for
     // this agent. When restartIfRunning / AGENT_KILL / AGENTS_TERMINATE kill
@@ -387,6 +405,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         eventsDir,
         ...(memoryBlock !== undefined ? { memoryBlock } : {}),
         ...(telosBlock !== undefined ? { telosBlock } : {}),
+        ...(projectContextBlock !== undefined ? { projectContextBlock } : {}),
         instructionsBlock,
       },
       {
