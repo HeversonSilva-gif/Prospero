@@ -23,14 +23,16 @@ describe("capability catalog", () => {
     ]);
   });
 
-  it("includes the memory capability with the M11 tools + universal TELOS/ISA reads", () => {
-    expect(CAPABILITY_CATALOG.memory.tools).toHaveLength(12);
+  it("includes the memory capability with the M11 tools + universal TELOS/ISA reads + project context", () => {
+    expect(CAPABILITY_CATALOG.memory.tools).toHaveLength(14);
     expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__skill_promote");
     expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__skill_search");
     expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__memory_add");
     expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__session_search");
     expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__isa_read");
     expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__telos_read");
+    expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__project_context_read");
+    expect(CAPABILITY_CATALOG.memory.tools).toContain("mcp__dashboard__project_context_note");
   });
 
   it("every built-in tool in KNOWN_CLAUDE_TOOLS is mapped by at least one capability", () => {
