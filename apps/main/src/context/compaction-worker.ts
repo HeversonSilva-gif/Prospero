@@ -46,11 +46,15 @@ export const createCompactionWorker = (deps: CompactionWorkerDeps): CompactionWo
         sourceFiles: k.sourceFiles,
         contentHash: deps.hashSources(k.sourceFiles),
         derivedAt: deps.now(),
+        trust: 0.5,
+        accessCount: 0,
+        lastAccessed: null,
       }));
       const current = readDigest(deps.userDataDir, input.companyId, input.projectId);
       writeDigest(deps.userDataDir, input.companyId, input.projectId, {
         version: 1,
         entries: foldEntries(current.entries, incoming),
+        deepDives: current.deepDives,
       });
     }
     return { taskState: parsed.taskState, foldedCount: parsed.knowledge.length };

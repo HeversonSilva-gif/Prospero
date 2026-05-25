@@ -45,6 +45,9 @@ describe("compaction-worker", () => {
     const digest = readDigest(dir, "co_1", "pr_1");
     expect(digest.entries[0]?.body).toBe("Electron monorepo.");
     expect(digest.entries[0]?.contentHash).toBe("abc");
+    expect(digest.entries[0]?.trust).toBe(0.5);
+    expect(digest.entries[0]?.accessCount).toBe(0);
+    expect(digest.entries[0]?.lastAccessed).toBeNull();
   });
 
   it("returns the seed but writes nothing when distill is discarded", async () => {
