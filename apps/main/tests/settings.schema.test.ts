@@ -29,6 +29,7 @@ describe("settings schema", () => {
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
       derivationsPerDayPerAgent: 3,
+      compactionCacheReadThreshold: 300_000,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
@@ -51,6 +52,7 @@ describe("settings schema", () => {
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
       derivationsPerDayPerAgent: 3,
+      compactionCacheReadThreshold: 300_000,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
@@ -73,6 +75,7 @@ describe("settings schema", () => {
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
       derivationsPerDayPerAgent: 3,
+      compactionCacheReadThreshold: 300_000,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",

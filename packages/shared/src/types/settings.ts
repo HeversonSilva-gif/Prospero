@@ -44,6 +44,7 @@ export type AppSettings = {
   defaultAgentMode: AgentMode;
   defaultAlwaysOn: boolean;
   derivationsPerDayPerAgent: number;
+  compactionCacheReadThreshold: number;
   remoteExecution: RemoteExecutionSettings;
 };
 
@@ -58,6 +59,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultAgentMode: "supervised",
   defaultAlwaysOn: false,
   derivationsPerDayPerAgent: 3,
+  compactionCacheReadThreshold: 300_000,
   remoteExecution: {
     enabled: false,
     mode: "local-docker",

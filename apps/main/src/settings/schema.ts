@@ -25,6 +25,7 @@ export const AppSettingsSchema = z.object({
   defaultAgentMode: z.enum(["supervised", "auto"]).default("supervised"),
   defaultAlwaysOn: z.boolean().default(false),
   derivationsPerDayPerAgent: z.number().int().min(0).default(3),
+  compactionCacheReadThreshold: z.number().int().min(0).default(300_000),
   remoteExecution: RemoteExecutionSettingsSchema.default({
     enabled: false,
     mode: "local-docker",
@@ -63,6 +64,9 @@ export const parseSettings = (raw: unknown): AppSettings => {
   }
   if (result.data.derivationsPerDayPerAgent !== undefined) {
     merged.derivationsPerDayPerAgent = result.data.derivationsPerDayPerAgent;
+  }
+  if (result.data.compactionCacheReadThreshold !== undefined) {
+    merged.compactionCacheReadThreshold = result.data.compactionCacheReadThreshold;
   }
   if (result.data.remoteExecution !== undefined) {
     merged.remoteExecution = result.data.remoteExecution;
