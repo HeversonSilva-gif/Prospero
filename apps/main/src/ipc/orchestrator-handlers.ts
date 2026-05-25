@@ -1,5 +1,8 @@
 import { ipcMain, BrowserWindow, app } from "electron";
 import type Database from "better-sqlite3";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 import {
   IPC,
   MODEL_ID_REGEX,
@@ -79,6 +82,13 @@ import { handleApprovalEvent } from "../approvals/event-handler.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
 import { broadcastInboxUpdate } from "./inbox-handlers.js";
 import { isCeoAgent } from "@prospero/shared";
+import { buildRecoveryTrail } from "../derivation/trail.js";
+import { runDerivation, defaultRunProcess } from "../derivation/runner.js";
+import { buildAuthEnv } from "../derivation/index.js";
+import { createCompactionWorker } from "../context/compaction-worker.js";
+import { shouldCompact } from "../context/should-compact.js";
+import { hashSources } from "../context/freshness.js";
+import { estimateCostCents } from "../costs/pricing.js";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -317,6 +327,86 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   const eventsDir = getEventsDir(app.getPath("userData"));
   void startEventsWatcher({ dir: eventsDir, onEvent: dispatchAgentEvent });
 
+  // Memória de Contexto de Projeto (Fase 1): after an idle turn, if the session
+  // re-read more cached context than the threshold, distill the session into the
+  // project digest (folding durable knowledge), then RESET the agent's session
+  // (clear session id + kill/drop the adapter). No seed message is delivered —
+  // the agent is idle, so the next real message re-spawns it fresh (no --resume)
+  // with the now-richer project-context block injected. Safe: never kills
+  // a mid-turn process.
+  const maybeCompactAfterTurn = async (agent: Agent, cacheRead: number): Promise<void> => {
+    try {
+      const threshold = settingsRepo.read().compactionCacheReadThreshold;
+      if (!shouldCompact({ cacheRead }, threshold)) return;
+
+      const projectIds = agent.allowedProjects;
+      if (projectIds.length !== 1) return;
+      const proj = createProjectsRepository(db).getById(projectIds[0]!);
+      if (proj === null) return;
+
+      const live = agents.getById(agent.id);
+      if (live === null || live.status === "paused" || live.status === "terminated") return;
+
+      const trail = buildRecoveryTrail(db, agent.id, 200);
+      if (trail === null || trail.messages.length === 0) return;
+      const transcript = trail.messages.map((m) => `${m.sender}: ${m.content}`).join("\n");
+
+      const worker = createCompactionWorker({
+        userDataDir: app.getPath("userData"),
+        runDistill: ({ prompt, model }) =>
+          runDerivation(
+            { runProcess: defaultRunProcess },
+            { prompt, model, env: buildAuthEnv(db) },
+          ),
+        hashSources: (files) =>
+          hashSources(files, (rel) => readFileSync(join(proj.path, rel), "utf8")),
+        newId: () => `dig_${randomUUID()}`,
+        now: () => Date.now(),
+        onCost: (usage, model) =>
+          costsRepo.insert({
+            companyId: agent.companyId,
+            agentId: agent.id,
+            projectId: proj.id,
+            issueId: null,
+            adapterName: "compaction",
+            model,
+            sessionId: null,
+            inputTokens: usage.input,
+            outputTokens: usage.output,
+            cacheCreationTokens: usage.cacheCreation,
+            cacheReadTokens: usage.cacheRead,
+            costCentsEstimate: estimateCostCents(model, {
+              input: usage.input,
+              output: usage.output,
+              cache_creation: usage.cacheCreation,
+              cache_read: usage.cacheRead,
+            }),
+            occurredAt: Date.now(),
+          }),
+      });
+
+      await worker.compact({
+        companyId: agent.companyId,
+        projectId: proj.id,
+        agentId: agent.id,
+        transcript,
+      });
+
+      // Re-check after the async distill: only reset if STILL idle and live.
+      const live2 = agents.getById(agent.id);
+      if (live2 === null || live2.status === "paused" || live2.status === "terminated") return;
+      if (router.getCurrentThread(agent.id) !== null) return; // became busy again
+      agents.clearSessionId(agent.id);
+      const adapter = getAdapter(agent.id);
+      if (adapter !== undefined) {
+        adapter.kill();
+        removeAdapter(agent.id);
+      }
+    } catch (err) {
+      console.warn(`[compaction] agent ${agent.id} failed: ${String(err)}`);
+    }
+  };
+
   const ensureAgentRunner = (agent: Agent): void => {
     const existing = getAdapter(agent.id);
     if (existing !== undefined && existing.isAlive()) return;
@@ -554,6 +644,11 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
                 agentId: agent.id,
                 payload: {},
               });
+            }
+            // Idle-only compaction (Phase 1): only when this turn left the agent
+            // idle (no queued thread) — never kill a mid-turn process.
+            if (ev.usage !== undefined && !stillBusy) {
+              void maybeCompactAfterTurn(agent, ev.usage.cache_read ?? 0);
             }
           } else if (ev.kind === "api-retry") {
             broadcast({
