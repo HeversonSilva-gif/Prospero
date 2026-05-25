@@ -23,6 +23,9 @@ const entry = (over: Partial<DigestEntry> = {}): DigestEntry => ({
   sourceFiles: ["package.json"],
   contentHash: "h1",
   derivedAt: 1,
+  trust: 0.5,
+  accessCount: 0,
+  lastAccessed: null,
   ...over,
 });
 
@@ -32,7 +35,7 @@ describe("digest-store", () => {
   });
 
   it("write then read round-trips entries", () => {
-    writeDigest(dir, "co_1", "pr_1", { version: 1, entries: [entry()] });
+    writeDigest(dir, "co_1", "pr_1", { version: 1, entries: [entry()], deepDives: [] });
     const d = readDigest(dir, "co_1", "pr_1");
     expect(d.entries[0]?.body).toBe("It is an Electron monorepo.");
   });
@@ -55,8 +58,8 @@ describe("digest-store", () => {
   it("readDigest fills missing trust/accessCount/deepDives defaults", () => {
     writeDigest(dir, "co_1", "pr_x", {
       version: 1,
-      // @ts-expect-error legacy shape without the new fields
       entries: [
+        // @ts-expect-error legacy shape without the new fields
         {
           id: "e",
           section: "architecture",
@@ -66,6 +69,7 @@ describe("digest-store", () => {
           derivedAt: 1,
         },
       ],
+      deepDives: [],
     });
     const d = readDigest(dir, "co_1", "pr_x");
     expect(d.entries[0]?.trust).toBe(0.5);

@@ -8,7 +8,10 @@ const e = (over: Partial<DigestEntry> = {}): DigestEntry => ({
   body: "Electron monorepo with apps/main + apps/renderer.",
   sourceFiles: ["package.json"],
   contentHash: "h",
-  derivedAt: 1,
+  derivedAt: Date.now(),
+  trust: 0.8,
+  accessCount: 0,
+  lastAccessed: null,
   ...over,
 });
 
@@ -53,5 +56,33 @@ describe("renderProjectContextBlock", () => {
     const out = renderProjectContextBlock(entries, 150)!;
     expect(out).toContain("## Architecture");
     expect(out).not.toContain("## Gotchas");
+  });
+
+  it("drops entries whose decayed trust is below the floor", () => {
+    const old = {
+      ...e(),
+      stale: false,
+      trust: 0.5,
+      accessCount: 0,
+      derivedAt: 0,
+      lastAccessed: null,
+    };
+    // derivedAt=0 (epoch) → huge elapsed → decayed trust ~0 → dropped
+    const out = renderProjectContextBlock([old], 4096, 1_000_000_000_000);
+    expect(out).toBeUndefined();
+  });
+
+  it("keeps a fresh, recently-derived entry", () => {
+    const now = 1_000_000_000_000;
+    const cur = {
+      ...e(),
+      stale: false,
+      trust: 0.8,
+      accessCount: 0,
+      derivedAt: now,
+      lastAccessed: null,
+    };
+    const out = renderProjectContextBlock([cur], 4096, now)!;
+    expect(out).toContain("Electron monorepo");
   });
 });

@@ -4,6 +4,10 @@ import type { DigestSection } from "@prospero/shared";
 import { DIGEST_SECTIONS } from "@prospero/shared";
 import { readDigest } from "../context/digest-store.js";
 import { markFreshness, type FreshEntry } from "../context/freshness.js";
+import { decayFactor } from "../memory/decay.js";
+
+const MIN_DIGEST_TRUST = 0.2;
+const MS_PER_DAY = 86_400_000;
 
 const SECTION_TITLES: Record<DigestSection, string> = {
   architecture: "Architecture",
@@ -13,15 +17,26 @@ const SECTION_TITLES: Record<DigestSection, string> = {
   glossary: "Glossary",
 };
 
+// Effective trust after read-time decay (no maintenance pass needed): age since
+// derivation, slowed by accessCount. Mirrors the memory decay model.
+const decayedTrust = (e: FreshEntry, now: number): number => {
+  const elapsedDays = Math.max(0, (now - e.derivedAt) / MS_PER_DAY);
+  return e.trust * decayFactor(elapsedDays, e.accessCount);
+};
+
 // Pure renderer — takes freshness-marked entries, returns the injected markdown
 // (or undefined if empty). Entries are rendered grouped by section, fresh first,
 // until the cap is hit. Exported for unit testing.
 export const renderProjectContextBlock = (
   entries: FreshEntry[],
   cap: number,
+  now: number = Date.now(),
 ): string | undefined => {
-  if (entries.length === 0) return undefined;
-  const ordered = [...entries].sort((a, b) => Number(a.stale) - Number(b.stale));
+  const liveEntries = entries.filter((e) => decayedTrust(e, now) >= MIN_DIGEST_TRUST);
+  if (liveEntries.length === 0) return undefined;
+  const ordered = [...liveEntries].sort(
+    (a, b) => Number(a.stale) - Number(b.stale) || decayedTrust(b, now) - decayedTrust(a, now),
+  );
   let body = "";
   for (const section of DIGEST_SECTIONS) {
     const inSection = ordered.filter((e) => e.section === section);

@@ -9,6 +9,9 @@ const entry = (contentHash: string): DigestEntry => ({
   sourceFiles: ["a.ts"],
   contentHash,
   derivedAt: 1,
+  trust: 0.5,
+  accessCount: 0,
+  lastAccessed: null,
 });
 
 describe("freshness", () => {
