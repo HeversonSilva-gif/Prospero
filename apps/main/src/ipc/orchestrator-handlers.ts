@@ -332,6 +332,8 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
   // project): the digest write is a non-atomic read-modify-write and a redundant
   // distill costs real money. Key = `${companyId}:${projectId}`.
   const compactionInFlight = new Set<string>();
+  const lastCompactedAt = new Map<string, number>();
+  const COMPACTION_COOLDOWN_MS = 10 * 60_000; // 10 min between compactions per project
 
   // Memória de Contexto de Projeto (Fase 1): after an idle turn, if the session
   // re-read more cached context than the threshold, distill the session into the
@@ -355,6 +357,8 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
 
       const compactionKey = `${agent.companyId}:${proj.id}`;
       if (compactionInFlight.has(compactionKey)) return; // a compaction for this project is already running
+      const last = lastCompactedAt.get(compactionKey) ?? 0;
+      if (Date.now() - last < COMPACTION_COOLDOWN_MS) return;
       compactionInFlight.add(compactionKey);
       try {
         const trail = buildRecoveryTrail(db, agent.id, 200);
@@ -401,6 +405,8 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
           agentId: agent.id,
           transcript,
         });
+
+        lastCompactedAt.set(compactionKey, Date.now());
 
         createProjectsRepository(db).setDigestPath(
           proj.id,
