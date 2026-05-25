@@ -467,6 +467,11 @@ export const registerOrchestratorHandlers = (
     const existing = getAdapter(agent.id);
     if (existing !== undefined && existing.isAlive()) return;
 
+    // Account-wide Max rate limit in effect → don't spawn; the team auto-resumes
+    // when the window resets (handled in drainScheduler).
+    const rlUntil = settingsRepo.read().rateLimitedUntil;
+    if (rlUntil !== null && Date.now() < rlUntil) return;
+
     // Concurrency cap: if we are at or above the limit, do NOT spawn — the
     // router is already holding the message safely. The drain scheduler will
     // pick this agent up when a slot frees (turn-complete, onExit, or periodic
@@ -722,19 +727,38 @@ export const registerOrchestratorHandlers = (
               message: `API retry attempt ${String(ev.attempt)}: ${ev.error}`,
             });
           } else if (ev.kind === "rate-limited") {
-            agents.updateStatus(agent.id, { status: "waiting", currentAction: "Rate limited" });
-            broadcast({
-              kind: "status-changed",
-              agentId: agent.id,
-              status: "waiting",
-              updatedAt: Date.now(),
-            });
-            broadcast({
-              kind: "rate-limited",
-              agentId: agent.id,
-              retryAfterSec: ev.retryAfterSec,
-              message: ev.message,
-            });
+            const until = ev.resetsAt ?? Date.now() + 60 * 60_000; // fallback 1h if no resetsAt
+            const prev = settingsRepo.read().rateLimitedUntil;
+            const isNewWindow = prev === null || until > prev;
+            settingsRepo.write({ rateLimitedUntil: until });
+            // Account-wide limit → park every running agent. Reason "rate_limited"
+            // marks them for auto-resume (distinct from a manual/budget pause).
+            for (const id of listAdapterAgentIds()) {
+              pauseAndStopAgent(id, "rate_limited", {
+                getAdapter,
+                removeAdapter,
+                pause: (aid, reason) => agents.pause(aid, reason),
+              });
+              broadcast({
+                kind: "status-changed",
+                agentId: id,
+                status: "paused",
+                updatedAt: Date.now(),
+              });
+            }
+            if (isNewWindow) {
+              const when = new Date(until).toLocaleString();
+              inbox.create({
+                companyId: agent.companyId,
+                kind: "security_alert",
+                actorId: agent.id,
+                title: "Equipe pausada — limite do plano Max",
+                preview: `A cota do Max foi atingida. A equipe retoma sozinha por volta de ${when}.`,
+                requiresAction: false,
+                payloadJson: null,
+              });
+              broadcastInboxUpdate(agent.companyId);
+            }
           }
         },
         onStderr: (line: string) => {
@@ -793,6 +817,26 @@ export const registerOrchestratorHandlers = (
   // an agent has pending work but no live adapter. Called on turn-complete,
   // onExit, and a periodic 8-second tick so the org is always in motion.
   const drainScheduler = (): void => {
+    // Max rate-limit gate. While active, spawn nothing. When the window resets,
+    // clear the gate and resume the parked team so each agent continues from
+    // where it left off (re-wakes flow through the 4-slot queue below).
+    const rlUntil = settingsRepo.read().rateLimitedUntil;
+    if (rlUntil !== null) {
+      if (Date.now() < rlUntil) return; // still gated — spawn nothing this tick
+      settingsRepo.write({ rateLimitedUntil: null });
+      const resumed = agents.listByPauseReason("rate_limited");
+      for (const a of resumed) {
+        agents.resume(a.id); // status → idle, pause_reason cleared
+        broadcast({ kind: "status-changed", agentId: a.id, status: "idle", updatedAt: Date.now() });
+        deliverSystemMessage(
+          a.id,
+          "[LIMITE DO MAX RESETADO] A cota voltou. Continue sua tarefa de onde parou — releia a issue/thread ou o contexto do projeto se precisar.",
+        );
+      }
+      if (resumed.length > 0) {
+        console.warn(`[ratelimit] window reset — resumed ${String(resumed.length)} agent(s)`);
+      }
+    }
     const running = listAdapterAgentIds().map((id) => ({
       id,
       hasWork: (agents.getById(id)?.status ?? "idle") !== "idle" || router.hasPendingWork(id),
