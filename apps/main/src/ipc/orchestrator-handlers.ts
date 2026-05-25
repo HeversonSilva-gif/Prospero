@@ -88,6 +88,7 @@ import { buildAuthEnv } from "../derivation/index.js";
 import { createCompactionWorker } from "../context/compaction-worker.js";
 import { shouldCompact } from "../context/should-compact.js";
 import { hashSources } from "../context/freshness.js";
+import { relativeDigestPath } from "../context/digest-dir.js";
 import { estimateCostCents } from "../costs/pricing.js";
 
 const broadcast = (event: AgentEvent): void => {
@@ -400,6 +401,11 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
           agentId: agent.id,
           transcript,
         });
+
+        createProjectsRepository(db).setDigestPath(
+          proj.id,
+          relativeDigestPath(agent.companyId, proj.id),
+        );
 
         // Re-check after the async distill: only reset if STILL idle and live.
         const live2 = agents.getById(agent.id);

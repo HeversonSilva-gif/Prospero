@@ -37,6 +37,17 @@ describe("setIcon", () => {
   });
 });
 
+describe("setDigestPath", () => {
+  it("persists a digest path marker", () => {
+    const db = setupDb();
+    const repo = createProjectsRepository(db);
+    const p = repo.create({ companyId: "c1", name: "P1", path: "/p1", color: "#fff" });
+    expect(repo.getById(p.id)?.digestPath).toBeNull();
+    repo.setDigestPath(p.id, "companies/c1/projects/" + p.id + "/digest.json");
+    expect(repo.getById(p.id)?.digestPath).toBe("companies/c1/projects/" + p.id + "/digest.json");
+  });
+});
+
 describe("archive / unarchive", () => {
   it("archive sets archivedAt to a positive number", () => {
     const db = setupDb();
