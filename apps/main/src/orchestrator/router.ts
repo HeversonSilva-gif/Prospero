@@ -9,6 +9,8 @@ type State = {
   queue: Array<{ threadId: string; content: string; sender: Sender }>;
   // M11 PR-F2: a memory nudge to prepend to this agent's next turn, or null.
   pendingNudge: string | null;
+  // Compaction task-state seed to prepend to this agent's next turn, or null.
+  pendingSeed: string | null;
 };
 
 export type RouterOptions = {
@@ -21,6 +23,8 @@ export type Router = {
   getCurrentThread(agentId: string): string | null;
   // M11 PR-F2: park a nudge to ride along with the agent's next turn.
   setPendingNudge(agentId: string, nudge: string): void;
+  // Park a compaction seed to ride along with the agent's next turn.
+  setPendingSeed(agentId: string, seed: string): void;
 };
 
 const formatSender = (sender: Sender, content: string): string =>
@@ -32,17 +36,23 @@ export const createRouter = (opts: RouterOptions): Router => {
   const ensure = (agentId: string): State => {
     let s = states.get(agentId);
     if (s === undefined) {
-      s = { currentTurnThreadId: null, queue: [], pendingNudge: null };
+      s = { currentTurnThreadId: null, queue: [], pendingNudge: null, pendingSeed: null };
       states.set(agentId, s);
     }
     return s;
   };
 
-  // Prepends and consumes a parked nudge, if any.
-  const consumeNudge = (s: State, content: string): string => {
-    if (s.pendingNudge === null) return content;
-    const out = `${s.pendingNudge}\n\n${content}`;
-    s.pendingNudge = null;
+  // Prepends and consumes a parked seed (first) and nudge, if any.
+  const consumePending = (s: State, content: string): string => {
+    let out = content;
+    if (s.pendingNudge !== null) {
+      out = `${s.pendingNudge}\n\n${out}`;
+      s.pendingNudge = null;
+    }
+    if (s.pendingSeed !== null) {
+      out = `${s.pendingSeed}\n\n${out}`;
+      s.pendingSeed = null;
+    }
     return out;
   };
 
@@ -52,7 +62,7 @@ export const createRouter = (opts: RouterOptions): Router => {
       const formatted = formatSender(sender, content);
       if (s.currentTurnThreadId === null) {
         s.currentTurnThreadId = threadId;
-        opts.writeStdin(agentId, consumeNudge(s, formatted));
+        opts.writeStdin(agentId, consumePending(s, formatted));
       } else {
         s.queue.push({ threadId, content: formatted, sender });
       }
@@ -64,7 +74,7 @@ export const createRouter = (opts: RouterOptions): Router => {
         s.currentTurnThreadId = null;
       } else {
         s.currentTurnThreadId = next.threadId;
-        opts.writeStdin(agentId, consumeNudge(s, next.content));
+        opts.writeStdin(agentId, consumePending(s, next.content));
       }
     },
     getCurrentThread(agentId) {
@@ -72,6 +82,9 @@ export const createRouter = (opts: RouterOptions): Router => {
     },
     setPendingNudge(agentId, nudge) {
       ensure(agentId).pendingNudge = nudge;
+    },
+    setPendingSeed(agentId, seed) {
+      ensure(agentId).pendingSeed = seed;
     },
   };
 };

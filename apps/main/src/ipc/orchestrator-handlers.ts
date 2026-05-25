@@ -399,7 +399,7 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
             }),
         });
 
-        await worker.compact({
+        const { taskState } = await worker.compact({
           companyId: agent.companyId,
           projectId: proj.id,
           agentId: agent.id,
@@ -422,6 +422,12 @@ export const registerOrchestratorHandlers = (db: Database.Database): void => {
         if (adapter !== undefined) {
           adapter.kill();
           removeAdapter(agent.id);
+        }
+        if (taskState.trim() !== "") {
+          router.setPendingSeed(
+            agent.id,
+            `[CONTEXT COMPACTED] Where you left off:\n\n${taskState}`,
+          );
         }
       } finally {
         compactionInFlight.delete(compactionKey);

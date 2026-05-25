@@ -43,3 +43,34 @@ describe("createRouter — pending nudge", () => {
     expect(writes[0]).toBe("[from: CEO] plain");
   });
 });
+
+describe("createRouter — pending seed", () => {
+  it("prepends a pending seed to the next turn, then clears it", () => {
+    const sent: string[] = [];
+    const router = createRouter({ writeStdin: (_id, content) => sent.push(content) });
+    router.setPendingSeed("ag", "SEED-TEXT");
+    router.enqueue("ag", "th", "hello", { kind: "user", id: null, name: "User" });
+    expect(sent[0]).toContain("SEED-TEXT");
+    expect(sent[0]).toContain("hello");
+    // second turn must NOT carry the seed again
+    sent.length = 0;
+    router.onTurnComplete("ag"); // queue empty → no send
+    router.enqueue("ag", "th", "again", { kind: "user", id: null, name: "User" });
+    expect(sent[0]).not.toContain("SEED-TEXT");
+  });
+
+  it("seed appears before nudge and content when both are parked", () => {
+    const sent: string[] = [];
+    const router = createRouter({ writeStdin: (_id, content) => sent.push(content) });
+    router.setPendingSeed("ag", "SEED");
+    router.setPendingNudge("ag", "NUDGE");
+    router.enqueue("ag", "th", "msg", { kind: "user", id: null, name: "User" });
+    // Expected order: SEED\n\nNUDGE\n\n[from: User] msg
+    expect(sent[0]).toMatch(/SEED[\s\S]*NUDGE[\s\S]*msg/);
+    const seedIdx = sent[0]!.indexOf("SEED");
+    const nudgeIdx = sent[0]!.indexOf("NUDGE");
+    const msgIdx = sent[0]!.indexOf("msg");
+    expect(seedIdx).toBeLessThan(nudgeIdx);
+    expect(nudgeIdx).toBeLessThan(msgIdx);
+  });
+});
