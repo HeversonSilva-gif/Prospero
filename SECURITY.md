@@ -1,327 +1,257 @@
-# Security
-
-## Reporting
-
-If you discover a security issue, please **do not open a public issue**. Email the maintainer directly or open a private security advisory on GitHub.
-
-## Threat model
-
-This app runs agents (Claude Code subprocesses) on your machine with access to:
-
-- Filesystem (Read/Write/Edit) within `allowed_projects_json` of each agent
-- Shell commands (Bash) with deny-list of destructive operations
-- Network (within tools the agents call)
-
-Threats covered (per Spec §8):
-
-- OAuth token exfiltration → DPAPI encryption + filesystem allowlist + Bash deny-list
-- Prompt injection → heuristic detector + auto-mode degradation
-- MCP local exploit → ephemeral per-agent tokens
-- Supply chain → lockfile + audit + Renovate
-
-## Token rotation
-
-Generate a new token with `claude setup-token`, then paste it in Settings.
-
-## Incident runbook
-
-See `docs/superpowers/specs/2026-05-09-prospero-design.md` §8.9 (full runbook lands in M7+).
-
-## Architectural decisions
-
-### Blocklist `gate.ts §8.3` persists across adapters
-
-Even when M10 lands the remote-Docker adapter, the in-process command blocklist
-(`apps/main/src/security/gate.ts`) stays as defense-in-depth on top of Docker
-sandboxing. The trade-off is the cost of two filtering layers; the upside is
-that we still block a known-bad command if a container escape (mount-based
-breakout, missing user namespace on the host kernel, or a misconfigured volume)
-defeats the Docker layer.
-
-### Per-agent `CLAUDE_CONFIG_DIR` + `--strict-mcp-config`
-
-Sandbox lockdown from M3 stays in M7.5 PR-A's adapter pattern: every agent gets
-its own config directory under `userData/.../agent-<id>`, the OAuth credentials
-are copied (not symlinked) into that dir, and the spawned claude CLI runs with
-`--strict-mcp-config` pointing at a per-spawn ephemeral MCP server registry.
-Without these, an agent could read another agent's session history or load an
-attacker-controlled MCP server.
-
-## Adapter threat models
-
-The M7.5 PR-A `AgentAdapter` interface defines a stable extension point. Each
-concrete adapter has its own threat surface; they share the gate.ts blocklist
-and per-agent config sandbox but differ in credential handling and execution
-locus.
-
-### `claude-oauth-local` (current)
-
-- **Locus:** same machine as the app, child process of Electron main.
-- **Credentials:** OAuth refresh token decrypted with DPAPI/safeStorage on
-  Windows + macOS keychain on macOS + libsecret on Linux. The decrypted plain
-  token is passed through the `ANTHROPIC_*` environment of the spawned claude
-  child, never written to disk.
-- **Primary threat:** an agent uses `Bash` or `Edit` with absolute paths to
-  escape its sandbox CWD or read the user's home directory.
-- **Mitigations:** gate.ts blocklist (covers `rm`, `chmod`, network exfil), the
-  file-fence pattern from M5 (`allowed_projects_json` per agent), per-agent
-  `CLAUDE_CONFIG_DIR`, and `--strict-mcp-config` so the agent can't load an
-  attacker-controlled MCP server through a stray settings file.
-
-### `claude-api-key-local` (M9 PR-D, 2026-05-14 ✅)
-
-- **Locus:** same machine.
-- **Credentials:** Anthropic API key encrypted via `safeStorage` in the `settings`
-  table (keys `auth.apikey.{ciphertext,prefix,configured_at}`). Renderer only ever
-  sees the masked prefix (`sk-ant-api03-…XXXX`); the raw key never crosses the
-  IPC boundary back to the renderer.
-- **Spawn shape:** sandbox `CLAUDE_CONFIG_DIR` per agent (same as OAuth), but
-  `seedSandboxCredentials` is **skipped** — no `.credentials.json` is written.
-  Instead `ANTHROPIC_API_KEY=<decrypted>` is passed via env on spawn.
-  `--strict-mcp-config` remains active.
-- **Primary threat:** API key in plaintext appearing in process listings,
-  command-line history, logs, or crash dumps.
-- **Mitigations:** key is passed only via environment (not argv), redacted in
-  all log surfaces via `token-redact.ts`, never persisted to a temp file.
-- **Concurrency cap:** **no cap** — Anthropic's API gateway enforces the
-  account's rate limit. The 4-agent cap from `lifecycle.ts` is gated on
-  `agent.adapterName === 'claude-oauth-local'` and skipped for API key agents.
-- **Mode selection:** `AppSettings.authMode` (`'oauth' | 'api-key'`, default
-  `'oauth'`). Set via Settings UI or Setup Wizard. Changing the mode applies
-  to **new agents only**; existing agents keep their `adapter_name` (set at
-  creation) until terminated and respawned. Both OAuth and API key blobs
-  coexist in `safeStorage` — switching modes does not delete the other.
-
-### `claude-oauth-remote-docker` (M10, 2026-05-15 ✅)
-
-- **Locus:** the `claude` process runs inside a Docker container — local Docker
-  for the validation path, or a VPS via SSH. Everything stateful (SQLite, MCP
-  server, permission handshake, the chokidar watcher) stays on the host: the
-  container runs only `claude` plus a "dumb" agent-runner that proxies stdio.
-- **Transport:** a single SSH stdio channel (`docker run -i` locally; `ssh …
-  -- docker run -i` for a VPS). SSH supplies auth, encryption, and the pipe —
-  there is no open port, no WSS, and no X.509 certificate lifecycle. WSS+mTLS
-  was considered and rejected (M10 design §2, §11).
-- **Credentials:** the OAuth token travels once, in the wire-protocol
-  `handshake` message, encrypted by the SSH transport (loopback only for local
-  Docker). The runner injects it as the `CLAUDE_CODE_OAUTH_TOKEN` environment
-  variable of the spawned `claude` child — never written to disk in the
-  container, never logged (the runner redacts tokens in stderr before
-  forwarding via `redactSecrets`).
-- **Primary threats:** in-flight credential interception, Docker escape, host
-  network egress from a compromised container.
-- **Mitigations:** SSH provides transport auth + encryption; the SSH host key
-  is pinned (`StrictHostKeyChecking=yes`, `BatchMode=yes` — a forged host fails
-  the connection, no interactive trust prompt). The container runs as a
-  non-root user behind `tini` as PID 1, with `--strict-mcp-config` (the
-  generated `mcp.json` only references the loopback MCP bridge) and no mounted
-  host paths. The container work directory is ephemeral — removed when the
-  `--rm` container exits.
-- **MCP / DB isolation:** the SQLite database never leaves the host. The MCP
-  server (`mcp/server.js`) is spawned on the host by an `McpRelay`; the
-  container reaches it only through the tunnelled wire-protocol channel. The
-  `gate.ts` command blocklist therefore still runs host-side on every MCP
-  call — Docker isolation **plus** the command gate is defense-in-depth, not a
-  replacement (see "Blocklist `gate.ts §8.3` persists across adapters" above).
-- **Concurrency cap:** counts against the 4-agent OAuth cap in `lifecycle.ts`,
-  same as `claude-oauth-local` — `isOauth` covers both adapter names.
-- **Setup:** see `docs/m10-vps-setup-runbook.md` for VPS provisioning and the
-  local-Docker smoke checklist.
-
-## Containment zones (M13 PR-E)
-
-A declared map of privacy zones layered on top of the per-agent sandbox CWD.
-Every absolute path that an FS tool tries to touch is classified by
-`apps/main/src/security/zones.ts`:
-
-- `companies/<cid>/...` and the equivalent suffix under the `agent-instructions/`
-  and `memory/` prefixes → **company** zone (when the path doesn't dive into a
-  specific agent).
-- `companies/<cid>/agents/<aid>/...` (and the equivalent under the other two
-  prefixes) → **agent** zone.
-- Anything outside this tree → no opinion (the existing path-fence decides).
-
-The gate denies any access that falls into a known zone the actor cannot
-reach:
-
-- An agent can touch its own agent zone and the company zone it belongs to.
-- Cross-company, cross-agent, and system zones are denied.
-
-Every deny is audited as a `security.zone_blocked` activity event and (since
-M13 PR-F) creates a non-actionable inbox card with the attempted path and
-reason, de-duplicated within a 5-minute window so an agent loop cannot spam
-the inbox. **This is defense-in-depth**: the path-fence is still the primary
-filter — the zone check can only add denials, never lift them.
-
-## Verification as an attack surface (M13 PR-B)
-
-The verification engine treats an issue as "done" when its criteria pass.
-That makes the criterion-check path itself a target: a misbehaving agent
-might mark criteria as `passed` without actually doing the work.
-
-Current mitigations:
-
-- `criterion_judge` records the `verified_by` agent id (audit row); a
-  judgment from agent A is always attributable to agent A.
-- Deterministic criteria (command, artifact, metric) cannot be self-judged
-  via `criterion_judge`; they only flip when the engine runs the check.
-
-Known gap (tracked for V2):
-
-- `criterion_check` is self-reported by the agent doing the work. There is
-  no enforcement that the judge of a judgment criterion is a different agent
-  than the implementer. A bad-actor agent that knows the gate exists can
-  still mark its own judgment criteria passed.
-
-The right hardening is forcing `criterion_judge` to require an actor distinct
-from the issue's assignee. Spec'd, not implemented in v1.
-
-## Memory and skills as injection vectors
-
-Memory entries and skill bodies are injected verbatim into every agent system
-prompt (`buildMemoryBlock` in `apps/main/src/orchestrator/system-prompt-memory.ts`).
-A hostile string stored in memory or a skill body would appear in the system
-prompt of every future session, making these write paths a critical attack
-surface.
-
-**Shared sanitizer.** `apps/main/src/memory/sanitizer.ts` runs on all write
-paths before any string is persisted: the agent-facing MCP tools
-(`skill_create`, `skill_update`, `memory_add`), and the derivation pipeline
-output. The pipeline produces LLM-generated text and is treated as equally
-untrusted as agent input. The sanitizer blocks prompt-injection phrases
-("ignore previous instructions", system-prompt disclosure requests, XML-style
-instruction tags) and the same shell-command and sensitive-path blocklists used
-by `gate.ts`.
-
-**Skill candidates require human review.** Derivation-produced skill candidates
-go through an Accept / Edit / Reject step in the Inbox before a `skills` row
-and `SKILL.md` file are created. The user is the reviewer; the sanitizer has
-already run on the candidate body before it appears in the review UI.
-
-**Pinned memories and promoted skills are read-only to agents.** `memory_remove`
-rejects pinned entries. `skill_update` rejects promoted skills. Only the user
-can modify these through the Settings or Inbox UI.
-
-**`user.md` is the trusted authoring path.** The file is written by the user
-via the Settings Memory editor, and the sanitizer does not run on it — the user
-is the trusted author. The content is hard-truncated at 1 024 characters at
-injection time, so an unexpectedly large file cannot inflate the system prompt
-beyond that bound.
-
-## Approvals and artifacts storage (foundation)
-
-M7.5 PR-B introduced two new persistence surfaces; both intentionally avoid
-storing secrets.
-
-- `approvals.payload_json` records the operation an agent asked for permission
-  to perform (tool name, arguments). It must not contain credentials. The
-  audit history is single-user and local; if it grows to include team data,
-  add field-level redaction.
-- `issue_artifacts.content_preview` is capped at 4 KB by Zod validation in the
-  `record_artifact` MCP tool (`apps/main/src/mcp/tools.ts`). Preview text is
-  raw user-visible content (no parsing), so it cannot escape its column.
-- The pre-push `gitleaks` hook catches accidental secret commits across all
-  paths.
-
-## Trust ladder — earned autonomy (M14 PR-A/B)
-
-A per-agent trust tier (`novato → confiavel → autonomo`) that a track record
-of verified outcomes raises automatically. The gate auto-approves read-only
-tool calls (`Read`, `Glob`, `Grep`, `list_*`, `*_read`) for non-`novato`
-agents — but never write/edit/Bash. Promotion to `autonomo` (which flips the
-Run Policy `mode` to `auto`) is suggestion-only: the engine files a
-`trust_promotion_suggested` inbox card; the user must approve.
-
-Mitigations:
-
-- **Demotion is immediate and non-blocking.** A verification failure flips
-  the tier back to `novato` synchronously, even before the user sees it.
-- **The agent cannot self-certify.** Track record is computed from
-  `goals.status = 'achieved'` and `goal_criteria.status` — both written
-  exclusively by the verification engine (M13), which is orchestrator-side
-  and out of the agent's reach.
-- **Every transition is audited** in `trust_events` (`promoted` /
-  `demoted` / `promotion_suggested`) and as an `activity_event`. Every
-  read-only auto-approve is also audited (`trust.readonly_autoapproved`).
-- **Score is not stored.** The eligible tier is computed on demand from
-  existing tables; no stale state to invalidate.
-
-Known gap (tracked for V2):
-
-- Manual override of `agents.mode` by the user is NOT reverted by the
-  ladder. If the user forces `mode=auto` on a `novato` agent, the ladder
-  records the divergence but respects the user's choice. This is a
-  conscious trade — the user retains final control of the run policy.
-
-### Routines (M15)
-
-A *routine* wakes a target agent on a schedule (cron-like, structured)
-or on a fixed activity event. The routine itself is data — the user
-authors the instruction string via the `/routines` UI; no agent
-generates routines.
-
-**Threat model:**
-
-- *Prompt injection via routine instruction* — N/A. Instructions are
-  user-authored.
-- *Agent escapes via routine* — N/A. The agent woken by a routine
-  passes through the gate (`request_permission`) and the trust ladder
-  (M14) exactly as if the user had sent the turn manually. A `novato`
-  agent will still block at the first sensitive tool call.
-- *Routines firing across companies* — Blocked by FK cascade. A
-  routine and its target agent share a `company_id` (PR-A migration
-  `0035`); `ON DELETE CASCADE` on both companies and agents wipes
-  routines automatically.
-- *Routine firing on budget-paused agent* — Blocked by `fireRoutine`
-  skip rule (`budget_paused`). The routine logs a `routine.skipped`
-  activity event and does NOT despause.
-- *Stale schedule* — Mitigated by PR-B fix: `routines:update` re-seeds
-  `nextFireAt` via `computeNextFire` when `scheduleSpec` changes.
-  Without this, an edit "09:00 → 14:00" would still fire at 09:00
-  once before self-correcting.
-
-**Known V2 hardening gap:** routines authored by agents (via a future
-MCP tool) would re-open the prompt-injection vector. Out of scope for
-v1; see `docs/superpowers/specs/2026-05-18-m15-routines-design.md` §14.
-
-## Morning briefing — read-only triage surface (M14 PR-C)
-
-The Vitrine Matinal is a read-only triage page. The only write surface is
-`companies.briefing_reviewed_at` (a cursor), updated by an explicit user
-action. The headline is generated by one `claude -p` call per user action,
-cached on `companies.briefing_headline_json` by hash of the input counters
-(six small integers), so opening the page repeatedly in the same state
-costs zero new calls. On call failure, the page falls back to a
-deterministic headline; the cache is NOT written on failure so the next
-call retries.
-
-Threat surface:
-
-- The counters fed to the headline are six aggregate integers — no agent
-  output, no user input, no path strings. Nothing sensitive flows into the
-  `claude -p` prompt.
-- The IPC `briefing:get` is read-only; it reads tables already exposed via
-  other IPCs (inbox, goals, costs). No new data egress.
-- `briefing:mark-reviewed` is the only write. It accepts only a company id
-  and stamps `Date.now()` — no user-controlled timestamp.
-
-## Distribution & auto-update (M17)
-
-The app is packaged with electron-builder (NSIS, per-user install, no admin)
-and distributed via GitHub Releases. A CI workflow (`.github/workflows/release.yml`)
-builds and publishes on a `v*` tag push; `electron-updater` polls the release's
-`latest.yml` at launch and downloads updates in the background.
-
-Threat model (v1 — no code signing yet):
-
-| Threat | Mitigation (v1) | Future |
+# Security Policy
+
+Prospero is a desktop application that runs a multi-agent AI system on your machine. Each agent has access to your local filesystem and shell, authenticated via your Claude OAuth token. Because Prospero holds privileged credentials and can execute system commands, security is foundational — not optional.
+
+This document describes what Prospero protects, the threat model we reason against, our security architecture, and how to report vulnerabilities responsibly.
+
+---
+
+## What Prospero Accesses and Protects
+
+**Credentials**
+- Your Claude OAuth token (or API key), used to authenticate all agent activity.
+- Stored encrypted via the operating system's secure storage: Windows DPAPI, macOS Keychain, or Linux libsecret — via Electron `safeStorage`.
+- No credentials are transmitted to Prospero servers. All authentication is local.
+
+**Filesystem**
+- Each agent operates inside an isolated sandbox directory per agent.
+- Access outside that sandbox requires explicit approval via the permission gate.
+- A blocklist of sensitive path prefixes (SSH keys, cloud provider credentials, OS credential stores) is enforced unconditionally — no approval can override it.
+
+**Shell**
+- Agents may request shell command execution.
+- Commands matching a blocklist of destructive or data-exfiltration patterns are denied unconditionally before reaching the approval gate.
+- All other shell requests go through the approval gate (CEO agent or human user, depending on configuration).
+
+**Network**
+- Prospero itself makes no outbound requests beyond Claude API calls.
+- Agent-initiated network operations are subject to the same permission gate and blocklist.
+
+---
+
+## Threat Model
+
+We actively reason against these threat scenarios:
+
+**T1 — Prompt injection via crafted input**
+An agent receives malicious content (via a message, a file it reads, or a memory entry) that attempts to redirect its behavior, exfiltrate credentials, or execute unauthorized commands. Mitigations: permission gate, command blocklist, sandbox isolation, injection-pattern detection on memory and skill writes.
+
+**T2 — OAuth token or API key exfiltration**
+An agent or compromised subprocess attempts to extract credentials from the runtime environment. Mitigations: credential isolation architecture, OS secure storage, environment hardening (active area of improvement — see "Active Hardening" below).
+
+**T3 — Filesystem sandbox escape**
+An agent attempts to read or write outside its designated sandbox using absolute paths or path traversal. Mitigations: per-agent CWD isolation, zone classification system (company/agent zone enforcement), path blocklist.
+
+**T4 — Cross-agent privilege escalation**
+A lower-privilege agent attempts to access another agent's credentials or working directory. Mitigations: per-agent isolated config directories, zone classification enforced at the gate layer.
+
+**T5 — Renderer XSS → privileged API access**
+Malicious content rendered in the Electron UI (e.g., via crafted Markdown in a chat message) attempts to access privileged APIs exposed to the renderer. Mitigations: `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, Content Security Policy, HTML sanitization before rendering (active area of improvement — see "Active Hardening" below).
+
+**T6 — Prompt injection via memory or skills**
+Hostile strings stored in agent memory or skill bodies are injected into future agent system prompts. Mitigations: injection-pattern sanitizer on all write paths, human approval required for skill promotion, read-only status for pinned memories.
+
+**T7 — Supply chain compromise**
+A compromised dependency gains runtime access. Mitigations: lockfile pinning, `gitleaks` pre-push hook for accidental secret commits, OS-level process isolation.
+
+---
+
+## Security Architecture
+
+| Layer | Mechanism |
+|---|---|
+| Credential storage | OS secure storage (DPAPI / Keychain / libsecret) via Electron `safeStorage` |
+| Renderer isolation | `contextIsolation`, `nodeIntegration: false`, `sandbox: true`, CSP |
+| Per-agent sandbox | Isolated config directory + working directory per agent |
+| Permission gate | Every agent tool call evaluated before execution; sensitive operations require approval |
+| Blocklist | Always-denied shell command patterns and sensitive path prefixes |
+| Zone classification | Enforced boundaries between agent and company data zones |
+| Memory sanitization | Injection-pattern detection on all memory and skill writes |
+| Approval flow | Human-in-the-loop gate for sensitive operations; CEO agent as intermediate approver |
+| Trust ladder | Per-agent trust tiers; auto-approve limited to read-only tools for non-novice agents |
+| Update integrity | SHA512 verification of downloads via `electron-updater`; HTTPS from GitHub Releases |
+
+---
+
+## Active Hardening (May 2026)
+
+The following categories of risk were identified in our internal Wave 1 security audit and are actively being addressed in the current release cycle. We are disclosing these categories publicly to set honest expectations; we are withholding specific exploit paths until fixes are shipped:
+
+- **Credential environment isolation:** Ensuring OAuth credentials are not reachable via process environment inspection by agent subprocesses.
+- **Sandbox boundary coverage:** Expanding zone classification to fully cover agent working directories and credential files within the sandbox.
+- **Renderer Content Security Policy:** Implementing CSP to constrain script execution in the renderer and prevent UI-based attacks on privileged APIs.
+- **Build environment bypass guards:** Ensuring development-only authentication shortcuts are inactive in production builds.
+
+We will update this document as fixes land. Researchers who discover issues in these categories are welcome to report them — we will coordinate disclosure timing with the fix schedule.
+
+---
+
+## VPS Deployment Threat Model
+
+The default Prospero distribution is a single-user Windows desktop app — the
+threat model above assumes a hostile network is on the other side of the
+internet, not on the same machine.
+
+A second deployment mode (see `infra/docker/vps/`) ships the same Electron
+app inside a Linux Docker container, exposed via noVNC behind Traefik +
+Authelia. This changes the surface area meaningfully. The notes below
+catalogue what becomes harder to defend and which compensating controls are
+mandatory in this mode.
+
+**Attack surface delta (VPS mode vs. desktop mode)**
+
+| Attribute | Desktop (Windows) | VPS (Docker + noVNC) |
 |---|---|---|
-| Tampered download (MITM) | electron-updater verifies the installer's SHA512 against `latest.yml`, which is fetched over HTTPS from GitHub. | Code-signing certs (sign the `.exe`; `latest.yml` becomes tamper-evident). |
-| Malicious release pushed by an attacker | CI uses the repo-scoped `GITHUB_TOKEN`; publishing requires write access to the repo. 2FA is on. | Branch protection on `main` + signed commits once the repo is public. |
-| Stale sideloaded build keeps running | electron-updater never force-installs; the next launch re-checks. | Optional "force update" flag for critical releases. |
-| Native deps (better-sqlite3) diverge dev↔release | CI rebuilds natives for the target Electron version (`rebuild:electron`) before packaging. | Automated post-build smoke in CI. |
+| Exposed to public internet? | No | Yes — TLS-terminated noVNC over HTTPS |
+| Pre-authentication path | OS login | Authelia (password + TOTP) |
+| Chrome sandbox | Active | **Disabled** (`--no-sandbox`) |
+| Credential store backing `safeStorage` | DPAPI | libsecret (falls back to a basic in-memory store on a headless host with no keyring; the OAuth token comes in via env var and is never written to safeStorage in this mode) |
+| Process isolation | OS user account | Docker container, non-root UID 1000 |
+| Persistence of agent data | `%APPDATA%/Prospero` | `/opt/prospero/data` (volume) |
+| Shell access from the desktop session | Local only | A logged-in user gets a real desktop session reachable from any browser |
 
-The updater never executes downloaded code without the user choosing to restart
-(or on the next quit, via `autoInstallOnAppQuit`). The network check is gated on
-`app.isPackaged`, so dev builds never hit the update endpoint. No telemetry or
-user data is sent during a check — it is a plain GET of the public `latest.yml`.
+**Mandatory controls in VPS mode**
+
+1. **Authelia with 2FA must be the front door.** The Traefik labels in
+   `docker-compose.yml` enforce `policy: two_factor` for the Prospero host.
+   Basic Auth is documented as an alternative in `infra/docker/vps/README.md`
+   but explicitly *not* recommended — it has no MFA, no session, and no
+   audit. If you swap it in anyway, you accept the risk of credential
+   replay against an unbounded desktop shell.
+2. **TLS is mandatory.** The compose file routes only through the
+   `websecure` (`:443`) entrypoint with a Let's Encrypt resolver. Do not
+   add a plain-HTTP route — noVNC over plaintext leaks every keystroke
+   and every screen update.
+3. **Restrict source IPs when feasible.** If you operate from a stable
+   set of locations, add a Traefik
+   `ipallowlist.sourcerange=YOUR.IP.0.0/16` middleware in front of the
+   Authelia one. The README shows the snippet.
+4. **Guard the OAuth token.** `CLAUDE_CODE_OAUTH_TOKEN` is injected via
+   the container env from `.env` (gitignored). It must never appear in
+   container logs, in git history, in screenshots of the desktop, or in
+   any chat with an agent. Rotation procedure is in the VPS README.
+5. **Workspace volumes are the blast radius.** Anything you mount at
+   `/opt/prospero/workspaces` is what agents can reach. Mount only
+   projects you are willing to let agents read and write — never mount
+   `/`, never mount `~`, never mount the docker socket.
+
+**Why the chrome sandbox is disabled (`--no-sandbox`)**
+
+Chromium's sandbox requires either `CAP_SYS_ADMIN` (which would mean
+`privileged: true` — broad host access we explicitly refuse) or a
+setuid helper binary that the AppImage doesn't ship in a form the
+container can use. We launch the AppImage with `--no-sandbox` instead.
+
+What this attenuates: a renderer-level RCE (T5 in the table above)
+loses one layer of containment before it reaches the rest of the
+container. The compensating layers — `contextIsolation: true`,
+`nodeIntegration: false`, the docker container itself, the non-root
+UID — all remain in place. We consider the tradeoff acceptable given
+the threat model of a single-user deploy gated by 2FA, but a future
+hardening pass should re-evaluate (e.g. by shipping a setuid
+chrome-sandbox helper inside the image, or by switching to a kernel
+that exposes user-namespaces such that the sandbox can be re-enabled).
+
+**Workspace isolation between agents**
+
+The desktop threat model (T3, T4) assumes per-agent sandbox directories
+plus the M13 zone classifier. Both are still active in VPS mode — the
+container does not weaken them. What the container *adds* is a hard
+outer boundary: even a full sandbox escape lands the agent inside a
+non-root container with only the explicitly mounted volumes reachable.
+The docker daemon socket is never mounted; agents have no path to
+break out into the host.
+
+**Logging hygiene**
+
+`entrypoint.sh` does not log the contents of any env var. Agent activity
+logs continue to be written to the SQLite database under
+`/opt/prospero/data` and follow the same scrub rules as the desktop
+build. If you change the entrypoint to add logging, audit any new line
+that touches `$CLAUDE_CODE_OAUTH_TOKEN` or `$ANTHROPIC_API_KEY` for
+accidental disclosure.
+
+---
+
+## Scope
+
+**In scope for responsible disclosure:**
+- Exfiltration of the user's OAuth token, API key, or other credentials managed by Prospero
+- Escape from the agent sandbox to arbitrary filesystem access
+- Bypass of the permission gate or command blocklist
+- Cross-agent privilege escalation (one agent reading another agent's credentials or data)
+- XSS or other renderer attacks that access privileged contextBridge APIs
+- Prompt injection via agent memory, skills, or messages leading to unauthorized action
+- Unauthorized action taken by an agent without user approval
+- Vulnerabilities in the update mechanism that could allow a tampered binary to be installed
+
+**Out of scope:**
+- Denial of service against the local application
+- Attacks requiring physical access to the user's machine
+- Vulnerabilities in third-party dependencies (report to the respective maintainer; also notify us if Prospero is directly affected)
+- Social engineering of the user
+- Vulnerabilities in Claude itself (report to [Anthropic](https://www.anthropic.com/security))
+- Theoretical issues without a practical exploit path on a default installation
+
+---
+
+## Responsible Disclosure Policy
+
+We follow a **coordinated disclosure** model.
+
+1. **Report privately** — use the contact below. Do not publish or share details publicly before a fix is available and users have had time to update.
+2. **We acknowledge within 48 hours** — you will receive confirmation that your report is being reviewed.
+3. **We triage within 5 business days** — we will assess severity and confirm whether the issue is in scope.
+4. **Fix timeline targets:**
+   - Critical: 30 days
+   - High: 60 days
+   - Medium / Low: 90 days
+   We will communicate progress and may request an extension for complex issues.
+5. **Coordinated release** — we agree on a disclosure date with you. Default: once a fix is available and users have had reasonable time to update.
+6. **Credit** — with your permission, we will acknowledge your contribution in the release notes.
+
+We ask that you:
+- Give us reasonable time to develop and ship a fix before publishing
+- Limit your testing to your own installation — do not access, modify, or exfiltrate other users' data
+- Avoid automated scanning that could degrade service for other users
+
+---
+
+## Reporting a Vulnerability
+
+**GitHub private security advisory (preferred):**
+Use the [Security tab](../../security/advisories/new) on this repository to open a private advisory. This keeps the report confidential and gives us a shared workspace to coordinate.
+
+**Email:**
+security@prospero.app *(replace with actual contact before publishing)*
+
+**What to include:**
+- Description of the vulnerability and its potential impact
+- Steps to reproduce (Prospero version, OS, configuration)
+- Proof-of-concept code, screenshots, or logs (redact any personal data)
+- Your preferred contact for follow-up
+
+We do not currently offer a monetary bug bounty, but we are happy to discuss recognition and public attribution.
+
+---
+
+## Supported Versions
+
+| Version | Security support |
+|---|---|
+| Latest release | ✅ Supported |
+| Older releases | ❌ No — please update |
+
+Prospero is in early development. We strongly recommend always running the latest release. The auto-updater (`electron-updater`) will notify you of new versions at launch.
+
+---
+
+## Security Contact
+
+For non-vulnerability security questions — threat model, architecture, compliance — open a GitHub Discussion or issue tagged `security-question`.
+
+For vulnerabilities, use the private channels above. **Do not open a public GitHub issue for security vulnerabilities.**
+
+---
+
+*Last updated: May 2026. Post Wave 1 internal security audit.*
