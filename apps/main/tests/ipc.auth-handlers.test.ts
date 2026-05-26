@@ -20,7 +20,12 @@ vi.mock("electron", () => ({
   },
 }));
 
+vi.mock("../src/auth/credential-recovery.js", () => ({
+  recoverAllRunning: vi.fn(),
+}));
+
 import { registerAuthHandlers } from "../src/ipc/auth-handlers.js";
+import { recoverAllRunning } from "../src/auth/credential-recovery.js";
 
 const setup = () => {
   handlers.clear();
@@ -142,6 +147,29 @@ describe("auth ipc handlers", () => {
       await Promise.resolve(handlers.get("auth:token-clear")!({}));
       const status = await Promise.resolve(handlers.get("auth:token-status")!({}));
       expect(status).toEqual({ hasToken: false });
+    } finally {
+      cleanup();
+    }
+  });
+
+  it("auth:reconnect-running-agents returns aggregated results from recoverAllRunning", async () => {
+    const { cleanup } = setup();
+    try {
+      vi.mocked(recoverAllRunning).mockResolvedValueOnce([
+        { kind: "recovered", agentId: "a", durationMs: 100 },
+        { kind: "host-stale", agentId: "b", reason: "no-host-file" },
+        { kind: "failed", agentId: "c", reason: "respawn-failed" },
+      ]);
+
+      const handler = handlers.get("auth:reconnect-running-agents");
+      expect(handler).toBeDefined();
+
+      const result = (await Promise.resolve(handler!({}))) as Array<{ kind: string }>;
+      expect(result).toHaveLength(3);
+      expect(result[0]?.kind).toBe("recovered");
+      expect(result[1]?.kind).toBe("host-stale");
+      expect(result[2]?.kind).toBe("failed");
+      expect(recoverAllRunning).toHaveBeenCalledTimes(1);
     } finally {
       cleanup();
     }

@@ -5,6 +5,7 @@ import {
   IPC,
   type ApiKeyStatus,
   type DetectResult,
+  type RecoveryResult,
   type TokenSource,
   type TokenStatus,
 } from "@prospero/shared";
@@ -12,6 +13,7 @@ import { saveToken, loadTokenStatus, clearToken } from "../auth/token-storage.js
 import { saveApiKey, loadApiKeyStatus, clearApiKey } from "../auth/api-key-storage.js";
 import { detectClaudeCliToken } from "../auth/token-detect.js";
 import { redactToken } from "../auth/token-redact.js";
+import { recoverAllRunning } from "../auth/credential-recovery.js";
 
 type SetPayload = { raw: string; source: TokenSource };
 
@@ -85,5 +87,9 @@ export const registerAuthHandlers = (
   ipcMain.handle(IPC.AUTH_API_KEY_CLEAR, (): ApiKeyStatus => {
     clearApiKey(db);
     return loadApiKeyStatus(db);
+  });
+
+  ipcMain.handle(IPC.AUTH_RECONNECT_RUNNING_AGENTS, (): Promise<RecoveryResult[]> => {
+    return recoverAllRunning();
   });
 };
