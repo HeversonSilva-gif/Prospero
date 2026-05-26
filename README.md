@@ -2,7 +2,7 @@
 
 > **[🇧🇷 Leia em Português](README.pt-BR.md)**
 
-[![Version](https://img.shields.io/badge/version-0.1.17-blue)](https://github.com/HeversonSilva-gif/Prospero/releases/latest)
+[![Version](https://img.shields.io/badge/version-0.1.18-blue)](https://github.com/HeversonSilva-gif/Prospero/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows%20x64-lightgrey)](https://github.com/HeversonSilva-gif/Prospero/releases/latest)
 [![Tests](https://img.shields.io/badge/tests-1757_passing-brightgreen)](#status)

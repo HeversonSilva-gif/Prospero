@@ -3,6 +3,20 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.18 — 2026-05-26
+
+### Added
+
+- **Composer rico estilo Slack**: editor WYSIWYG (TipTap) com barra de
+  formatação (bold/italic/underline/strike/listas/código/link/quote) e
+  atalhos de teclado (cmd+B / cmd+I / cmd+U / cmd+K).
+- **Anexos no chat**: drag-and-drop, paste e botão `+` aceitam imagens
+  (≤ 5 MB), PDF e arquivos de texto (≤ 20 MB cada, até 10 por mensagem).
+  O agente lê o conteúdo de verdade — imagens via vision do Claude, PDF
+  como documento, texto inline na mensagem.
+- Click no anexo de uma mensagem enviada abre o arquivo no aplicativo
+  padrão do sistema.
+
 ## v0.1.17 — 2026-05-26
 
 ### Fixed
