@@ -21,7 +21,7 @@ describe("createRouter — pending nudge", () => {
       hasLiveAdapter: () => true,
     });
     router.setPendingNudge("a1", "NUDGE");
-    router.enqueue("a1", "t1", "do the thing", user);
+    router.enqueue("a1", "t1", "do the thing", user, null);
     expect(writes).toHaveLength(1);
     expect(writes[0]?.content).toBe("NUDGE\n\n[from: CEO] do the thing");
   });
@@ -32,9 +32,9 @@ describe("createRouter — pending nudge", () => {
       writeStdin: (_a, content) => writes.push({ content }),
       hasLiveAdapter: () => true,
     });
-    router.enqueue("a1", "t1", "first", user); // starts turn 1 (no nudge yet)
+    router.enqueue("a1", "t1", "first", user, null); // starts turn 1 (no nudge yet)
     router.setPendingNudge("a1", "NUDGE");
-    router.enqueue("a1", "t2", "second", user); // queued behind turn 1
+    router.enqueue("a1", "t2", "second", user, null); // queued behind turn 1
     router.onTurnComplete("a1"); // dequeues "second"
     expect(writes[1]?.content).toBe("NUDGE\n\n[from: CEO] second");
   });
@@ -46,9 +46,9 @@ describe("createRouter — pending nudge", () => {
       hasLiveAdapter: () => true,
     });
     router.setPendingNudge("a1", "NUDGE");
-    router.enqueue("a1", "t1", "first", user);
+    router.enqueue("a1", "t1", "first", user, null);
     router.onTurnComplete("a1"); // idle, no queued message
-    router.enqueue("a1", "t2", "second", user);
+    router.enqueue("a1", "t2", "second", user, null);
     expect(writes[0]).toBe("NUDGE\n\n[from: CEO] first");
     expect(writes[1]).toBe("[from: CEO] second"); // no nudge the second time
   });
@@ -59,7 +59,7 @@ describe("createRouter — pending nudge", () => {
       writeStdin: (_a, content) => writes.push(content),
       hasLiveAdapter: () => true,
     });
-    router.enqueue("a1", "t1", "plain", user);
+    router.enqueue("a1", "t1", "plain", user, null);
     expect(writes[0]).toBe("[from: CEO] plain");
   });
 });
@@ -72,13 +72,13 @@ describe("createRouter — pending seed", () => {
       hasLiveAdapter: () => true,
     });
     router.setPendingSeed("ag", "SEED-TEXT");
-    router.enqueue("ag", "th", "hello", { kind: "user", id: null, name: "User" });
+    router.enqueue("ag", "th", "hello", { kind: "user", id: null, name: "User" }, null);
     expect(sent[0]).toContain("SEED-TEXT");
     expect(sent[0]).toContain("hello");
     // second turn must NOT carry the seed again
     sent.length = 0;
     router.onTurnComplete("ag"); // queue empty → no send
-    router.enqueue("ag", "th", "again", { kind: "user", id: null, name: "User" });
+    router.enqueue("ag", "th", "again", { kind: "user", id: null, name: "User" }, null);
     expect(sent[0]).not.toContain("SEED-TEXT");
   });
 
@@ -90,7 +90,7 @@ describe("createRouter — pending seed", () => {
     });
     router.setPendingSeed("ag", "SEED");
     router.setPendingNudge("ag", "NUDGE");
-    router.enqueue("ag", "th", "msg", { kind: "user", id: null, name: "User" });
+    router.enqueue("ag", "th", "msg", { kind: "user", id: null, name: "User" }, null);
     // Expected order: SEED\n\nNUDGE\n\n[from: User] msg
     expect(sent[0]).toMatch(/SEED[\s\S]*NUDGE[\s\S]*msg/);
     const seedIdx = sent[0]!.indexOf("SEED");
@@ -104,7 +104,7 @@ describe("createRouter — pending seed", () => {
 describe("createRouter — hasLiveAdapter guard (message-hold)", () => {
   it("holds message in queue when hasLiveAdapter returns false", () => {
     const { router, writes } = makeRouter(new Set()); // no live adapters
-    router.enqueue("a1", "t1", "hello", user);
+    router.enqueue("a1", "t1", "hello", user, null);
     expect(writes).toHaveLength(0);
     expect(router.hasPendingWork("a1")).toBe(true);
     expect(router.listPendingAgentIds()).toContain("a1");
@@ -112,15 +112,15 @@ describe("createRouter — hasLiveAdapter guard (message-hold)", () => {
 
   it("does NOT hold when hasLiveAdapter returns true and no turn in flight", () => {
     const { router, writes } = makeRouter(new Set(["a1"]));
-    router.enqueue("a1", "t1", "hello", user);
+    router.enqueue("a1", "t1", "hello", user, null);
     expect(writes).toHaveLength(1);
     expect(router.hasPendingWork("a1")).toBe(true); // in-flight turn counts
   });
 
   it("holds when a turn is in flight even if hasLiveAdapter is true", () => {
     const { router, writes } = makeRouter(new Set(["a1"]));
-    router.enqueue("a1", "t1", "first", user); // starts turn
-    router.enqueue("a1", "t2", "second", user); // queued — turn in flight
+    router.enqueue("a1", "t1", "first", user, null); // starts turn
+    router.enqueue("a1", "t2", "second", user, null); // queued — turn in flight
     expect(writes).toHaveLength(1);
     expect(writes[0]?.content).toBe("[from: CEO] first");
   });
@@ -132,7 +132,7 @@ describe("createRouter — hasLiveAdapter guard (message-hold)", () => {
       writeStdin: (agentId, content) => writes.push({ agentId, content }),
       hasLiveAdapter: (id) => liveIds.has(id),
     });
-    router.enqueue("a1", "t1", "held", user);
+    router.enqueue("a1", "t1", "held", user, null);
     expect(writes).toHaveLength(0);
 
     // Simulate spawn completing
@@ -157,7 +157,7 @@ describe("createRouter — hasLiveAdapter guard (message-hold)", () => {
 
   it("deliverQueued is a no-op when adapter is still dead", () => {
     const { router, writes } = makeRouter(new Set()); // no live adapters
-    router.enqueue("a1", "t1", "msg", user);
+    router.enqueue("a1", "t1", "msg", user, null);
     router.deliverQueued("a1");
     expect(writes).toHaveLength(0);
     expect(router.hasPendingWork("a1")).toBe(true);
@@ -175,9 +175,9 @@ describe("createRouter — hasLiveAdapter guard (message-hold)", () => {
       hasLiveAdapter: (id) => liveIds.has(id),
     });
     // All held (no live adapters)
-    router.enqueue("a1", "t1", "msg", user);
-    router.enqueue("a2", "t2", "msg", user);
-    router.enqueue("a3", "t3", "msg", user);
+    router.enqueue("a1", "t1", "msg", user, null);
+    router.enqueue("a2", "t2", "msg", user, null);
+    router.enqueue("a3", "t3", "msg", user, null);
     const pending = router.listPendingAgentIds();
     expect(pending).toEqual(["a1", "a2", "a3"]);
   });
@@ -191,7 +191,7 @@ describe("createRouter — requestDrain callback", () => {
       hasLiveAdapter: () => false,
       requestDrain,
     });
-    router.enqueue("a1", "t1", "hello", user);
+    router.enqueue("a1", "t1", "hello", user, null);
     expect(requestDrain).toHaveBeenCalledTimes(1);
   });
 
@@ -202,7 +202,7 @@ describe("createRouter — requestDrain callback", () => {
       hasLiveAdapter: () => true,
       requestDrain,
     });
-    router.enqueue("a1", "t1", "hello", user);
+    router.enqueue("a1", "t1", "hello", user, null);
     expect(requestDrain).not.toHaveBeenCalled();
   });
 
@@ -213,9 +213,62 @@ describe("createRouter — requestDrain callback", () => {
       hasLiveAdapter: () => true,
       requestDrain,
     });
-    router.enqueue("a1", "t1", "first", user); // delivered — starts turn
+    router.enqueue("a1", "t1", "first", user, null); // delivered — starts turn
     requestDrain.mockClear();
-    router.enqueue("a1", "t2", "second", user); // held: turn in flight, but adapter IS live
+    router.enqueue("a1", "t2", "second", user, null); // held: turn in flight, but adapter IS live
     expect(requestDrain).not.toHaveBeenCalled();
+  });
+});
+
+describe("router — messageId threading", () => {
+  it("writeStdin receives messageId from enqueue", () => {
+    const writeStdin = vi.fn();
+    const router = createRouter({
+      writeStdin,
+      hasLiveAdapter: () => true,
+    });
+
+    router.enqueue("a1", "t1", "hello", { kind: "user", id: null, name: "U" }, "m1");
+
+    expect(writeStdin).toHaveBeenCalledWith("a1", "[from: U] hello", "m1");
+  });
+
+  it("writeStdin receives null messageId for non-message enqueues", () => {
+    const writeStdin = vi.fn();
+    const router = createRouter({ writeStdin, hasLiveAdapter: () => true });
+
+    router.enqueue("a1", "t1", "system note", { kind: "user", id: null, name: "U" }, null);
+
+    expect(writeStdin).toHaveBeenCalledWith("a1", "[from: U] system note", null);
+  });
+
+  it("queued messages preserve messageId across delivery", () => {
+    const writeStdin = vi.fn();
+    let alive = false;
+    const router = createRouter({ writeStdin, hasLiveAdapter: () => alive });
+
+    router.enqueue("a1", "t1", "queued", { kind: "user", id: null, name: "U" }, "m2");
+    expect(writeStdin).not.toHaveBeenCalled();
+
+    alive = true;
+    router.deliverQueued("a1");
+    expect(writeStdin).toHaveBeenCalledWith("a1", "[from: U] queued", "m2");
+  });
+
+  it("onTurnComplete delivers next queued message with its messageId", () => {
+    const writeStdin = vi.fn();
+    const router = createRouter({ writeStdin, hasLiveAdapter: () => true });
+
+    // First message (currentTurnThreadId becomes t1, immediate writeStdin)
+    router.enqueue("a1", "t1", "first", { kind: "user", id: null, name: "U" }, "m1");
+    expect(writeStdin).toHaveBeenLastCalledWith("a1", "[from: U] first", "m1");
+
+    // Second message (queued, different thread)
+    router.enqueue("a1", "t2", "second", { kind: "user", id: null, name: "U" }, "m2");
+    expect(writeStdin).toHaveBeenCalledTimes(1);
+
+    // Turn complete on first → delivers second
+    router.onTurnComplete("a1");
+    expect(writeStdin).toHaveBeenLastCalledWith("a1", "[from: U] second", "m2");
   });
 });

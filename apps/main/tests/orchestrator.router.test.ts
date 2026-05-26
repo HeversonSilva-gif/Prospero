@@ -8,7 +8,7 @@ describe("router state machine", () => {
       writeStdin: (agentId, content) => writes.push({ agentId, content }),
       hasLiveAdapter: () => true,
     });
-    r.enqueue("a1", "thr1", "do X", { kind: "user", id: null, name: "User" });
+    r.enqueue("a1", "thr1", "do X", { kind: "user", id: null, name: "User" }, null);
     expect(writes).toHaveLength(1);
     expect(writes[0]).toEqual({ agentId: "a1", content: "[from: User] do X" });
     expect(r.getCurrentThread("a1")).toBe("thr1");
@@ -20,8 +20,8 @@ describe("router state machine", () => {
       writeStdin: (agentId, content) => writes.push({ agentId, content }),
       hasLiveAdapter: () => true,
     });
-    r.enqueue("a1", "thr1", "msg1", { kind: "user", id: null, name: "U" });
-    r.enqueue("a1", "thr2", "msg2", { kind: "agent", id: "ceo", name: "CEO" });
+    r.enqueue("a1", "thr1", "msg1", { kind: "user", id: null, name: "U" }, null);
+    r.enqueue("a1", "thr2", "msg2", { kind: "agent", id: "ceo", name: "CEO" }, null);
     expect(writes).toHaveLength(1); // queued, not written yet
     r.onTurnComplete("a1");
     expect(writes).toHaveLength(2);
@@ -37,7 +37,7 @@ describe("router state machine", () => {
       writeStdin: (_a, c) => writes.push(c),
       hasLiveAdapter: () => true,
     });
-    r.enqueue("a1", "thr1", "hello", { kind: "agent", id: "ceo", name: "CEO" });
+    r.enqueue("a1", "thr1", "hello", { kind: "agent", id: "ceo", name: "CEO" }, null);
     expect(writes[0]).toBe("[from: CEO] hello");
   });
 
@@ -47,8 +47,8 @@ describe("router state machine", () => {
       writeStdin: (agentId, content) => writes.push({ agentId, content }),
       hasLiveAdapter: () => true,
     });
-    r.enqueue("a1", "thr1", "for a1", { kind: "user", id: null, name: "U" });
-    r.enqueue("a2", "thr2", "for a2", { kind: "user", id: null, name: "U" });
+    r.enqueue("a1", "thr1", "for a1", { kind: "user", id: null, name: "U" }, null);
+    r.enqueue("a2", "thr2", "for a2", { kind: "user", id: null, name: "U" }, null);
     expect(r.getCurrentThread("a1")).toBe("thr1");
     expect(r.getCurrentThread("a2")).toBe("thr2");
     expect(writes).toHaveLength(2);

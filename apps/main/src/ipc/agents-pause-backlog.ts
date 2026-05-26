@@ -26,13 +26,13 @@ export const enqueueOrPark = (
     pauseBacklog.set(agent.id, list);
     return;
   }
-  router.enqueue(agent.id, threadId, content, sender);
+  router.enqueue(agent.id, threadId, content, sender, null);
 };
 
 export const drainPausedBacklog = (agentId: string, router: Router): number => {
   const parked = pauseBacklog.get(agentId) ?? [];
   pauseBacklog.delete(agentId);
-  for (const m of parked) router.enqueue(agentId, m.threadId, m.content, m.sender);
+  for (const m of parked) router.enqueue(agentId, m.threadId, m.content, m.sender, null);
   return parked.length;
 };
 

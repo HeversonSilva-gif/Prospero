@@ -242,7 +242,8 @@ export const registerOrchestratorHandlers = (
   const pendingTurnByAgent = new Map<string, string>();
 
   const router = createRouter({
-    writeStdin: (agentId, content) => {
+    writeStdin: (agentId, content, _messageId): void => {
+      // _messageId will be wired through to attachments in Task 11.
       const a = getAdapter(agentId);
       if (a !== undefined && a.isAlive()) {
         pendingTurnByAgent.set(agentId, content);
@@ -281,7 +282,7 @@ export const registerOrchestratorHandlers = (
         id: p.senderId,
         name: p.senderName,
       };
-      router.enqueue(p.targetId, p.threadId, p.content, sender);
+      router.enqueue(p.targetId, p.threadId, p.content, sender, null);
     } else if (kind === "agent.kill" && typeof payload === "object" && payload !== null) {
       const p = payload as { agentId: string };
       const a = getAdapter(p.agentId);
@@ -901,7 +902,7 @@ export const registerOrchestratorHandlers = (
       getAgent: (id) => agents.getById(id),
       ensureAgentRunner: (agent) => ensureAgentRunner(agent),
       enqueue: (agentId, threadId, content, sender) =>
-        router.enqueue(agentId, threadId, content, sender),
+        router.enqueue(agentId, threadId, content, sender, null),
       primaryThreadId: (agentId) =>
         messages.ensureThread(agents.getById(agentId)?.companyId ?? "", ["user", agentId]).id,
     });
@@ -921,7 +922,7 @@ export const registerOrchestratorHandlers = (
     },
     ensureAgentRunner: (agent) => ensureAgentRunner(agent),
     enqueue: (agentId, threadId, content, sender) =>
-      router.enqueue(agentId, threadId, content, sender),
+      router.enqueue(agentId, threadId, content, sender, null),
     primaryThreadId: (agentId) =>
       messages.ensureThread(agents.getById(agentId)?.companyId ?? "", ["user", agentId]).id,
     recordActivity: (input) => {
@@ -1010,7 +1011,7 @@ export const registerOrchestratorHandlers = (
             getCeo: (_cid) => ceo,
             ensureAgentRunner: (a) => ensureAgentRunner(a),
             enqueue: (agentId, threadId, content, sender) =>
-              router.enqueue(agentId, threadId, content, sender),
+              router.enqueue(agentId, threadId, content, sender, null),
             primaryThreadId: (agentId) =>
               messages.ensureThread(agents.getById(agentId)?.companyId ?? "", ["user", agentId]).id,
             recordActivity: (input) => {
@@ -1091,6 +1092,7 @@ export const registerOrchestratorHandlers = (
           thread.id,
           "[CONFIG UPDATED] Your configuration changed and your session was restarted. Continue your current task from where you left off — re-read the relevant issue, thread, or project context to re-orient if needed.",
           { kind: "user", id: null, name: "System" },
+          null,
         );
       }
     }
@@ -1399,11 +1401,13 @@ export const registerOrchestratorHandlers = (
     }
     ensureAgentRunner(agent);
     const thread = messages.ensureThread(agent.companyId, ["user", agent.id]);
-    router.enqueue(agent.id, thread.id, "User requested manual run.", {
-      kind: "user",
-      id: null,
-      name: "User",
-    });
+    router.enqueue(
+      agent.id,
+      thread.id,
+      "User requested manual run.",
+      { kind: "user", id: null, name: "User" },
+      null,
+    );
     return { ok: true };
   });
 
@@ -1444,7 +1448,7 @@ export const registerOrchestratorHandlers = (
     if (agent === null) return;
     ensureAgentRunner(agent);
     const thread = messages.ensureThread(agent.companyId, ["user", agent.id]);
-    router.enqueue(agent.id, thread.id, text, { kind: "user", id: null, name: "System" });
+    router.enqueue(agent.id, thread.id, text, { kind: "user", id: null, name: "System" }, null);
   };
 
   // M8.6 — Narrated execution. Enqueue a system-actor turn carrying the
@@ -1455,7 +1459,7 @@ export const registerOrchestratorHandlers = (
     if (ceo === null) throw new Error(`ceo ${ceoId} not found`);
     ensureAgentRunner(ceo);
     const thread = messages.ensureThread(ceo.companyId, ["user", ceo.id]);
-    router.enqueue(ceo.id, thread.id, prompt, { kind: "user", id: null, name: "System" });
+    router.enqueue(ceo.id, thread.id, prompt, { kind: "user", id: null, name: "System" }, null);
     return { threadId: thread.id };
   };
 

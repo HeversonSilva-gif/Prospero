@@ -6,7 +6,12 @@ export type Sender = {
 
 type State = {
   currentTurnThreadId: string | null;
-  queue: Array<{ threadId: string; content: string; sender: Sender }>;
+  queue: Array<{
+    threadId: string;
+    content: string;
+    sender: Sender;
+    messageId: string | null;
+  }>;
   // M11 PR-F2: a memory nudge to prepend to this agent's next turn, or null.
   pendingNudge: string | null;
   // Compaction task-state seed to prepend to this agent's next turn, or null.
@@ -14,7 +19,7 @@ type State = {
 };
 
 export type RouterOptions = {
-  writeStdin: (agentId: string, content: string) => void;
+  writeStdin: (agentId: string, content: string, messageId: string | null) => void;
   /** Returns true when the agent has a live adapter that can accept input now. */
   hasLiveAdapter: (agentId: string) => boolean;
   /** Called when a message is held for an agent with no live adapter, so the
@@ -23,7 +28,13 @@ export type RouterOptions = {
 };
 
 export type Router = {
-  enqueue(agentId: string, threadId: string, content: string, sender: Sender): void;
+  enqueue(
+    agentId: string,
+    threadId: string,
+    content: string,
+    sender: Sender,
+    messageId: string | null,
+  ): void;
   /** Flush one held message to a newly-spawned agent. Call right after a spawn succeeds. */
   deliverQueued(agentId: string): void;
   /** True when the agent has an in-flight turn OR messages waiting in the queue. */
@@ -68,14 +79,14 @@ export const createRouter = (opts: RouterOptions): Router => {
   };
 
   return {
-    enqueue(agentId, threadId, content, sender) {
+    enqueue(agentId, threadId, content, sender, messageId) {
       const s = ensure(agentId);
       const formatted = formatSender(sender, content);
       if (s.currentTurnThreadId === null && opts.hasLiveAdapter(agentId)) {
         s.currentTurnThreadId = threadId;
-        opts.writeStdin(agentId, consumePending(s, formatted));
+        opts.writeStdin(agentId, consumePending(s, formatted), messageId);
       } else {
-        s.queue.push({ threadId, content: formatted, sender });
+        s.queue.push({ threadId, content: formatted, sender, messageId });
         if (!opts.hasLiveAdapter(agentId)) opts.requestDrain?.();
       }
     },
@@ -84,7 +95,7 @@ export const createRouter = (opts: RouterOptions): Router => {
       if (s.currentTurnThreadId === null && s.queue.length > 0 && opts.hasLiveAdapter(agentId)) {
         const next = s.queue.shift()!;
         s.currentTurnThreadId = next.threadId;
-        opts.writeStdin(agentId, consumePending(s, next.content));
+        opts.writeStdin(agentId, consumePending(s, next.content), next.messageId);
       }
     },
     hasPendingWork(agentId) {
@@ -108,7 +119,7 @@ export const createRouter = (opts: RouterOptions): Router => {
         s.currentTurnThreadId = null;
       } else {
         s.currentTurnThreadId = next.threadId;
-        opts.writeStdin(agentId, consumePending(s, next.content));
+        opts.writeStdin(agentId, consumePending(s, next.content), next.messageId);
       }
     },
     getCurrentThread(agentId) {
