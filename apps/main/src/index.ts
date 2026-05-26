@@ -43,6 +43,23 @@ if (e2eUserData !== undefined && e2eUserData !== "") {
   app.setPath("userData", e2eUserData);
 }
 
+// Single-instance lock: one Prospero per userData dir. A second launch exits
+// fast; the running instance gets `second-instance` and surfaces its window
+// (covers the tray-hidden case where the window exists but isn't visible).
+if (!app.requestSingleInstanceLock()) {
+  process.exit(0);
+}
+
+app.on("second-instance", () => {
+  if (mainWindow !== null && !mainWindow.isDestroyed()) {
+    if (!mainWindow.isVisible()) mainWindow.show();
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  } else {
+    mainWindow = createMainWindow();
+  }
+});
+
 // Auto-restart on uncaught exception. Best-effort log to userData/emergency.log
 // then relaunch after a 5s window. The window lets log flush + IPC drain.
 const logEmergency = (err: unknown): void => {

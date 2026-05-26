@@ -17,6 +17,9 @@ Versioning: [SemVer](https://semver.org/).
 - If the host credential itself is stale (refresh token revoked), a
   persistent banner now surfaces the exact action needed:
   `claude setup-token` in the terminal.
+- Single-instance lock: launching Prospero while it's already running now
+  focuses the existing window (including when it was minimized to the tray)
+  instead of opening a duplicate process.
 
 ## [0.1.0] — Unreleased (consolidates M7–M18)
 
