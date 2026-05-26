@@ -20,31 +20,25 @@ import { redactString } from "../auth/token-redact.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { createMessagesRepository } from "../messages/repository.js";
-import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
-import { buildMemoryBlock, agentMemoryNearFull } from "../orchestrator/system-prompt-memory.js";
-import { buildTelosBlock } from "../orchestrator/system-prompt-telos.js";
-import { buildProjectContextBlock } from "../orchestrator/system-prompt-project-context.js";
+import { agentMemoryNearFull } from "../orchestrator/system-prompt-memory.js";
 import { createProjectsRepository } from "../projects/repository.js";
-import { composeInstructions } from "../agents/instruction-bundle.js";
 import { createRecoveryTracker } from "../orchestrator/recovery-tracker.js";
 import { createNudgeTracker } from "../orchestrator/nudge.js";
-import { loadDecryptedToken } from "../auth/token-storage.js";
-import { loadDecryptedApiKey } from "../auth/api-key-storage.js";
 import { getActiveAuthMode } from "../auth/auth-mode.js";
 import {
-  ensureAdapter,
   getAdapter,
   removeAdapter,
   activeAdapterCount,
   MAX_CONCURRENT_AGENTS,
   listAdapterAgentIds,
+  type AdapterCallbacks,
 } from "../orchestrator/lifecycle.js";
+import { createRespawnFn } from "../orchestrator/respawn.js";
 import { computeLaneSchedule } from "../orchestrator/scheduler.js";
 import { startSchedulerTick } from "../orchestrator/scheduler-tick.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
 import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
-import { resolveAdapterCredentials } from "../orchestrator/adapter-credentials.js";
 import { pickAdapterForHire } from "../agents/hire-adapter.js";
 import {
   testRemoteConnection,
@@ -58,8 +52,6 @@ import {
   createCurrentActionDebouncer,
   type CurrentActionDebouncer,
 } from "../orchestrator/event-throttle.js";
-import { databasePath } from "../db/path.js";
-import { getPermissionsDir } from "../security/permissions-dir.js";
 import { getEventsDir } from "../orchestrator/events-dir.js";
 import { registerGoalsHandlers } from "./goals-handlers.js";
 import { registerNarratedHandlers } from "./goals-narrated-handlers.js";
@@ -472,6 +464,306 @@ export const registerOrchestratorHandlers = (
       return a !== null && !isCeoAgent(a);
     }).length;
 
+  // Per-agent error path for a failed spawn (ensureAdapter rejected). Mirrors
+  // the original `onError` closure that was inline in ensureAgentRunner — same
+  // bookkeeping (recovery tracker, status, broadcasts), no behavior change.
+  const handleSpawnError = (agentId: string, err: Error): void => {
+    recoveryTracker.markErrored(agentId);
+    console.error(`[claude:${agentId}] spawn error: ${err.message}`);
+    removeAdapter(agentId);
+    agents.clearSessionId(agentId);
+    agents.updateStatus(agentId, { status: "error", currentAction: null });
+    broadcast({ kind: "error", agentId, message: err.message });
+    broadcast({
+      kind: "status-changed",
+      agentId,
+      status: "error",
+      updatedAt: Date.now(),
+    });
+    currentActionDebouncer.cancel(agentId);
+    broadcast({ kind: "current-action-changed", agentId, action: null });
+  };
+
+  // Build the adapter callbacks for one spawn. Called by createRespawnFn once
+  // per respawn so each spawn gets its own `collectedToolCalls` and `thisSpawn`
+  // closure (preserves the original per-spawn isolation). Closures over outer
+  // orchestrator state (broadcast, router, agents repo, debouncer, etc.) so
+  // the recovery module gets the same event-handling behavior as the IPC path.
+  const buildCallbacks = (agentId: string): AdapterCallbacks => {
+    const agent = agents.getById(agentId);
+    if (agent === null) {
+      throw new Error(`Agent ${agentId} not found when building callbacks`);
+    }
+    const collectedToolCalls = new Map<string, ToolCallView>();
+    // Guard against stale exits: capture the adapter instance for this spawn
+    // so onExit can verify it is still the current spawn for this agent. When
+    // restartIfRunning / AGENT_KILL / AGENTS_TERMINATE kill the process, they
+    // remove the adapter from the lifecycle Map *before* the OS delivers the
+    // async exit event. Without this guard, the delayed exit overwrites the
+    // intentionally-set status ("idle"/"terminated") with "error", and
+    // incorrectly marks the recovery tracker as errored.
+    //
+    // Captured lazily on the first event we observe (session-init is always
+    // first): by then ensureAdapter has resolved and lifecycle holds OUR
+    // adapter, so reading getAdapter here is equivalent to the original
+    // `.then(a => thisSpawn = a)` capture and races no differently.
+    let thisSpawn: AgentAdapter | null = null;
+    const captureSpawnIfNeeded = (): void => {
+      if (thisSpawn !== null) return;
+      const a = getAdapter(agentId);
+      if (a !== undefined) thisSpawn = a;
+    };
+
+    return {
+      onEvent: (ev: ParsedEvent) => {
+        captureSpawnIfNeeded();
+        if (ev.kind === "session-init") {
+          agents.setSessionId(agent.id, ev.sessionId);
+          nudgeTracker.clear(agent.id);
+          broadcast({
+            kind: "session-id-changed",
+            agentId: agent.id,
+            sessionId: ev.sessionId,
+          });
+          agents.updateStatus(agent.id, { status: "thinking", currentAction: null });
+          broadcast({
+            kind: "status-changed",
+            agentId: agent.id,
+            status: "thinking",
+            updatedAt: Date.now(),
+          });
+          currentActionDebouncer.schedule(agent.id, null);
+        } else if (ev.kind === "assistant-message") {
+          let textContent = "";
+          const tools: ToolCallView[] = [];
+          for (const block of ev.blocks) {
+            if (block.kind === "text") {
+              textContent += block.text;
+            } else {
+              const tc: ToolCallView = {
+                id: block.id,
+                name: block.name,
+                input: block.input,
+                status: "pending",
+                result: null,
+              };
+              tools.push(tc);
+              collectedToolCalls.set(block.id, tc);
+              const actionText = mapToolUseToAction(block.name, block.input);
+              agents.updateStatus(agent.id, {
+                status: "working",
+                currentAction: actionText,
+              });
+              broadcast({
+                kind: "status-changed",
+                agentId: agent.id,
+                status: "working",
+                updatedAt: Date.now(),
+              });
+              currentActionDebouncer.schedule(agent.id, actionText);
+            }
+          }
+          const threadId = router.getCurrentThread(agent.id);
+          if (threadId !== null && (textContent !== "" || tools.length > 0)) {
+            const m = messages.appendToThreadId({
+              threadId,
+              senderKind: "agent",
+              senderId: agent.id,
+              content: textContent,
+              toolCalls: tools.length > 0 ? tools : null,
+            });
+            broadcast({ kind: "message-append", agentId: agent.id, message: m });
+          }
+        } else if (ev.kind === "tool-result") {
+          const existing = collectedToolCalls.get(ev.toolUseId);
+          if (existing !== undefined) {
+            existing.status = ev.isError ? "error" : "success";
+            existing.result = ev.content;
+            broadcast({
+              kind: "tool-result",
+              agentId: agent.id,
+              threadId: router.getCurrentThread(agent.id) ?? "",
+              toolCallId: ev.toolUseId,
+              result: ev.content,
+            });
+          }
+        } else if (ev.kind === "turn-complete") {
+          // M8: persist usage + enforce budget + lazy day-summary roll-up.
+          // Note: per-issue enforcement requires router.getCurrentIssue
+          // which doesn't exist v1; falls back to null (daily cap still
+          // works). M8.5 will add issue tracking to router.
+          if (ev.usage !== undefined) {
+            const projectIds = agent.allowedProjects;
+            const projectId = projectIds.length === 1 ? projectIds[0]! : null;
+            costRecorder.recordTurn({
+              companyId: agent.companyId,
+              agentId: agent.id,
+              projectId,
+              issueId: null,
+              adapterName: agent.adapterName,
+              model: ev.model ?? agent.model,
+              sessionId: agent.claudeSessionId,
+              usage: ev.usage,
+            });
+            checkAndPause(enforceDeps, {
+              companyId: agent.companyId,
+              agentId: agent.id,
+              issueId: null,
+            });
+            const activityRec = tryGetRecorder();
+            if (activityRec !== undefined) {
+              rollUpYesterdayIfNeeded({
+                db,
+                now: () => Date.now(),
+                companyId: agent.companyId,
+                agentId: agent.id,
+                costsRepo,
+                activityRecorder: activityRec,
+              });
+            }
+          }
+          const toolUseCount = collectedToolCalls.size;
+          collectedToolCalls.clear();
+          router.onTurnComplete(agent.id);
+          const memoryNearFull = agentMemoryNearFull(createMemoriesRepository(db), agent.id);
+          const nudge = nudgeTracker.recordTurn(agent.id, { toolUseCount, memoryNearFull });
+          if (nudge !== null) router.setPendingNudge(agent.id, nudge);
+          const stillBusy = router.getCurrentThread(agent.id) !== null;
+          // Respect a status the budget enforcer (checkAndPause, above) or a
+          // concurrent pause/terminate just set — do not clobber it back to
+          // thinking/idle, which would un-pause the agent and let it keep
+          // spending.
+          const live = agents.getById(agent.id);
+          if (live === null || (live.status !== "paused" && live.status !== "terminated")) {
+            const status = stillBusy ? "thinking" : "idle";
+            agents.updateStatus(agent.id, { status, currentAction: null });
+            broadcast({
+              kind: "status-changed",
+              agentId: agent.id,
+              status,
+              updatedAt: Date.now(),
+            });
+          }
+          currentActionDebouncer.flush(agent.id);
+          currentActionDebouncer.schedule(agent.id, null);
+          // Refresh agents roster on every turn-complete. Covers the case where this
+          // turn called hire_agent/fire_agent and the renderer needs to see the new
+          // sidebar state. stderr-based agent.spawn-needed events don't always reach
+          // us through claude's stdio pipes on Windows, so this is the reliable path.
+          broadcast({ kind: "roster-changed", companyId: agent.companyId });
+          if (recoveryTracker.consumeRecovery(agent.id)) {
+            tryGetRecorder()?.recordActivity({
+              companyId: agent.companyId,
+              actor: { kind: "system" },
+              action: "agent.recovered",
+              entityKind: "agent",
+              entityId: agent.id,
+              agentId: agent.id,
+              payload: {},
+            });
+          }
+          // Idle-only compaction (Phase 1): only when this turn left the agent
+          // idle (no queued thread) — never kill a mid-turn process.
+          if (ev.usage !== undefined && !stillBusy) {
+            void maybeCompactAfterTurn(agent, ev.usage.cache_read ?? 0);
+          }
+          // A completed turn may have freed a slot (agent now idle) or the
+          // agent had queued work for another agent — wake the drain.
+          drainScheduler();
+        } else if (ev.kind === "api-retry") {
+          broadcast({
+            kind: "error",
+            agentId: agent.id,
+            message: `API retry attempt ${String(ev.attempt)}: ${ev.error}`,
+          });
+        } else if (ev.kind === "rate-limited") {
+          const until = ev.resetsAt ?? Date.now() + 60 * 60_000; // fallback 1h if no resetsAt
+          const prev = settingsRepo.read().rateLimitedUntil;
+          const wasGated = prev !== null && Date.now() < prev; // already parked in an active window?
+          // Extend (never shrink) the window — a later event may push the reset out.
+          settingsRepo.write({ rateLimitedUntil: Math.max(until, prev ?? 0) });
+          // Account-wide limit → park every running agent. Reason "rate_limited"
+          // marks them for auto-resume (distinct from a manual/budget pause).
+          for (const id of listAdapterAgentIds()) {
+            pauseAndStopAgent(id, "rate_limited", {
+              getAdapter,
+              removeAdapter,
+              pause: (aid, reason) => agents.pause(aid, reason),
+            });
+            broadcast({
+              kind: "status-changed",
+              agentId: id,
+              status: "paused",
+              updatedAt: Date.now(),
+            });
+          }
+          if (!wasGated) {
+            const when = new Date(until).toLocaleString();
+            inbox.create({
+              companyId: agent.companyId,
+              kind: "security_alert",
+              actorId: agent.id,
+              title: "Equipe pausada — limite do plano Max",
+              preview: `A cota do Max foi atingida. A equipe retoma sozinha por volta de ${when}.`,
+              requiresAction: false,
+              payloadJson: null,
+            });
+            broadcastInboxUpdate(agent.companyId);
+          }
+        }
+      },
+      onStderr: (line: string) => {
+        // Agent-emitted side-channel events now flow via file-based watcher
+        // (see startEventsWatcher above). Stderr is only used for diagnostic
+        // text from claude itself; log it.
+        console.error(`[claude:${agent.id}] stderr: ${redactString(line)}`);
+      },
+      onExit: (code) => {
+        console.error(`[claude:${agent.id}] exit code: ${String(code)}`);
+        captureSpawnIfNeeded();
+        // Guard: if the adapter was already removed from the lifecycle Map
+        // before this exit arrived (e.g. restartIfRunning for a mode/model
+        // change, AGENT_KILL, or AGENTS_TERMINATE), this is a stale exit
+        // from a process we intentionally killed. Do NOT overwrite the
+        // status that was deliberately set, and do NOT corrupt the recovery
+        // tracker by marking an intentional kill as an error.
+        const isCurrent = thisSpawn !== null && getAdapter(agent.id) === thisSpawn;
+        // Bail BEFORE removeAdapter. A stale exit means a NEWER adapter (from
+        // restartIfRunning's resume re-spawn on a model/config change) — or
+        // nothing — now owns this agentId. Calling removeAdapter here would
+        // orphan that fresh adapter (the "agent dies on model change" bug).
+        // Only the CURRENT adapter's own exit should clean the Map.
+        if (!isCurrent) return;
+        removeAdapter(agent.id);
+        if (code !== 0) {
+          recoveryTracker.markErrored(agent.id);
+          agents.clearSessionId(agent.id);
+        }
+        agents.updateStatus(agent.id, {
+          status: code === 0 ? "idle" : "error",
+          currentAction: null,
+        });
+        broadcast({
+          kind: "status-changed",
+          agentId: agent.id,
+          status: code === 0 ? "idle" : "error",
+          updatedAt: Date.now(),
+        });
+        currentActionDebouncer.cancel(agent.id);
+        broadcast({ kind: "current-action-changed", agentId: agent.id, action: null });
+        // A slot just freed — wake the drain so waiting agents can spawn.
+        drainScheduler();
+      },
+    };
+  };
+
+  // Encapsulates the SpawnContext construction (memory/telos/project-context
+  // blocks, credentials, paths) + the ensureAdapter call. Used by the spawn
+  // path below and reused by the auth-token-recovery module (token-recovery
+  // v0.1.17) so a refreshed OAuth token can re-spawn an agent with the same
+  // event-handling behavior.
+  const respawnAgent = createRespawnFn({ db, eventsDir, buildCallbacks });
+
   const ensureAgentRunner = (agent: Agent): void => {
     const existing = getAdapter(agent.id);
     if (existing !== undefined && existing.isAlive()) return;
@@ -490,340 +782,13 @@ export const registerOrchestratorHandlers = (
     if (activeAdapterCount() >= MAX_CONCURRENT_AGENTS) return;
     if (!isCeoAgent(agent) && liveWorkerCount() >= MAX_CONCURRENT_AGENTS - 1) return;
 
-    const adapterName = agent.adapterName ?? "claude-oauth-local";
-    const { oauthToken, apiKey } = resolveAdapterCredentials(adapterName, {
-      loadOauthToken: () => loadDecryptedToken(db),
-      loadApiKey: () => loadDecryptedApiKey(db),
-    });
-
-    const collectedToolCalls = new Map<string, ToolCallView>();
-
-    const onError = (err: Error): void => {
-      recoveryTracker.markErrored(agent.id);
-      console.error(`[claude:${agent.id}] spawn error: ${err.message}`);
-      removeAdapter(agent.id);
-      agents.clearSessionId(agent.id);
-      agents.updateStatus(agent.id, { status: "error", currentAction: null });
-      broadcast({ kind: "error", agentId: agent.id, message: err.message });
-      broadcast({
-        kind: "status-changed",
-        agentId: agent.id,
-        status: "error",
-        updatedAt: Date.now(),
-      });
-      currentActionDebouncer.cancel(agent.id);
-      broadcast({ kind: "current-action-changed", agentId: agent.id, action: null });
-    };
-
-    // M11: assemble the memory & skills system-prompt block host-side (DB +
-    // userData access live here, not in build-args) and thread it through.
-    const memoryBlock = buildMemoryBlock({
-      memoriesRepo: createMemoriesRepository(db),
-      skillsRepo: createSkillsRepository(db),
-      userDataDir: app.getPath("userData"),
-      companyId: agent.companyId,
-      agentId: agent.id,
-      role: agent.role,
-    });
-
-    // M12 PR-C: assemble the agent's instruction bundle (charter + extras) from
-    // disk — same host-side pattern as buildMemoryBlock.
-    const instructionsBlock = composeInstructions(app.getPath("userData"), agent);
-
-    // M13 PR-C: assemble the TELOS system-prompt block host-side.
-    const telosBlock = buildTelosBlock({
-      userDataDir: app.getPath("userData"),
-      companyId: agent.companyId,
-      agentRole: agent.role,
-      agentTemplateId: agent.templateId,
-    });
-
-    // Memória de Contexto de Projeto: inject the per-project digest map when the
-    // agent is scoped to exactly one project (so the digest target is unambiguous).
-    let projectContextBlock: string | undefined;
-    const ctxProjectIds = agent.allowedProjects;
-    if (ctxProjectIds.length === 1) {
-      const proj = createProjectsRepository(db).getById(ctxProjectIds[0]!);
-      if (proj !== null) {
-        projectContextBlock = buildProjectContextBlock({
-          userDataDir: app.getPath("userData"),
-          companyId: agent.companyId,
-          projectId: proj.id,
-          projectPath: proj.path,
-        });
-      }
-    }
-
-    // Guard against stale exits: capture the adapter instance returned by
-    // ensureAdapter so onExit can verify it is still the current spawn for
-    // this agent. When restartIfRunning / AGENT_KILL / AGENTS_TERMINATE kill
-    // the process, they remove the adapter from the lifecycle Map *before* the
-    // OS delivers the async exit event. Without this guard, the delayed exit
-    // overwrites the intentionally-set status ("idle"/"terminated") with
-    // "error", and incorrectly marks the recovery tracker as errored.
-    let thisSpawn: AgentAdapter | null = null;
-
-    void ensureAdapter(
-      {
-        agent,
-        ...(oauthToken !== undefined ? { oauthToken } : {}),
-        ...(apiKey !== undefined ? { apiKey } : {}),
-        userDataDir: app.getPath("userData"),
-        dbPath: databasePath(),
-        permissionsDir: getPermissionsDir(app.getPath("userData")),
-        eventsDir,
-        ...(memoryBlock !== undefined ? { memoryBlock } : {}),
-        ...(telosBlock !== undefined ? { telosBlock } : {}),
-        ...(projectContextBlock !== undefined ? { projectContextBlock } : {}),
-        instructionsBlock,
-      },
-      {
-        onEvent: (ev: ParsedEvent) => {
-          if (ev.kind === "session-init") {
-            agents.setSessionId(agent.id, ev.sessionId);
-            nudgeTracker.clear(agent.id);
-            broadcast({
-              kind: "session-id-changed",
-              agentId: agent.id,
-              sessionId: ev.sessionId,
-            });
-            agents.updateStatus(agent.id, { status: "thinking", currentAction: null });
-            broadcast({
-              kind: "status-changed",
-              agentId: agent.id,
-              status: "thinking",
-              updatedAt: Date.now(),
-            });
-            currentActionDebouncer.schedule(agent.id, null);
-          } else if (ev.kind === "assistant-message") {
-            let textContent = "";
-            const tools: ToolCallView[] = [];
-            for (const block of ev.blocks) {
-              if (block.kind === "text") {
-                textContent += block.text;
-              } else {
-                const tc: ToolCallView = {
-                  id: block.id,
-                  name: block.name,
-                  input: block.input,
-                  status: "pending",
-                  result: null,
-                };
-                tools.push(tc);
-                collectedToolCalls.set(block.id, tc);
-                const actionText = mapToolUseToAction(block.name, block.input);
-                agents.updateStatus(agent.id, {
-                  status: "working",
-                  currentAction: actionText,
-                });
-                broadcast({
-                  kind: "status-changed",
-                  agentId: agent.id,
-                  status: "working",
-                  updatedAt: Date.now(),
-                });
-                currentActionDebouncer.schedule(agent.id, actionText);
-              }
-            }
-            const threadId = router.getCurrentThread(agent.id);
-            if (threadId !== null && (textContent !== "" || tools.length > 0)) {
-              const m = messages.appendToThreadId({
-                threadId,
-                senderKind: "agent",
-                senderId: agent.id,
-                content: textContent,
-                toolCalls: tools.length > 0 ? tools : null,
-              });
-              broadcast({ kind: "message-append", agentId: agent.id, message: m });
-            }
-          } else if (ev.kind === "tool-result") {
-            const existing = collectedToolCalls.get(ev.toolUseId);
-            if (existing !== undefined) {
-              existing.status = ev.isError ? "error" : "success";
-              existing.result = ev.content;
-              broadcast({
-                kind: "tool-result",
-                agentId: agent.id,
-                threadId: router.getCurrentThread(agent.id) ?? "",
-                toolCallId: ev.toolUseId,
-                result: ev.content,
-              });
-            }
-          } else if (ev.kind === "turn-complete") {
-            // M8: persist usage + enforce budget + lazy day-summary roll-up.
-            // Note: per-issue enforcement requires router.getCurrentIssue
-            // which doesn't exist v1; falls back to null (daily cap still
-            // works). M8.5 will add issue tracking to router.
-            if (ev.usage !== undefined) {
-              const projectIds = agent.allowedProjects;
-              const projectId = projectIds.length === 1 ? projectIds[0]! : null;
-              costRecorder.recordTurn({
-                companyId: agent.companyId,
-                agentId: agent.id,
-                projectId,
-                issueId: null,
-                adapterName: agent.adapterName,
-                model: ev.model ?? agent.model,
-                sessionId: agent.claudeSessionId,
-                usage: ev.usage,
-              });
-              checkAndPause(enforceDeps, {
-                companyId: agent.companyId,
-                agentId: agent.id,
-                issueId: null,
-              });
-              const activityRec = tryGetRecorder();
-              if (activityRec !== undefined) {
-                rollUpYesterdayIfNeeded({
-                  db,
-                  now: () => Date.now(),
-                  companyId: agent.companyId,
-                  agentId: agent.id,
-                  costsRepo,
-                  activityRecorder: activityRec,
-                });
-              }
-            }
-            const toolUseCount = collectedToolCalls.size;
-            collectedToolCalls.clear();
-            router.onTurnComplete(agent.id);
-            const memoryNearFull = agentMemoryNearFull(createMemoriesRepository(db), agent.id);
-            const nudge = nudgeTracker.recordTurn(agent.id, { toolUseCount, memoryNearFull });
-            if (nudge !== null) router.setPendingNudge(agent.id, nudge);
-            const stillBusy = router.getCurrentThread(agent.id) !== null;
-            // Respect a status the budget enforcer (checkAndPause, above) or a
-            // concurrent pause/terminate just set — do not clobber it back to
-            // thinking/idle, which would un-pause the agent and let it keep
-            // spending.
-            const live = agents.getById(agent.id);
-            if (live === null || (live.status !== "paused" && live.status !== "terminated")) {
-              const status = stillBusy ? "thinking" : "idle";
-              agents.updateStatus(agent.id, { status, currentAction: null });
-              broadcast({
-                kind: "status-changed",
-                agentId: agent.id,
-                status,
-                updatedAt: Date.now(),
-              });
-            }
-            currentActionDebouncer.flush(agent.id);
-            currentActionDebouncer.schedule(agent.id, null);
-            // Refresh agents roster on every turn-complete. Covers the case where this
-            // turn called hire_agent/fire_agent and the renderer needs to see the new
-            // sidebar state. stderr-based agent.spawn-needed events don't always reach
-            // us through claude's stdio pipes on Windows, so this is the reliable path.
-            broadcast({ kind: "roster-changed", companyId: agent.companyId });
-            if (recoveryTracker.consumeRecovery(agent.id)) {
-              tryGetRecorder()?.recordActivity({
-                companyId: agent.companyId,
-                actor: { kind: "system" },
-                action: "agent.recovered",
-                entityKind: "agent",
-                entityId: agent.id,
-                agentId: agent.id,
-                payload: {},
-              });
-            }
-            // Idle-only compaction (Phase 1): only when this turn left the agent
-            // idle (no queued thread) — never kill a mid-turn process.
-            if (ev.usage !== undefined && !stillBusy) {
-              void maybeCompactAfterTurn(agent, ev.usage.cache_read ?? 0);
-            }
-            // A completed turn may have freed a slot (agent now idle) or the
-            // agent had queued work for another agent — wake the drain.
-            drainScheduler();
-          } else if (ev.kind === "api-retry") {
-            broadcast({
-              kind: "error",
-              agentId: agent.id,
-              message: `API retry attempt ${String(ev.attempt)}: ${ev.error}`,
-            });
-          } else if (ev.kind === "rate-limited") {
-            const until = ev.resetsAt ?? Date.now() + 60 * 60_000; // fallback 1h if no resetsAt
-            const prev = settingsRepo.read().rateLimitedUntil;
-            const wasGated = prev !== null && Date.now() < prev; // already parked in an active window?
-            // Extend (never shrink) the window — a later event may push the reset out.
-            settingsRepo.write({ rateLimitedUntil: Math.max(until, prev ?? 0) });
-            // Account-wide limit → park every running agent. Reason "rate_limited"
-            // marks them for auto-resume (distinct from a manual/budget pause).
-            for (const id of listAdapterAgentIds()) {
-              pauseAndStopAgent(id, "rate_limited", {
-                getAdapter,
-                removeAdapter,
-                pause: (aid, reason) => agents.pause(aid, reason),
-              });
-              broadcast({
-                kind: "status-changed",
-                agentId: id,
-                status: "paused",
-                updatedAt: Date.now(),
-              });
-            }
-            if (!wasGated) {
-              const when = new Date(until).toLocaleString();
-              inbox.create({
-                companyId: agent.companyId,
-                kind: "security_alert",
-                actorId: agent.id,
-                title: "Equipe pausada — limite do plano Max",
-                preview: `A cota do Max foi atingida. A equipe retoma sozinha por volta de ${when}.`,
-                requiresAction: false,
-                payloadJson: null,
-              });
-              broadcastInboxUpdate(agent.companyId);
-            }
-          }
-        },
-        onStderr: (line: string) => {
-          // Agent-emitted side-channel events now flow via file-based watcher
-          // (see startEventsWatcher above). Stderr is only used for diagnostic
-          // text from claude itself; log it.
-          console.error(`[claude:${agent.id}] stderr: ${redactString(line)}`);
-        },
-        onExit: (code) => {
-          console.error(`[claude:${agent.id}] exit code: ${String(code)}`);
-          // Guard: if the adapter was already removed from the lifecycle Map
-          // before this exit arrived (e.g. restartIfRunning for a mode/model
-          // change, AGENT_KILL, or AGENTS_TERMINATE), this is a stale exit
-          // from a process we intentionally killed. Do NOT overwrite the
-          // status that was deliberately set, and do NOT corrupt the recovery
-          // tracker by marking an intentional kill as an error.
-          const isCurrent = thisSpawn !== null && getAdapter(agent.id) === thisSpawn;
-          // Bail BEFORE removeAdapter. A stale exit means a NEWER adapter (from
-          // restartIfRunning's resume re-spawn on a model/config change) — or
-          // nothing — now owns this agentId. Calling removeAdapter here would
-          // orphan that fresh adapter (the "agent dies on model change" bug).
-          // Only the CURRENT adapter's own exit should clean the Map.
-          if (!isCurrent) return;
-          removeAdapter(agent.id);
-          if (code !== 0) {
-            recoveryTracker.markErrored(agent.id);
-            agents.clearSessionId(agent.id);
-          }
-          agents.updateStatus(agent.id, {
-            status: code === 0 ? "idle" : "error",
-            currentAction: null,
-          });
-          broadcast({
-            kind: "status-changed",
-            agentId: agent.id,
-            status: code === 0 ? "idle" : "error",
-            updatedAt: Date.now(),
-          });
-          currentActionDebouncer.cancel(agent.id);
-          broadcast({ kind: "current-action-changed", agentId: agent.id, action: null });
-          // A slot just freed — wake the drain so waiting agents can spawn.
-          drainScheduler();
-        },
-      },
-    )
-      .then((a) => {
-        thisSpawn = a;
+    void respawnAgent(agent.id)
+      .then(() => {
         // Deliver any message that was held in the router queue while the
         // adapter was being spawned (e.g. enqueue called before isAlive).
         router.deliverQueued(agent.id);
       })
-      .catch(onError);
+      .catch((err: Error) => handleSpawnError(agent.id, err));
   };
 
   // Continuous drain: keeps the ≤MAX_CONCURRENT_AGENTS slots filled whenever
