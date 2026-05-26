@@ -335,6 +335,26 @@
     "composerPlaceholder": "Message to the agent...",
     "send": "Send",
     "notFound": "Agent not found.",
+    "composer": {
+      "placeholder": "Message {{name}}",
+      "toggleFormat": "Toggle formatting toolbar"
+    },
+    "attachment": {
+      "add": "Attach file",
+      "dropHere": "Drop here to attach",
+      "dropHint": "Images (≤ 5 MB), PDF and text (≤ 20 MB). Up to 10 attachments.",
+      "tooBig": {
+        "image": "Images must be at most 5 MB (Claude vision limit).",
+        "other": "File too big — 20 MB limit."
+      },
+      "notAllowed": "Unsupported file type.",
+      "maxCount": "Maximum 10 attachments per message.",
+      "uploadFailed": "Couldn't upload attachment: {{reason}}",
+      "openFailed": {
+        "noApp": "Couldn't open — no default app for this file type.",
+        "missing": "File not found on disk."
+      }
+    },
     "activity": {
       "thinking": "thinking",
       "working": "working",

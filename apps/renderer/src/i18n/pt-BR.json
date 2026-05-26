@@ -335,6 +335,26 @@
     "composerPlaceholder": "Mensagem para o agente...",
     "send": "Enviar",
     "notFound": "Agente não encontrado.",
+    "composer": {
+      "placeholder": "Enviar mensagem para {{name}}",
+      "toggleFormat": "Mostrar/esconder formatação"
+    },
+    "attachment": {
+      "add": "Anexar arquivo",
+      "dropHere": "Solta aqui pra anexar",
+      "dropHint": "Imagens (≤ 5 MB), PDF e texto (≤ 20 MB). Até 10 anexos.",
+      "tooBig": {
+        "image": "Imagens devem ter no máximo 5 MB (limite do Claude vision).",
+        "other": "Arquivo grande demais — limite 20 MB."
+      },
+      "notAllowed": "Tipo de arquivo não suportado.",
+      "maxCount": "Máximo 10 anexos por mensagem.",
+      "uploadFailed": "Não consegui enviar o anexo: {{reason}}",
+      "openFailed": {
+        "noApp": "Não consegui abrir — sem aplicativo padrão para esse tipo.",
+        "missing": "Arquivo não encontrado no disco."
+      }
+    },
     "activity": {
       "thinking": "pensando",
       "working": "trabalhando",
