@@ -1,4 +1,5 @@
 import type { Agent } from "./agent.js";
+import type { ContentBlock } from "./attachment.js";
 
 export type AdapterName =
   | "claude-oauth-local"
@@ -59,7 +60,7 @@ export interface AgentAdapter {
   readonly name: AdapterName;
   readonly agentId: string;
   start(): Promise<void>;
-  sendInput(text: string): void;
+  sendInput(content: string | ContentBlock[]): void;
   onEvent(cb: AdapterEventListener<ParsedEvent>): () => void;
   onStderr(cb: AdapterEventListener<string>): () => void;
   onExit(cb: AdapterEventListener<number | null>): () => void;

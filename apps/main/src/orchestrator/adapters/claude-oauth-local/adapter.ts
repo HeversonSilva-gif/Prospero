@@ -8,6 +8,7 @@ import type {
   AgentAdapter,
   AdapterEventListener,
   AdapterName,
+  ContentBlock,
   ParsedEvent,
   SpawnContext,
   UsageEstimate,
@@ -23,6 +24,22 @@ import { mergeSpawnEnv } from "../../util/env-merge.js";
 import { isAuthError, recoverAgent } from "../../../auth/credential-recovery.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Pure builder for the stream-json `user` payload claude-code expects on stdin.
+// Exported so we can test the wire format without spawning a child process.
+// Accepts a plain string (wrapped in a single text block) or a pre-built
+// ContentBlock[] (passed through as-is) — the array form is what enables
+// multi-block input with image/document attachments.
+export const buildSendInputPayload = (content: string | ContentBlock[]): string => {
+  const contentArray: ContentBlock[] =
+    typeof content === "string" ? [{ type: "text", text: content }] : content;
+  return (
+    JSON.stringify({
+      type: "user",
+      message: { role: "user", content: contentArray },
+    }) + "\n"
+  );
+};
 
 // Diagnostic file log. The default path is next to the compiled code, which is
 // fine in dev but lives inside a READ-ONLY asar when packaged — so the writes
@@ -265,15 +282,12 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
     return Promise.resolve();
   }
 
-  sendInput(text: string): void {
+  sendInput(content: string | ContentBlock[]): void {
     if (this.child === null || this.child.stdin === null || !this.child.stdin.writable) {
       return;
     }
-    const payload = JSON.stringify({
-      type: "user",
-      message: { role: "user", content: [{ type: "text", text }] },
-    });
-    this.child.stdin.write(payload + "\n");
+    const payload = buildSendInputPayload(content);
+    this.child.stdin.write(payload);
   }
 
   onEvent(cb: AdapterEventListener<ParsedEvent>): () => void {

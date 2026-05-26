@@ -2,11 +2,13 @@ import type {
   AgentAdapter,
   AdapterEventListener,
   AdapterName,
+  ContentBlock,
   ParsedEvent,
   SpawnContext,
   UsageEstimate,
 } from "@prospero/shared";
 import { buildClaudeArgs } from "../claude-oauth-local/build-args.js";
+import { buildSendInputPayload } from "../claude-oauth-local/adapter.js";
 import { parseStreamLine } from "../claude-oauth-local/stream-parser.js";
 import { resolveMcpServerPath } from "../../mcp-handshake.js";
 import { getRemoteConnectionManager, type RemoteConnectionManager } from "./connection-manager.js";
@@ -118,13 +120,14 @@ export class ClaudeRemoteDockerAdapter implements AgentAdapter {
     this.alive = true;
   }
 
-  sendInput(text: string): void {
+  sendInput(content: string | ContentBlock[]): void {
     if (!this.alive) return;
-    const payload = JSON.stringify({
-      type: "user",
-      message: { role: "user", content: [{ type: "text", text }] },
-    });
-    this.connectionManager.sendStdin(this.agentId, payload + "\n");
+    // The remote-docker adapter forwards stdin verbatim over the wire to a
+    // claude process inside a container — the stream-json envelope is the same
+    // as the local adapter, so ContentBlock[] (text/image/document) passes
+    // through unchanged. Reuses the local adapter's pure builder for parity.
+    const payload = buildSendInputPayload(content);
+    this.connectionManager.sendStdin(this.agentId, payload);
   }
 
   onEvent(cb: AdapterEventListener<ParsedEvent>): () => void {
