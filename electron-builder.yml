@@ -50,7 +50,8 @@ files:
   - "!**/*.test.*"
   - "!**/.eslintrc*"
 
-# Only Windows x64 for v1 (spec §2). Mac/Linux deferred to M18.
+# Windows x64 desktop installer. Linux AppImage/deb target is defined below
+# for VPS deployment (see infra/docker/vps/README.md). macOS is not built.
 win:
   target:
     - target: nsis
@@ -64,6 +65,34 @@ nsis:
   deleteAppDataOnUninstall: false
   shortcutName: Prospero
   artifactName: "${productName}-Setup-${version}.${ext}"
+
+# Linux target (added for VPS deployment — see infra/docker/vps/README.md).
+# AppImage is the primary format (self-contained, portable, runs inside our
+# noVNC container with --no-sandbox). .deb is built alongside for users who
+# prefer system-package install on a Debian/Ubuntu host.
+#
+# The Windows target above is unaffected. Build Windows with `pnpm dist:win`
+# and Linux with `pnpm dist:linux` (the latter must run on a Linux host or
+# Linux-in-Docker — better-sqlite3's native ABI is host-specific).
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+  category: Development
+  synopsis: "Local orchestrator for Claude Code agents"
+  description: "Prospero runs a hierarchy of Claude Code agents on your machine. See https://github.com/HeversonSilva-gif/Prospero."
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+  # AppImage runs inside the VPS container with --no-sandbox (the container has
+  # no CAP_SYS_ADMIN and no setuid helper). This is a deliberate tradeoff
+  # documented in SECURITY.md → "VPS Deployment Threat Model".
+
+appImage:
+  # No license popup, no integration menu — just run.
+  license: LICENSE
 
 # GitHub Releases is the distribution channel. electron-builder uploads the
 # installer + latest.yml here when invoked with `--publish always` (the CI
