@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { computeScheduleActions, type RunningAgent } from "./scheduler.js";
+import {
+  computeScheduleActions,
+  computeLaneSchedule,
+  type RunningAgent,
+  type LaneAgent,
+} from "./scheduler.js";
 
 const running = (...agents: Array<[string, boolean]>): RunningAgent[] =>
   agents.map(([id, hasWork]) => ({ id, hasWork }));
@@ -88,5 +93,91 @@ describe("computeScheduleActions", () => {
     // 0 free slots, 1 idle (r5), 1 waiter → evict r5, spawn w1
     expect(result.toSpawn).toEqual(["w1"]);
     expect(result.toEvict).toEqual(["r5"]);
+  });
+});
+
+const lane = (...agents: Array<[string, boolean, boolean]>): LaneAgent[] =>
+  agents.map(([id, isCeo, hasWork]) => ({ id, isCeo, hasWork }));
+
+describe("computeLaneSchedule (CEO management lane)", () => {
+  it("workers fill at most max-1; the last slot stays reserved", () => {
+    // 0 running, 4 workers waiting, max 4 → only 3 workers spawn (lane reserved)
+    const r = computeLaneSchedule(
+      [],
+      lane(["w1", false, true], ["w2", false, true], ["w3", false, true], ["w4", false, true]),
+      4,
+    );
+    expect(r.toSpawn).toEqual(["w1", "w2", "w3"]);
+    expect(r.toEvict).toEqual([]);
+  });
+
+  it("CEO claims the reserved slot even when 3 workers already run (the deadlock fix)", () => {
+    // 3 workers blocked (hasWork), CEO waiting → CEO spawns into slot 4
+    const r = computeLaneSchedule(
+      lane(["w1", false, true], ["w2", false, true], ["w3", false, true]),
+      lane(["ceo", true, true]),
+      4,
+    );
+    expect(r.toSpawn).toEqual(["ceo"]);
+    expect(r.toEvict).toEqual([]);
+  });
+
+  it("CEO is prioritized ahead of waiting workers for the free slot", () => {
+    // 3 workers running, both a CEO and a worker waiting, 1 effective slot →
+    // the CEO takes it (reserved lane), the worker keeps waiting
+    const r = computeLaneSchedule(
+      lane(["w1", false, true], ["w2", false, true], ["w3", false, true]),
+      lane(["w4", false, true], ["ceo", true, true]),
+      4,
+    );
+    expect(r.toSpawn).toEqual(["ceo"]);
+  });
+
+  it("CEO + workers spawn together without exceeding max", () => {
+    const r = computeLaneSchedule(
+      [],
+      lane(["ceo", true, true], ["w1", false, true], ["w2", false, true], ["w3", false, true]),
+      4,
+    );
+    // ceo + 3 workers = 4
+    expect(r.toSpawn).toEqual(["ceo", "w1", "w2", "w3"]);
+    expect(r.toSpawn).toHaveLength(4);
+  });
+
+  it("two CEOs (multi-company) + workers never exceed max total", () => {
+    // 2 CEOs spawn (mgmt) → workers limited so total stays ≤ 4
+    const r = computeLaneSchedule(
+      [],
+      lane(
+        ["ceoA", true, true],
+        ["ceoB", true, true],
+        ["w1", false, true],
+        ["w2", false, true],
+        ["w3", false, true],
+      ),
+      4,
+    );
+    expect(r.toSpawn).toEqual(["ceoA", "ceoB", "w1", "w2"]);
+    expect(r.toSpawn).toHaveLength(4);
+  });
+
+  it("CEO cannot spawn when the hard total is already full", () => {
+    // 3 workers + 1 running CEO = 4 live; a second CEO waits → no room
+    const r = computeLaneSchedule(
+      lane(["w1", false, true], ["w2", false, true], ["w3", false, true], ["ceoA", true, true]),
+      lane(["ceoB", true, true]),
+      4,
+    );
+    expect(r.toSpawn).toEqual([]);
+  });
+
+  it("no CEO involved → behaves like a max-1 worker pool", () => {
+    // 2 workers running with work, 3 waiting, max 4 → 1 free worker slot (lane reserved)
+    const r = computeLaneSchedule(
+      lane(["w1", false, true], ["w2", false, true]),
+      lane(["w3", false, true], ["w4", false, true], ["w5", false, true]),
+      4,
+    );
+    expect(r.toSpawn).toEqual(["w3"]);
   });
 });

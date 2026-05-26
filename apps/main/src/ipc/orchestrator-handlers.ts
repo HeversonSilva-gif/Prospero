@@ -40,7 +40,7 @@ import {
   MAX_CONCURRENT_AGENTS,
   listAdapterAgentIds,
 } from "../orchestrator/lifecycle.js";
-import { computeScheduleActions } from "../orchestrator/scheduler.js";
+import { computeLaneSchedule } from "../orchestrator/scheduler.js";
 import { startSchedulerTick } from "../orchestrator/scheduler-tick.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
 import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
@@ -463,6 +463,15 @@ export const registerOrchestratorHandlers = (
     }
   };
 
+  // Count of live adapters that belong to NON-CEO (worker) agents. Used to
+  // reserve one management lane for the CEO (see ensureAgentRunner cap below).
+  const liveWorkerCount = (): number =>
+    listAdapterAgentIds().filter((id) => {
+      if (getAdapter(id)?.isAlive() !== true) return false;
+      const a = agents.getById(id);
+      return a !== null && !isCeoAgent(a);
+    }).length;
+
   const ensureAgentRunner = (agent: Agent): void => {
     const existing = getAdapter(agent.id);
     if (existing !== undefined && existing.isAlive()) return;
@@ -472,11 +481,14 @@ export const registerOrchestratorHandlers = (
     const rlUntil = settingsRepo.read().rateLimitedUntil;
     if (rlUntil !== null && Date.now() < rlUntil) return;
 
-    // Concurrency cap: if we are at or above the limit, do NOT spawn — the
-    // router is already holding the message safely. The drain scheduler will
-    // pick this agent up when a slot frees (turn-complete, onExit, or periodic
-    // tick). This replaces the old ad-hoc eviction block.
+    // Concurrency cap with a reserved management lane. The hard total (Max ToS)
+    // is MAX_CONCURRENT_AGENTS; workers fill at most MAX-1 so the CEO can always
+    // claim the last slot to decide approvals. Without the reservation,
+    // approval-blocked workers hold every slot the CEO needs to unblock them
+    // (priority-inversion deadlock). At the cap we just return — the router
+    // holds the message and the drain scheduler picks it up when a slot frees.
     if (activeAdapterCount() >= MAX_CONCURRENT_AGENTS) return;
+    if (!isCeoAgent(agent) && liveWorkerCount() >= MAX_CONCURRENT_AGENTS - 1) return;
 
     const adapterName = agent.adapterName ?? "claude-oauth-local";
     const { oauthToken, apiKey } = resolveAdapterCredentials(adapterName, {
@@ -838,14 +850,23 @@ export const registerOrchestratorHandlers = (
         console.warn(`[ratelimit] window reset — resumed ${String(resumed.length)} agent(s)`);
       }
     }
+    const isCeoId = (id: string): boolean => {
+      const a = agents.getById(id);
+      return a !== null && isCeoAgent(a);
+    };
     const running = listAdapterAgentIds().map((id) => ({
       id,
+      isCeo: isCeoId(id),
       hasWork: (agents.getById(id)?.status ?? "idle") !== "idle" || router.hasPendingWork(id),
     }));
     const runningSet = new Set(running.map((r) => r.id));
-    const waiting = router.listPendingAgentIds().filter((id) => !runningSet.has(id)); // pending work but no live adapter
+    const waiting = router
+      .listPendingAgentIds()
+      .filter((id) => !runningSet.has(id)) // pending work but no live adapter
+      .map((id) => ({ id, isCeo: isCeoId(id), hasWork: true }));
     if (running.length === 0 && waiting.length === 0) return; // short-circuit common idle case
-    const { toSpawn, toEvict } = computeScheduleActions(running, waiting, MAX_CONCURRENT_AGENTS);
+    // Lane-aware: reserve one slot so the CEO can always spawn to decide approvals.
+    const { toSpawn, toEvict } = computeLaneSchedule(running, waiting, MAX_CONCURRENT_AGENTS);
     for (const id of toEvict) {
       // Only evict idle agents (no work) — safe: they have no in-flight turn.
       // Preserve session (no clearSessionId) so the victim --resumes on wake.
