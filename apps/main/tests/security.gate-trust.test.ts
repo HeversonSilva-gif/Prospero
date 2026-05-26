@@ -55,9 +55,25 @@ const WS = process.platform === "win32" ? "C:\\Workspace" : "/some/project";
 const FILE = process.platform === "win32" ? "C:\\Workspace\\file.ts" : "/some/project/file.ts";
 
 describe("trust ladder gate rule (M14 PR-A)", () => {
-  it("novato + Read → goes through normal path (supervised → request_user)", () => {
+  it("novato + Read inside allowed → auto-allow (read-only auto-approved for all tiers)", () => {
+    // Reading is safe and is how a new hire builds context. Gating it froze
+    // every novato on its first file read and starved the CEO's approval slots.
     const r = evaluatePermission({
       toolName: "Read",
+      toolInput: { file_path: FILE },
+      agent: baseAgent("novato"),
+      allowedProjectPaths: [WS],
+      agentCwd: WS,
+      userDataDir: USER_DATA,
+    });
+    expect(r.action).toBe("allow");
+    expect(r.reason).toMatch(/readonly-autoapproved/);
+    expect(recorded.some((x) => x.action === "trust.readonly_autoapproved")).toBe(true);
+  });
+
+  it("novato + Write → still requires approval (read-only fix does not widen writes)", () => {
+    const r = evaluatePermission({
+      toolName: "Write",
       toolInput: { file_path: FILE },
       agent: baseAgent("novato"),
       allowedProjectPaths: [WS],
@@ -67,7 +83,7 @@ describe("trust ladder gate rule (M14 PR-A)", () => {
     expect(r.action).toBe("request_user");
   });
 
-  it("confiavel + Read inside allowed → auto-allow with trust reason", () => {
+  it("confiavel + Read inside allowed → auto-allow", () => {
     const r = evaluatePermission({
       toolName: "Read",
       toolInput: { file_path: FILE },
@@ -77,7 +93,7 @@ describe("trust ladder gate rule (M14 PR-A)", () => {
       userDataDir: USER_DATA,
     });
     expect(r.action).toBe("allow");
-    expect(r.reason).toMatch(/trust:confiavel-readonly/);
+    expect(r.reason).toMatch(/readonly-autoapproved/);
     expect(recorded.some((x) => x.action === "trust.readonly_autoapproved")).toBe(true);
   });
 
@@ -122,7 +138,7 @@ describe("trust ladder gate rule (M14 PR-A)", () => {
       userDataDir: USER_DATA,
     });
     expect(r.action).toBe("allow");
-    expect(r.reason).toMatch(/trust:/);
+    expect(r.reason).toMatch(/readonly-autoapproved/);
   });
 
   it("Read outside allowed projects → still denied even for confiavel", () => {

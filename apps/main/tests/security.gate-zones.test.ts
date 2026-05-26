@@ -136,7 +136,9 @@ describe("evaluatePermission §5 containment zones (M13 PR-E)", () => {
       userDataDir: USER_DATA,
     });
     expect(r.action).toBe("allow");
-    expect(recorded).toHaveLength(0);
+    // Read-only is auto-approved (audited as trust.readonly_autoapproved); the
+    // invariant here is that the ZONE check did not fire a block.
+    expect(recorded.some((rec) => rec.action === "security.zone_blocked")).toBe(false);
   });
 
   it("allows the agent to touch its own company zone", () => {
@@ -150,7 +152,9 @@ describe("evaluatePermission §5 containment zones (M13 PR-E)", () => {
       userDataDir: USER_DATA,
     });
     expect(r.action).toBe("allow");
-    expect(recorded).toHaveLength(0);
+    // Read-only is auto-approved (audited as trust.readonly_autoapproved); the
+    // invariant here is that the ZONE check did not fire a block.
+    expect(recorded.some((rec) => rec.action === "security.zone_blocked")).toBe(false);
   });
 
   it("does not block paths outside the zone system (zoneOf returns null)", () => {
@@ -168,7 +172,9 @@ describe("evaluatePermission §5 containment zones (M13 PR-E)", () => {
       userDataDir: USER_DATA,
     });
     expect(r.action).toBe("allow");
-    expect(recorded).toHaveLength(0);
+    // Read-only is auto-approved (audited as trust.readonly_autoapproved); the
+    // invariant here is that the ZONE check did not fire a block.
+    expect(recorded.some((rec) => rec.action === "security.zone_blocked")).toBe(false);
   });
 
   it("does not audit when the path-fence already denied (deny wins, no double-audit)", () => {

@@ -208,11 +208,16 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
     }
   }
 
-  // M14 PR-A trust ladder: non-novato agents get auto-approve for read-only
-  // tools. Always-blocked patterns, the path-fence, and the zone check have
-  // already filtered the call by this point, so this can only widen approvals
-  // inside the already-allowed surface — never lift a deny.
-  if (agent.trustTier !== "novato" && isReadOnlyTool(toolName)) {
+  // Read-only tools (Read/Glob/Grep/LS/...) are auto-approved for EVERY agent,
+  // including novato. Always-blocked patterns, the path-fence, and the zone
+  // check have already filtered the call by this point, so this only widens
+  // approvals inside the already-allowed surface — never lifts a deny. Reading
+  // is safe and is how an agent builds context; gating it froze every new hire
+  // on its first file read and starved the CEO's approval slots (a
+  // priority-inversion deadlock: the agents waiting for the CEO's approval held
+  // the very slots the CEO needed to grant it). Writes, commands, and network
+  // still require approval.
+  if (isReadOnlyTool(toolName)) {
     try {
       tryGetRecorder()?.recordActivity({
         companyId: agent.companyId,
@@ -226,7 +231,7 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
     } catch (err) {
       console.warn("[gate] failed to record trust.readonly_autoapproved", err);
     }
-    return { action: "allow", reason: "trust:confiavel-readonly" };
+    return { action: "allow", reason: "readonly-autoapproved" };
   }
 
   if (agent.mode === "auto") {
