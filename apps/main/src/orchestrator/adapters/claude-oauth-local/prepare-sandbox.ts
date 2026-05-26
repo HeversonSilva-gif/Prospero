@@ -36,15 +36,16 @@ export const prepareSandbox = (agentId: string, userDataDir: string | undefined)
 // account as the host (same machine, same OAuth Max), so we seed the sandbox keychain
 // from the host's credentials. This intentionally shares the credential — but blocks
 // everything else (hooks, skills, global MCP servers, projects, sessions, snapshots).
-export const seedSandboxCredentials = (agentConfigDir: string): void => {
+export const seedSandboxCredentials = (agentConfigDir: string): boolean => {
   const hostCreds = join(homedir(), ".claude", ".credentials.json");
   const sandboxCreds = join(agentConfigDir, ".credentials.json");
-  if (existsSync(hostCreds)) {
-    try {
-      copyFileSync(hostCreds, sandboxCreds);
-    } catch {
-      // Caller logs; we swallow to avoid breaking spawn on credential read errors.
-    }
+  if (!existsSync(hostCreds)) return false;
+  try {
+    copyFileSync(hostCreds, sandboxCreds);
+    return true;
+  } catch {
+    // Caller logs; we swallow to avoid breaking spawn on credential read errors.
+    return false;
   }
 };
 
