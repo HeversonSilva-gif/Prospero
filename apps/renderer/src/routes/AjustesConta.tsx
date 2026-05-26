@@ -1,8 +1,38 @@
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
+import type { RecoveryResult } from "@prospero/shared";
+import { useAgentsStore } from "../stores/agents.js";
 import { useAuthStore } from "../stores/auth.js";
 import { useSettingsStore } from "../stores/settings.js";
 import { AjustesPageHeader } from "../components/ajustes/AjustesPageHeader.js";
+import { ConfirmReconnectModal } from "../components/ConfirmReconnectModal.js";
+
+type StatusMessage = { tone: "success" | "warning"; text: string };
+
+const summarizeResults = (results: RecoveryResult[], t: TFunction): StatusMessage => {
+  const hostStale = results.some((r) => r.kind === "host-stale");
+  if (hostStale) {
+    return { tone: "warning", text: t("auth.reconnect.result.hostStale") };
+  }
+  const failures = results.filter((r) => r.kind === "failed");
+  if (failures.length > 0) {
+    const success = results.length - failures.length;
+    return {
+      tone: "warning",
+      text: t("auth.reconnect.result.partialFailure", {
+        success,
+        failures: failures.length,
+        count: failures.length,
+      }),
+    };
+  }
+  const recovered = results.filter((r) => r.kind === "recovered").length;
+  return {
+    tone: "success",
+    text: t("auth.reconnect.result.allRecovered", { count: recovered }),
+  };
+};
 
 // M16 PR-B2 — sub-página /settings/conta.
 // Extrai Auth + AuthMode + ApiKey (linhas 140-263 do antigo Settings.tsx).
@@ -19,12 +49,41 @@ export const AjustesConta: FC = () => {
   const clearApiKey = useAuthStore((s) => s.clearApiKey);
   const settings = useSettingsStore((s) => s.settings);
   const setAuthMode = useSettingsStore((s) => s.setAuthMode);
+  const agents = useAgentsStore((s) => s.agents);
+  const reconnect = useAuthStore((s) => s.reconnectRunningAgents);
 
   const [tokenInput, setTokenInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
   const [apiKeyBusy, setApiKeyBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [reconnectPending, setReconnectPending] = useState(false);
+  const [reconnectStatus, setReconnectStatus] = useState<StatusMessage | null>(null);
+
+  const runningCount = agents.filter(
+    (a) => a.status !== "terminated" && a.status !== "idle",
+  ).length;
+
+  const doReconnect = async (): Promise<void> => {
+    setConfirming(false);
+    setReconnectPending(true);
+    setReconnectStatus(null);
+    try {
+      const results = await reconnect();
+      setReconnectStatus(summarizeResults(results, t));
+    } finally {
+      setReconnectPending(false);
+    }
+  };
+
+  const onClickReconnect = (): void => {
+    if (runningCount === 0) {
+      void doReconnect();
+    } else {
+      setConfirming(true);
+    }
+  };
 
   const onSave = async (): Promise<void> => {
     setError(null);
@@ -77,6 +136,27 @@ export const AjustesConta: FC = () => {
             >
               {t("settings.auth.actionClear")}
             </button>
+            <div className="pt-3 border-t border-surface-border flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={onClickReconnect}
+                disabled={reconnectPending}
+                className="px-4 py-2 text-sm font-medium border border-surface-border rounded hover:bg-surface-soft disabled:opacity-50"
+              >
+                {reconnectPending ? t("auth.reconnect.pending") : t("auth.reconnect.confirm.cta")}
+              </button>
+              {reconnectStatus !== null && (
+                <p
+                  className={`text-xs ${
+                    reconnectStatus.tone === "success"
+                      ? "text-semantic-success"
+                      : "text-semantic-warning"
+                  }`}
+                >
+                  {reconnectStatus.text}
+                </p>
+              )}
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
@@ -182,6 +262,14 @@ export const AjustesConta: FC = () => {
           </div>
         )}
       </section>
+
+      {confirming && (
+        <ConfirmReconnectModal
+          agentCount={runningCount}
+          onConfirm={() => void doReconnect()}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
     </div>
   );
 };

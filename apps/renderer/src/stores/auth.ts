@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ApiKeyStatus, TokenSource, TokenStatus } from "@prospero/shared";
+import type { ApiKeyStatus, RecoveryResult, TokenSource, TokenStatus } from "@prospero/shared";
 
 type State = {
   status: TokenStatus;
@@ -11,6 +11,7 @@ type State = {
   clearToken: () => Promise<void>;
   setApiKey: (raw: string) => Promise<void>;
   clearApiKey: () => Promise<void>;
+  reconnectRunningAgents: () => Promise<RecoveryResult[]>;
 };
 
 export const useAuthStore = create<State>((set) => ({
@@ -49,5 +50,9 @@ export const useAuthStore = create<State>((set) => ({
   clearApiKey: async () => {
     const apiKeyStatus = await window.prospero.auth.apiKeyClear();
     set({ apiKeyStatus });
+  },
+
+  reconnectRunningAgents: async () => {
+    return window.prospero.auth.reconnectRunningAgents();
   },
 }));
