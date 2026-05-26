@@ -34,7 +34,11 @@ import {
   type AdapterCallbacks,
 } from "../orchestrator/lifecycle.js";
 import { createRespawnFn, type SpawnState } from "../orchestrator/respawn.js";
-import { setRespawnFn, setUserDataDir } from "../auth/credential-recovery.js";
+import {
+  setRecoveryBroadcastFn,
+  setRespawnFn,
+  setUserDataDir,
+} from "../auth/credential-recovery.js";
 import { computeLaneSchedule } from "../orchestrator/scheduler.js";
 import { startSchedulerTick } from "../orchestrator/scheduler-tick.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
@@ -792,6 +796,14 @@ export const registerOrchestratorHandlers = (
   // stays unit-testable; injection happens here, once, at orchestrator init.
   setRespawnFn(respawnAgent);
   setUserDataDir(app.getPath("userData"));
+  // Forward recovery-status broadcasts to every renderer via the dedicated
+  // IPC.AUTH_RECOVERY_STATUS channel (separate from AGENT_EVENT so the
+  // banner subscriber doesn't need to filter the agent-event firehose).
+  setRecoveryBroadcastFn((event) => {
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send(IPC.AUTH_RECOVERY_STATUS, event);
+    }
+  });
 
   const ensureAgentRunner = (agent: Agent): void => {
     const existing = getAdapter(agent.id);

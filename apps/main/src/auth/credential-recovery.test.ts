@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { RecoveryStatusEvent } from "@prospero/shared";
 import {
   isAuthError,
   recoverAgent,
+  setRecoveryBroadcastFn,
   setRespawnFn,
   setUserDataDir,
   __resetRecoveryState,
@@ -288,5 +290,69 @@ describe("recoverAllRunning", () => {
     const results = await recoverAllRunning();
 
     expect(results).toEqual([]);
+  });
+});
+
+describe("recoverAgent — broadcasts", () => {
+  beforeEach(() => {
+    __resetRecoveryState();
+    vi.clearAllMocks();
+    setUserDataDir("/tmp/test-userdata");
+  });
+
+  it("broadcasts started + recovered on success", async () => {
+    vi.mocked(getAdapter).mockReturnValue({ isAlive: () => true, kill: vi.fn() } as never);
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(true);
+    setRespawnFn(() => Promise.resolve(null));
+
+    const broadcasts: RecoveryStatusEvent[] = [];
+    setRecoveryBroadcastFn((e) => broadcasts.push(e));
+
+    await recoverAgent("agent-1", { reason: "user-reconnect" });
+
+    expect(broadcasts.map((b) => b.phase)).toEqual(["started", "recovered"]);
+    expect(broadcasts.every((b) => b.agentId === "agent-1")).toBe(true);
+  });
+
+  it("broadcasts started + host-stale when host file missing", async () => {
+    vi.mocked(getAdapter).mockReturnValue({ isAlive: () => true, kill: vi.fn() } as never);
+    vi.mocked(detectClaudeCliToken).mockReturnValue(null);
+    setRespawnFn(() => Promise.resolve(null));
+
+    const broadcasts: RecoveryStatusEvent[] = [];
+    setRecoveryBroadcastFn((e) => broadcasts.push(e));
+
+    await recoverAgent("agent-1", { reason: "user-reconnect" });
+
+    expect(broadcasts.map((b) => b.phase)).toEqual(["started", "host-stale"]);
+    expect(broadcasts[1]?.reason).toBe("no-host-file");
+  });
+
+  it("broadcasts started + failed when reseed fails", async () => {
+    vi.mocked(getAdapter).mockReturnValue({ isAlive: () => true, kill: vi.fn() } as never);
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(false);
+    setRespawnFn(() => Promise.resolve(null));
+
+    const broadcasts: RecoveryStatusEvent[] = [];
+    setRecoveryBroadcastFn((e) => broadcasts.push(e));
+
+    await recoverAgent("agent-1", { reason: "user-reconnect" });
+
+    expect(broadcasts.map((b) => b.phase)).toEqual(["started", "failed"]);
+    expect(broadcasts[1]?.reason).toBe("reseed-failed");
+  });
+
+  it("does NOT broadcast for skipped-not-running", async () => {
+    vi.mocked(getAdapter).mockReturnValue(undefined);
+    setRespawnFn(() => Promise.resolve(null));
+
+    const broadcasts: RecoveryStatusEvent[] = [];
+    setRecoveryBroadcastFn((e) => broadcasts.push(e));
+
+    await recoverAgent("agent-1", { reason: "user-reconnect" });
+
+    expect(broadcasts).toEqual([]);
   });
 });

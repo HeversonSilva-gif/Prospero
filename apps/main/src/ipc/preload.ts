@@ -4,6 +4,8 @@ import {
   type ApiKeyStatus,
   type AppSettings,
   type DetectResult,
+  type RecoveryResult,
+  type RecoveryStatusEvent,
   type TokenSource,
   type TokenStatus,
   type Agent,
@@ -82,6 +84,13 @@ contextBridge.exposeInMainWorld("prospero", {
     apiKeySet: (raw: string) =>
       ipcRenderer.invoke(IPC.AUTH_API_KEY_SET, { raw }) as Promise<ApiKeyStatus>,
     apiKeyClear: () => ipcRenderer.invoke(IPC.AUTH_API_KEY_CLEAR) as Promise<ApiKeyStatus>,
+    reconnectRunningAgents: (): Promise<RecoveryResult[]> =>
+      ipcRenderer.invoke(IPC.AUTH_RECONNECT_RUNNING_AGENTS) as Promise<RecoveryResult[]>,
+    onRecoveryStatus: (cb: (event: RecoveryStatusEvent) => void): (() => void) => {
+      const listener = (_e: unknown, event: RecoveryStatusEvent): void => cb(event);
+      ipcRenderer.on(IPC.AUTH_RECOVERY_STATUS, listener);
+      return () => ipcRenderer.off(IPC.AUTH_RECOVERY_STATUS, listener);
+    },
   },
   companies: {
     list: () => ipcRenderer.invoke(IPC.COMPANY_LIST) as Promise<Company[]>,

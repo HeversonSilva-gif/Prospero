@@ -3,6 +3,8 @@ import type {
   ApiKeyStatus,
   AppSettings,
   DetectResult,
+  RecoveryResult,
+  RecoveryStatusEvent,
   TokenSource,
   TokenStatus,
   Agent,
@@ -77,6 +79,8 @@ declare global {
         apiKeyStatus: () => Promise<ApiKeyStatus>;
         apiKeySet: (raw: string) => Promise<ApiKeyStatus>;
         apiKeyClear: () => Promise<ApiKeyStatus>;
+        reconnectRunningAgents: () => Promise<RecoveryResult[]>;
+        onRecoveryStatus: (cb: (event: RecoveryStatusEvent) => void) => () => void;
       };
       companies: {
         list: () => Promise<Company[]>;
