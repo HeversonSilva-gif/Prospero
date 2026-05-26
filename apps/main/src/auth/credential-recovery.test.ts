@@ -95,3 +95,76 @@ describe("recoverAgent — happy path", () => {
     expect(result.kind).toBe("skipped-not-running");
   });
 });
+
+describe("recoverAgent — error paths", () => {
+  beforeEach(() => {
+    __resetRecoveryState();
+    vi.clearAllMocks();
+    setUserDataDir("/tmp/test-userdata");
+  });
+
+  it("returns host-stale when host file missing", async () => {
+    vi.mocked(getAdapter).mockReturnValue({ isAlive: () => true, kill: vi.fn() } as never);
+    vi.mocked(detectClaudeCliToken).mockReturnValue(null);
+    setRespawnFn(() => Promise.resolve(null));
+
+    const result = await recoverAgent("agent-1", { reason: "user-reconnect" });
+
+    expect(result).toEqual({ kind: "host-stale", agentId: "agent-1", reason: "no-host-file" });
+    expect(seedSandboxCredentials).not.toHaveBeenCalled();
+  });
+
+  it("returns failed when seedSandboxCredentials returns false", async () => {
+    const killSpy = vi.fn();
+    vi.mocked(getAdapter).mockReturnValue({ isAlive: () => true, kill: killSpy } as never);
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat-abc", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(false);
+    setRespawnFn(() => Promise.resolve(null));
+
+    const result = await recoverAgent("agent-1", { reason: "user-reconnect" });
+
+    expect(result.kind).toBe("failed");
+    if (result.kind === "failed") expect(result.reason).toBe("reseed-failed");
+    expect(killSpy).toHaveBeenCalled();
+  });
+
+  it("returns failed when respawnFn throws", async () => {
+    vi.mocked(getAdapter).mockReturnValue({ isAlive: () => true, kill: vi.fn() } as never);
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat-abc", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(true);
+    setRespawnFn(() => Promise.reject(new Error("spawn ENOENT")));
+
+    const result = await recoverAgent("agent-1", { reason: "user-reconnect" });
+
+    expect(result.kind).toBe("failed");
+    if (result.kind === "failed") expect(result.reason).toContain("respawn-failed");
+    if (result.kind === "failed") expect(result.reason).toContain("spawn ENOENT");
+  });
+
+  it("returns failed when respawnFn not set", async () => {
+    vi.mocked(getAdapter).mockReturnValue({ isAlive: () => true, kill: vi.fn() } as never);
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat-abc", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(true);
+    // setRespawnFn NOT called — left null after __resetRecoveryState()
+
+    const result = await recoverAgent("agent-1", { reason: "user-reconnect" });
+
+    expect(result.kind).toBe("failed");
+    if (result.kind === "failed") expect(result.reason).toBe("respawn-fn-not-set");
+  });
+
+  it("returns failed when userDataDir not set", async () => {
+    vi.mocked(getAdapter).mockReturnValue({ isAlive: () => true, kill: vi.fn() } as never);
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat-abc", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(true);
+    setRespawnFn(() => Promise.resolve(null));
+    // Override the beforeEach setUserDataDir by re-calling __resetRecoveryState
+    __resetRecoveryState();
+    setRespawnFn(() => Promise.resolve(null));
+
+    const result = await recoverAgent("agent-1", { reason: "user-reconnect" });
+
+    expect(result.kind).toBe("failed");
+    if (result.kind === "failed") expect(result.reason).toBe("user-data-dir-not-set");
+  });
+});
