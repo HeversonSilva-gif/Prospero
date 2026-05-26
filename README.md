@@ -74,9 +74,18 @@ pnpm dist:win   # build the Windows installer into ./release
 
 The repo is a pnpm monorepo: `apps/main` (Electron main + orchestrator), `apps/renderer` (React UI), `apps/agent-runner`, and `packages/shared`. Requires Node 20+ and pnpm 9+.
 
+**Run on a VPS (advanced)**
+
+Prospero can run on a Linux VPS and be accessed from any browser via
+noVNC, behind Traefik + Authelia (TOTP 2FA required). See
+[`infra/docker/vps/README.md`](infra/docker/vps/README.md) for the full
+setup. Read [`SECURITY.md`](SECURITY.md) → "VPS Deployment Threat Model"
+first — this mode exposes a desktop shell to the public internet, and
+the Electron sandbox is attenuated (`--no-sandbox` inside the container).
+
 ## Status
 
-**v0.1.10 — all v1 milestones complete (M1–M18), V2 features shipping.**
+**v0.1.15 — all v1 milestones complete (M1–M18), V2 features shipping.**
 
 | What works today |
 |---|

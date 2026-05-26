@@ -74,9 +74,19 @@ pnpm dist:win   # gera o instalador Windows em ./release
 
 O repositório é um monorepo pnpm: `apps/main` (Electron main + orquestrador), `apps/renderer` (UI React), `apps/agent-runner` e `packages/shared`. Requer Node 20+ e pnpm 9+.
 
+**Rodar numa VPS (avançado)**
+
+O Prospero pode rodar numa VPS Linux e ser acessado de qualquer
+navegador via noVNC, atrás de Traefik + Authelia (2FA TOTP obrigatório).
+Veja [`infra/docker/vps/README.md`](infra/docker/vps/README.md) para o
+passo a passo. Leia antes a [`SECURITY.md`](SECURITY.md) → "VPS
+Deployment Threat Model" — este modo expõe um shell de desktop à
+internet pública, e o sandbox do Electron fica atenuado (`--no-sandbox`
+dentro do container).
+
 ## Status
 
-**v0.1.10 — todos os milestones v1 concluídos (M1–M18), features V2 sendo entregues.**
+**v0.1.15 — todos os milestones v1 concluídos (M1–M18), features V2 sendo entregues.**
 
 | O que funciona hoje |
 |---|
