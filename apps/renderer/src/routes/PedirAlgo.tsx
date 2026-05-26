@@ -69,7 +69,7 @@ export const PedirAlgo: FC = () => {
         description: draft.trim(),
         level: "company",
       });
-      await window.prospero.agents.sendMessage(ceo.id, draft.trim());
+      await window.prospero.agents.sendMessage({ agentId: ceo.id, content: draft.trim() });
       navigate(`/pedir/${created.id}`);
     } finally {
       setStarting(false);
@@ -78,7 +78,7 @@ export const PedirAlgo: FC = () => {
 
   const sendReply = async (text: string) => {
     if (ceo === null) return;
-    await window.prospero.agents.sendMessage(ceo.id, text);
+    await window.prospero.agents.sendMessage({ agentId: ceo.id, content: text });
     await reload();
   };
 

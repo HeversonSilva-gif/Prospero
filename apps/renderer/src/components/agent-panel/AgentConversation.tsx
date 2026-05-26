@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FC } from "react";
+import { useEffect, useMemo, useRef, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import {
   isCeoAgent,
@@ -12,7 +12,8 @@ import { ApprovalCard } from "../ApprovalCard.js";
 import { MessageList } from "../MessageList.js";
 import { DelegationsPanel } from "../DelegationsPanel.js";
 import { OrgPlanProposedBanner } from "../OrgPlanProposedBanner.js";
-import { Composer } from "../Composer.js";
+import { RichComposer, type RichComposerHandle } from "../RichComposer.js";
+import { AttachmentDropOverlay } from "../AttachmentDropOverlay.js";
 import { TabBar } from "../ui/index.js";
 
 type SubTab = "chat" | "delegations";
@@ -24,6 +25,7 @@ export const AgentConversation: FC<Props> = ({ agent }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<PermissionRequest[]>([]);
   const [sub, setSub] = useState<SubTab>("chat");
+  const composerRef = useRef<RichComposerHandle | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -72,45 +74,54 @@ export const AgentConversation: FC<Props> = ({ agent }) => {
     setPendingApprovals((prev) => prev.filter((r) => r.toolUseId !== req.toolUseId));
   };
 
-  const onSend = async (content: string): Promise<void> => {
-    await window.prospero.agents.sendMessage(agent.id, content);
+  const onSend = async (content: string, attachmentIds: string[]): Promise<void> => {
+    await window.prospero.agents.sendMessage({ agentId: agent.id, content, attachmentIds });
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
-      <div className="px-6 pt-2">
-        <TabBar
-          variant="segmented"
-          active={sub}
-          onSelect={(id) => setSub(id as SubTab)}
-          tabs={[
-            { id: "chat", label: t("agent.tabs.chat") },
-            {
-              id: "delegations",
-              label: t("agent.tabs.delegations"),
-              badge: delegationMessages.length,
-            },
-          ]}
+    <AttachmentDropOverlay onDrop={(files) => void composerRef.current?.addFiles(files)}>
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="px-6 pt-2">
+          <TabBar
+            variant="segmented"
+            active={sub}
+            onSelect={(id) => setSub(id as SubTab)}
+            tabs={[
+              { id: "chat", label: t("agent.tabs.chat") },
+              {
+                id: "delegations",
+                label: t("agent.tabs.delegations"),
+                badge: delegationMessages.length,
+              },
+            ]}
+          />
+        </div>
+        {sub === "chat" && isCeoAgent(agent) && <OrgPlanProposedBanner />}
+        {sub === "chat" ? (
+          <MessageList
+            messages={chatMessages}
+            agents={agents}
+            activeAgent={agents.find((a) => a.id === agent.id) ?? agent}
+          />
+        ) : (
+          <DelegationsPanel
+            messages={delegationMessages}
+            currentAgentId={agent.id}
+            agents={agents}
+          />
+        )}
+        {pendingApprovals.map((req) => (
+          <ApprovalCard
+            key={req.toolUseId}
+            request={req}
+            onResolve={(allow) => resolve(req, allow)}
+          />
+        ))}
+        <RichComposer
+          ref={composerRef}
+          onSubmit={(text, attachmentIds) => void onSend(text, attachmentIds)}
         />
       </div>
-      {sub === "chat" && isCeoAgent(agent) && <OrgPlanProposedBanner />}
-      {sub === "chat" ? (
-        <MessageList
-          messages={chatMessages}
-          agents={agents}
-          activeAgent={agents.find((a) => a.id === agent.id) ?? agent}
-        />
-      ) : (
-        <DelegationsPanel messages={delegationMessages} currentAgentId={agent.id} agents={agents} />
-      )}
-      {pendingApprovals.map((req) => (
-        <ApprovalCard
-          key={req.toolUseId}
-          request={req}
-          onResolve={(allow) => resolve(req, allow)}
-        />
-      ))}
-      <Composer onSubmit={(text) => void onSend(text)} />
-    </div>
+    </AttachmentDropOverlay>
   );
 };

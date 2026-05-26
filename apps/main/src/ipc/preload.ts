@@ -157,8 +157,8 @@ contextBridge.exposeInMainWorld("prospero", {
   agents: {
     list: (companyId: string) =>
       ipcRenderer.invoke(IPC.AGENT_LIST, { companyId }) as Promise<Agent[]>,
-    sendMessage: (agentId: string, content: string) =>
-      ipcRenderer.invoke(IPC.AGENT_SEND_MESSAGE, { agentId, content }) as Promise<Message>,
+    sendMessage: (input: { agentId: string; content: string; attachmentIds?: string[] }) =>
+      ipcRenderer.invoke(IPC.AGENT_SEND_MESSAGE, input) as Promise<Message>,
     kill: (agentId: string) => ipcRenderer.invoke(IPC.AGENT_KILL, { agentId }) as Promise<void>,
     setAllowedProjects: (agentId: string, projectIds: string[]) =>
       ipcRenderer.invoke(IPC.AGENTS_SET_ALLOWED_PROJECTS, { agentId, projectIds }) as Promise<void>,

@@ -140,7 +140,11 @@ declare global {
       };
       agents: {
         list: (companyId: string) => Promise<Agent[]>;
-        sendMessage: (agentId: string, content: string) => Promise<Message>;
+        sendMessage: (input: {
+          agentId: string;
+          content: string;
+          attachmentIds?: string[];
+        }) => Promise<Message>;
         kill: (agentId: string) => Promise<void>;
         setAllowedProjects: (agentId: string, projectIds: string[]) => Promise<void>;
         setModel: (agentId: string, model: string) => Promise<{ ok: true }>;

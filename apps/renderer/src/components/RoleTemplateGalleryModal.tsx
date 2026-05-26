@@ -35,7 +35,7 @@ export const RoleTemplateGalleryModal = ({ onClose }: Props) => {
     if (ceo === null || need.trim() === "") return;
     setBusy(true);
     try {
-      await window.prospero.agents.sendMessage(ceo.id, need.trim());
+      await window.prospero.agents.sendMessage({ agentId: ceo.id, content: need.trim() });
       onClose();
       navigate(`/agents/${ceo.id}`);
     } finally {

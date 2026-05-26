@@ -4,6 +4,7 @@ import type { Agent, Message, MessageKind } from "@prospero/shared";
 import { ToolCallCard } from "./ToolCallCard.js";
 import { AgentActivityIndicator } from "./AgentActivityIndicator.js";
 import { MarkdownContent } from "./MarkdownContent.js";
+import { AttachmentChip } from "./AttachmentChip.js";
 
 type Props = {
   messages: Message[];
@@ -88,6 +89,18 @@ export const MessageList = ({ messages, agents, activeAgent }: Props) => {
                   }`}
                 >
                   <MarkdownContent content={m.content} isUser={isUser} />
+                </div>
+              )}
+              {m.attachments !== undefined && m.attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {m.attachments.map((a) => (
+                    <AttachmentChip
+                      key={a.id}
+                      attachment={a}
+                      mode="sent"
+                      onOpen={() => void window.prospero.attachments.open(a.id)}
+                    />
+                  ))}
                 </div>
               )}
               {m.toolCalls?.map((tc) => (
