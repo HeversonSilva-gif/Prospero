@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   isAuthError,
   recoverAgent,
@@ -166,5 +166,76 @@ describe("recoverAgent — error paths", () => {
 
     expect(result.kind).toBe("failed");
     if (result.kind === "failed") expect(result.reason).toBe("user-data-dir-not-set");
+  });
+});
+
+describe("recoverAgent — lock + cooldown + timeout", () => {
+  beforeEach(() => {
+    __resetRecoveryState();
+    vi.clearAllMocks();
+    setUserDataDir("/tmp/test-userdata");
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("second call while first is in flight returns skipped-recovering", async () => {
+    vi.mocked(getAdapter).mockReturnValue({ isAlive: () => true, kill: vi.fn() } as never);
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat-abc", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(true);
+    setRespawnFn(() => new Promise((resolve) => setTimeout(() => resolve(null), 5000)));
+
+    const p1 = recoverAgent("agent-1", { reason: "user-reconnect" });
+    const p2 = recoverAgent("agent-1", { reason: "auto-401" });
+
+    const r2 = await p2;
+    expect(r2.kind).toBe("skipped-recovering");
+
+    await vi.advanceTimersByTimeAsync(5000);
+    const r1 = await p1;
+    expect(r1.kind).toBe("recovered");
+  });
+
+  it("call within cooldown after success returns skipped-cooldown", async () => {
+    vi.mocked(getAdapter).mockReturnValue({ isAlive: () => true, kill: vi.fn() } as never);
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat-abc", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(true);
+    setRespawnFn(() => Promise.resolve(null));
+
+    const r1 = await recoverAgent("agent-1", { reason: "user-reconnect" });
+    expect(r1.kind).toBe("recovered");
+
+    vi.setSystemTime(Date.now() + 5000);
+    const r2 = await recoverAgent("agent-1", { reason: "auto-401" });
+    expect(r2.kind).toBe("skipped-cooldown");
+  });
+
+  it("call after cooldown elapses runs again", async () => {
+    vi.mocked(getAdapter).mockReturnValue({ isAlive: () => true, kill: vi.fn() } as never);
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat-abc", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(true);
+    setRespawnFn(() => Promise.resolve(null));
+
+    const r1 = await recoverAgent("agent-1", { reason: "user-reconnect" });
+    expect(r1.kind).toBe("recovered");
+
+    vi.setSystemTime(Date.now() + 20000);
+    const r2 = await recoverAgent("agent-1", { reason: "auto-401" });
+    expect(r2.kind).toBe("recovered");
+  });
+
+  it("respawnFn that hangs past 30s times out and returns failed", async () => {
+    vi.mocked(getAdapter).mockReturnValue({ isAlive: () => true, kill: vi.fn() } as never);
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat-abc", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(true);
+    setRespawnFn(() => new Promise(() => {})); // never resolves
+
+    const p = recoverAgent("agent-1", { reason: "user-reconnect" });
+    await vi.advanceTimersByTimeAsync(30_001);
+
+    const result = await p;
+    expect(result.kind).toBe("failed");
+    if (result.kind === "failed") expect(result.reason).toBe("timeout");
   });
 });

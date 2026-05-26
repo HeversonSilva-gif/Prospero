@@ -27,6 +27,12 @@ type RespawnFn = (agentId: string) => Promise<unknown>;
 let respawnFn: RespawnFn | null = null;
 let userDataDir: string | null = null;
 
+const LOCK_TIMEOUT_MS = 30_000;
+const COOLDOWN_MS = 15_000;
+
+const inFlight = new Map<string, Promise<RecoveryResult>>();
+const lastSuccessAt = new Map<string, number>();
+
 export const setRespawnFn = (fn: RespawnFn): void => {
   respawnFn = fn;
 };
@@ -38,9 +44,38 @@ export const setUserDataDir = (dir: string): void => {
 export const __resetRecoveryState = (): void => {
   respawnFn = null;
   userDataDir = null;
+  inFlight.clear();
+  lastSuccessAt.clear();
 };
 
 export const recoverAgent = async (
+  agentId: string,
+  opts: { reason: RecoveryReason },
+): Promise<RecoveryResult> => {
+  const existing = inFlight.get(agentId);
+  if (existing !== undefined) {
+    return { kind: "skipped-recovering", agentId };
+  }
+
+  const lastSuccess = lastSuccessAt.get(agentId);
+  if (lastSuccess !== undefined && Date.now() - lastSuccess < COOLDOWN_MS) {
+    return { kind: "skipped-cooldown", agentId };
+  }
+
+  const promise = withTimeout(() => runPipeline(agentId, opts), agentId);
+  inFlight.set(agentId, promise);
+  try {
+    const result = await promise;
+    if (result.kind === "recovered") {
+      lastSuccessAt.set(agentId, Date.now());
+    }
+    return result;
+  } finally {
+    inFlight.delete(agentId);
+  }
+};
+
+const runPipeline = async (
   agentId: string,
   _opts: { reason: RecoveryReason },
 ): Promise<RecoveryResult> => {
@@ -82,4 +117,25 @@ export const recoverAgent = async (
   }
 
   return { kind: "recovered", agentId, durationMs: Date.now() - startMs };
+};
+
+const withTimeout = (
+  fn: () => Promise<RecoveryResult>,
+  agentId: string,
+): Promise<RecoveryResult> => {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve({ kind: "failed", agentId, reason: "timeout" });
+    }, LOCK_TIMEOUT_MS);
+
+    void fn().then((result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(result);
+    });
+  });
 };
