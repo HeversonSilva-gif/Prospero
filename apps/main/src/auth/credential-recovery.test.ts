@@ -18,9 +18,10 @@ vi.mock("./token-detect.js", () => ({
   detectClaudeCliToken: vi.fn(),
 }));
 
-import { getAdapter } from "../orchestrator/lifecycle.js";
+import { getAdapter, listAdapterAgentIds } from "../orchestrator/lifecycle.js";
 import { seedSandboxCredentials } from "../orchestrator/adapters/claude-oauth-local/prepare-sandbox.js";
 import { detectClaudeCliToken } from "./token-detect.js";
+import { recoverAllRunning } from "./credential-recovery.js";
 
 describe("isAuthError", () => {
   it("matches 'Invalid authentication credentials'", () => {
@@ -237,5 +238,55 @@ describe("recoverAgent — lock + cooldown + timeout", () => {
     const result = await p;
     expect(result.kind).toBe("failed");
     if (result.kind === "failed") expect(result.reason).toBe("timeout");
+  });
+});
+
+describe("recoverAllRunning", () => {
+  beforeEach(() => {
+    __resetRecoveryState();
+    vi.clearAllMocks();
+    setUserDataDir("/tmp/test-userdata");
+  });
+
+  it("runs in parallel for all live agents", async () => {
+    vi.mocked(listAdapterAgentIds).mockReturnValue(["a", "b", "c"]);
+    vi.mocked(getAdapter).mockImplementation(
+      () => ({ isAlive: () => true, kill: vi.fn() }) as never,
+    );
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(true);
+    setRespawnFn(() => Promise.resolve(null));
+
+    const results = await recoverAllRunning();
+
+    expect(results).toHaveLength(3);
+    expect(results.every((r) => r.kind === "recovered")).toBe(true);
+  });
+
+  it("skips agents whose adapter is dead", async () => {
+    vi.mocked(listAdapterAgentIds).mockReturnValue(["a", "b"]);
+    vi.mocked(getAdapter).mockImplementation((id: string) =>
+      id === "a"
+        ? ({ isAlive: () => true, kill: vi.fn() } as never)
+        : ({ isAlive: () => false, kill: vi.fn() } as never),
+    );
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(true);
+    setRespawnFn(() => Promise.resolve(null));
+
+    const results = await recoverAllRunning();
+
+    expect(results).toHaveLength(2);
+    expect(results.find((r) => r.agentId === "a")?.kind).toBe("recovered");
+    expect(results.find((r) => r.agentId === "b")?.kind).toBe("skipped-not-running");
+  });
+
+  it("returns empty array when no agents are running", async () => {
+    vi.mocked(listAdapterAgentIds).mockReturnValue([]);
+    setRespawnFn(() => Promise.resolve(null));
+
+    const results = await recoverAllRunning();
+
+    expect(results).toEqual([]);
   });
 });

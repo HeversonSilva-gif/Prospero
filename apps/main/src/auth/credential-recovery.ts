@@ -1,4 +1,4 @@
-import { getAdapter } from "../orchestrator/lifecycle.js";
+import { getAdapter, listAdapterAgentIds } from "../orchestrator/lifecycle.js";
 import { seedSandboxCredentials } from "../orchestrator/adapters/claude-oauth-local/prepare-sandbox.js";
 import { getAgentConfigDir } from "../orchestrator/util/paths.js";
 import { detectClaudeCliToken } from "./token-detect.js";
@@ -73,6 +73,11 @@ export const recoverAgent = async (
   } finally {
     inFlight.delete(agentId);
   }
+};
+
+export const recoverAllRunning = async (): Promise<RecoveryResult[]> => {
+  const ids = listAdapterAgentIds();
+  return Promise.all(ids.map((id) => recoverAgent(id, { reason: "user-reconnect" })));
 };
 
 const runPipeline = async (
