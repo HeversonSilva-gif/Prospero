@@ -886,6 +886,24 @@
       "subtitle": "Confira os dados. Ao criar, seu gerente (CEO) é montado junto."
     }
   },
+  "auth": {
+    "reconnect": {
+      "confirm": {
+        "title": "Reconectar agentes",
+        "body_one": "Reiniciar 1 agente para aplicar a nova credencial? Turnos em andamento vão recomeçar.",
+        "body_other": "Reiniciar {{count}} agentes para aplicar a nova credencial? Turnos em andamento vão recomeçar.",
+        "cta": "Reconectar"
+      },
+      "pending": "Reconectando…",
+      "result": {
+        "allRecovered_one": "1 agente reconectado.",
+        "allRecovered_other": "{{count}} agentes reconectados.",
+        "hostStale": "Credencial do Claude está expirada. Rode `claude setup-token` no terminal e tente de novo.",
+        "partialFailure_one": "{{success}} reconectados, 1 falhou. Veja prospero-debug.log para detalhes.",
+        "partialFailure_other": "{{success}} reconectados, {{failures}} falharam. Veja prospero-debug.log para detalhes."
+      }
+    }
+  },
   "banners": {
     "authError": {
       "message": "Token de autenticação não configurado. Agentes não podem rodar.",
@@ -898,7 +916,8 @@
     },
     "rateLimit": {
       "message": "Equipe pausada — limite do plano Max atingido. Retoma sozinha por volta de {{time}}."
-    }
+    },
+    "recoveryFailedHostStale": "Sua credencial do Claude expirou. Rode `claude setup-token` no terminal e clique Reconectar."
   },
   "agents": {
     "list": {

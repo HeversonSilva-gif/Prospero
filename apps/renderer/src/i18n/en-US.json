@@ -886,6 +886,24 @@
       "subtitle": "Review the details. Creating also sets up your manager (the CEO)."
     }
   },
+  "auth": {
+    "reconnect": {
+      "confirm": {
+        "title": "Reconnect agents",
+        "body_one": "Restart 1 agent to apply the new credential? In-flight turns will restart.",
+        "body_other": "Restart {{count}} agents to apply the new credential? In-flight turns will restart.",
+        "cta": "Reconnect"
+      },
+      "pending": "Reconnecting…",
+      "result": {
+        "allRecovered_one": "1 agent reconnected.",
+        "allRecovered_other": "{{count}} agents reconnected.",
+        "hostStale": "Your Claude credential expired. Run `claude setup-token` in the terminal, then try again.",
+        "partialFailure_one": "{{success}} reconnected, 1 failed. See prospero-debug.log for details.",
+        "partialFailure_other": "{{success}} reconnected, {{failures}} failed. See prospero-debug.log for details."
+      }
+    }
+  },
   "banners": {
     "authError": {
       "message": "Authentication token not configured. Agents can't run.",
@@ -898,7 +916,8 @@
     },
     "rateLimit": {
       "message": "Team paused — Max plan limit reached. Resumes automatically around {{time}}."
-    }
+    },
+    "recoveryFailedHostStale": "Your Claude credential expired. Run `claude setup-token` in the terminal and click Reconnect."
   },
   "agents": {
     "list": {
