@@ -25,6 +25,7 @@ import { getRecorder } from "./activity/index.js";
 import { startHeartbeat } from "./orchestrator/heartbeat.js";
 import { getAdapter } from "./orchestrator/lifecycle.js";
 import { runMemoryMaintenance } from "./memory/maintenance.js";
+import { cleanupOrphanAttachments } from "./messages/cleanup.js";
 import { initUpdater, checkForUpdatesOnLaunch } from "./updater/index.js";
 
 let mainWindow: BrowserWindow | null = null;
@@ -106,6 +107,23 @@ void app
       }
     } catch (err) {
       console.warn(`[memory] maintenance pass failed: ${String(err)}`);
+    }
+
+    // v0.1.18 chat-slack-like: GC stale pending attachment rows + files (TTL
+    // 1h). Pending rows are created when the user picks a file in the
+    // composer; if they never send the message, the row+file linger. Edge
+    // case noted in Task 13: a multi-attachment AGENT_SEND_MESSAGE that fails
+    // mid-loop can leak the FILE under <messageId>/<aId>/ while the DB row
+    // gets rolled back to its pending path; the file scan here doesn't yet
+    // walk that directory tree, so the file is leaked (rare; documented as a
+    // follow-up).
+    try {
+      const removed = cleanupOrphanAttachments(db);
+      if (removed > 0) {
+        console.warn(`[attachments] cleanup removed ${removed} orphan(s)`);
+      }
+    } catch (err) {
+      console.warn(`[attachments] cleanup failed: ${String(err)}`);
     }
 
     // Permission watcher (M5 spec §6.4)

@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import type { Message, MessageKind, SenderKind, ToolCallView } from "@prospero/shared";
+import type { Attachment, Message, MessageKind, SenderKind, ToolCallView } from "@prospero/shared";
 import { threadKey } from "./thread-key.js";
 
 type ThreadRow = {
@@ -21,6 +21,26 @@ type MessageRow = {
   created_at: number;
 };
 
+// Joined row shape: one row per (message × attachment), with attachment columns
+// nullable for messages that have no attachments (LEFT JOIN). Grouping by
+// message id reconstructs Message[] with attachments[] populated.
+type MessageAttachmentJoinRow = MessageRow & {
+  att_id: string | null;
+  att_message_id: string | null;
+  att_filename: string | null;
+  att_mime_type: string | null;
+  att_size_bytes: number | null;
+  att_created_at: number | null;
+};
+
+const MESSAGE_WITH_ATTACHMENTS_COLUMNS = `
+  m.id, m.thread_id, m.sender_kind, m.sender_id, m.content, m.kind,
+  m.tool_calls_json, m.created_at,
+  ma.id AS att_id, ma.message_id AS att_message_id, ma.filename AS att_filename,
+  ma.mime_type AS att_mime_type, ma.size_bytes AS att_size_bytes,
+  ma.created_at AS att_created_at
+`;
+
 const rowToMessage = (r: MessageRow): Message => ({
   id: r.id,
   threadId: r.thread_id,
@@ -30,7 +50,43 @@ const rowToMessage = (r: MessageRow): Message => ({
   kind: r.kind as MessageKind,
   toolCalls: r.tool_calls_json === null ? null : (JSON.parse(r.tool_calls_json) as ToolCallView[]),
   createdAt: r.created_at,
+  attachments: [],
 });
+
+// Groups joined rows by message id (preserving the SQL ORDER BY) so each
+// Message ends up with its attachments collected in upload order. Messages
+// without any attachment row keep `attachments: []` (the LEFT JOIN yields a
+// single row with `att_id IS NULL` — guarded below).
+const groupJoinRows = (rows: MessageAttachmentJoinRow[]): Message[] => {
+  const order: string[] = [];
+  const map = new Map<string, Message>();
+  for (const r of rows) {
+    let msg = map.get(r.id);
+    if (msg === undefined) {
+      msg = rowToMessage(r);
+      map.set(r.id, msg);
+      order.push(r.id);
+    }
+    if (
+      r.att_id !== null &&
+      r.att_filename !== null &&
+      r.att_mime_type !== null &&
+      r.att_size_bytes !== null &&
+      r.att_created_at !== null
+    ) {
+      const attachment: Attachment = {
+        id: r.att_id,
+        messageId: r.att_message_id,
+        filename: r.att_filename,
+        mimeType: r.att_mime_type,
+        sizeBytes: r.att_size_bytes,
+        createdAt: r.att_created_at,
+      };
+      msg.attachments = [...(msg.attachments ?? []), attachment];
+    }
+  }
+  return order.map((id) => map.get(id) as Message);
+};
 
 export type AppendInput = {
   companyId: string;
@@ -75,7 +131,11 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
     "INSERT INTO messages_fts (message_id, content) VALUES (?, ?)",
   );
   const listByThread = db.prepare(
-    "SELECT * FROM messages WHERE thread_id = ? ORDER BY created_at ASC, id ASC",
+    `SELECT ${MESSAGE_WITH_ATTACHMENTS_COLUMNS}
+       FROM messages m
+       LEFT JOIN message_attachments ma ON ma.message_id = m.id
+       WHERE m.thread_id = ?
+       ORDER BY m.created_at ASC, m.id ASC, ma.created_at ASC, ma.id ASC`,
   );
 
   const ensureThread = (companyId: string, participants: string[]): { id: string } => {
@@ -157,29 +217,39 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
       };
     },
     list(threadId) {
-      const rows = listByThread.all(threadId) as MessageRow[];
-      return rows.map(rowToMessage);
+      const rows = listByThread.all(threadId) as MessageAttachmentJoinRow[];
+      return groupJoinRows(rows);
     },
     listByParticipants(companyId, participants) {
       const thread = findThread.get(companyId, threadKey(participants)) as ThreadRow | undefined;
       if (!thread) return [];
-      const rows = listByThread.all(thread.id) as MessageRow[];
-      return rows.map(rowToMessage);
+      const rows = listByThread.all(thread.id) as MessageAttachmentJoinRow[];
+      return groupJoinRows(rows);
     },
     listByAgentParticipating(agentId) {
       const rows = db
         .prepare(
-          `SELECT m.*, t.participants_json AS t_participants_json FROM messages m
-           JOIN threads t ON m.thread_id = t.id
-           WHERE t.participants_json LIKE ?
-           ORDER BY m.created_at ASC, m.id ASC`,
+          `SELECT ${MESSAGE_WITH_ATTACHMENTS_COLUMNS},
+                  t.participants_json AS t_participants_json
+             FROM messages m
+             JOIN threads t ON m.thread_id = t.id
+             LEFT JOIN message_attachments ma ON ma.message_id = m.id
+            WHERE t.participants_json LIKE ?
+            ORDER BY m.created_at ASC, m.id ASC, ma.created_at ASC, ma.id ASC`,
         )
-        .all(`%${agentId}%`) as Array<MessageRow & { t_participants_json: string }>;
+        .all(`%${agentId}%`) as Array<MessageAttachmentJoinRow & { t_participants_json: string }>;
       // `participants_json` is misleadingly named — threadKey stores a sorted,
       // pipe-joined string ("agent_x|user"), not actual JSON. Split on `|`.
-      return rows.map((r) => ({
-        ...rowToMessage(r),
-        threadParticipants: r.t_participants_json.split("|"),
+      const grouped = groupJoinRows(rows);
+      const participantsById = new Map<string, string[]>();
+      for (const r of rows) {
+        if (!participantsById.has(r.id)) {
+          participantsById.set(r.id, r.t_participants_json.split("|"));
+        }
+      }
+      return grouped.map((m) => ({
+        ...m,
+        threadParticipants: participantsById.get(m.id) ?? [],
       }));
     },
     countUnansweredQuestions(agentId) {
