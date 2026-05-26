@@ -15,8 +15,21 @@
  */
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeSanitize from "rehype-sanitize";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import type { Components } from "react-markdown";
+
+// ---------------------------------------------------------------------------
+// Sanitize schema — extends the default HAST allowlist to include <u>.
+// Markdown has no native underline; the WYSIWYG composer (TipTap) emits <u>
+// for underlined runs. The default schema strips it because it's not in the
+// tagNames allowlist. We add it; attributes still go through defaultSchema's
+// allowlist (so inline event handlers, javascript: hrefs, etc. remain blocked).
+// ---------------------------------------------------------------------------
+
+const sanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames ?? []), "u"],
+};
 
 // ---------------------------------------------------------------------------
 // Types
@@ -101,6 +114,7 @@ function makeComponents(isUser: boolean): Components {
     strong: ({ children }) => <strong className="font-bold">{children}</strong>,
     em: ({ children }) => <em className="italic">{children}</em>,
     del: ({ children }) => <del className="line-through opacity-70">{children}</del>,
+    u: ({ children }) => <u>{children}</u>,
 
     // ---- Links — always safe external target ------------------------------
     a: ({ href, children }) => (
@@ -143,7 +157,7 @@ function makeComponents(isUser: boolean): Components {
 export const MarkdownContent = ({ content, isUser = false }: Props) => (
   <ReactMarkdown
     remarkPlugins={[remarkGfm]}
-    rehypePlugins={[rehypeSanitize]}
+    rehypePlugins={[[rehypeSanitize, sanitizeSchema]]}
     components={makeComponents(isUser)}
   >
     {content}
