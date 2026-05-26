@@ -7,7 +7,6 @@ import {
   IPC,
   MODEL_ID_REGEX,
   type Agent,
-  type AgentAdapter,
   type AgentEvent,
   type AgentMode,
   type AgentStats,
@@ -34,7 +33,7 @@ import {
   listAdapterAgentIds,
   type AdapterCallbacks,
 } from "../orchestrator/lifecycle.js";
-import { createRespawnFn } from "../orchestrator/respawn.js";
+import { createRespawnFn, type SpawnState } from "../orchestrator/respawn.js";
 import { computeLaneSchedule } from "../orchestrator/scheduler.js";
 import { startSchedulerTick } from "../orchestrator/scheduler-tick.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
@@ -485,38 +484,26 @@ export const registerOrchestratorHandlers = (
   };
 
   // Build the adapter callbacks for one spawn. Called by createRespawnFn once
-  // per respawn so each spawn gets its own `collectedToolCalls` and `thisSpawn`
-  // closure (preserves the original per-spawn isolation). Closures over outer
-  // orchestrator state (broadcast, router, agents repo, debouncer, etc.) so
-  // the recovery module gets the same event-handling behavior as the IPC path.
-  const buildCallbacks = (agentId: string): AdapterCallbacks => {
+  // per respawn so each spawn gets its own `collectedToolCalls`, AND its own
+  // `spawnState` cell allocated by createRespawnFn (per-spawn isolation: a
+  // later spawn for the same agent gets a fresh cell, so this closure's
+  // `spawnState.adapter` keeps pointing at THIS spawn's adapter). The cell
+  // is populated by createRespawnFn AFTER ensureAdapter resolves but BEFORE
+  // any callback can fire — equivalent to the original eager
+  // `.then(a => thisSpawn = a)` capture, no race.
+  //
+  // Closures over outer orchestrator state (broadcast, router, agents repo,
+  // debouncer, etc.) so the recovery module gets the same event-handling
+  // behavior as the IPC path.
+  const buildCallbacks = (agentId: string, spawnState: SpawnState): AdapterCallbacks => {
     const agent = agents.getById(agentId);
     if (agent === null) {
       throw new Error(`Agent ${agentId} not found when building callbacks`);
     }
     const collectedToolCalls = new Map<string, ToolCallView>();
-    // Guard against stale exits: capture the adapter instance for this spawn
-    // so onExit can verify it is still the current spawn for this agent. When
-    // restartIfRunning / AGENT_KILL / AGENTS_TERMINATE kill the process, they
-    // remove the adapter from the lifecycle Map *before* the OS delivers the
-    // async exit event. Without this guard, the delayed exit overwrites the
-    // intentionally-set status ("idle"/"terminated") with "error", and
-    // incorrectly marks the recovery tracker as errored.
-    //
-    // Captured lazily on the first event we observe (session-init is always
-    // first): by then ensureAdapter has resolved and lifecycle holds OUR
-    // adapter, so reading getAdapter here is equivalent to the original
-    // `.then(a => thisSpawn = a)` capture and races no differently.
-    let thisSpawn: AgentAdapter | null = null;
-    const captureSpawnIfNeeded = (): void => {
-      if (thisSpawn !== null) return;
-      const a = getAdapter(agentId);
-      if (a !== undefined) thisSpawn = a;
-    };
 
     return {
       onEvent: (ev: ParsedEvent) => {
-        captureSpawnIfNeeded();
         if (ev.kind === "session-init") {
           agents.setSessionId(agent.id, ev.sessionId);
           nudgeTracker.clear(agent.id);
@@ -720,13 +707,20 @@ export const registerOrchestratorHandlers = (
       },
       onExit: (code) => {
         console.error(`[claude:${agent.id}] exit code: ${String(code)}`);
-        captureSpawnIfNeeded();
         // Guard: if the adapter was already removed from the lifecycle Map
         // before this exit arrived (e.g. restartIfRunning for a mode/model
         // change, AGENT_KILL, or AGENTS_TERMINATE), this is a stale exit
         // from a process we intentionally killed. Do NOT overwrite the
         // status that was deliberately set, and do NOT corrupt the recovery
         // tracker by marking an intentional kill as an error.
+        //
+        // `spawnState.adapter` is set eagerly by createRespawnFn right after
+        // ensureAdapter resolves — BEFORE any callback can fire — so it
+        // always refers to THIS spawn's adapter, never a successor. A later
+        // spawn allocates its OWN spawnState cell, so this closure's view of
+        // `spawnState.adapter` is unaffected by the next spawn (per-spawn
+        // isolation; mirrors the original `.then(a => thisSpawn = a)` pattern).
+        const thisSpawn = spawnState.adapter;
         const isCurrent = thisSpawn !== null && getAdapter(agent.id) === thisSpawn;
         // Bail BEFORE removeAdapter. A stale exit means a NEWER adapter (from
         // restartIfRunning's resume re-spawn on a model/config change) — or
@@ -784,8 +778,11 @@ export const registerOrchestratorHandlers = (
 
     void respawnAgent(agent.id)
       .then(() => {
-        // Deliver any message that was held in the router queue while the
-        // adapter was being spawned (e.g. enqueue called before isAlive).
+        // Eager per-spawn `thisSpawn` capture happens inside createRespawnFn
+        // (spawnState.adapter is set right after ensureAdapter resolves,
+        // before any callback can fire). Here we just deliver any message
+        // that was held in the router queue while the adapter was being
+        // spawned (e.g. enqueue called before isAlive).
         router.deliverQueued(agent.id);
       })
       .catch((err: Error) => handleSpawnError(agent.id, err));

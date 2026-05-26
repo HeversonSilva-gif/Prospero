@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import { app } from "electron";
+import type { AgentAdapter } from "@prospero/shared";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { createSkillsRepository } from "../memory/skills-repository.js";
@@ -16,18 +17,41 @@ import { getPermissionsDir } from "../security/permissions-dir.js";
 import { ensureAdapter, type AdapterCallbacks, type EnsureAdapterOptions } from "./lifecycle.js";
 
 /**
+ * Per-spawn mutable cell carrying the adapter for THIS spawn's callback
+ * closures. `createRespawnFn` allocates a fresh cell per call and writes the
+ * adapter into it once `ensureAdapter` resolves — BEFORE any callback (event
+ * or exit) can fire — preserving the original `.then(a => thisSpawn = a)`
+ * semantics. Each spawn's `onExit` closure reads its OWN cell to verify the
+ * exit belongs to it (per-spawn isolation: a later spawn for the same agent
+ * gets a different cell, so its capture doesn't fool the earlier closure).
+ */
+export type SpawnState = { adapter: AgentAdapter | null };
+
+/**
  * Dependencies the respawn helper captures once at orchestrator init. Kept as a
  * named-fields object so future tasks can add fields (e.g. `pendingTurnByAgent`,
  * broadcast callbacks for the recovery module) without breaking call sites.
+ *
+ * `buildCallbacks` MUST embed `spawnState` into the callback closures it
+ * returns so `onExit` can read `spawnState.adapter` after `createRespawnFn`
+ * populates it. The spawn state is allocated by `createRespawnFn` (one per
+ * call) and threaded in — this is the bridge that gives `onExit` access to
+ * the adapter without losing per-spawn identity.
  */
 export type RespawnDeps = {
   db: Database.Database;
   eventsDir: string;
-  buildCallbacks: (agentId: string) => AdapterCallbacks;
+  buildCallbacks: (agentId: string, spawnState: SpawnState) => AdapterCallbacks;
 };
 
-/** Re-spawns the adapter for `agentId`. No-op if the agent row is gone. */
-export type RespawnFn = (agentId: string) => Promise<void>;
+/**
+ * Re-spawns the adapter for `agentId`. Returns the spawned adapter so callers
+ * can eagerly capture `thisSpawn` (mirrors the original `.then(a => thisSpawn = a)`
+ * semantics — required so a stale onExit firing before any event still
+ * compares the live registry against the ORIGINAL adapter, not a successor).
+ * Returns `null` when the agent row is gone (no-op).
+ */
+export type RespawnFn = (agentId: string) => Promise<AgentAdapter | null>;
 
 /**
  * Builds the SpawnContext the same way `orchestrator-handlers.ts` did inline
@@ -38,10 +62,10 @@ export type RespawnFn = (agentId: string) => Promise<void>;
  * an agent after a fresh OAuth token is on disk.
  */
 export const createRespawnFn = (deps: RespawnDeps): RespawnFn => {
-  return async (agentId: string): Promise<void> => {
+  return async (agentId: string): Promise<AgentAdapter | null> => {
     const agents = createAgentsRepository(deps.db);
     const agent = agents.getById(agentId);
-    if (agent === null) return;
+    if (agent === null) return null;
 
     const adapterName = agent.adapterName ?? "claude-oauth-local";
     const { oauthToken, apiKey } = resolveAdapterCredentials(adapterName, {
@@ -102,6 +126,14 @@ export const createRespawnFn = (deps: RespawnDeps): RespawnFn => {
       instructionsBlock,
     };
 
-    await ensureAdapter(opts, deps.buildCallbacks(agentId));
+    // Allocate a fresh per-spawn cell BEFORE buildCallbacks so the callback
+    // closures embed THIS cell. After ensureAdapter resolves, populate it —
+    // this happens before any callback fires (the OS can only deliver events
+    // once the spawn is observably alive, and we await ensureAdapter here).
+    const spawnState: SpawnState = { adapter: null };
+    const callbacks = deps.buildCallbacks(agentId, spawnState);
+    const adapter = await ensureAdapter(opts, callbacks);
+    spawnState.adapter = adapter;
+    return adapter;
   };
 };
