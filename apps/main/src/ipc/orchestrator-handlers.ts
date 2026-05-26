@@ -33,7 +33,7 @@ import {
   listAdapterAgentIds,
   type AdapterCallbacks,
 } from "../orchestrator/lifecycle.js";
-import { createRespawnFn, type SpawnState } from "../orchestrator/respawn.js";
+import { createRespawnFn, type PendingTurn, type SpawnState } from "../orchestrator/respawn.js";
 import {
   setRecoveryBroadcastFn,
   setRespawnFn,
@@ -239,17 +239,21 @@ export const registerOrchestratorHandlers = (
   // or user-reconnect), createRespawnFn reads this map and re-emits so the
   // user's message still gets a response. Ephemeral, in-memory by design (a
   // crash drops pending turns — caller will retry).
-  const pendingTurnByAgent = new Map<string, string>();
+  const pendingTurnByAgent = new Map<string, PendingTurn>();
+
+  // Single canonical "write user input to the live adapter" entry point.
+  // Extracted so the router callback AND the respawn re-emit path (via
+  // RespawnDeps.writeStdin) both go through the same code — Task 11 will
+  // extend this to load attachments by messageId and build content blocks.
+  const writeStdinFn = (agentId: string, content: string, messageId: string | null): void => {
+    const a = getAdapter(agentId);
+    if (a === undefined || !a.isAlive()) return;
+    pendingTurnByAgent.set(agentId, { content, messageId });
+    a.sendInput(content);
+  };
 
   const router = createRouter({
-    writeStdin: (agentId, content, _messageId): void => {
-      // _messageId will be wired through to attachments in Task 11.
-      const a = getAdapter(agentId);
-      if (a !== undefined && a.isAlive()) {
-        pendingTurnByAgent.set(agentId, content);
-        a.sendInput(content);
-      }
-    },
+    writeStdin: writeStdinFn,
     hasLiveAdapter: (id) => getAdapter(id)?.isAlive() ?? false,
     // Immediately drain when a message is held for an agent with no live adapter
     // (e.g. 4 idle-but-alive agents hold all slots and a 5th gets work). Without
@@ -790,6 +794,7 @@ export const registerOrchestratorHandlers = (
     eventsDir,
     buildCallbacks,
     pendingTurnByAgent,
+    writeStdin: writeStdinFn,
   });
 
   // Token-recovery v0.1.17: wire the recovery pipeline's runtime deps. The

@@ -28,6 +28,15 @@ import { ensureAdapter, type AdapterCallbacks, type EnsureAdapterOptions } from 
 export type SpawnState = { adapter: AgentAdapter | null };
 
 /**
+ * Source-of-truth value type for `pendingTurnByAgent` (token-recovery v0.1.17,
+ * extended in v0.1.18 to carry the originating message id so a respawn-driven
+ * re-emit can re-resolve any attachments persisted alongside that message).
+ * `messageId` is `null` for inter-agent / system-driven writes that don't
+ * correspond to a row in `messages`.
+ */
+export type PendingTurn = { content: string; messageId: string | null };
+
+/**
  * Dependencies the respawn helper captures once at orchestrator init. Kept as a
  * named-fields object so future tasks can add fields (e.g. `pendingTurnByAgent`,
  * broadcast callbacks for the recovery module) without breaking call sites.
@@ -49,8 +58,19 @@ export type RespawnDeps = {
    * After a respawn — auto-recovery (auth error) or user-reconnect — we re-emit
    * the captured turn so the user gets a response. If no entry exists, the
    * respawn proceeds silently (e.g. a clean restart of an idle agent).
+   *
+   * v0.1.18: value upgraded from raw `string` to `{ content, messageId }` so
+   * the respawn re-emit path can route back through the orchestrator's
+   * `writeStdin`, which loads message attachments by `messageId` (Task 11).
    */
-  pendingTurnByAgent: Map<string, string>;
+  pendingTurnByAgent: Map<string, PendingTurn>;
+  /**
+   * The orchestrator's canonical "write user input to the live adapter" entry
+   * point. Re-used here so the respawn re-emit path goes through the same code
+   * that loads attachments + builds content blocks (Task 11), instead of
+   * calling `adapter.sendInput(text)` directly and bypassing that pipeline.
+   */
+  writeStdin: (agentId: string, content: string, messageId: string | null) => void;
 };
 
 /**
@@ -150,7 +170,7 @@ export const createRespawnFn = (deps: RespawnDeps): RespawnFn => {
     // (e.g. clean restart of an idle agent on model change), nothing to do.
     const pending = deps.pendingTurnByAgent.get(agentId);
     if (pending !== undefined) {
-      adapter.sendInput(pending);
+      deps.writeStdin(agentId, pending.content, pending.messageId);
     }
 
     return adapter;
