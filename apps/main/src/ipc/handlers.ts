@@ -1,8 +1,9 @@
-import { ipcMain } from "electron";
+import { ipcMain, app } from "electron";
 import type Database from "better-sqlite3";
 import { IPC } from "@prospero/shared";
 import { registerSettingsHandlers } from "./settings-handlers.js";
 import { registerAuthHandlers } from "./auth-handlers.js";
+import { registerAttachmentHandlers } from "./attachment-handlers.js";
 import { registerCompaniesHandlers } from "./companies-handlers.js";
 import { registerMessagesHandlers } from "./messages-handlers.js";
 import { registerOrchestratorHandlers } from "./orchestrator-handlers.js";
@@ -66,5 +67,6 @@ export const registerIpcHandlers = (db: Database.Database): { stopScheduler: () 
   registerTrustHandlers(db);
   registerBriefingHandlers(db);
   registerApprovalHandlers(db);
+  registerAttachmentHandlers(db, () => app.getPath("userData"));
   return { stopScheduler };
 };
