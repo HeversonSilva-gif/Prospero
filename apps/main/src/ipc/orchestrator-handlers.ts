@@ -587,6 +587,14 @@ export const registerOrchestratorHandlers = (
             });
           }
         } else if (ev.kind === "turn-complete") {
+          // Token-recovery v0.1.17: guard against a stale turn-complete from
+          // a previous (killed) spawn clearing a fresh pending turn after a
+          // recovery-driven respawn. `onExit` already does this via the
+          // spawn-identity check (see comment there); mirror it here so a
+          // late turn-complete from the dead adapter is a complete no-op.
+          if (spawnState.adapter !== null && getAdapter(agent.id) !== spawnState.adapter) {
+            return;
+          }
           // Token-recovery v0.1.17: the agent answered the user's message, so
           // there's nothing pending to re-emit on a future respawn. Safe no-op
           // if no entry (e.g. an internal recovery turn with no user input).
@@ -1358,6 +1366,7 @@ export const registerOrchestratorHandlers = (
       }
       agents.terminate(payload.agentId, payload.reason);
       pauseBacklog.delete(payload.agentId);
+      pendingTurnByAgent.delete(payload.agentId);
       currentActionDebouncer.cancel(payload.agentId);
       broadcast({
         kind: "status-changed",
