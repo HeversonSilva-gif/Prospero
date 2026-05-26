@@ -1,7 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, existsSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import Database from "better-sqlite3";
+import { applyMigrations } from "../db/migrations.js";
 import {
   validateAttachment,
   buildContentBlocks,
+  persistAttachment,
+  loadAttachment,
+  deleteAttachment,
   MAX_IMAGE_BYTES,
   MAX_OTHER_BYTES,
 } from "./attachments.js";
@@ -116,5 +124,95 @@ describe("buildContentBlocks", () => {
     expect(blocks[0]?.type).toBe("text");
     expect(blocks[1]?.type).toBe("image");
     expect(blocks[2]?.type).toBe("document");
+  });
+});
+
+describe("persistAttachment / loadAttachment / deleteAttachment", () => {
+  let userDataDir: string;
+  let db: Database.Database;
+
+  beforeEach(() => {
+    userDataDir = mkdtempSync(join(tmpdir(), "prospero-attach-test-"));
+    db = new Database(":memory:");
+    applyMigrations(db);
+  });
+
+  afterEach(() => {
+    db.close();
+    rmSync(userDataDir, { recursive: true, force: true });
+  });
+
+  it("persists pending attachment to disk + DB", async () => {
+    const buf = Buffer.from("hello");
+    const att = await persistAttachment({
+      db,
+      buffer: buf,
+      filename: "hello.txt",
+      mimeType: "text/plain",
+      messageId: null,
+      userDataDir,
+    });
+
+    expect(att.id).toBeDefined();
+    expect(att.messageId).toBeNull();
+    expect(att.filename).toBe("hello.txt");
+    expect(att.sizeBytes).toBe(5);
+
+    const row = db
+      .prepare("SELECT local_path FROM message_attachments WHERE id = ?")
+      .get(att.id) as { local_path: string };
+    expect(existsSync(row.local_path)).toBe(true);
+    expect(readFileSync(row.local_path).toString()).toBe("hello");
+    // pending uploads land in /attachments/pending/<id>/<filename>
+    expect(row.local_path).toContain("pending");
+  });
+
+  it("loadAttachment returns buffer", async () => {
+    const buf = Buffer.from("payload");
+    const att = await persistAttachment({
+      db,
+      buffer: buf,
+      filename: "f.txt",
+      mimeType: "text/plain",
+      messageId: null,
+      userDataDir,
+    });
+    const loaded = loadAttachment(att.id, db);
+    expect(loaded?.toString()).toBe("payload");
+  });
+
+  it("loadAttachment returns null for missing file (tampering)", async () => {
+    const att = await persistAttachment({
+      db,
+      buffer: Buffer.from("x"),
+      filename: "f.txt",
+      mimeType: "text/plain",
+      messageId: null,
+      userDataDir,
+    });
+    const row = db
+      .prepare("SELECT local_path FROM message_attachments WHERE id = ?")
+      .get(att.id) as { local_path: string };
+    rmSync(row.local_path); // simulate tamper
+    expect(loadAttachment(att.id, db)).toBeNull();
+  });
+
+  it("deleteAttachment removes file and row", async () => {
+    const att = await persistAttachment({
+      db,
+      buffer: Buffer.from("x"),
+      filename: "f.txt",
+      mimeType: "text/plain",
+      messageId: null,
+      userDataDir,
+    });
+    deleteAttachment(att.id, db);
+
+    const row = db.prepare("SELECT * FROM message_attachments WHERE id = ?").get(att.id);
+    expect(row).toBeUndefined();
+  });
+
+  it("deleteAttachment is idempotent (already deleted = no throw)", () => {
+    expect(() => deleteAttachment("nonexistent", db)).not.toThrow();
   });
 });
