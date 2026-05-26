@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow, app } from "electron";
 import type Database from "better-sqlite3";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import {
@@ -19,6 +19,7 @@ import { redactString } from "../auth/token-redact.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { createMessagesRepository } from "../messages/repository.js";
+import { buildContentBlocks, type LoadedAttachment } from "../messages/attachments.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { agentMemoryNearFull } from "../orchestrator/system-prompt-memory.js";
 import { createProjectsRepository } from "../projects/repository.js";
@@ -249,7 +250,50 @@ export const registerOrchestratorHandlers = (
     const a = getAdapter(agentId);
     if (a === undefined || !a.isAlive()) return;
     pendingTurnByAgent.set(agentId, { content, messageId });
-    a.sendInput(content);
+
+    if (messageId === null) {
+      a.sendInput(content);
+      return;
+    }
+
+    const rows = db
+      .prepare(
+        `SELECT id, filename, mime_type as mimeType, local_path as localPath
+           FROM message_attachments WHERE message_id = ?`,
+      )
+      .all(messageId) as Array<{
+      id: string;
+      filename: string;
+      mimeType: string;
+      localPath: string;
+    }>;
+
+    if (rows.length === 0) {
+      a.sendInput(content);
+      return;
+    }
+
+    const loaded: LoadedAttachment[] = [];
+    for (const r of rows) {
+      if (!existsSync(r.localPath)) {
+        console.warn(`[attachments] missing file for ${r.id} at ${r.localPath}; skipping`);
+        continue;
+      }
+      loaded.push({
+        filename: r.filename,
+        mimeType: r.mimeType,
+        buffer: readFileSync(r.localPath),
+      });
+    }
+
+    if (loaded.length === 0) {
+      // All files were missing — fall back to text only.
+      a.sendInput(content);
+      return;
+    }
+
+    const blocks = buildContentBlocks(content, loaded);
+    a.sendInput(blocks);
   };
 
   const router = createRouter({
