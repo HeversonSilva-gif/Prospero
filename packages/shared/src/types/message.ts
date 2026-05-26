@@ -1,4 +1,5 @@
 import type { AgentStatus } from "./agent.js";
+import type { Attachment } from "./attachment.js";
 import type { TrustTier } from "./trust.js";
 
 export type ToolCallStatus = "pending" | "success" | "error";
@@ -31,6 +32,7 @@ export type Message = {
    * (contains "user") from inter-agent delegation threads.
    */
   threadParticipants?: string[];
+  attachments?: Attachment[];
 };
 
 export type AgentEvent =

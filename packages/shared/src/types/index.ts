@@ -26,3 +26,4 @@ export * from "./briefing.js";
 export * from "./updater.js";
 export * from "./wire-protocol.js";
 export * from "./project-digest.js";
+export * from "./attachment.js";
