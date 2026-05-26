@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow, app } from "electron";
 import type Database from "better-sqlite3";
-import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, existsSync, mkdirSync, renameSync, rmdirSync } from "node:fs";
+import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import {
   IPC,
@@ -1179,9 +1179,13 @@ export const registerOrchestratorHandlers = (
 
   ipcMain.handle(
     IPC.AGENT_SEND_MESSAGE,
-    (_e, payload: { agentId: string; content: string }): Promise<Message> => {
+    (
+      _e,
+      payload: { agentId: string; content: string; attachmentIds?: string[] },
+    ): Promise<Message> => {
       const agent = agents.getById(payload.agentId);
       if (agent === null) throw new Error("Agent not found");
+      const attachmentIds = payload.attachmentIds ?? [];
 
       const userMessage = messages.append({
         companyId: agent.companyId,
@@ -1190,14 +1194,58 @@ export const registerOrchestratorHandlers = (
         senderId: null,
         content: payload.content,
       });
+
+      // Link pending attachments to this message and move their files from
+      // `pending/<aId>/<filename>` to `<messageId>/<aId>/<filename>`. The
+      // DB update + FS move runs in a transaction so a mid-loop crash leaves
+      // either everything linked-and-moved or nothing (transaction rolls back
+      // the DB; orphan files in pending/ are swept by the GC at boot).
+      if (attachmentIds.length > 0) {
+        const userDataDir = app.getPath("userData");
+        const attachmentsRoot = join(userDataDir, "attachments");
+
+        db.transaction(() => {
+          for (const aId of attachmentIds) {
+            const row = db
+              .prepare(
+                "SELECT local_path as localPath, filename FROM message_attachments WHERE id = ? AND message_id IS NULL",
+              )
+              .get(aId) as { localPath: string; filename: string } | undefined;
+            if (row === undefined) continue;
+
+            const newPath = join(attachmentsRoot, userMessage.id, aId, row.filename);
+            mkdirSync(dirname(newPath), { recursive: true });
+            renameSync(row.localPath, newPath);
+
+            // Clean up the now-empty pending/<id>/ dir
+            try {
+              rmdirSync(dirname(row.localPath));
+            } catch {
+              // ignore — directory may have residual contents
+            }
+
+            db.prepare(
+              "UPDATE message_attachments SET message_id = ?, local_path = ? WHERE id = ?",
+            ).run(userMessage.id, newPath, aId);
+          }
+        })();
+      }
+
       broadcast({ kind: "message-append", agentId: agent.id, message: userMessage });
 
       ensureAgentRunner(agent);
-      enqueueOrPark(agent, router, userMessage.threadId, payload.content, {
-        kind: "user",
-        id: null,
-        name: "User",
-      });
+      enqueueOrPark(
+        agent,
+        router,
+        userMessage.threadId,
+        payload.content,
+        {
+          kind: "user",
+          id: null,
+          name: "User",
+        },
+        userMessage.id,
+      );
       return Promise.resolve(userMessage);
     },
   );

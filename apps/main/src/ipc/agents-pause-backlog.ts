@@ -10,7 +10,7 @@ import type { Router, Sender } from "../orchestrator/router.js";
 
 export const pauseBacklog = new Map<
   string,
-  Array<{ threadId: string; content: string; sender: Sender }>
+  Array<{ threadId: string; content: string; sender: Sender; messageId: string | null }>
 >();
 
 export const enqueueOrPark = (
@@ -19,20 +19,21 @@ export const enqueueOrPark = (
   threadId: string,
   content: string,
   sender: Sender,
+  messageId: string | null = null,
 ): void => {
   if (agent.status === "paused" || agent.status === "terminated") {
     const list = pauseBacklog.get(agent.id) ?? [];
-    list.push({ threadId, content, sender });
+    list.push({ threadId, content, sender, messageId });
     pauseBacklog.set(agent.id, list);
     return;
   }
-  router.enqueue(agent.id, threadId, content, sender, null);
+  router.enqueue(agent.id, threadId, content, sender, messageId);
 };
 
 export const drainPausedBacklog = (agentId: string, router: Router): number => {
   const parked = pauseBacklog.get(agentId) ?? [];
   pauseBacklog.delete(agentId);
-  for (const m of parked) router.enqueue(agentId, m.threadId, m.content, m.sender, null);
+  for (const m of parked) router.enqueue(agentId, m.threadId, m.content, m.sender, m.messageId);
   return parked.length;
 };
 
