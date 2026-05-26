@@ -3,6 +3,21 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.17 — 2026-05-26
+
+### Fixed
+
+- Agents no longer remain stuck on `401 Invalid authentication credentials`
+  after a credential change. The orchestrator now auto-detects the failure,
+  re-seeds the agent's sandbox credential from `~/.claude/.credentials.json`,
+  respawns the agent, and re-emits the user's pending turn.
+- "Reconectar" button added under **Ajustes → Conta**. Clicking it restarts
+  every running agent with the freshly imported credential (with a
+  confirmation modal listing the agents that will restart).
+- If the host credential itself is stale (refresh token revoked), a
+  persistent banner now surfaces the exact action needed:
+  `claude setup-token` in the terminal.
+
 ## [0.1.0] — Unreleased (consolidates M7–M18)
 
 First public release line. Entries below summarize milestones M7–M18; the
