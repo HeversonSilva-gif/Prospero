@@ -1,42 +1,47 @@
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 
-type State = { active: boolean; retryAt: number | null; message: string };
-
-const initial: State = { active: false, retryAt: null, message: "" };
+// Shows while the Max account is rate-limited and the whole team is parked.
+// Reads the persisted gate (settings.rateLimitedUntil) rather than a transient
+// event, so it is restart-safe: on launch it reflects the real state and clears
+// itself once the team auto-resumes (the gate is set back to null server-side).
+const POLL_MS = 10_000;
+const TICK_MS = 30_000;
 
 export const RateLimitBanner: FC = () => {
   const { t } = useTranslation();
-  const [state, setState] = useState<State>(initial);
+  const [until, setUntil] = useState<number | null>(null);
+  const [now, setNow] = useState<number>(Date.now());
 
   useEffect(() => {
+    let cancelled = false;
+    const refresh = (): void => {
+      void window.prospero.settings.get().then((s) => {
+        if (!cancelled) setUntil(s.rateLimitedUntil);
+      });
+    };
+    refresh();
+    const poll = setInterval(refresh, POLL_MS);
+    // Re-render periodically so the banner self-hides at the reset time even if
+    // the server-side clear lags behind.
+    const tick = setInterval(() => setNow(Date.now()), TICK_MS);
+    // Appear promptly when the team is parked (don't wait a full poll).
     const off = window.prospero.agents.onEvent((ev) => {
-      if (ev.kind !== "rate-limited") return;
-      const retryAt =
-        ev.retryAfterSec !== null && ev.retryAfterSec > 0
-          ? Date.now() + ev.retryAfterSec * 1000
-          : null;
-      setState({ active: true, retryAt, message: ev.message });
+      if (ev.kind === "status-changed" && ev.status === "paused") refresh();
     });
-    return off;
+    return () => {
+      cancelled = true;
+      clearInterval(poll);
+      clearInterval(tick);
+      off();
+    };
   }, []);
 
-  // Auto-clear after the retry window (or 60s fallback).
-  useEffect(() => {
-    if (!state.active) return;
-    const ms = state.retryAt !== null ? Math.max(0, state.retryAt - Date.now()) : 60_000;
-    const timer = setTimeout(() => setState(initial), ms);
-    return () => clearTimeout(timer);
-  }, [state]);
+  if (until === null || now >= until) return null;
 
-  if (!state.active) return null;
-
-  // Show only the localized message — state.message is the adapter's raw English
-  // string ("Rate limit reached. Pausing the agent.") and appending it produced a
-  // bilingual banner.
   return (
     <div className="bg-semantic-warning text-ink px-4 py-2 text-sm">
-      {t("banners.rateLimit.message")}
+      {t("banners.rateLimit.message", { time: new Date(until).toLocaleString() })}
     </div>
   );
 };

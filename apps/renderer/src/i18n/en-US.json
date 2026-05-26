@@ -897,7 +897,7 @@
       "action": "Renew"
     },
     "rateLimit": {
-      "message": "Rate limit reached — agent paused."
+      "message": "Team paused — Max plan limit reached. Resumes automatically around {{time}}."
     }
   },
   "agents": {

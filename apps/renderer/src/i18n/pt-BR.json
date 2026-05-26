@@ -897,7 +897,7 @@
       "action": "Renovar"
     },
     "rateLimit": {
-      "message": "Rate limit atingido — agente pausado."
+      "message": "Equipe pausada — limite do plano Max atingido. Retoma sozinha por volta de {{time}}."
     }
   },
   "agents": {
