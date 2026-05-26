@@ -34,6 +34,7 @@ import {
   type AdapterCallbacks,
 } from "../orchestrator/lifecycle.js";
 import { createRespawnFn, type SpawnState } from "../orchestrator/respawn.js";
+import { setRespawnFn, setUserDataDir } from "../auth/credential-recovery.js";
 import { computeLaneSchedule } from "../orchestrator/scheduler.js";
 import { startSchedulerTick } from "../orchestrator/scheduler-tick.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
@@ -228,10 +229,21 @@ export const registerOrchestratorHandlers = (
   const recoveryTracker = createRecoveryTracker();
   const nudgeTracker = createNudgeTracker();
 
+  // Token-recovery v0.1.17: source-of-truth for "user input written to an agent
+  // but not yet acknowledged by a turn-complete". Set right before sendInput
+  // and cleared on turn-complete. After a respawn (auto-recovery on auth error,
+  // or user-reconnect), createRespawnFn reads this map and re-emits so the
+  // user's message still gets a response. Ephemeral, in-memory by design (a
+  // crash drops pending turns — caller will retry).
+  const pendingTurnByAgent = new Map<string, string>();
+
   const router = createRouter({
     writeStdin: (agentId, content) => {
       const a = getAdapter(agentId);
-      if (a !== undefined && a.isAlive()) a.sendInput(content);
+      if (a !== undefined && a.isAlive()) {
+        pendingTurnByAgent.set(agentId, content);
+        a.sendInput(content);
+      }
     },
     hasLiveAdapter: (id) => getAdapter(id)?.isAlive() ?? false,
     // Immediately drain when a message is held for an agent with no live adapter
@@ -575,6 +587,10 @@ export const registerOrchestratorHandlers = (
             });
           }
         } else if (ev.kind === "turn-complete") {
+          // Token-recovery v0.1.17: the agent answered the user's message, so
+          // there's nothing pending to re-emit on a future respawn. Safe no-op
+          // if no entry (e.g. an internal recovery turn with no user input).
+          pendingTurnByAgent.delete(agent.id);
           // M8: persist usage + enforce budget + lazy day-summary roll-up.
           // Note: per-issue enforcement requires router.getCurrentIssue
           // which doesn't exist v1; falls back to null (daily cap still
@@ -756,7 +772,18 @@ export const registerOrchestratorHandlers = (
   // path below and reused by the auth-token-recovery module (token-recovery
   // v0.1.17) so a refreshed OAuth token can re-spawn an agent with the same
   // event-handling behavior.
-  const respawnAgent = createRespawnFn({ db, eventsDir, buildCallbacks });
+  const respawnAgent = createRespawnFn({
+    db,
+    eventsDir,
+    buildCallbacks,
+    pendingTurnByAgent,
+  });
+
+  // Token-recovery v0.1.17: wire the recovery pipeline's runtime deps. The
+  // recovery module is kept free of `electron` and orchestrator imports so it
+  // stays unit-testable; injection happens here, once, at orchestrator init.
+  setRespawnFn(respawnAgent);
+  setUserDataDir(app.getPath("userData"));
 
   const ensureAgentRunner = (agent: Agent): void => {
     const existing = getAdapter(agent.id);

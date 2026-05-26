@@ -42,6 +42,15 @@ export type RespawnDeps = {
   db: Database.Database;
   eventsDir: string;
   buildCallbacks: (agentId: string, spawnState: SpawnState) => AdapterCallbacks;
+  /**
+   * Source-of-truth Map of "user input that hasn't been turn-complete'd yet
+   * for an agent" (token-recovery v0.1.17). The orchestrator sets the entry
+   * right before calling `adapter.sendInput`, and clears it on `turn-complete`.
+   * After a respawn — auto-recovery (auth error) or user-reconnect — we re-emit
+   * the captured turn so the user gets a response. If no entry exists, the
+   * respawn proceeds silently (e.g. a clean restart of an idle agent).
+   */
+  pendingTurnByAgent: Map<string, string>;
 };
 
 /**
@@ -134,6 +143,16 @@ export const createRespawnFn = (deps: RespawnDeps): RespawnFn => {
     const callbacks = deps.buildCallbacks(agentId, spawnState);
     const adapter = await ensureAdapter(opts, callbacks);
     spawnState.adapter = adapter;
+
+    // Re-emit pending turn if any (token-recovery v0.1.17). Applies to BOTH
+    // auto-recovery (auth error mid-turn) and user-reconnect: in both cases a
+    // user message is still awaiting a response. If no pending turn exists
+    // (e.g. clean restart of an idle agent on model change), nothing to do.
+    const pending = deps.pendingTurnByAgent.get(agentId);
+    if (pending !== undefined) {
+      adapter.sendInput(pending);
+    }
+
     return adapter;
   };
 };
