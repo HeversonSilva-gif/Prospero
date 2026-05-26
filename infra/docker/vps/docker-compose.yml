@@ -1,0 +1,112 @@
+# Prospero VPS deployment — full Electron app over noVNC behind Traefik +
+# Authelia (forward-auth, TOTP 2FA). See README.md in this directory for the
+# full setup, including how to provision Traefik and Authelia if you don't
+# already have them.
+#
+# Assumptions baked into this file:
+#   - Traefik is running on the host and attached to an external docker
+#     network called `traefik-public` (rename the network below if yours
+#     differs).
+#   - Traefik has two configured entrypoints: `web` (:80, http→https redirect)
+#     and `websecure` (:443, TLS via the `letsencrypt` certresolver).
+#   - Authelia is running and reachable inside `traefik-public`, exposing
+#     forward-auth on port 9091 at the path `/api/verify` (matches the
+#     authelia service defined below).
+#
+# All knobs are read from `.env` in this directory (see .env.example).
+
+services:
+  prospero-vps:
+    image: prospero/vps:dev
+    container_name: prospero-vps
+    restart: unless-stopped
+    # Without a healthcheck, the most common failure mode is silent: Electron
+    # crashes but Xvfb stays up, so the container looks alive and noVNC
+    # serves a black screen. `restart: unless-stopped` only acts on a
+    # detected failure, so we point it at noVNC's HTTP root. start_period
+    # is generous because the entrypoint walks Xvfb → fluxbox → AppImage →
+    # x11vnc → websockify in sequence on first boot.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:6080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    build:
+      context: ../../..
+      dockerfile: infra/docker/vps/Dockerfile
+      args:
+        CLAUDE_CODE_VERSION: ${CLAUDE_CODE_VERSION:-latest}
+    environment:
+      # The OAuth token from `claude setup-token`. Never commit this — keep
+      # it in `.env` (gitignored). Rotation procedure is in README.md.
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      # Optional: pay-per-token alternative. Either one (or both) is fine;
+      # the entrypoint requires at least one to be set.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      # Projects the agents will operate on. Mount whatever you want them
+      # to be able to touch — and only that.
+      - /opt/prospero/workspaces:/opt/prospero/workspaces
+      # Persistent data: SQLite, settings, logs. Survives container restart
+      # and `docker compose down`.
+      - /opt/prospero/data:/opt/prospero/data
+    networks:
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+
+      # Public route — HTTPS only, behind Authelia forward-auth.
+      - "traefik.http.routers.prospero.rule=Host(`${PROSPERO_HOST}`)"
+      - "traefik.http.routers.prospero.entrypoints=websecure"
+      - "traefik.http.routers.prospero.tls=true"
+      - "traefik.http.routers.prospero.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.prospero.middlewares=authelia@docker"
+
+      # noVNC needs websockets — Traefik handles that by default for
+      # websecure, but we pin the service port explicitly.
+      - "traefik.http.services.prospero.loadbalancer.server.port=6080"
+
+  authelia:
+    image: authelia/authelia:4.38
+    container_name: authelia
+    restart: unless-stopped
+    volumes:
+      # Config files are mounted file-by-file as read-only so the container
+      # cannot tamper with them at runtime. The `data/` subdir is mounted
+      # writable for the SQLite store + the notifications file Authelia
+      # always writes to on boot — pointing storage and notifier at it
+      # (see authelia/configuration.yml) keeps the mutable state inside
+      # one directory we can back up or rotate independently.
+      - ./authelia/configuration.yml:/config/configuration.yml:ro
+      - ./authelia/users_database.yml:/config/users_database.yml:ro
+      - ./authelia/secrets:/config/secrets:ro
+      - ./authelia/data:/config/data
+    environment:
+      AUTHELIA_JWT_SECRET_FILE: /config/secrets/jwt
+      AUTHELIA_SESSION_SECRET_FILE: /config/secrets/session
+      AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE: /config/secrets/storage
+    networks:
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+
+      # The forward-auth middleware itself — referenced by the prospero
+      # router above. `/api/verify?rd=https://auth.${DOMAIN}` redirects
+      # unauthenticated requests to the Authelia login page.
+      - "traefik.http.middlewares.authelia.forwardauth.address=http://authelia:9091/api/verify?rd=https%3A%2F%2F${AUTHELIA_HOST}"
+      - "traefik.http.middlewares.authelia.forwardauth.trustForwardHeader=true"
+      - "traefik.http.middlewares.authelia.forwardauth.authResponseHeaders=Remote-User,Remote-Groups,Remote-Name,Remote-Email"
+
+      # Authelia's own login UI.
+      - "traefik.http.routers.authelia.rule=Host(`${AUTHELIA_HOST}`)"
+      - "traefik.http.routers.authelia.entrypoints=websecure"
+      - "traefik.http.routers.authelia.tls=true"
+      - "traefik.http.routers.authelia.tls.certresolver=letsencrypt"
+      - "traefik.http.services.authelia.loadbalancer.server.port=9091"
+
+networks:
+  traefik-public:
+    external: true

@@ -1,0 +1,4 @@
+# Force LF on shell scripts so they keep working when checked out on Windows
+# (core.autocrlf=true would otherwise rewrite them to CRLF and break the
+# Linux container entrypoint).
+*.sh text eol=lf

@@ -1,0 +1,83 @@
+# Authelia configuration — Prospero VPS deployment.
+#
+# This is a templated, sanitized config. Before going live:
+#   1. Replace REPLACE_ME_* placeholders below.
+#   2. Generate three secrets and drop them in ./authelia/secrets/:
+#        - jwt           (>=64 chars random)
+#        - session       (>=64 chars random)
+#        - storage       (>=64 chars random — encrypts the SQLite store)
+#      Example:
+#        mkdir -p ./authelia/secrets && for f in jwt session storage; do
+#          openssl rand -hex 48 > ./authelia/secrets/$f
+#        done
+#   3. Copy users_database.yml.example to users_database.yml and hash your
+#      password with: docker run --rm authelia/authelia:4.38 \
+#        authelia crypto hash generate argon2
+#   4. The first time you log in, Authelia will offer to register a TOTP
+#      device — scan the QR code with Aegis / Authy / Google Authenticator.
+#
+# Reference: https://www.authelia.com/configuration/
+
+server:
+  address: "tcp://:9091"
+
+log:
+  level: info
+
+# JWT secret backs password reset emails (we don't send any — single-user
+# deploy — but Authelia still wants the field populated). Comes from
+# /config/secrets/jwt via env var (see docker-compose.yml).
+identity_validation:
+  reset_password:
+    jwt_lifespan: "5m"
+    jwt_algorithm: "HS256"
+
+totp:
+  issuer: "Prospero"
+  period: 30
+  digits: 6
+  algorithm: "sha1"
+
+authentication_backend:
+  password_reset:
+    disable: true
+  file:
+    path: /config/users_database.yml
+    password:
+      algorithm: argon2
+      argon2:
+        variant: argon2id
+
+# Access control — single rule: any request to the Prospero host requires
+# `two_factor` (password + TOTP). No bypass anywhere. If you want IP-based
+# bypass for a known admin IP, add a `policy: bypass` rule ABOVE this one
+# scoped by `networks`.
+access_control:
+  default_policy: deny
+  rules:
+    - domain: "REPLACE_ME_PROSPERO_HOST"
+      policy: two_factor
+
+session:
+  name: "authelia_session"
+  same_site: lax
+  inactivity: "15m"
+  expiration: "12h"
+  remember_me: "1M"
+  cookies:
+    - domain: "REPLACE_ME_COOKIE_DOMAIN" # e.g. example.com
+      authelia_url: "https://REPLACE_ME_AUTHELIA_HOST" # e.g. auth.example.com
+
+# SQLite is fine for single-user. The DB is encrypted with the storage
+# secret loaded above. Mutable state lives under /config/data — the only
+# writable mount on this container (see docker-compose.yml).
+storage:
+  local:
+    path: /config/data/db.sqlite3
+
+# We don't send mail — single-user, password reset disabled — but Authelia
+# still requires a notifier to start, and it writes to this file on every
+# boot. Pointing it at /config/data keeps it in the writable mount.
+notifier:
+  filesystem:
+    filename: /config/data/notifications.txt

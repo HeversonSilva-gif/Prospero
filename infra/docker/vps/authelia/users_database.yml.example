@@ -1,0 +1,18 @@
+# Authelia users database — TEMPLATE.
+#
+# Copy this file to users_database.yml (gitignored) and replace the values.
+# Generate the password hash with:
+#   docker run --rm authelia/authelia:4.38 authelia crypto hash generate argon2
+#
+# `groups` is purely informational here (we have only one access rule and
+# it doesn't gate on groups), but keep it for future granularity.
+
+users:
+  REPLACE_ME_USERNAME:
+    displayname: 'REPLACE_ME_DISPLAY_NAME'
+    # Argon2id hash — DO NOT commit. Generate with the command above.
+    # Example output looks like: $argon2id$v=19$m=65536,t=3,p=4$...
+    password: 'REPLACE_ME_ARGON2_HASH'
+    email: 'REPLACE_ME_EMAIL'
+    groups:
+      - admins
