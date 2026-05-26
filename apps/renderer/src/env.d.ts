@@ -57,6 +57,7 @@ import type {
   Briefing,
   Routine,
   UpdaterStatus,
+  Attachment,
 } from "@prospero/shared";
 
 declare global {
@@ -186,6 +187,15 @@ declare global {
       messages: {
         list: (companyId: string, participants: string[]) => Promise<Message[]>;
         listByAgent: (agentId: string) => Promise<Message[]>;
+      };
+      attachments: {
+        upload: (input: {
+          buffer: ArrayBuffer;
+          filename: string;
+          mimeType: string;
+        }) => Promise<Attachment>;
+        delete: (id: string) => Promise<void>;
+        open: (id: string) => Promise<{ ok: true } | { error: string }>;
       };
       inbox: {
         list: (companyId: string) => Promise<InboxItem[]>;

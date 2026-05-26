@@ -58,6 +58,7 @@ import {
   type TierEvaluation,
   type Briefing,
   type Routine,
+  type Attachment,
 } from "@prospero/shared";
 
 contextBridge.exposeInMainWorld("prospero", {
@@ -243,6 +244,17 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.MESSAGE_LIST, { companyId, participants }) as Promise<Message[]>,
     listByAgent: (agentId: string) =>
       ipcRenderer.invoke(IPC.MESSAGE_LIST_BY_AGENT, { agentId }) as Promise<Message[]>,
+  },
+  attachments: {
+    upload: (input: { buffer: ArrayBuffer; filename: string; mimeType: string }) =>
+      ipcRenderer.invoke(IPC.ATTACHMENTS_UPLOAD, {
+        buffer: Buffer.from(input.buffer),
+        filename: input.filename,
+        mimeType: input.mimeType,
+      }) as Promise<Attachment>,
+    delete: (id: string) => ipcRenderer.invoke(IPC.ATTACHMENTS_DELETE, id) as Promise<void>,
+    open: (id: string) =>
+      ipcRenderer.invoke(IPC.ATTACHMENTS_OPEN, id) as Promise<{ ok: true } | { error: string }>,
   },
   inbox: {
     list: (companyId: string) =>
