@@ -20,6 +20,7 @@ import { FakeClaude, isFakeClaudeEnabled } from "./fake-claude.js";
 import { buildSpawnEnv } from "../../env.js";
 import { setupMcpHandshake } from "../../mcp-handshake.js";
 import { mergeSpawnEnv } from "../../util/env-merge.js";
+import { isAuthError, recoverAgent } from "../../../auth/credential-recovery.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -109,6 +110,16 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
   private readonly eventListeners = new Set<AdapterEventListener<ParsedEvent>>();
   private readonly stderrListeners = new Set<AdapterEventListener<string>>();
   private readonly exitListeners = new Set<AdapterEventListener<number | null>>();
+  private autoRecoveryDebounceTimer: NodeJS.Timeout | null = null;
+  private static readonly AUTO_RECOVERY_DEBOUNCE_MS = 10_000;
+
+  private maybeTriggerAutoRecovery(): void {
+    if (this.autoRecoveryDebounceTimer !== null) return;
+    this.autoRecoveryDebounceTimer = setTimeout(() => {
+      this.autoRecoveryDebounceTimer = null;
+    }, ClaudeOAuthLocalAdapter.AUTO_RECOVERY_DEBOUNCE_MS);
+    void recoverAgent(this.agentId, { reason: "auto-401" });
+  }
 
   constructor(ctx: SpawnContext) {
     this.ctx = ctx;
@@ -209,6 +220,9 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
           if (line.trim() !== "") {
             dlog(`stderr: ${line}`);
             this.emitStderr(line);
+            if (isAuthError(line)) {
+              this.maybeTriggerAutoRecovery();
+            }
           }
         }
       });
@@ -284,6 +298,10 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
   }
 
   kill(): void {
+    if (this.autoRecoveryDebounceTimer !== null) {
+      clearTimeout(this.autoRecoveryDebounceTimer);
+      this.autoRecoveryDebounceTimer = null;
+    }
     if (this.child !== null && !this.child.killed) {
       this.child.kill();
     }
