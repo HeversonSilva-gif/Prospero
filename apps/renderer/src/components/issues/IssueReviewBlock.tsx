@@ -1,7 +1,7 @@
-import { useState, type FC } from "react";
+import { useState, useEffect, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import ReactDiffViewer from "react-diff-viewer-continued";
-import type { IssueArtifact } from "@prospero/shared";
+import type { IssueArtifact, IssueCriterionResult } from "@prospero/shared";
 import { useIssuesStore } from "../../stores/issues.js";
 import { useSettingsStore } from "../../stores/settings.js";
 import {
@@ -10,11 +10,31 @@ import {
   validateDecision,
 } from "../../lib/issue-review/decision.js";
 import { pickDiffArtifact } from "../../lib/issue-review/artifact.js";
-import { DecisionPage, DecisionHeader, HeroSummary, DecisionActions } from "../decision/index.js";
+import {
+  DecisionPage,
+  DecisionHeader,
+  HeroSummary,
+  DecisionActions,
+  IssueCriteriaVerified,
+  type CriterionResult,
+} from "../decision/index.js";
 
 type Props = {
   issueId: string;
   artifacts: readonly IssueArtifact[];
+};
+
+// Map an IssueCriterionResult (DB shape) to the CriterionResult prop expected
+// by IssueCriteriaVerified.
+const toVerifyResult = (r: IssueCriterionResult): CriterionResult => {
+  if (r.status === "pass") return { id: r.id, text: r.text, result: "pass" };
+  if (r.status === "fail") return { id: r.id, text: r.text, result: "fail" };
+  // pending: distinguish auto (deterministic) vs human (judgment)
+  return {
+    id: r.id,
+    text: r.text,
+    result: r.kind === "judgment" ? "pending-human" : "pending-auto",
+  };
 };
 
 export const IssueReviewBlock: FC<Props> = ({ issueId, artifacts }) => {
@@ -26,6 +46,19 @@ export const IssueReviewBlock: FC<Props> = ({ issueId, artifacts }) => {
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState<ReviewDecision | null>(null);
   const [error, setError] = useState<"comment_required" | null>(null);
+  const [criteriaResults, setCriteriaResults] = useState<IssueCriterionResult[]>([]);
+
+  useEffect(() => {
+    void window.prospero.issues.listCriteriaResults(issueId).then(setCriteriaResults);
+  }, [issueId]);
+
+  const verifiedCriteria = criteriaResults.map(toVerifyResult);
+  const passedCount = criteriaResults.filter((r) => r.status === "pass").length;
+  const humanPendingCount = criteriaResults.filter(
+    (r) => r.status === "pending" && r.kind === "judgment",
+  ).length;
+  const totalCount = criteriaResults.length;
+  const hasCriteria = totalCount > 0;
 
   const diffArtifact = pickDiffArtifact(artifacts);
   const deliveredByName = detail?.assignee?.name ?? "—";
@@ -72,20 +105,30 @@ export const IssueReviewBlock: FC<Props> = ({ issueId, artifacts }) => {
               },
               {
                 label: t("decision.issueReview.stats.criteria"),
-                // TODO(decision): criteria results not yet available from renderer;
-                // needs backend IPC exposing listCriteriaForIssue + criterion statuses.
-                value: "—",
-                sub: t("decision.issueReview.stats.criteriaNa"),
+                value: hasCriteria ? `${passedCount} / ${totalCount}` : "—",
+                sub: hasCriteria
+                  ? t("decision.issueReview.stats.criteriaSub", {
+                      passed: passedCount,
+                      awaiting: humanPendingCount,
+                    })
+                  : t("decision.issueReview.stats.criteriaNa"),
               },
             ]}
           />
         }
         sections={[
-          // TODO(decision): IssueCriteriaVerified section — blocked on renderer-side
-          // IPC for issue criteria results (Issue type has no goalId; no
-          // window.prospero.isa.listCriteriaForIssue IPC exists yet).
-          // Once backend exposes IPC, replace this placeholder with:
-          //   <IssueCriteriaVerified criteria={criteriaResults} />
+          ...(hasCriteria
+            ? [
+                <section key="criteria">
+                  <header className="mb-3">
+                    <h3 className="text-[13px] font-semibold uppercase tracking-wide text-ink m-0">
+                      {t("decision.issueReview.criteriaHeading")}
+                    </h3>
+                  </header>
+                  <IssueCriteriaVerified criteria={verifiedCriteria} />
+                </section>,
+              ]
+            : []),
 
           <section key="diff">
             <header className="mb-3 flex items-baseline justify-between">
