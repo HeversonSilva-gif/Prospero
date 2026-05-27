@@ -1041,6 +1041,27 @@ export const registerOrchestratorHandlers = (
     armBouncesOnBoot(db, companyIds);
   }
 
+  // v0.1.22 heal: clear stale rateLimitedUntil from the allowed_warning
+  // false-positive bug. The Claude CLI emits status="allowed_warning" when
+  // approaching the weekly cap (NOT throttled yet); pre-fix the parser
+  // treated it as a throttle and parked the team with rateLimitedUntil set
+  // to the weekly reset (often 10+ hours out). Real session rate-limits
+  // reset within 5 hours; anything further out is almost certainly bug
+  // residue. We "expire" the gate now so drainScheduler picks it up on its
+  // next tick and resumes the team via the existing auto-resume branch. If
+  // the account IS actually weekly-rate-limited, the next claude call will
+  // re-emit a real throttle event and we'll re-park the team correctly.
+  {
+    const STALE_THRESHOLD_MS = 5 * 60 * 60_000;
+    const settings = settingsRepo.read();
+    if (
+      settings.rateLimitedUntil !== null &&
+      settings.rateLimitedUntil - Date.now() > STALE_THRESHOLD_MS
+    ) {
+      settingsRepo.write({ rateLimitedUntil: Date.now() - 1000 });
+    }
+  }
+
   // Re-wake the CEO for any approvals routed to the CEO but not yet decided
   // before restart. Escalating to human (old behavior) would stall CEO-driven
   // workflows; instead we re-wake the CEO so it can decide them normally.

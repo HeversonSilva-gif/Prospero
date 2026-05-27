@@ -27,6 +27,39 @@ describe("parseStreamLine rate_limit_event", () => {
     expect(ev?.kind).not.toBe("rate-limited");
   });
 
+  // Bug observed in v0.1.21 production: Claude CLI emits status="allowed_warning"
+  // when the account is approaching its weekly cap but is still allowed to make
+  // calls. Pre-fix, the parser treated everything-not-equal-to-"allowed" as a
+  // throttle, so the team paused itself prematurely with 23% of the weekly cap
+  // still unused. Any status whose name signals the call is still allowed must
+  // be benign — use a prefix check so future variants (allowed_caution,
+  // allowed_strict, ...) are forward-compatible.
+  it("ignores rate_limit_event when status is allowed_warning (approaching cap but still allowed)", () => {
+    const ev = parseStreamLine(
+      JSON.stringify({
+        type: "rate_limit_event",
+        rate_limit_info: {
+          status: "allowed_warning",
+          resetsAt: 1779400800,
+          rateLimitType: "weekly",
+        },
+      }),
+    );
+    expect(ev?.kind).not.toBe("rate-limited");
+  });
+
+  it("ignores any status starting with allowed (forward-compat for new warning variants)", () => {
+    for (const status of ["allowed", "allowed_warning", "allowed_caution", "allowed_strict"]) {
+      const ev = parseStreamLine(
+        JSON.stringify({
+          type: "rate_limit_event",
+          rate_limit_info: { status, resetsAt: 1779400800 },
+        }),
+      );
+      expect(ev?.kind).not.toBe("rate-limited");
+    }
+  });
+
   it("emits rate-limited when status is not allowed, carrying resetsAt in ms", () => {
     const ev = parseStreamLine(
       JSON.stringify({

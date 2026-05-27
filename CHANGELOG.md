@@ -3,6 +3,29 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.22 — 2026-05-27
+
+### Fixed
+
+- **Equipe não é mais pausada por engano quando a cota semanal está perto
+  do limite (mas ainda não estourou).** A Claude CLI passou a emitir
+  `status="allowed_warning"` no `rate_limit_event` quando você se aproxima
+  do limite semanal — *você ainda pode usar*, é só um aviso. O parser
+  antigo do Prospero tratava qualquer status diferente de `"allowed"` como
+  um throttle real e pausava a equipe inteira, marcando o reset para o
+  fim da janela semanal (10+ horas no futuro). Smoking gun: dashboard da
+  Anthropic mostrava 77% usado da cota semanal (23% livre), e o Prospero
+  com a equipe pausada e banner *"limite do plano Max atingido"*. Fix:
+  qualquer status que comece com `allowed` (`allowed`, `allowed_warning`,
+  e futuras variantes) é tratado como benigno. Throttles reais
+  (`rejected`, etc.) continuam parando a equipe.
+- **Auto-cura no boot:** se a versão anterior já tinha pausado a equipe
+  com este bug, o app limpa o `rateLimitedUntil` que estava > 5h no
+  futuro (real session reset cabe em ≤ 5h; tudo além é residue do bug) e
+  o auto-resume existente reativa todo mundo na próxima rodada do
+  scheduler. Se a conta estiver mesmo throttled, a próxima chamada do
+  claude re-pausa corretamente.
+
 ## v0.1.21 — 2026-05-27
 
 ### Added

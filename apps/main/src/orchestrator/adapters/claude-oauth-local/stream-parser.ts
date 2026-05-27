@@ -179,10 +179,13 @@ export const parseStreamLine = (line: string): ParsedEvent | null => {
   if (data["type"] === "rate_limit_event") {
     const info = isObject(data["rate_limit_info"]) ? data["rate_limit_info"] : {};
     const status = typeof info["status"] === "string" ? info["status"] : "allowed";
-    // "allowed" is benign telemetry (emitted constantly) — ignore. Any other
-    // status means the account is throttled now; resetsAt (UNIX seconds) is when
-    // the window reopens.
-    if (status === "allowed") {
+    // Any status that starts with "allowed" is benign telemetry — the call
+    // is still allowed to proceed. "allowed" is the normal heartbeat; CLI
+    // also emits "allowed_warning" (and possibly other allowed_* variants)
+    // when the account is approaching a cap but is NOT yet throttled.
+    // Pre-fix the parser treated everything-not-equal-to-"allowed" as a
+    // throttle, which paused the team prematurely with weekly cap unused.
+    if (status.startsWith("allowed")) {
       return { kind: "unknown", raw: data };
     }
     // Accept both camelCase and snake_case — the rest of the stream uses
