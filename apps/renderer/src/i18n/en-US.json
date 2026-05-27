@@ -766,6 +766,41 @@
       "company": "Company",
       "agent": "Agent",
       "path": "Sample path"
+    },
+    "governance": {
+      "cardTitle": "Governance",
+      "cardSubtitle": "Quiet hours, policies, and how decisions resolve on their own",
+      "title": "Async governance",
+      "subtitle": "Configure how requests resolve themselves while you're away or sleeping.",
+      "quietActiveBanner": "Quiet mode is active now — relaxed policies are in effect.",
+      "quietHoursTitle": "Quiet hours",
+      "quietHoursHelp": "Windows in which fire and budget requests go to the CEO instead of you. Local time.",
+      "addWindow": "Add window",
+      "removeWindow": "Remove",
+      "from": "From",
+      "to": "To",
+      "errorEmptyWindow": "Start and end are equal — window inactive.",
+      "day": {
+        "sun": "Sun",
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat"
+      },
+      "policiesTitle": "Auto-decision policies",
+      "readOnlyTitle": "Auto-approve reads across all projects",
+      "readOnlyHelp": "When on, read-only tools (Read, Glob, Grep, WebFetch) don't ask for approval. Only applies to tool_call, never to manager_request.",
+      "spendCapTitle": "Auto-approve spend under (USD/day)",
+      "spendCapHelp": "Requests with estimated cost below this value approve themselves. Leave empty to turn off.",
+      "spendCapPlaceholder": "0.50",
+      "ceoFiresTitle": "In quiet mode, CEO decides terminations",
+      "ceoFiresHelp": "During active hours: you decide. In quiet mode: CEO decides.",
+      "ceoBudgetTitle": "In quiet mode, CEO decides budget overruns",
+      "ceoBudgetHelp": "Same pattern as terminations.",
+      "timeoutTitle": "Inbox time before bouncing back to CEO",
+      "timeoutHelp": "If you don't respond in this time, the request goes back to the CEO with a 'you decide, can't re-escalate' note."
     }
   },
   "wizard": {

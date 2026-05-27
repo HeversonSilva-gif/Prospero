@@ -766,6 +766,41 @@
       "company": "Empresa",
       "agent": "Agente",
       "path": "Caminho de exemplo"
+    },
+    "governance": {
+      "cardTitle": "Governança",
+      "cardSubtitle": "Modo silencioso, políticas e como decisões se resolvem sozinhas",
+      "title": "Governança assíncrona",
+      "subtitle": "Configure como pedidos se resolvem sozinhos enquanto você está fora ou dorme.",
+      "quietActiveBanner": "Modo silencioso ativo agora — políticas relaxadas estão valendo.",
+      "quietHoursTitle": "Horários silenciosos",
+      "quietHoursHelp": "Janelas em que pedidos de fire e budget caem no CEO em vez de você. Local time.",
+      "addWindow": "Adicionar janela",
+      "removeWindow": "Remover",
+      "from": "De",
+      "to": "Até",
+      "errorEmptyWindow": "Início e fim iguais — janela inativa.",
+      "day": {
+        "sun": "Dom",
+        "mon": "Seg",
+        "tue": "Ter",
+        "wed": "Qua",
+        "thu": "Qui",
+        "fri": "Sex",
+        "sat": "Sáb"
+      },
+      "policiesTitle": "Políticas de auto-decisão",
+      "readOnlyTitle": "Auto-aprovar leitura em qualquer projeto",
+      "readOnlyHelp": "Quando ligado, ferramentas só-leitura (Read, Glob, Grep, WebFetch) não pedem aprovação. Só vale para tool_call, nunca para manager_request.",
+      "spendCapTitle": "Auto-aprovar gastos abaixo de (USD/dia)",
+      "spendCapHelp": "Pedidos com custo estimado abaixo desse valor são aprovados sozinhos. Deixe vazio para desligar.",
+      "spendCapPlaceholder": "0.50",
+      "ceoFiresTitle": "Em modo silencioso, CEO decide demissões",
+      "ceoFiresHelp": "Em horário ativo: você decide. Em modo silencioso: CEO decide.",
+      "ceoBudgetTitle": "Em modo silencioso, CEO decide estouros de orçamento",
+      "ceoBudgetHelp": "Mesmo padrão das demissões.",
+      "timeoutTitle": "Tempo no inbox antes de devolver pro CEO",
+      "timeoutHelp": "Se você não responder nesse tempo, o pedido volta pro CEO com nota 'decida você, não pode escalar de novo'."
     }
   },
   "wizard": {
