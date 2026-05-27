@@ -11,6 +11,7 @@ import { Ajustes } from "./routes/Ajustes.js";
 import { AjustesConta } from "./routes/AjustesConta.js";
 import { AjustesPreferencias } from "./routes/AjustesPreferencias.js";
 import { AjustesAvancado } from "./routes/AjustesAvancado.js";
+import { AjustesGovernanca } from "./routes/AjustesGovernanca.js";
 import { SetupWizard } from "./routes/SetupWizard.js";
 import { Agent as AgentRoute } from "./routes/Agent.js";
 import { OrgPlan } from "./routes/OrgPlan.js";
@@ -280,6 +281,18 @@ export const App = () => {
                 appReady ? (
                   <Layout>
                     <AjustesAvancado />
+                  </Layout>
+                ) : (
+                  <Navigate to="/setup" replace />
+                )
+              }
+            />
+            <Route
+              path="/settings/governanca-assincrona"
+              element={
+                appReady ? (
+                  <Layout>
+                    <AjustesGovernanca />
                   </Layout>
                 ) : (
                   <Navigate to="/setup" replace />

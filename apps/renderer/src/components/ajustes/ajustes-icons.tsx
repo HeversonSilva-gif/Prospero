@@ -75,3 +75,16 @@ export const WrenchIcon: FC<IconProps> = ({ className, size = 20 }) => (
     <path d="M6 14l-3 3 2 2 3-3" />
   </svg>
 );
+
+export const ShieldIcon: FC<IconProps> = ({ className, size = 20 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    {...STROKE_PROPS}
+    aria-hidden="true"
+    className={className}
+  >
+    <path d="M12 2L4 5v6c0 4.4 3.6 8.5 8 9.3 4.4-.8 8-4.9 8-9.3V5l-8-3z" />
+  </svg>
+);

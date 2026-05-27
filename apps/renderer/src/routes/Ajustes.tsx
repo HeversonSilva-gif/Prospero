@@ -6,6 +6,7 @@ import {
   CreditCardIcon,
   SlidersIcon,
   WrenchIcon,
+  ShieldIcon,
 } from "../components/ajustes/ajustes-icons.js";
 
 // M16 PR-B2 — entrada de Ajustes. Grade de 4 cartões.
@@ -40,6 +41,12 @@ export const Ajustes: FC = () => {
           icon={<WrenchIcon />}
           title={t("ajustes.avancado.title")}
           sub={t("ajustes.avancado.sub")}
+        />
+        <AjustesCard
+          to="/settings/governanca-assincrona"
+          icon={<ShieldIcon />}
+          title={t("settings.governance.cardTitle")}
+          sub={t("settings.governance.cardSubtitle")}
         />
       </div>
     </div>
