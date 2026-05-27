@@ -75,3 +75,50 @@ describe("wakeCeoForApproval", () => {
     expect(d.enqueue).not.toHaveBeenCalled();
   });
 });
+
+describe("wakeCeoForApproval — bouncedFromHuman flag (M20 async governance)", () => {
+  it("when bouncedFromHuman is true, the enqueued prompt includes the bounce notice", () => {
+    const d = deps();
+    const ok = wakeCeoForApproval(
+      {
+        approvalId: "apv2",
+        companyId: "c1",
+        requesterName: "Alice",
+        summary: "Read config file",
+        kind: "tool_call",
+      },
+      d,
+      { bouncedFromHuman: true },
+    );
+    expect(ok).toBe(true);
+    expect(d.enqueue).toHaveBeenCalledWith(
+      "ceo1",
+      "th-ceo",
+      expect.stringContaining(
+        "Usuário não respondeu em algumas horas. Decida você (não pode escalar de novo). Se incerto, prefira rejeitar.",
+      ),
+      expect.anything(),
+    );
+  });
+
+  it("default behavior (no options arg) does NOT include the bounce notice", () => {
+    const d = deps();
+    const ok = wakeCeoForApproval(
+      {
+        approvalId: "apv3",
+        companyId: "c1",
+        requesterName: "Charlie",
+        summary: "Delete file Y",
+        kind: "tool_call",
+      },
+      d,
+    );
+    expect(ok).toBe(true);
+    expect(d.enqueue).toHaveBeenCalledWith(
+      "ceo1",
+      "th-ceo",
+      expect.not.stringContaining("Usuário não respondeu"),
+      expect.anything(),
+    );
+  });
+});

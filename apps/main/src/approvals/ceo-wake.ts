@@ -32,7 +32,11 @@ const instruction = (p: WakePayload): string =>
     `Se houver outras requisicoes pendentes, use list_pending_requests para resolve-las tambem.`,
   ].join("\n");
 
-export const wakeCeoForApproval = (p: WakePayload, deps: CeoWakeDeps): boolean => {
+export const wakeCeoForApproval = (
+  p: WakePayload,
+  deps: CeoWakeDeps,
+  options?: { bouncedFromHuman?: boolean },
+): boolean => {
   const ceo = deps.getCeo(p.companyId);
   if (ceo === null) return false;
   deps.ensureAgentRunner(ceo);
@@ -41,7 +45,12 @@ export const wakeCeoForApproval = (p: WakePayload, deps: CeoWakeDeps): boolean =
     id: p.approvalId,
     name: `Pedido de ${p.requesterName}`,
   };
-  deps.enqueue(ceo.id, deps.primaryThreadId(ceo.id), instruction(p), sender);
+  const content =
+    instruction(p) +
+    (options?.bouncedFromHuman === true
+      ? "\n\nUsuário não respondeu em algumas horas. Decida você (não pode escalar de novo). Se incerto, prefira rejeitar."
+      : "");
+  deps.enqueue(ceo.id, deps.primaryThreadId(ceo.id), content, sender);
   deps.recordActivity({
     companyId: p.companyId,
     actor: { kind: "system" },
