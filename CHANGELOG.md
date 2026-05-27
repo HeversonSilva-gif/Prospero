@@ -3,6 +3,25 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.24 — 2026-05-27
+
+### Changed
+
+- **Pipeline de recovery de credencial agora deixa rastro em
+  `prospero-debug.log`** (peça #6 Task 0 — pré-req do fix Bug A). Cada
+  fase emite uma linha `[auth:recover]`: entrada de `recoverAgent` (com
+  agentId+reason), short-circuits (skipped-recovering / skipped-cooldown),
+  pipeline phases (started, host-stale, killing-adapter, reseed-ok/failed,
+  respawning, respawn-failed, recovered+durationMs, timeout). Pre-fix o
+  pipeline rodava silently — broadcasts iam só pra IPC, nunca pro disco —
+  então a próxima vez que o Bug A se manifestasse ainda seria invisível
+  no log que pedimos pro usuário. Agora não.
+
+Próximo passo do Bug A: quando você reproduzir o cenário "token novo mas
+agentes vivos seguem stale", grep `[auth:recover]` em
+`%APPDATA%/Prospero/prospero-debug.log` revela exatamente onde o pipeline
+parou (ou se ele nem rodou).
+
 ## v0.1.23 — 2026-05-27
 
 ### Fixed
