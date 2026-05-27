@@ -187,6 +187,20 @@ export const ActivityPayloads = {
     inputHash: z.string().optional(),
   }),
 
+  // Governance (3) — M20 / v0.1.19 async governance
+  "governance.auto_approved": z.object({
+    approvalId: stringId,
+    policyId: stringId,
+  }),
+  "approval.bounced_to_ceo": z.object({
+    approvalId: stringId,
+    reason: z.enum(["timeout", "rule"]),
+    quietHoursUrl: z.string().optional(),
+  }),
+  "approval.default_denied_final": z.object({
+    approvalId: stringId,
+  }),
+
   // Routine (2) — M15 PR-A
   "routine.fired": z.object({
     reason: z.enum(["scheduled", "catchup", "event", "manual"]),

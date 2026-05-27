@@ -68,6 +68,10 @@ export const ACTIVITY_ACTIONS = [
   "trust.demoted",
   "trust.promotion_suggested",
   "trust.readonly_autoapproved",
+  // Governance (3) — M20 / v0.1.19 async governance
+  "governance.auto_approved",
+  "approval.bounced_to_ceo",
+  "approval.default_denied_final",
   // Routine (2) — M15 PR-A
   "routine.fired",
   "routine.skipped",
