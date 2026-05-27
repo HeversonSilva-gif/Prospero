@@ -7,3 +7,5 @@ export type { AccordionItem } from "./ItemAccordion.js";
 export { DecisionActions } from "./DecisionActions.js";
 export { DecisionPage } from "./DecisionPage.js";
 export { DecisionModal } from "./DecisionModal.js";
+export { IsaCriteriaEditor } from "./IsaCriteriaEditor.js";
+export type { CriterionEntry } from "./IsaCriteriaEditor.js";
