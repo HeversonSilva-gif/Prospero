@@ -6,7 +6,6 @@ import { createApprovalsRepository } from "./repository.js";
 import { routeApprovalRequest } from "./routing.js";
 import { wakeCeoForApproval } from "./ceo-wake.js";
 import { createEscalationTimers, type EscalationTimers } from "./escalation-timer.js";
-import { createBounceTimers, type BounceTimers } from "./governance/bounce-timer.js";
 import { applyGovernance } from "./governance/index.js";
 import { loadGovernanceConfig } from "./governance-config.js";
 
@@ -26,7 +25,6 @@ export interface ApprovalEngineBridge {
 
 let bridge: ApprovalEngineBridge | null = null;
 let timers: EscalationTimers | null = null;
-let bounceTimers: BounceTimers | null = null;
 
 // Per-approval bounce timers keyed by approvalId.
 const perApprovalBounceTimers = new Map<string, NodeJS.Timeout>();
@@ -164,10 +162,6 @@ export const setApprovalEngineBridge = (b: ApprovalEngineBridge): void => {
     timeoutMs: CEO_DECISION_TIMEOUT_MS,
     onEscalate: (id) => escalateToHuman(id, "timeout"),
   });
-  bounceTimers = createBounceTimers({
-    timeoutMs: 1, // placeholder — production path uses perApprovalBounceTimers
-    onBounce: (id) => bounceToCEO(id),
-  });
 };
 
 export const tryGetApprovalBridge = (): ApprovalEngineBridge | null => bridge;
@@ -302,10 +296,8 @@ export const escalateByCeoChoice = (approvalId: string): void =>
 // Test-only: reset module state between tests.
 export const __resetApprovalEngine = (): void => {
   timers?.clearAll();
-  bounceTimers?.clearAll();
   for (const h of perApprovalBounceTimers.values()) clearTimeout(h);
   perApprovalBounceTimers.clear();
   bridge = null;
   timers = null;
-  bounceTimers = null;
 };

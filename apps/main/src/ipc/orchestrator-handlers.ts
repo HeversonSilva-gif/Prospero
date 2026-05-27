@@ -83,7 +83,12 @@ import { createInboxRepository } from "../inbox/repository.js";
 import { tryGetRoutinesEngine } from "../routines/index.js";
 import { registerRoutinesHandlers } from "./routines-handlers.js";
 import { createAutoModeExpiry } from "../agents/auto-mode-expiry.js";
-import { setApprovalEngineBridge, tryGetApprovalTimers } from "../approvals/index.js";
+import {
+  setApprovalEngineBridge,
+  tryGetApprovalTimers,
+  escalatePendingOnBoot,
+  armBouncesOnBoot,
+} from "../approvals/index.js";
 import { wakeCeoForApproval } from "../approvals/ceo-wake.js";
 import { handleApprovalEvent } from "../approvals/event-handler.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
@@ -1025,6 +1030,16 @@ export const registerOrchestratorHandlers = (
       broadcastInboxUpdate(agent.companyId);
     },
   });
+
+  // Boot recovery: any CEO-routed approval still pending → escalate to human;
+  // any user-routed approval past its bounce TTL → bounce to CEO.
+  {
+    const companyIds = (db.prepare("SELECT id FROM companies").all() as { id: string }[]).map(
+      (r) => r.id,
+    );
+    escalatePendingOnBoot(db, companyIds);
+    armBouncesOnBoot(db, companyIds);
+  }
 
   // Re-wake the CEO for any approvals routed to the CEO but not yet decided
   // before restart. Escalating to human (old behavior) would stall CEO-driven
