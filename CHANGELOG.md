@@ -3,6 +3,28 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.21 — 2026-05-27
+
+### Added
+
+- **Coalescing de approvals do CEO (peça #5 do trem v0.2).** Pedidos
+  rotados pro CEO entram numa fila de 60 segundos antes do CEO acordar.
+  Se 5 pedidos chegam em 60s, o CEO acorda 1 vez (não 5) com todos no
+  input — redução esperada de turnos de ~80/dia → ~10-15/dia.
+  Approvals destrutivos (Bash, Write, Edit, MultiEdit, NotebookEdit,
+  manager_request `fire`, `budget over-limit`) **colapsam** a janela:
+  chegou um destrutivo, acorda já com tudo que estiver na fila.
+- **Nova ferramenta MCP `decide_batch`.** O CEO decide várias approvals
+  numa chamada só (`{ decisions: [{approval_id, decision, note?}, ...] }`).
+  Retorna `{ ok, decided, errors }`. Mais barato em tokens do que chamar
+  `decide_request` N vezes — a mensagem de wake do coalescer já orienta
+  o CEO a usar esta ferramenta.
+- Migration `0042` (`approvals.coalesced_with` — FK pra approval "cabeça"
+  da batch, para audit/UI futura).
+
+Spec: `docs/superpowers/specs/2026-05-27-v0-2-scope-design.md` §Peça #5.
+Plano: `docs/superpowers/plans/2026-05-27-ceo-approval-coalescing.md`.
+
 ## v0.1.20 — 2026-05-27
 
 ### Fixed
