@@ -148,7 +148,7 @@ export const IPC = {
   TRUST_GET_EVALUATION: "trust:get-evaluation",
   GOVERNANCE_GET: "governance:get",
   GOVERNANCE_UPDATE: "governance:update",
-  GOVERNANCE_IS_QUIET: "governance:isQuietNow",
+  GOVERNANCE_IS_QUIET: "governance:is-quiet-now",
   BRIEFING_GET: "briefing:get",
   BRIEFING_MARK_REVIEWED: "briefing:mark-reviewed",
   ROUTINES_LIST: "routines:list",
