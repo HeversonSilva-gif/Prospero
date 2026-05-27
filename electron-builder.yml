@@ -83,6 +83,11 @@ linux:
       arch:
         - x64
   category: Development
+  # The .deb target requires a maintainer (the root package.json has author
+  # as a plain string with no email, so electron-builder refuses to derive
+  # it). Setting it here scopes the field to Linux and leaves the Windows
+  # path untouched.
+  maintainer: HeversonSilva-gif <202877675+HeversonSilva-gif@users.noreply.github.com>
   synopsis: "Local orchestrator for Claude Code agents"
   description: "Prospero runs a hierarchy of Claude Code agents on your machine. See https://github.com/HeversonSilva-gif/Prospero."
   artifactName: "${productName}-${version}-${arch}.${ext}"
