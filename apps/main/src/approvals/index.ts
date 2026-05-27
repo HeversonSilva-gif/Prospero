@@ -6,6 +6,9 @@ import { createApprovalsRepository } from "./repository.js";
 import { routeApprovalRequest } from "./routing.js";
 import { wakeCeoForApproval } from "./ceo-wake.js";
 import { createEscalationTimers, type EscalationTimers } from "./escalation-timer.js";
+import { createBounceTimers, type BounceTimers } from "./governance/bounce-timer.js";
+import { applyGovernance } from "./governance/index.js";
+import { loadGovernanceConfig } from "./governance-config.js";
 
 export const CEO_DECISION_TIMEOUT_MS = 10 * 60_000;
 
@@ -23,6 +26,90 @@ export interface ApprovalEngineBridge {
 
 let bridge: ApprovalEngineBridge | null = null;
 let timers: EscalationTimers | null = null;
+let bounceTimers: BounceTimers | null = null;
+
+// Per-approval bounce timers keyed by approvalId.
+const perApprovalBounceTimers = new Map<string, NodeJS.Timeout>();
+
+const armBounceFor = (approvalId: string, ttlMs: number): void => {
+  const prev = perApprovalBounceTimers.get(approvalId);
+  if (prev !== undefined) clearTimeout(prev);
+  const h = setTimeout(() => {
+    perApprovalBounceTimers.delete(approvalId);
+    bounceToCEO(approvalId);
+  }, ttlMs);
+  perApprovalBounceTimers.set(approvalId, h);
+};
+
+const cancelBounceFor = (approvalId: string): void => {
+  const h = perApprovalBounceTimers.get(approvalId);
+  if (h !== undefined) {
+    clearTimeout(h);
+    perApprovalBounceTimers.delete(approvalId);
+  }
+};
+
+const bounceToCEO = (approvalId: string): void => {
+  if (bridge === null) return;
+  const repo = createApprovalsRepository(bridge.db);
+  const apv = repo.getById(approvalId);
+  if (apv === null || apv.status !== "pending") {
+    cancelBounceFor(approvalId);
+    return;
+  }
+  if (apv.bounceCount >= 1) {
+    // Already bounced once — default-deny final.
+    repo.decide(approvalId, "rejected", "system", "ceo+human both timeout");
+    const companyId = apv.agentId !== null ? (bridge.getAgent(apv.agentId)?.companyId ?? "") : "";
+    if (companyId !== "") {
+      bridge.recordActivity({
+        companyId,
+        actor: { kind: "system" },
+        action: "approval.default_denied_final",
+        entityKind: "approval",
+        entityId: approvalId,
+        agentId: apv.agentId,
+        payload: { approvalId },
+      });
+    }
+    return;
+  }
+  // First bounce — increment, re-route to CEO with the bounced flag.
+  repo.incrementBounceCount(approvalId);
+  repo.setRouted(approvalId, "ceo");
+  const companyId = apv.agentId !== null ? (bridge.getAgent(apv.agentId)?.companyId ?? "") : "";
+  if (companyId !== "") {
+    bridge.recordActivity({
+      companyId,
+      actor: { kind: "system" },
+      action: "approval.bounced_to_ceo",
+      entityKind: "approval",
+      entityId: approvalId,
+      agentId: apv.agentId,
+      payload: { approvalId, reason: "timeout" },
+    });
+    const requester =
+      apv.agentId !== null ? (bridge.getAgent(apv.agentId)?.name ?? "unknown") : "unknown";
+    wakeCeoForApproval(
+      {
+        approvalId,
+        companyId,
+        requesterName: requester,
+        summary: apv.payloadJson,
+        kind: apv.kind,
+      },
+      {
+        getCeo: bridge.getCeo,
+        ensureAgentRunner: bridge.ensureAgentRunner,
+        enqueue: bridge.enqueue,
+        primaryThreadId: bridge.primaryThreadId,
+        recordActivity: bridge.recordActivity,
+      },
+      { bouncedFromHuman: true },
+    );
+    timers?.arm(approvalId); // rearm escalation timer for 2nd timeout
+  }
+};
 
 const escalateToHuman = (
   approvalId: string,
@@ -32,9 +119,30 @@ const escalateToHuman = (
   const repo = createApprovalsRepository(bridge.db);
   const apv = repo.getById(approvalId);
   if (apv === null || apv.status !== "pending") return; // race: already resolved
+
+  // M20: if approval was already bounced from human → CEO and CEO timed out,
+  // default-deny instead of bouncing back to human (which would loop).
+  if (apv.bounceCount >= 1 && reason === "timeout") {
+    repo.decide(approvalId, "rejected", "system", "ceo timeout after bounce");
+    const companyId = apv.agentId !== null ? (bridge.getAgent(apv.agentId)?.companyId ?? "") : "";
+    if (companyId !== "") {
+      bridge.recordActivity({
+        companyId,
+        actor: { kind: "system" },
+        action: "approval.default_denied_final",
+        entityKind: "approval",
+        entityId: approvalId,
+        agentId: apv.agentId,
+        payload: { approvalId },
+      });
+    }
+    return;
+  }
+
   repo.setRouted(approvalId, "user");
   repo.setEscalated(approvalId);
   timers?.cancel(approvalId);
+  cancelBounceFor(approvalId);
   bridge.createHumanCard(approvalId);
   const companyId = apv.agentId !== null ? (bridge.getAgent(apv.agentId)?.companyId ?? "") : "";
   if (companyId !== "") {
@@ -56,6 +164,10 @@ export const setApprovalEngineBridge = (b: ApprovalEngineBridge): void => {
     timeoutMs: CEO_DECISION_TIMEOUT_MS,
     onEscalate: (id) => escalateToHuman(id, "timeout"),
   });
+  bounceTimers = createBounceTimers({
+    timeoutMs: 1, // placeholder — production path uses perApprovalBounceTimers
+    onBounce: (id) => bounceToCEO(id),
+  });
 };
 
 export const tryGetApprovalBridge = (): ApprovalEngineBridge | null => bridge;
@@ -72,6 +184,8 @@ export const routeAndDispatch = (input: {
   summary: string;
   managerTopic?: Parameters<typeof routeApprovalRequest>[0]["managerTopic"];
   budgetOverLimit?: boolean;
+  toolName?: string;
+  estimatedSpendUsd?: number;
 }): "ceo" | "user" => {
   if (bridge === null) return "user";
   const repo = createApprovalsRepository(bridge.db);
@@ -86,20 +200,56 @@ export const routeAndDispatch = (input: {
     return currentApv?.routedTo === "ceo" ? "ceo" : "user";
   }
 
+  const cfg = loadGovernanceConfig(bridge.db, input.companyId);
+  const verdict = applyGovernance(
+    {
+      kind: input.kind,
+      ...(input.toolName !== undefined ? { toolName: input.toolName } : {}),
+      ...(input.estimatedSpendUsd !== undefined
+        ? { estimatedSpendUsd: input.estimatedSpendUsd }
+        : {}),
+      ...(input.managerTopic !== undefined ? { managerTopic: input.managerTopic } : {}),
+      ...(input.budgetOverLimit !== undefined ? { budgetOverLimit: input.budgetOverLimit } : {}),
+    },
+    cfg,
+    new Date(),
+  );
+
+  if (verdict.kind === "auto-approve") {
+    repo.decide(input.approvalId, "approved", "system", `auto-policy: ${verdict.reason}`);
+    bridge.recordActivity({
+      companyId: input.companyId,
+      actor: { kind: "system" },
+      action: "governance.auto_approved",
+      entityKind: "approval",
+      entityId: input.approvalId,
+      agentId: currentApv.agentId,
+      payload: { approvalId: input.approvalId, policyId: verdict.reason },
+    });
+    return "ceo";
+  }
+
   const ceoAvailable = bridge.getCeo(input.companyId) !== null;
   const route = routeApprovalRequest({
     kind: input.kind,
     reason: input.reason,
     requesterIsCeo: input.requesterIsCeo,
     ceoAvailable,
+    relaxedFires: verdict.relaxedFires,
+    relaxedBudgets: verdict.relaxedBudgets,
     ...(input.managerTopic !== undefined ? { managerTopic: input.managerTopic } : {}),
     ...(input.budgetOverLimit !== undefined ? { budgetOverLimit: input.budgetOverLimit } : {}),
   });
+
   if (route === "user") {
     repo.setRouted(input.approvalId, "user");
     bridge.createHumanCard(input.approvalId);
+    const ttlMs = cfg.policies.bouncedToCeoTtlHours * 60 * 60_000;
+    armBounceFor(input.approvalId, ttlMs);
     return "user";
   }
+
+  // route === "ceo"
   repo.setRouted(input.approvalId, "ceo");
   const woke = wakeCeoForApproval(
     {
@@ -134,12 +284,28 @@ export const escalatePendingOnBoot = (db: Database.Database, companyIds: string[
   }
 };
 
+export const armBouncesOnBoot = (db: Database.Database, companyIds: string[]): void => {
+  const now = Date.now();
+  for (const cid of companyIds) {
+    const cfg = loadGovernanceConfig(db, cid);
+    const ttlMs = cfg.policies.bouncedToCeoTtlHours * 60 * 60_000;
+    const repo = createApprovalsRepository(db);
+    for (const apv of repo.listPendingRoutedToUserForBounce(now - ttlMs)) {
+      bounceToCEO(apv.id);
+    }
+  }
+};
+
 export const escalateByCeoChoice = (approvalId: string): void =>
   escalateToHuman(approvalId, "ceo_choice");
 
 // Test-only: reset module state between tests.
 export const __resetApprovalEngine = (): void => {
   timers?.clearAll();
+  bounceTimers?.clearAll();
+  for (const h of perApprovalBounceTimers.values()) clearTimeout(h);
+  perApprovalBounceTimers.clear();
   bridge = null;
   timers = null;
+  bounceTimers = null;
 };

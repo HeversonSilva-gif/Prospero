@@ -6,10 +6,14 @@ import {
   setApprovalEngineBridge,
   routeAndDispatch,
   escalatePendingOnBoot,
+  armBouncesOnBoot,
+  CEO_DECISION_TIMEOUT_MS,
   __resetApprovalEngine,
   type ApprovalEngineBridge,
 } from "./index.js";
+import { saveGovernanceConfig } from "./governance-config.js";
 import type { Agent } from "@prospero/shared";
+import { DEFAULT_GOVERNANCE_CONFIG } from "@prospero/shared";
 
 const ceo = { id: "ceo1", companyId: "c1", status: "idle", name: "CEO" } as unknown as Agent;
 const bot = { id: "bot1", companyId: "c1", status: "idle", name: "Bot" } as unknown as Agent;
@@ -173,5 +177,255 @@ describe("approval engine routeAndDispatch", () => {
     expect(result).toBe("ceo"); // existing routedTo
     expect(bridge.enqueue).not.toHaveBeenCalled();
     expect(bridge.createHumanCard).not.toHaveBeenCalled();
+  });
+});
+
+describe("routeAndDispatch — async governance integration", () => {
+  let db: Database.Database;
+  beforeEach(() => {
+    db = makeDb();
+  });
+  afterEach(() => {
+    __resetApprovalEngine();
+    vi.useRealTimers();
+  });
+
+  it("auto-approves when policy says so — no CEO wake, no human card", () => {
+    const bridge = makeBridge(db);
+    setApprovalEngineBridge(bridge);
+    saveGovernanceConfig(db, "c1", {
+      ...DEFAULT_GOVERNANCE_CONFIG,
+      policies: {
+        ...DEFAULT_GOVERNANCE_CONFIG.policies,
+        autoApproveReadOnlyAcrossProjects: true,
+      },
+    });
+    const repo = createApprovalsRepository(db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "tool_call",
+      payload: { tool_name: "Read", tool_input: {}, tool_use_id: "tu-auto" },
+    });
+    const route = routeAndDispatch({
+      approvalId: apv.id,
+      companyId: "c1",
+      kind: "tool_call",
+      reason: "supervised mode",
+      requesterIsCeo: false,
+      requesterName: "Bot",
+      summary: "Read file",
+      toolName: "Read",
+    });
+    expect(route).toBe("ceo"); // auto-approve returns "ceo" per spec
+    const updated = repo.getById(apv.id);
+    expect(updated?.status).toBe("approved");
+    expect(updated?.decidedBy).toBe("system");
+    expect(bridge.createHumanCard).not.toHaveBeenCalled();
+    expect(bridge.enqueue).not.toHaveBeenCalled();
+    const recordActivity = bridge.recordActivity as ReturnType<typeof vi.fn>;
+    const call = recordActivity.mock.calls.find(
+      (c: unknown[]) => (c[0] as { action: string }).action === "governance.auto_approved",
+    );
+    expect(call).toBeDefined();
+    expect((call![0] as { payload: { approvalId: string } }).payload.approvalId).toBe(apv.id);
+  });
+
+  it("schedules a bounce timer when routed to user; bounceToCEO fires on timeout", () => {
+    vi.useFakeTimers();
+    const bridge = makeBridge(db);
+    setApprovalEngineBridge(bridge);
+    saveGovernanceConfig(db, "c1", {
+      ...DEFAULT_GOVERNANCE_CONFIG,
+      policies: {
+        ...DEFAULT_GOVERNANCE_CONFIG.policies,
+        bouncedToCeoTtlHours: 2,
+        ceoCanDecideFires: false,
+      },
+    });
+    const repo = createApprovalsRepository(db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "manager_request",
+      payload: { topic: "fire", summary: "Fire designer", thread_id: "th-fire" },
+    });
+    const route = routeAndDispatch({
+      approvalId: apv.id,
+      companyId: "c1",
+      kind: "manager_request",
+      reason: "fire request",
+      requesterIsCeo: false,
+      requesterName: "Bot",
+      summary: "Fire designer",
+      managerTopic: "fire",
+    });
+    // Should route to user (fire, ceoCanDecideFires=false)
+    expect(route).toBe("user");
+    expect(repo.getById(apv.id)?.routedTo).toBe("user");
+    expect(bridge.createHumanCard).toHaveBeenCalledWith(apv.id);
+    expect(repo.getById(apv.id)?.bounceCount).toBe(0);
+
+    // Advance past the 2-hour TTL
+    vi.advanceTimersByTime(2 * 60 * 60_000);
+
+    // After bounce: routedTo=ceo, bounceCount=1
+    expect(repo.getById(apv.id)?.routedTo).toBe("ceo");
+    expect(repo.getById(apv.id)?.bounceCount).toBe(1);
+    const recordActivity = bridge.recordActivity as ReturnType<typeof vi.fn>;
+    const bounceCall = recordActivity.mock.calls.find(
+      (c: unknown[]) => (c[0] as { action: string }).action === "approval.bounced_to_ceo",
+    );
+    expect(bounceCall).toBeDefined();
+    // CEO should be woken with the bounce notice
+    expect(bridge.enqueue).toHaveBeenCalled();
+    const enqueueArgs = (bridge.enqueue as ReturnType<typeof vi.fn>).mock.calls[0] as unknown[];
+    expect(enqueueArgs[2] as string).toContain("Usuário não respondeu");
+  });
+
+  it("after bounce + 2nd timeout, approval is default-denied", () => {
+    vi.useFakeTimers();
+    const bridge = makeBridge(db);
+    setApprovalEngineBridge(bridge);
+    saveGovernanceConfig(db, "c1", {
+      ...DEFAULT_GOVERNANCE_CONFIG,
+      policies: {
+        ...DEFAULT_GOVERNANCE_CONFIG.policies,
+        bouncedToCeoTtlHours: 2,
+        ceoCanDecideFires: false,
+      },
+    });
+    const repo = createApprovalsRepository(db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "manager_request",
+      payload: { topic: "fire", summary: "Fire designer 2", thread_id: "th-fire2" },
+    });
+    routeAndDispatch({
+      approvalId: apv.id,
+      companyId: "c1",
+      kind: "manager_request",
+      reason: "fire request",
+      requesterIsCeo: false,
+      requesterName: "Bot",
+      summary: "Fire designer 2",
+      managerTopic: "fire",
+    });
+
+    // First timeout: bounce to CEO
+    vi.advanceTimersByTime(2 * 60 * 60_000);
+    expect(repo.getById(apv.id)?.bounceCount).toBe(1);
+    expect(repo.getById(apv.id)?.status).toBe("pending");
+
+    // Second timeout: CEO escalation timer fires
+    vi.advanceTimersByTime(CEO_DECISION_TIMEOUT_MS);
+    const updated = repo.getById(apv.id);
+    expect(updated?.status).toBe("rejected");
+    expect(updated?.decisionNote).toContain("ceo timeout after bounce");
+    const recordActivity = bridge.recordActivity as ReturnType<typeof vi.fn>;
+    const denyCall = recordActivity.mock.calls.find(
+      (c: unknown[]) => (c[0] as { action: string }).action === "approval.default_denied_final",
+    );
+    expect(denyCall).toBeDefined();
+  });
+
+  it("decide cancels bounce timer — bounceToCEO does not fire", () => {
+    vi.useFakeTimers();
+    const bridge = makeBridge(db);
+    setApprovalEngineBridge(bridge);
+    saveGovernanceConfig(db, "c1", {
+      ...DEFAULT_GOVERNANCE_CONFIG,
+      policies: {
+        ...DEFAULT_GOVERNANCE_CONFIG.policies,
+        bouncedToCeoTtlHours: 2,
+        ceoCanDecideFires: false,
+      },
+    });
+    const repo = createApprovalsRepository(db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "manager_request",
+      payload: { topic: "fire", summary: "Fire designer 3", thread_id: "th-fire3" },
+    });
+    routeAndDispatch({
+      approvalId: apv.id,
+      companyId: "c1",
+      kind: "manager_request",
+      reason: "fire request",
+      requesterIsCeo: false,
+      requesterName: "Bot",
+      summary: "Fire designer 3",
+      managerTopic: "fire",
+    });
+    expect(repo.getById(apv.id)?.routedTo).toBe("user");
+
+    // Human decides before timeout
+    repo.decide(apv.id, "approved", "human1");
+
+    // Advance past the TTL — bounce should NOT fire since approval is resolved
+    vi.advanceTimersByTime(2 * 60 * 60_000);
+
+    // bounceCount stays 0 and status stays approved
+    expect(repo.getById(apv.id)?.bounceCount).toBe(0);
+    expect(repo.getById(apv.id)?.status).toBe("approved");
+    const recordActivity = bridge.recordActivity as ReturnType<typeof vi.fn>;
+    const bounceCall = recordActivity.mock.calls.find(
+      (c: unknown[]) => (c[0] as { action: string }).action === "approval.bounced_to_ceo",
+    );
+    expect(bounceCall).toBeUndefined();
+  });
+
+  it("requesterIsCeo never routes to CEO even when ceoCanDecideFires=true", () => {
+    const bridge = makeBridge(db);
+    setApprovalEngineBridge(bridge);
+    saveGovernanceConfig(db, "c1", {
+      ...DEFAULT_GOVERNANCE_CONFIG,
+      policies: {
+        ...DEFAULT_GOVERNANCE_CONFIG.policies,
+        ceoCanDecideFires: true,
+      },
+    });
+    const repo = createApprovalsRepository(db);
+    const apv = repo.create({
+      agentId: "ceo1",
+      kind: "manager_request",
+      payload: { topic: "fire", summary: "Self-fire", thread_id: "th-ceo-fire" },
+    });
+    const route = routeAndDispatch({
+      approvalId: apv.id,
+      companyId: "c1",
+      kind: "manager_request",
+      reason: "fire request",
+      requesterIsCeo: true,
+      requesterName: "CEO",
+      summary: "Self-fire",
+      managerTopic: "fire",
+    });
+    // Rule 2 wins: requesterIsCeo → user
+    expect(route).toBe("user");
+    expect(repo.getById(apv.id)?.routedTo).toBe("user");
+  });
+
+  it("armBouncesOnBoot fires immediately for approvals past TTL at boot", () => {
+    const bridge = makeBridge(db);
+    setApprovalEngineBridge(bridge);
+    saveGovernanceConfig(db, "c1", {
+      ...DEFAULT_GOVERNANCE_CONFIG,
+      policies: {
+        ...DEFAULT_GOVERNANCE_CONFIG.policies,
+        bouncedToCeoTtlHours: 4,
+      },
+    });
+    const repo = createApprovalsRepository(db);
+    // Insert an approval that was created 5 hours ago and is stuck in user inbox
+    const fiveHoursAgo = Date.now() - 5 * 60 * 60_000;
+    db.prepare(
+      `INSERT INTO approvals (id, agent_id, kind, payload_json, status, routed_to, bounce_count, created_at)
+       VALUES (?, ?, ?, ?, 'pending', 'user', 0, ?)`,
+    ).run("apv_boot_test", "bot1", "tool_call", '{"tool_name":"Write"}', fiveHoursAgo);
+
+    armBouncesOnBoot(db, ["c1"]);
+
+    const updated = repo.getById("apv_boot_test");
+    expect(updated?.routedTo).toBe("ceo");
+    expect(updated?.bounceCount).toBe(1);
   });
 });
