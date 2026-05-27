@@ -3,6 +3,28 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.23 — 2026-05-27
+
+### Fixed
+
+- **Barra do nome do agente (breadcrumb + AgentHeader) some ao rolar
+  a conversa.** Sintoma: rolar pra baixo na conversa fazia a barra de
+  topo (com "← Minha equipe / George", botões Retomar/Atribuir tarefa)
+  desaparecer; precisava rolar tudo até o topo pra ela voltar. O sticky
+  do AgentHeader não pegava porque a página inteira estava rolando, não
+  só a lista de mensagens.
+- **Chat não sobe mais sozinho quando o agente responde.** Mesma causa
+  raiz do bug acima.
+
+Root cause: `AttachmentDropOverlay` (wrapper introduzido em v0.1.18 com
+o chat estilo Slack) tinha `flex-1 flex flex-col` sem `min-h-0`. Sem
+`min-h-0`, o flex container crescia além do viewport quando a conversa
+ficava longa, transformando a página inteira no scroll container. A
+MessageList interna (`flex-1 overflow-auto` + `el.scrollTop = el.scrollHeight`
+pra auto-scroll) nunca ativava o scroll próprio. O sticky do AgentHeader
+também perdia o ancestral correto. Fix: 1 char — adicionar `min-h-0`
+ao wrapper.
+
 ## v0.1.22 — 2026-05-27
 
 ### Fixed

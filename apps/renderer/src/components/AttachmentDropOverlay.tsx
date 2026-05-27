@@ -53,7 +53,7 @@ export const AttachmentDropOverlay: FC<Props> = ({ onDrop, children }) => {
   }, [onDrop]);
 
   return (
-    <div className="relative flex-1 flex flex-col">
+    <div className="relative flex-1 flex flex-col min-h-0">
       {children}
       {dragging && (
         <div className="absolute inset-2 z-50 border-2 border-dashed border-ink rounded-lg bg-surface/80 flex items-center justify-center pointer-events-none">
