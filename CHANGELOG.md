@@ -3,6 +3,29 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.25 — 2026-05-27
+
+### Changed
+
+- **Início da peça #9 da v0.2 — redesign das telas de aprovação.** 7
+  primitivos novos em `apps/renderer/src/components/decision/`
+  (`Chip`, `DecisionHeader`, `HeroSummary`, `ItemAccordion`,
+  `DecisionActions`, `DecisionPage`, `DecisionModal`) unificam o layout
+  das telas de decisão: chip de tipo + meta + título grande + hero com
+  2-4 stats + seções + footer fixo com 3 botões padronizados
+  (Aprovar / Pedir mudanças / Rejeitar). Adapta a luz/escuro
+  automaticamente via tokens semânticos. 18 testes novos.
+- **Primeira migração: `OrgPlanReview` (Tela 1 — `/org-plan`).**
+  Mantém todo o fluxo existente (aprovar, rejeitar com textarea de
+  motivo, checkboxes de inclusão por papel) — só a aparência mudou.
+  Próximas releases migram `GoalPlanReview` (com bloco ISA editável),
+  `IssueReviewBlock` (com critérios verificados) e o modal de aprovação
+  do CEO M18 reusando os mesmos primitivos.
+
+Spec: `docs/superpowers/specs/2026-05-27-v0-2-scope-design.md` §Peça #9.
+Plano: `docs/superpowers/plans/2026-05-27-approval-redesign.md`.
+Mockup hi-fi aprovado: `.superpowers/brainstorm/165-1779884249/content/approval-redesign-v2.html`.
+
 ## v0.1.24 — 2026-05-27
 
 ### Changed
