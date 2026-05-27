@@ -160,6 +160,7 @@ export const IPC = {
   UPDATER_STATUS: "updater:status",
   UPDATER_INSTALL_NOW: "updater:install-now",
   UPDATER_EVENT: "updater:event",
+  ISSUES_LIST_CRITERIA_RESULTS: "issues:list-criteria-results",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

@@ -23,6 +23,7 @@ import type {
   IssueComment,
   IssueStatus,
   IssuePriority,
+  IssueCriterionResult,
   RoleTemplate,
   RoleDetail,
   OrgPlan,
@@ -261,6 +262,7 @@ declare global {
         delete: (id: string) => Promise<{ ok: true }>;
         addComment: (issueId: string, content: string) => Promise<IssueComment>;
         listArtifacts: (issueId: string) => Promise<IssueArtifact[]>;
+        listCriteriaResults: (issueId: string) => Promise<IssueCriterionResult[]>;
         onChanged: (
           cb: (event: { kind: string; issueId: string; companyId: string }) => void,
         ) => () => void;

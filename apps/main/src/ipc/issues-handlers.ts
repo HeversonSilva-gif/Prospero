@@ -12,6 +12,7 @@ import {
   type IssueComment,
   type IssueStatus,
   type IssuePriority,
+  type IssueCriterionResult,
 } from "@prospero/shared";
 import { createIssuesRepository } from "../issues/repository.js";
 import { createIssueCommentsRepository } from "../issues/comments-repository.js";
@@ -239,5 +240,42 @@ export const registerIssuesHandlers = (db: Database.Database): void => {
   const artifacts = createArtifactsRepository(db);
   ipcMain.handle(IPC.ARTIFACTS_LIST_BY_ISSUE, (_e, payload: { issueId: string }): IssueArtifact[] =>
     artifacts.listByIssue(payload.issueId),
+  );
+
+  // Peça #9 — list goal criteria linked to an issue (via issue_criteria join)
+  // together with their current verification status. Returns an empty array for
+  // issues that have no linked criteria.
+  ipcMain.handle(
+    IPC.ISSUES_LIST_CRITERIA_RESULTS,
+    (_e, issueId: string): IssueCriterionResult[] => {
+      type Row = { id: string; statement: string; kind: string; status: string };
+      const rows = db
+        .prepare(
+          `SELECT gc.id, gc.statement, gc.kind, gc.status
+           FROM issue_criteria ic
+           JOIN goal_criteria gc ON gc.id = ic.criterion_id
+           WHERE ic.issue_id = ?
+           ORDER BY gc.sort_order ASC`,
+        )
+        .all(issueId) as Row[];
+
+      return rows.map((r) => {
+        // Map DB status ('pending'|'passed'|'failed'|'waived') → renderer status
+        let status: IssueCriterionResult["status"];
+        if (r.status === "passed" || r.status === "waived") {
+          status = "pass";
+        } else if (r.status === "failed") {
+          status = "fail";
+        } else {
+          status = "pending";
+        }
+        return {
+          id: r.id,
+          text: r.statement,
+          kind: r.kind as "deterministic" | "judgment",
+          status,
+        };
+      });
+    },
   );
 };

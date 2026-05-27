@@ -30,6 +30,7 @@ describe("issues handlers — channel registration", () => {
       "issues:delete",
       "issues:add-comment",
       "artifacts:list-by-issue",
+      "issues:list-criteria-results",
     ]);
   });
 });

@@ -60,6 +60,7 @@ import {
   type Routine,
   type Attachment,
   type GovernanceConfig,
+  type IssueCriterionResult,
 } from "@prospero/shared";
 
 contextBridge.exposeInMainWorld("prospero", {
@@ -331,6 +332,10 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.ISSUES_ADD_COMMENT, { issueId, content }) as Promise<IssueComment>,
     listArtifacts: (issueId: string) =>
       ipcRenderer.invoke(IPC.ARTIFACTS_LIST_BY_ISSUE, { issueId }) as Promise<IssueArtifact[]>,
+    listCriteriaResults: (issueId: string) =>
+      ipcRenderer.invoke(IPC.ISSUES_LIST_CRITERIA_RESULTS, issueId) as Promise<
+        IssueCriterionResult[]
+      >,
     onChanged: (cb: (event: { kind: string; issueId: string; companyId: string }) => void) => {
       const handler = (_e: unknown, ev: { kind: string; issueId: string; companyId: string }) =>
         cb(ev);
