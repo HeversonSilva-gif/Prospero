@@ -25,6 +25,7 @@ import { registerSecurityHandlers } from "./security-handlers.js";
 import { registerTrustHandlers } from "./trust-handlers.js";
 import { registerBriefingHandlers } from "./briefing-handlers.js";
 import { registerApprovalHandlers } from "./approval-handlers.js";
+import { registerGovernanceHandlers } from "./governance-handlers.js";
 import { initRecorder } from "../activity/index.js";
 import { initInbox, createInboxRepository } from "../inbox/index.js";
 import { initDerivation } from "../derivation/index.js";
@@ -67,6 +68,7 @@ export const registerIpcHandlers = (db: Database.Database): { stopScheduler: () 
   registerTrustHandlers(db);
   registerBriefingHandlers(db);
   registerApprovalHandlers(db);
+  registerGovernanceHandlers(db);
   registerAttachmentHandlers(db, () => app.getPath("userData"));
   return { stopScheduler };
 };

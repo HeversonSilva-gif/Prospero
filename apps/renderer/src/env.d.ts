@@ -58,6 +58,7 @@ import type {
   Routine,
   UpdaterStatus,
   Attachment,
+  GovernanceConfig,
 } from "@prospero/shared";
 
 declare global {
@@ -366,6 +367,11 @@ declare global {
         getHistory: (args: { agentId: string }) => Promise<TrustEvent[]>;
         approvePromotion: (args: { inboxItemId: string }) => Promise<{ ok: true }>;
         getEvaluation: (args: { agentId: string }) => Promise<TierEvaluation>;
+      };
+      governance: {
+        get: (companyId: string) => Promise<GovernanceConfig>;
+        update: (companyId: string, config: GovernanceConfig) => Promise<GovernanceConfig>;
+        isQuietNow: (companyId: string) => Promise<boolean>;
       };
       briefing: {
         get: (args: { companyId: string }) => Promise<Briefing>;

@@ -59,6 +59,7 @@ import {
   type Briefing,
   type Routine,
   type Attachment,
+  type GovernanceConfig,
 } from "@prospero/shared";
 
 contextBridge.exposeInMainWorld("prospero", {
@@ -509,6 +510,14 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.TRUST_APPROVE_PROMOTION, args) as Promise<{ ok: true }>,
     getEvaluation: (args: { agentId: string }) =>
       ipcRenderer.invoke(IPC.TRUST_GET_EVALUATION, args) as Promise<TierEvaluation>,
+  },
+  governance: {
+    get: (companyId: string) =>
+      ipcRenderer.invoke(IPC.GOVERNANCE_GET, companyId) as Promise<GovernanceConfig>,
+    update: (companyId: string, config: GovernanceConfig) =>
+      ipcRenderer.invoke(IPC.GOVERNANCE_UPDATE, companyId, config) as Promise<GovernanceConfig>,
+    isQuietNow: (companyId: string) =>
+      ipcRenderer.invoke(IPC.GOVERNANCE_IS_QUIET, companyId) as Promise<boolean>,
   },
   briefing: {
     get: (args: { companyId: string }) =>
