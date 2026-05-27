@@ -5,6 +5,7 @@ import { matchesBlockedBash, matchesBlockedPath } from "./blocklist.js";
 import { zoneOf, canAccess, type ZoneId } from "./zones.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { isReadOnlyTool } from "../trust/read-only-tools.js";
+import { isMetaOrchestrationTool } from "./meta-tools.js";
 import { tryGetInbox } from "../inbox/index.js";
 import { broadcastInboxUpdate } from "../ipc/inbox-handlers.js";
 
@@ -232,6 +233,17 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
       console.warn("[gate] failed to record trust.readonly_autoapproved", err);
     }
     return { action: "allow", reason: "readonly-autoapproved" };
+  }
+
+  // Meta MCP orchestration tools (decide_request, message_agent, notify_user,
+  // ...) auto-allow in any mode. Gating them creates circular deadlocks — the
+  // CEO's call to `decide_request` becomes an approval routed to the user,
+  // freezing the CEO in `tool_use` waiting for its own decision. See memory
+  // project_p6_task0_runtime_bugs_diagnosis for the smoking-gun timeline.
+  // Substantive MCP tools (hire/fire/create/update/record) are NOT on this
+  // list and stay gated in supervised mode.
+  if (isMetaOrchestrationTool(toolName)) {
+    return { action: "allow", reason: "meta-orchestration" };
   }
 
   if (agent.mode === "auto") {

@@ -3,6 +3,33 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.20 — 2026-05-27
+
+### Fixed
+
+- **CEO travado no `decide_request` (deadlock circular).** Em modo
+  supervisionado, o gate de aprovação roteava a própria chamada do CEO
+  `mcp__dashboard__decide_request` (o canal canônico de decisão) como
+  uma approval que precisava do humano — o CEO ficava em `tool_use`
+  esperando para sempre que ele mesmo se respondesse. Smoking gun
+  confirmado em logs: George (Opus) parado em `status=thinking` por 8.5h
+  desde 27/5 00:23 enquanto o `apv_5f07ad7c` (a decisão dele mesmo)
+  esperava o usuário. Fix: ferramentas MCP de orquestração
+  (`decide_request`, `request_decision`, `request_permission`,
+  `message_agent`, `notify_user`, `report_to_user`) viram allowlist no
+  gate, junto com o prefix-strip de `mcp__dashboard__` no classificador
+  read-only (que cobre `list_*`, `read_thread`, `check_status`,
+  `isa_read`, `telos_read`, etc.). Ferramentas substantivas
+  (`hire_agent`, `fire_agent`, `create_issue`, `update_issue`,
+  `assign_issue`, `record_artifact`, `criterion_judge`) continuam
+  precisando de aprovação em modo supervisionado.
+
+Memória do diagnóstico: `project_p6_task0_runtime_bugs_diagnosis.md`.
+Hotfix da Task 0 da peça #6 do trem v0.2 — Bug A (token rotation) fica
+pendente até instrumentar `credential-recovery.ts` com logs e o usuário
+reproduzir o sintoma; sem isso, o pipeline atual não escreve nada em
+`prospero-debug.log` e a hipótese fica invisível.
+
 ## v0.1.19 — 2026-05-27
 
 ### Added
