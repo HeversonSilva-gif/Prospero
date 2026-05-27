@@ -326,6 +326,25 @@
         "save": "Salvar",
         "cancel": "Cancelar"
       }
+    },
+    "issueReview": {
+      "chip": "Pronto pra revisão",
+      "meta": "{{author}} entregou",
+      "stats": {
+        "deliveredBy": "Quem entregou",
+        "criteria": "Critérios desta issue",
+        "criteriaSub": "{{passed}} passaram · {{awaiting}} espera você",
+        "criteriaNa": "não disponível nesta versão"
+      },
+      "criteriaHeading": "Critérios verificados",
+      "deliveredHeading": "O que foi entregue",
+      "commentHeading": "Comentário (opcional)",
+      "turnCost": "Custo deste turno",
+      "approveLabel": "Aprovar e concluir",
+      "verify": {
+        "tagAuto": "Auto",
+        "tagHuman": "Você decide"
+      }
     }
   },
   "costs": {

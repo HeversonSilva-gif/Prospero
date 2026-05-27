@@ -326,6 +326,25 @@
         "save": "Save",
         "cancel": "Cancel"
       }
+    },
+    "issueReview": {
+      "chip": "Ready for review",
+      "meta": "{{author}} delivered",
+      "stats": {
+        "deliveredBy": "Delivered by",
+        "criteria": "This issue's criteria",
+        "criteriaSub": "{{passed}} passed · {{awaiting}} awaiting you",
+        "criteriaNa": "not available in this version"
+      },
+      "criteriaHeading": "Criteria verified",
+      "deliveredHeading": "What was delivered",
+      "commentHeading": "Comment (optional)",
+      "turnCost": "This turn's cost",
+      "approveLabel": "Approve and close",
+      "verify": {
+        "tagAuto": "Auto",
+        "tagHuman": "You decide"
+      }
     }
   },
   "costs": {

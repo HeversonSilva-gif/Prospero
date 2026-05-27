@@ -62,6 +62,32 @@ export const IssueDetailModal: FC<Props> = ({ issueId, onClose }) => {
 
   const { issue, comments, subtasks, toolHistory, project } = detail;
 
+  // When the issue is in "review" state, the IssueReviewBlock renders its own
+  // DecisionPage header/hero/footer. Render the modal card without padding so
+  // the DecisionPage layout takes full control; only keep the × close button.
+  if (issue.status === "review") {
+    return (
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+        onClick={onClose}
+      >
+        <div
+          className="bg-surface-card rounded w-full max-w-2xl max-h-[90vh] overflow-auto shadow-2xl relative"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-4 right-4 z-10 text-ink-soft hover:text-brand"
+          >
+            ×
+          </button>
+          <IssueReviewBlock issueId={issue.id} artifacts={artifacts} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
@@ -113,8 +139,6 @@ export const IssueDetailModal: FC<Props> = ({ issueId, onClose }) => {
               : "—"}
           </div>
         </div>
-
-        {issue.status === "review" && <IssueReviewBlock issueId={issue.id} artifacts={artifacts} />}
 
         {subtasks.length > 0 && (
           <div className="mb-4">
