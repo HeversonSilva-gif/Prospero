@@ -345,6 +345,24 @@
         "tagAuto": "Auto",
         "tagHuman": "Você decide"
       }
+    },
+    "m18": {
+      "chipToolCall": "Aprovar ferramenta",
+      "chipManagerRequest": "Pedido gerencial",
+      "meta": "{{requester}} pediu · {{when}}",
+      "stats": {
+        "requester": "Quem pediu",
+        "agentSub": "agente",
+        "kind": "Tipo"
+      },
+      "payloadHeading": "O que vai ser feito",
+      "payloadEmpty": "Sem detalhes disponíveis",
+      "commentHeading": "Comentário (opcional)",
+      "commentPlaceholder": "Adicione um comentário...",
+      "approveLabel": "Aprovar",
+      "defaultRejectMessage": "Rejeitado pelo usuário",
+      "kindToolCall": "Chamada de ferramenta",
+      "kindManagerRequest": "Pedido gerencial"
     }
   },
   "costs": {
@@ -929,6 +947,7 @@
     "empty": "Inbox vazia.",
     "approve": "Aprovar",
     "reject": "Rejeitar",
+    "decide": "Decidir",
     "markRead": "Marcar como lido",
     "openGoal": "Abrir objetivo",
     "openOrgPlan": "Abrir proposta de organização",

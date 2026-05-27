@@ -345,6 +345,24 @@
         "tagAuto": "Auto",
         "tagHuman": "You decide"
       }
+    },
+    "m18": {
+      "chipToolCall": "Approve tool",
+      "chipManagerRequest": "Manager request",
+      "meta": "{{requester}} requested · {{when}}",
+      "stats": {
+        "requester": "Requested by",
+        "agentSub": "agent",
+        "kind": "Type"
+      },
+      "payloadHeading": "What will be done",
+      "payloadEmpty": "No details available",
+      "commentHeading": "Comment (optional)",
+      "commentPlaceholder": "Add a comment...",
+      "approveLabel": "Approve",
+      "defaultRejectMessage": "Rejected by user",
+      "kindToolCall": "Tool call",
+      "kindManagerRequest": "Manager request"
     }
   },
   "costs": {
@@ -929,6 +947,7 @@
     "empty": "Inbox is empty.",
     "approve": "Approve",
     "reject": "Reject",
+    "decide": "Decide",
     "markRead": "Mark as read",
     "openGoal": "Open goal",
     "openOrgPlan": "Open org plan",
