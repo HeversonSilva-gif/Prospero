@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import type { AgentToHire, Goal, GoalPlan, IssuePriority, IssueToCreate } from "@prospero/shared";
+import type { CriterionKind } from "@prospero/shared";
 import { useGoalsStore } from "../stores/goals.js";
 import { useBudgetsStore } from "../stores/budgets.js";
 import { useSettingsStore } from "../stores/settings.js";
+import { useIsaStore } from "../stores/isa.js";
 import {
   computeFilteredEstimates,
   validatePlanSelection,
@@ -11,18 +13,22 @@ import {
 } from "../lib/planValidation.js";
 import { GoalPlanRequestChangesModal } from "./GoalPlanRequestChangesModal.js";
 import { GoalRejectModal } from "./GoalRejectModal.js";
+import {
+  DecisionPage,
+  DecisionHeader,
+  HeroSummary,
+  ItemAccordion,
+  DecisionActions,
+  IsaCriteriaEditor,
+  type AccordionItem,
+  type CriterionEntry,
+} from "./decision/index.js";
 
-const PRIORITY_BADGE: Record<IssuePriority, string> = {
-  urgent: "bg-semantic-danger text-white",
-  high: "bg-semantic-warning/30 text-semantic-warning",
-  medium: "bg-brand-bg text-brand",
-  low: "bg-surface-soft text-ink-muted",
-};
-
-const RISK_TINT: Record<string, string> = {
-  high: "border-l-semantic-danger bg-semantic-danger/5",
-  medium: "border-l-semantic-warning bg-semantic-warning/5",
-  low: "border-l-ink-soft bg-surface-soft",
+const PRIORITY_BADGE: Record<IssuePriority, { label: string; tone: "high" | "medium" | "low" }> = {
+  urgent: { label: "urgent", tone: "high" },
+  high: { label: "high", tone: "medium" },
+  medium: { label: "medium", tone: "low" },
+  low: { label: "low", tone: "low" },
 };
 
 const formatTokens = (n: number): string => {
@@ -33,141 +39,21 @@ const formatTokens = (n: number): string => {
 
 const formatCents = (cents: number): string => `$${(cents / 100).toFixed(2)}`;
 
-const AgentRow: FC<{
-  agent: AgentToHire;
-  included: boolean;
-  onToggle: () => void;
-}> = ({ agent, included, onToggle }) => {
-  const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <li
-      className={`bg-surface-card border border-surface-border rounded p-3 ${included ? "" : "opacity-50"}`}
-    >
-      <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          checked={included}
-          onChange={onToggle}
-          aria-label={t("goals.plan.includeAgent", { name: agent.name })}
-          className="w-4 h-4"
-        />
-        <span className="text-xs text-ink-soft font-mono">#{agent.index}</span>
-        <span className="text-sm font-semibold text-brand-dark">{agent.name}</span>
-        <span className="text-xs text-ink-muted">· {agent.roleTemplateId}</span>
-        <span className="text-xs text-ink-muted">· {agent.model}</span>
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="ml-auto text-xs text-brand hover:underline"
-        >
-          {expanded ? t("goals.plan.collapse") : t("goals.plan.expand")}
-        </button>
-      </div>
-      {expanded && (
-        <div className="mt-2 pl-7 text-xs text-ink-muted space-y-1">
-          <p>
-            <span className="font-semibold text-ink-soft uppercase tracking-wide">
-              {t("goals.plan.agentFields.persona")}:
-            </span>{" "}
-            <span className="whitespace-pre-wrap">{agent.personaSummary}</span>
-          </p>
-          <p>
-            <span className="font-semibold text-ink-soft uppercase tracking-wide">
-              {t("goals.plan.agentFields.capabilities")}:
-            </span>{" "}
-            {agent.capabilities.join(", ")}
-          </p>
-          <p>
-            <span className="font-semibold text-ink-soft uppercase tracking-wide">
-              {t("goals.plan.agentFields.reportsTo")}:
-            </span>{" "}
-            {agent.reportsToIndex === "CEO" ? "CEO" : `#${agent.reportsToIndex}`}
-          </p>
-          <p>
-            <span className="font-semibold text-ink-soft uppercase tracking-wide">
-              {t("goals.plan.agentFields.rationale")}:
-            </span>{" "}
-            <span className="whitespace-pre-wrap">{agent.rationale}</span>
-          </p>
-        </div>
-      )}
-    </li>
-  );
+/** Formats a Unix-ms timestamp as a relative string, e.g. "4 min". */
+const timeAgoLabel = (ts: number): string => {
+  const diffMs = Date.now() - ts;
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 60) return `${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  return `${Math.floor(hrs / 24)}d`;
 };
 
-const IssueRow: FC<{
-  issue: IssueToCreate;
-  included: boolean;
-  onToggle: () => void;
-  agentsByIndex: Map<number, AgentToHire>;
-}> = ({ issue, included, onToggle, agentsByIndex }) => {
-  const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
-  const assigneeLabel =
-    issue.assigneeIndex === "CEO"
-      ? "CEO"
-      : (agentsByIndex.get(issue.assigneeIndex)?.name ?? `#${issue.assigneeIndex}`);
-
-  return (
-    <li
-      className={`bg-surface-card border border-surface-border rounded p-3 ${included ? "" : "opacity-50"}`}
-    >
-      <div className="flex items-center gap-3 flex-wrap">
-        <input
-          type="checkbox"
-          checked={included}
-          onChange={onToggle}
-          aria-label={t("goals.plan.includeIssue", { title: issue.title })}
-          className="w-4 h-4"
-        />
-        <span className="text-xs text-ink-soft font-mono">#{issue.index}</span>
-        <span
-          className={`text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${PRIORITY_BADGE[issue.priority]}`}
-        >
-          {issue.priority}
-        </span>
-        <span className="text-sm text-ink flex-1 min-w-0 truncate">{issue.title}</span>
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="text-xs text-brand hover:underline"
-        >
-          {expanded ? t("goals.plan.collapse") : t("goals.plan.expand")}
-        </button>
-      </div>
-      <div className="mt-1 pl-7 text-xs text-ink-muted flex gap-3 flex-wrap">
-        <span>
-          {t("goals.plan.issueFields.assignee")}: <strong>{assigneeLabel}</strong>
-        </span>
-        <span>
-          {t("goals.plan.issueFields.estimate")}:{" "}
-          <strong>{formatTokens(issue.estimatedTokens)}</strong>
-        </span>
-        {issue.dependsOnIndexes.length > 0 && (
-          <span>
-            {t("goals.plan.issueFields.deps")}:{" "}
-            <strong>{issue.dependsOnIndexes.map((i) => `#${i}`).join(", ")}</strong>
-          </span>
-        )}
-      </div>
-      {expanded && (
-        <div className="mt-2 pl-7 text-xs text-ink-muted space-y-1">
-          <p className="whitespace-pre-wrap">{issue.description}</p>
-          <p>
-            <span className="font-semibold text-ink-soft uppercase tracking-wide">
-              {t("goals.plan.issueFields.rationale")}:
-            </span>{" "}
-            <span className="whitespace-pre-wrap">{issue.rationale}</span>
-          </p>
-        </div>
-      )}
-    </li>
-  );
-};
-
-type FormatDate = (epochMs: number) => string;
-const fmtDate: FormatDate = (n) => new Date(n).toLocaleString();
+// Inline form for adding/editing a criterion within the plan review.
+type CriterionFormState =
+  | { mode: "hidden" }
+  | { mode: "add" }
+  | { mode: "edit"; id: string; text: string; kind: CriterionKind };
 
 export const GoalPlanReview: FC<{ plan: GoalPlan; goal: Goal }> = ({ plan, goal }) => {
   const { t } = useTranslation();
@@ -178,6 +64,17 @@ export const GoalPlanReview: FC<{ plan: GoalPlan; goal: Goal }> = ({ plan, goal 
   const loadBudgets = useBudgetsStore((s) => s.load);
   const budgetsLoaded = useBudgetsStore((s) => s.loaded);
   const executorMode = useSettingsStore((s) => s.settings.executorMode);
+
+  // ISA criteria — loaded from the ISA store keyed by goal id.
+  const isaLoad = useIsaStore((s) => s.load);
+  const isaCriteria = useIsaStore((s) => s.criteria);
+  const isaAddCriterion = useIsaStore((s) => s.addCriterion);
+  const isaUpdateCriterion = useIsaStore((s) => s.updateCriterion);
+  const isaRemoveCriterion = useIsaStore((s) => s.removeCriterion);
+
+  useEffect(() => {
+    void isaLoad(goal.id);
+  }, [goal.id, isaLoad]);
 
   useEffect(() => {
     if (!budgetsLoaded) {
@@ -193,8 +90,13 @@ export const GoalPlanReview: FC<{ plan: GoalPlan; goal: Goal }> = ({ plan, goal 
   const [error, setError] = useState<string | null>(null);
   const [showChanges, setShowChanges] = useState(false);
   const [showReject, setShowReject] = useState(false);
-  const [risksExpanded, setRisksExpanded] = useState(false);
   const [narratedOverride, setNarratedOverride] = useState(executorMode === "narrated");
+
+  // Inline criterion form state.
+  const [criterionForm, setCriterionForm] = useState<CriterionFormState>({ mode: "hidden" });
+  const [criterionText, setCriterionText] = useState("");
+  const [criterionKind, setCriterionKind] = useState<CriterionKind>("judgment");
+  const [criterionSaving, setCriterionSaving] = useState(false);
 
   useEffect(() => {
     setNarratedOverride(executorMode === "narrated");
@@ -259,196 +161,349 @@ export const GoalPlanReview: FC<{ plan: GoalPlan; goal: Goal }> = ({ plan, goal 
     }
   };
 
-  return (
-    <div className="bg-surface-card border border-surface-border rounded">
-      <div className="flex items-center justify-between p-4 border-b border-surface-border">
-        <div>
-          <p className="text-sm font-semibold text-brand-dark">
-            {t("goals.plan.versionLabel", { version: plan.version })}
-          </p>
-          <p className="text-xs text-ink-soft">
-            {t("goals.plan.proposedBy")} · {fmtDate(plan.proposedAt)}
-          </p>
-        </div>
-        <span className="text-[10px] uppercase tracking-wide font-semibold px-2 py-1 rounded bg-brand-bg text-brand">
-          {t(`goals.plan.status.${plan.status}`)}
-        </span>
-      </div>
+  // ISA criterion handlers — wired to useIsaStore (full CRUD via IPC).
+  const handleAddCriterion = () => {
+    setCriterionText("");
+    setCriterionKind("judgment");
+    setCriterionForm({ mode: "add" });
+  };
 
-      <section className="p-4 border-b border-surface-border">
-        <h3 className="text-xs uppercase tracking-wide font-semibold text-ink-soft mb-2">
-          {t("goals.plan.summary")}
-        </h3>
-        <p className="text-sm text-ink whitespace-pre-wrap">{plan.summary}</p>
-      </section>
+  const handleEditCriterion = (id: string) => {
+    const c = isaCriteria.find((x) => x.id === id);
+    if (c === undefined) return;
+    setCriterionText(c.statement);
+    setCriterionKind(c.kind);
+    setCriterionForm({ mode: "edit", id, text: c.statement, kind: c.kind });
+  };
 
-      <section className="p-4 border-b border-surface-border">
-        <h3 className="text-xs uppercase tracking-wide font-semibold text-ink-soft mb-2">
-          {t("goals.plan.agents.title", { count: plan.agentsToHire.length })}
-        </h3>
-        {plan.agentsToHire.length === 0 ? (
-          <p className="text-xs text-ink-muted">{t("goals.plan.agents.none")}</p>
-        ) : (
-          <ul className="space-y-2">
-            {plan.agentsToHire.map((a) => (
-              <AgentRow
-                key={a.index}
-                agent={a}
-                included={included.includedAgentIndexes.has(a.index)}
-                onToggle={() => toggleAgent(a.index)}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
+  const handleRemoveCriterion = async (id: string) => {
+    await isaRemoveCriterion(id);
+  };
 
-      <section className="p-4 border-b border-surface-border">
-        <h3 className="text-xs uppercase tracking-wide font-semibold text-ink-soft mb-2">
-          {t("goals.plan.issues.title", { count: plan.issuesToCreate.length })}
-        </h3>
-        {plan.issuesToCreate.length === 0 ? (
-          <p className="text-xs text-ink-muted">{t("goals.plan.issues.none")}</p>
-        ) : (
-          <ul className="space-y-2">
-            {plan.issuesToCreate.map((i) => (
-              <IssueRow
-                key={i.index}
-                issue={i}
-                included={included.includedIssueIndexes.has(i.index)}
-                onToggle={() => toggleIssue(i.index)}
-                agentsByIndex={agentsByIndex}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
+  const handleCriterionSave = async () => {
+    if (criterionText.trim() === "") return;
+    setCriterionSaving(true);
+    try {
+      if (criterionForm.mode === "add") {
+        await isaAddCriterion({
+          statement: criterionText.trim(),
+          kind: criterionKind,
+          checkType: null,
+          checkSpec: null,
+        });
+      } else if (criterionForm.mode === "edit") {
+        await isaUpdateCriterion(criterionForm.id, {
+          statement: criterionText.trim(),
+          kind: criterionKind,
+          checkType: null,
+          checkSpec: null,
+        });
+      }
+      setCriterionForm({ mode: "hidden" });
+    } finally {
+      setCriterionSaving(false);
+    }
+  };
 
-      {plan.risks.length > 0 && (
-        <section className="p-4 border-b border-surface-border">
-          <button
-            type="button"
-            onClick={() => setRisksExpanded((v) => !v)}
-            className="text-xs uppercase tracking-wide font-semibold text-ink-soft hover:text-ink"
-          >
-            {risksExpanded ? "▼" : "▶"} {t("goals.plan.risks.title", { count: plan.risks.length })}
-          </button>
-          {risksExpanded && (
-            <ul className="mt-3 space-y-2">
-              {plan.risks.map((r, i) => (
-                <li
-                  key={i}
-                  className={`border-l-4 p-3 rounded text-xs ${RISK_TINT[r.severity] ?? RISK_TINT.low}`}
-                >
-                  <p className="font-semibold text-ink">{r.description}</p>
-                  <p className="text-ink-muted mt-1">
-                    <strong>{t("goals.plan.risks.mitigation")}:</strong> {r.mitigation}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+  // Map GoalCriterion → CriterionEntry for the editor.
+  // CriterionKind "deterministic" → "auto", "judgment" → "human".
+  const criteriaEntries: CriterionEntry[] = isaCriteria.map((c) => ({
+    id: c.id,
+    kind: c.kind === "deterministic" ? "auto" : "human",
+    text: c.statement,
+    ...(c.kind === "deterministic" && c.checkType !== null ? { rule: c.checkType } : {}),
+  }));
 
-      <section className="p-4 border-b border-surface-border bg-surface-soft">
-        <h3 className="text-xs uppercase tracking-wide font-semibold text-ink-soft mb-2">
-          {t("goals.plan.estimates.title")}
-        </h3>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-          <div className="flex gap-2">
-            <dt className="text-ink-muted">{t("goals.plan.estimates.totalTokens")}:</dt>
-            <dd className="text-ink font-semibold">{formatTokens(estimates.totalTokens)}</dd>
-          </div>
-          {estimates.costCents !== null && (
-            <div className="flex gap-2">
-              <dt className="text-ink-muted">{t("goals.plan.estimates.cost")}:</dt>
-              <dd className="text-ink font-semibold">{formatCents(estimates.costCents)}</dd>
-            </div>
-          )}
-          {estimates.durationDays !== null && (
-            <div className="flex gap-2">
-              <dt className="text-ink-muted">{t("goals.plan.estimates.duration")}:</dt>
-              <dd className="text-ink font-semibold">
-                {t("goals.plan.estimates.days", { count: estimates.durationDays })}
-              </dd>
-            </div>
-          )}
-          {dailyPct !== null && (
-            <div className="flex gap-2">
-              <dt className="text-ink-muted">{t("goals.plan.estimates.dailyBudget")}:</dt>
-              <dd className="text-ink font-semibold">{dailyPct}%</dd>
-            </div>
-          )}
-        </dl>
-      </section>
+  const autoCount = criteriaEntries.filter((c) => c.kind === "auto").length;
+  const humanCount = criteriaEntries.filter((c) => c.kind === "human").length;
+  const criteriaCount = criteriaEntries.length;
 
-      {errors.length > 0 && (
-        <section className="p-4 border-b border-surface-border bg-semantic-danger/5">
-          <p className="text-xs font-semibold text-semantic-danger uppercase tracking-wide mb-2">
-            {t("goals.plan.validation.title")}
-          </p>
-          <ul className="text-xs text-semantic-danger space-y-1">
-            {errors.map((e, i) => (
-              <li key={i}>{t(`goals.plan.validation.${e.kind}`, e)}</li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {editable && (
-        <div className="px-4 pt-3 pb-1 text-xs text-ink-muted flex items-center gap-2 flex-wrap">
+  // Build accordion items for agents.
+  const agentItems: AccordionItem[] = plan.agentsToHire.map((a: AgentToHire) => ({
+    id: `agent-${String(a.index)}`,
+    avatar: { variant: "person" as const, label: a.name.slice(0, 2).toUpperCase() },
+    name: a.name,
+    sub: `${a.roleTemplateId} · ${a.model}`,
+    badges: included.includedAgentIndexes.has(a.index)
+      ? []
+      : [{ label: t("goals.plan.excluded"), tone: "low" as const }],
+    body: (
+      <div className="pt-3 space-y-2">
+        <label className="flex items-center gap-2 text-xs text-ink-soft cursor-pointer">
           <input
             type="checkbox"
-            id="narrated-toggle"
-            checked={narratedOverride}
-            onChange={(e) => setNarratedOverride(e.target.checked)}
-            className="w-3.5 h-3.5"
+            checked={included.includedAgentIndexes.has(a.index)}
+            onChange={() => toggleAgent(a.index)}
+            className="w-4 h-4"
           />
-          <label htmlFor="narrated-toggle" className="cursor-pointer">
-            {t("goals.plan.actions.narratedToggle")}
-          </label>
-          {narratedOverride && estimates.totalTokens > 0 && (
-            <span className="ml-2 text-ink-soft">
-              {t("goals.plan.actions.narratedTokenHint", {
-                base: formatTokens(estimates.totalTokens),
-                narrated: formatTokens(Math.round(estimates.totalTokens * 2.5)),
-              })}
-            </span>
-          )}
-        </div>
-      )}
+          {t("goals.plan.includeAgent", { name: a.name })}
+        </label>
+        <p className="text-xs text-ink-muted whitespace-pre-wrap">{a.personaSummary}</p>
+        <p className="text-xs text-ink-muted whitespace-pre-wrap">{a.rationale}</p>
+      </div>
+    ),
+  }));
 
-      {editable && (
-        <div className="p-4 flex gap-3 flex-wrap">
-          <button
-            type="button"
-            onClick={() => void handleApprove()}
-            disabled={approveDisabled}
-            className="px-4 py-2 bg-semantic-success text-white text-sm rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting ? t("goals.plan.actions.approving") : t("goals.plan.actions.approve")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowChanges(true)}
-            disabled={submitting}
-            className="px-4 py-2 bg-brand text-brand-fg text-sm rounded font-semibold disabled:opacity-50"
-          >
-            {t("goals.plan.actions.requestChanges")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowReject(true)}
-            disabled={submitting}
-            className="px-4 py-2 bg-semantic-danger text-white text-sm rounded font-semibold disabled:opacity-50"
-          >
-            {t("goals.plan.actions.reject")}
-          </button>
-          {error !== null && (
-            <p className="basis-full text-sm text-semantic-danger mt-2">{error}</p>
+  // Build accordion items for issues.
+  const issueItems: AccordionItem[] = plan.issuesToCreate.map((i: IssueToCreate) => {
+    const assigneeLabel =
+      i.assigneeIndex === "CEO"
+        ? "CEO"
+        : (agentsByIndex.get(i.assigneeIndex)?.name ?? `#${i.assigneeIndex}`);
+    const badge = PRIORITY_BADGE[i.priority];
+    return {
+      id: `issue-${String(i.index)}`,
+      avatar: { variant: "issue" as const, label: `#${i.index}` },
+      name: i.title,
+      sub: `${t("goals.plan.issueFields.assignee")}: ${assigneeLabel} · ${t("goals.plan.issueFields.estimate")}: ${formatTokens(i.estimatedTokens)}`,
+      badges: [{ label: badge.label, tone: badge.tone }],
+      body: (
+        <div className="pt-3 space-y-2">
+          <label className="flex items-center gap-2 text-xs text-ink-soft cursor-pointer">
+            <input
+              type="checkbox"
+              checked={included.includedIssueIndexes.has(i.index)}
+              onChange={() => toggleIssue(i.index)}
+              className="w-4 h-4"
+            />
+            {t("goals.plan.includeIssue", { title: i.title })}
+          </label>
+          <p className="text-xs text-ink-muted whitespace-pre-wrap">{i.description}</p>
+          {i.dependsOnIndexes.length > 0 && (
+            <p className="text-xs text-ink-soft">
+              {t("goals.plan.issueFields.deps")}:{" "}
+              <strong>{i.dependsOnIndexes.map((d) => `#${d}`).join(", ")}</strong>
+            </p>
           )}
+          <p className="text-xs text-ink-muted whitespace-pre-wrap">{i.rationale}</p>
         </div>
-      )}
+      ),
+    };
+  });
+
+  // Parallel issues = issues that have no dependencies.
+  const parallelCount = plan.issuesToCreate.filter((i) => i.dependsOnIndexes.length === 0).length;
+
+  const estimatedCostStr = estimates.costCents !== null ? formatCents(estimates.costCents) : "—";
+  const tokensStr = formatTokens(estimates.totalTokens);
+
+  return (
+    <>
+      <DecisionPage
+        header={
+          <DecisionHeader
+            chip={{ variant: "goal", label: t("decision.goalPlan.chip") }}
+            meta={t("decision.goalPlan.meta", {
+              author: "CEO",
+              when: timeAgoLabel(plan.proposedAt),
+            })}
+            title={plan.summary}
+          />
+        }
+        hero={
+          <HeroSummary
+            variant="goal"
+            stats={[
+              {
+                label: t("decision.goalPlan.stats.hires"),
+                value: String(plan.agentsToHire.length),
+                ...(plan.agentsToHire.length === 0
+                  ? { sub: t("decision.goalPlan.stats.hiresNone") }
+                  : {}),
+              },
+              {
+                label: t("decision.goalPlan.stats.issues"),
+                value: String(plan.issuesToCreate.length),
+                sub: t("decision.goalPlan.stats.issuesSub", { parallel: parallelCount }),
+              },
+              {
+                label: t("decision.goalPlan.stats.criteria"),
+                value: String(criteriaCount),
+                sub: t("decision.goalPlan.stats.criteriaSub", {
+                  auto: autoCount,
+                  human: humanCount,
+                }),
+              },
+              {
+                label: t("decision.goalPlan.stats.cost"),
+                value: estimatedCostStr,
+                sub: t("decision.goalPlan.stats.tokens", { tokens: tokensStr }),
+              },
+            ]}
+          />
+        }
+        sections={[
+          errors.length > 0 ? (
+            <section key="errors">
+              <ul className="text-xs text-semantic-danger space-y-1 bg-semantic-danger-bg/30 border border-semantic-danger-bg rounded-md px-4 py-3">
+                {errors.map((e, idx) => (
+                  <li key={idx}>{t(`goals.plan.validation.${e.kind}`, e)}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null,
+          <section key="isa">
+            <header className="mb-3 flex items-baseline justify-between">
+              <h3 className="text-[13px] font-semibold uppercase tracking-wide text-ink m-0">
+                {t("decision.goalPlan.isaHeading")}{" "}
+                <span className="font-normal text-ink-soft normal-case tracking-normal text-xs">
+                  · {t("decision.goalPlan.isaEditableHint")}
+                </span>
+              </h3>
+            </header>
+            <p className="text-xs text-ink-soft leading-relaxed mb-3.5">
+              {t("decision.goalPlan.isaHelp")}
+            </p>
+            <IsaCriteriaEditor
+              criteria={criteriaEntries}
+              onAdd={handleAddCriterion}
+              onEdit={handleEditCriterion}
+              onRemove={(id) => void handleRemoveCriterion(id)}
+              addLabel={t("decision.goalPlan.isa.add")}
+              editLabel={t("decision.goalPlan.isa.edit")}
+              removeLabel={t("decision.goalPlan.isa.remove")}
+              autoPillLabel={t("decision.goalPlan.isa.autoPill")}
+              humanPillLabel={t("decision.goalPlan.isa.humanPill")}
+            />
+            {criterionForm.mode !== "hidden" && (
+              <div className="mt-3 space-y-2 bg-surface-soft border border-surface-border rounded-lg px-4 py-3">
+                <textarea
+                  autoFocus
+                  rows={2}
+                  value={criterionText}
+                  onChange={(e) => setCriterionText(e.target.value)}
+                  placeholder={t("decision.goalPlan.isa.placeholder")}
+                  className="w-full text-xs px-2 py-1.5 border border-surface-border rounded bg-surface text-ink resize-none"
+                />
+                <div className="flex items-center gap-3 flex-wrap">
+                  <select
+                    value={criterionKind}
+                    onChange={(e) => setCriterionKind(e.target.value as CriterionKind)}
+                    className="text-xs px-2 py-1 rounded border border-surface-border bg-surface text-ink"
+                  >
+                    <option value="judgment">{t("decision.goalPlan.isa.humanPill")}</option>
+                    <option value="deterministic">{t("decision.goalPlan.isa.autoPill")}</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => void handleCriterionSave()}
+                    disabled={criterionSaving || criterionText.trim() === ""}
+                    className="px-3 py-1 text-xs bg-brand text-white rounded font-semibold disabled:opacity-50"
+                  >
+                    {t("decision.goalPlan.isa.save")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCriterionForm({ mode: "hidden" })}
+                    className="px-3 py-1 text-xs text-ink-muted hover:underline"
+                  >
+                    {t("decision.goalPlan.isa.cancel")}
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>,
+          plan.agentsToHire.length > 0 ? (
+            <section key="agents">
+              <header className="mb-3">
+                <h3 className="text-[13px] font-semibold uppercase tracking-wide text-ink m-0">
+                  {t("goals.plan.agents.title", { count: plan.agentsToHire.length })}
+                </h3>
+              </header>
+              <ItemAccordion items={agentItems} />
+            </section>
+          ) : null,
+          <section key="issues">
+            <header className="mb-3 flex items-baseline justify-between">
+              <h3 className="text-[13px] font-semibold uppercase tracking-wide text-ink m-0">
+                {t("decision.goalPlan.issuesHeading", { count: plan.issuesToCreate.length })}
+              </h3>
+            </header>
+            {plan.issuesToCreate.length === 0 ? (
+              <p className="text-xs text-ink-muted">{t("goals.plan.issues.none")}</p>
+            ) : (
+              <ItemAccordion items={issueItems} />
+            )}
+          </section>,
+          plan.risks.length > 0 ? (
+            <section key="risks">
+              <header className="mb-3">
+                <h3 className="text-[13px] font-semibold uppercase tracking-wide text-ink m-0">
+                  {t("goals.plan.risks.title", { count: plan.risks.length })}
+                </h3>
+              </header>
+              <ul className="space-y-2">
+                {plan.risks.map((r, idx) => (
+                  <li
+                    key={idx}
+                    className={`border-l-4 p-3 rounded text-xs ${
+                      r.severity === "high"
+                        ? "border-l-semantic-danger bg-semantic-danger/5"
+                        : r.severity === "medium"
+                          ? "border-l-semantic-warning bg-semantic-warning/5"
+                          : "border-l-ink-soft bg-surface-soft"
+                    }`}
+                  >
+                    <p className="font-semibold text-ink">{r.description}</p>
+                    <p className="text-ink-muted mt-1">
+                      <strong>{t("goals.plan.risks.mitigation")}:</strong> {r.mitigation}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null,
+          editable ? (
+            <section key="narrated" className="px-0">
+              <div className="text-xs text-ink-muted flex items-center gap-2 flex-wrap">
+                <input
+                  type="checkbox"
+                  id="narrated-toggle"
+                  checked={narratedOverride}
+                  onChange={(e) => setNarratedOverride(e.target.checked)}
+                  className="w-3.5 h-3.5"
+                />
+                <label htmlFor="narrated-toggle" className="cursor-pointer">
+                  {t("goals.plan.actions.narratedToggle")}
+                </label>
+                {narratedOverride && estimates.totalTokens > 0 && (
+                  <span className="ml-2 text-ink-soft">
+                    {t("goals.plan.actions.narratedTokenHint", {
+                      base: formatTokens(estimates.totalTokens),
+                      narrated: formatTokens(Math.round(estimates.totalTokens * 2.5)),
+                    })}
+                  </span>
+                )}
+              </div>
+            </section>
+          ) : null,
+          error !== null ? (
+            <p key="error" className="text-sm text-semantic-danger">
+              {error}
+            </p>
+          ) : null,
+        ]}
+        actions={
+          <DecisionActions
+            estimates={[
+              { label: t("decision.shared.tokens"), value: tokensStr },
+              ...(dailyPct !== null
+                ? [{ label: t("decision.shared.dailyLimit"), value: `${dailyPct}%` }]
+                : []),
+              { label: t("decision.shared.cost"), value: estimatedCostStr },
+            ]}
+            onApprove={() => void handleApprove()}
+            {...(editable ? { onRequestChanges: () => setShowChanges(true) } : {})}
+            onReject={() => setShowReject(true)}
+            approveLabel={
+              submitting ? t("goals.plan.actions.approving") : t("decision.shared.approve")
+            }
+            requestChangesLabel={t("decision.shared.requestChanges")}
+            rejectLabel={t("decision.shared.reject")}
+            disabled={approveDisabled}
+          />
+        }
+      />
 
       {showChanges && (
         <GoalPlanRequestChangesModal
@@ -463,6 +518,6 @@ export const GoalPlanReview: FC<{ plan: GoalPlan; goal: Goal }> = ({ plan, goal 
           onSubmit={(reason) => rejectPlan(plan.id, reason ?? undefined)}
         />
       )}
-    </div>
+    </>
   );
 };

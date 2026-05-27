@@ -298,6 +298,34 @@
         "cost": "Estimated cost"
       },
       "rolesHeading": "Proposed roles · {{count}}"
+    },
+    "goalPlan": {
+      "chip": "Goal plan",
+      "meta": "{{author}} suggested · {{when}} ago",
+      "stats": {
+        "hires": "Hire",
+        "hiresNone": "team already has everyone",
+        "issues": "Issues to create",
+        "issuesSub": "{{parallel}} in parallel",
+        "criteria": "Criteria",
+        "criteriaSub": "{{auto}} auto · {{human}} human",
+        "cost": "Estimated cost",
+        "tokens": "{{tokens}} tokens"
+      },
+      "isaHeading": "What defines \"done\"",
+      "isaEditableHint": "proposed by the CEO, editable",
+      "isaHelp": "These criteria become the ruler. When the goal is marked done, each one is checked — automatically when possible, or shown to you when human review is needed.",
+      "issuesHeading": "How this goal will get done · {{count}} issues",
+      "isa": {
+        "add": "Add criterion",
+        "edit": "Edit",
+        "remove": "Remove",
+        "autoPill": "Auto",
+        "humanPill": "Human review",
+        "placeholder": "Describe the criterion...",
+        "save": "Save",
+        "cancel": "Cancel"
+      }
     }
   },
   "costs": {

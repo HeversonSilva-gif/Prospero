@@ -298,6 +298,34 @@
         "cost": "Custo estimado"
       },
       "rolesHeading": "Papéis propostos · {{count}}"
+    },
+    "goalPlan": {
+      "chip": "Plano de objetivo",
+      "meta": "{{author}} sugeriu · há {{when}}",
+      "stats": {
+        "hires": "Contratar",
+        "hiresNone": "time já tem todos",
+        "issues": "Issues a criar",
+        "issuesSub": "{{parallel}} em paralelo",
+        "criteria": "Critérios",
+        "criteriaSub": "{{auto}} auto · {{human}} humano",
+        "cost": "Custo previsto",
+        "tokens": "{{tokens}} tokens"
+      },
+      "isaHeading": "O que define \"concluído\"",
+      "isaEditableHint": "proposto pelo CEO, editável",
+      "isaHelp": "Esses critérios viram a régua. Quando o objetivo for marcado como pronto, cada um vai ser checado — automaticamente quando dá, ou apresentado a você quando precisa de revisão humana.",
+      "issuesHeading": "Como esse objetivo vai ser feito · {{count}} issues",
+      "isa": {
+        "add": "Adicionar critério",
+        "edit": "Editar",
+        "remove": "Remover",
+        "autoPill": "Auto",
+        "humanPill": "Revisão humana",
+        "placeholder": "Descreva o critério...",
+        "save": "Salvar",
+        "cancel": "Cancelar"
+      }
     }
   },
   "costs": {
