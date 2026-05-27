@@ -3,6 +3,34 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.28 — 2026-05-27
+
+### Changed
+
+- **Peça #9 da v0.2 fechada — fluxo de aprovação inteiro unificado.**
+  Novo IPC `issues:list-criteria-results` lê `goal_criteria.status`
+  (passed/failed/waived/pending) via join `issue_criteria → goal_criteria`
+  e devolve resultados por issue. O bloco "Critérios verificados" da
+  Tela 3 (`IssueReviewBlock`) agora mostra dados reais — `2 / 3
+  passaram · 1 espera você` em vez do placeholder do v0.1.27.
+- **Modal de aprovação CEO M18 migrado pros decision primitives.**
+  Surpresa do diagnóstico: M18 não era um modal — eram 2 blocos inline
+  de botões dentro de `Inbox.tsx` (um por kind `approval`, outro por
+  `manager_request`). Substituídos por um único botão `Decidir` que
+  abre o novo `ApprovalDecisionModal` (`apps/renderer/src/components/inbox/`)
+  usando `DecisionModal` + `DecisionHeader compact` + `HeroSummary` +
+  `DecisionActions`. Variant do chip mapeia kind/topic:
+  `tool_call` → brand, `fire` → bad, `hire` → goal, `budget` → warn.
+- 4 testes novos em main pro novo IPC (`tests/ipc.issues-criteria-results.test.ts`).
+- Total: 1728 main + 273 renderer = 2001 testes passando.
+
+Peça #9 completa: primitivos (v0.1.25), OrgPlanReview (v0.1.25),
+GoalPlanReview + ISA (v0.1.26), IssueReviewBlock visual (v0.1.27),
+IssueReviewBlock data + M18 modal (v0.1.28).
+
+Spec: `docs/superpowers/specs/2026-05-27-v0-2-scope-design.md` §Peça #9.
+Plano: `docs/superpowers/plans/2026-05-27-approval-redesign.md`.
+
 ## v0.1.27 — 2026-05-27
 
 ### Changed
