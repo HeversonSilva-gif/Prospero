@@ -9,3 +9,5 @@ export { DecisionPage } from "./DecisionPage.js";
 export { DecisionModal } from "./DecisionModal.js";
 export { IsaCriteriaEditor } from "./IsaCriteriaEditor.js";
 export type { CriterionEntry } from "./IsaCriteriaEditor.js";
+export { IssueCriteriaVerified } from "./IssueCriteriaVerified.js";
+export type { CriterionResult, VerifyResult } from "./IssueCriteriaVerified.js";
