@@ -26,6 +26,8 @@ describe("migration 0007 — approvals", () => {
         "escalated_at",
         // Added by migration 0041 (v0.1.19 async governance):
         "bounce_count",
+        // Added by migration 0042 (v0.1.21 CEO approval coalescing):
+        "coalesced_with",
       ].sort(),
     );
   });
