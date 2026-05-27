@@ -274,6 +274,30 @@
     "validation": {
       "agentRoleExcluded": "{{agent}} está incluído mas o papel {{role}} está excluído.",
       "agentReportsToExcluded": "{{agent}} reporta a {{parent}}, que está excluído."
+    },
+    "includeRole": "Incluir este papel",
+    "includeAgent": "Incluir este agente",
+    "excluded": "excluído"
+  },
+  "decision": {
+    "shared": {
+      "approve": "Aprovar e executar",
+      "requestChanges": "Pedir mudanças",
+      "reject": "Rejeitar",
+      "cost": "Custo",
+      "tokens": "Tokens estimados",
+      "dailyLimit": "% limite diário"
+    },
+    "orgPlan": {
+      "chip": "Plano de organização",
+      "meta": "Proposto por {{author}} · há {{when}}",
+      "stats": {
+        "roles": "Papéis",
+        "rolesSub": "incluindo o CEO",
+        "toHire": "A contratar",
+        "cost": "Custo estimado"
+      },
+      "rolesHeading": "Papéis propostos · {{count}}"
     }
   },
   "costs": {

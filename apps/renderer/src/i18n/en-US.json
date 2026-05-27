@@ -274,6 +274,30 @@
     "validation": {
       "agentRoleExcluded": "{{agent}} is included but its role {{role}} is excluded.",
       "agentReportsToExcluded": "{{agent}} reports to {{parent}}, which is excluded."
+    },
+    "includeRole": "Include this role",
+    "includeAgent": "Include this agent",
+    "excluded": "excluded"
+  },
+  "decision": {
+    "shared": {
+      "approve": "Approve and execute",
+      "requestChanges": "Request changes",
+      "reject": "Reject",
+      "cost": "Cost",
+      "tokens": "Estimated tokens",
+      "dailyLimit": "% daily limit"
+    },
+    "orgPlan": {
+      "chip": "Organization plan",
+      "meta": "Proposed by {{author}} · {{when}} ago",
+      "stats": {
+        "roles": "Roles",
+        "rolesSub": "including CEO",
+        "toHire": "To hire",
+        "cost": "Estimated cost"
+      },
+      "rolesHeading": "Proposed roles · {{count}}"
     }
   },
   "costs": {
