@@ -3,6 +3,30 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.19 — 2026-05-27
+
+### Added
+
+- **Async governance (Tier 2 — peça #3 do trem v0.2).** Pedidos de aprovação
+  podem se resolver sozinhos enquanto você está fora ou dorme.
+- **Horários silenciosos.** Configuráveis por empresa em Ajustes → Governança.
+  Dentro da janela, pedidos de demissão e estouros de orçamento caem no CEO
+  em vez de você. Horário local da máquina.
+- **Políticas de auto-decisão.** Duas opções liga-desliga + um teto:
+  auto-aprovar leitura em qualquer projeto, auto-aprovar gastos abaixo de
+  USD/dia, CEO decide demissões em modo silencioso, CEO decide estouros de
+  orçamento em modo silencioso. Tudo conservador por padrão.
+- **Devolução por timeout.** Se um pedido fica no seu inbox além do TTL
+  configurado (padrão 4h), volta pro CEO com nota "decida você, não pode
+  escalar de novo". Se o CEO também não responder, default-deny — sem loop
+  de re-escalação.
+- Novas ações de atividade: `governance.auto_approved`,
+  `approval.bounced_to_ceo`, `approval.default_denied_final`.
+- Migration `0041` (`bounce_count` em `approvals` + tabela `governance_config`).
+
+Spec: `docs/superpowers/specs/2026-05-26-async-governance-design.md`. Trem
+da v0.2: `docs/superpowers/specs/2026-05-27-v0-2-scope-design.md`.
+
 ## v0.1.18 — 2026-05-26
 
 ### Added
