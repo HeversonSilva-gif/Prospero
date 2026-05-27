@@ -757,6 +757,94 @@ export const toolDefinitions = [
     },
   },
   {
+    name: "decide_batch",
+    description:
+      "Decide many approvals in one call. Same semantics as decide_request, " +
+      "applied in order. Returns the count decided plus a list of errors for " +
+      "approvals that were already resolved or not routed to you. Cheaper in " +
+      "tokens than calling decide_request N times when several approvals arrived " +
+      "in the same coalescing window.",
+    inputSchema: z.object({
+      decisions: z
+        .array(
+          z.object({
+            approval_id: z.string(),
+            decision: z.enum(["approve", "reject", "escalate"]),
+            note: z.string().max(2000).optional(),
+          }),
+        )
+        .min(1)
+        .max(50),
+    }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (
+      input: {
+        decisions: {
+          approval_id: string;
+          decision: "approve" | "reject" | "escalate";
+          note?: string;
+        }[];
+      },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const repo = createApprovalsRepository(ctx.db);
+      const errors: { approval_id: string; error: string }[] = [];
+      let decided = 0;
+
+      for (const d of input.decisions) {
+        const apv = repo.getById(d.approval_id);
+        if (apv === null) {
+          errors.push({ approval_id: d.approval_id, error: "not found" });
+          continue;
+        }
+        if (apv.status !== "pending" || apv.routedTo !== "ceo") {
+          errors.push({
+            approval_id: d.approval_id,
+            error: "already resolved or not routed to you",
+          });
+          continue;
+        }
+
+        if (d.decision === "escalate") {
+          ctx.emit({ kind: "approval.escalate", payload: { approvalId: apv.id } });
+          decided++;
+          continue;
+        }
+
+        const note = d.note ?? "";
+        const resolvedStatus: "approved" | "rejected" =
+          d.decision === "approve" ? "approved" : "rejected";
+
+        if (apv.kind === "tool_call") {
+          const payload = JSON.parse(apv.payloadJson) as { tool_use_id: string };
+          const file = d.decision === "approve" ? "res.json" : "deny.json";
+          const body =
+            d.decision === "approve"
+              ? { behavior: "allow", decidedBy: ctx.agentId }
+              : { behavior: "deny", message: note, decidedBy: ctx.agentId };
+          writeFileSync(
+            join(ctx.permissionsDir, `${payload.tool_use_id}.${file}`),
+            JSON.stringify(body),
+          );
+          repo.decide(apv.id, resolvedStatus, ctx.agentId, note !== "" ? note : undefined);
+          ctx.emit({
+            kind: "approval.decided",
+            payload: { approvalId: apv.id, decision: d.decision, note, kind: "tool_call" },
+          });
+        } else {
+          ctx.emit({
+            kind: "approval.decided",
+            payload: { approvalId: apv.id, decision: d.decision, note, kind: "manager_request" },
+          });
+        }
+
+        decided++;
+      }
+
+      return JSON.stringify({ ok: errors.length === 0, decided, errors });
+    },
+  },
+  {
     name: "request_decision",
     description:
       "Ask your manager (the CEO) to decide something: hiring, budget, unblocking, or an approach. " +
