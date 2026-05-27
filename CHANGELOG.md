@@ -3,6 +3,30 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.27 — 2026-05-27
+
+### Changed
+
+- **Peça #9 fatia 3 — `IssueReviewBlock` (issue em status `review`)
+  migrada pros primitivos de decisão.** Mesma linguagem visual das
+  Telas 1 e 2; chip `Pronto pra revisão` (variant=review/roxo), hero
+  com 2 stats, footer com Aprovar e concluir / Pedir mudanças /
+  Rejeitar. `DecisionPage` ganhou prop `compact` pra encaixar dentro
+  do `IssueDetailModal` (padding e min-height reduzidos pra ambiente
+  modal). Componente novo: `IssueCriteriaVerified` (verify-row por
+  critério: ✓ pass / ✗ fail / ? pending + tag Auto / Você decide).
+
+### Known gap
+
+- **Bloco "Critérios verificados" entra no próximo release.** O
+  componente `IssueCriteriaVerified` está pronto, mas o caminho de
+  dado (IPC renderer-side pra ler resultados de verificação por
+  issue) não existe ainda — `issue_criteria` é só uma join table
+  hoje, sem fetcher no preload. Por enquanto a seção aparece como
+  "—" no hero stat e o bloco fica comentado. Próxima release
+  expõe `window.prospero.issues.listCriteriaResults(issueId)` e
+  liga o componente.
+
 ## v0.1.26 — 2026-05-27
 
 ### Changed
