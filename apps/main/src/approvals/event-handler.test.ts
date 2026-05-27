@@ -85,6 +85,7 @@ describe("handleApprovalEvent", () => {
   });
 
   it("approval.route on a manager_request routes to the CEO (wakes, sets routedTo)", () => {
+    vi.useFakeTimers();
     const bridge = makeBridge(db);
     setApprovalEngineBridge(bridge);
     const repo = createApprovalsRepository(db);
@@ -107,8 +108,11 @@ describe("handleApprovalEvent", () => {
       },
     });
     expect(repo.getById(apv.id)?.routedTo).toBe("ceo");
+    // Wake is deferred by the coalescer — advance the 60s window.
+    vi.advanceTimersByTime(60_000);
     expect(bridge.enqueue).toHaveBeenCalled();
     expect(bridge.createHumanCard).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it("approval.route routes to the human when no CEO is available", () => {

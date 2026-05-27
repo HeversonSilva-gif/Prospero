@@ -8,6 +8,8 @@ import { wakeCeoForApproval } from "./ceo-wake.js";
 import { createEscalationTimers, type EscalationTimers } from "./escalation-timer.js";
 import { applyGovernance } from "./governance/index.js";
 import { loadGovernanceConfig } from "./governance-config.js";
+import { createCoalescer, type Coalescer, type FlushPayload } from "./coalescer.js";
+import { isDestructiveApproval } from "./destructive.js";
 
 export const CEO_DECISION_TIMEOUT_MS = 10 * 60_000;
 
@@ -25,6 +27,8 @@ export interface ApprovalEngineBridge {
 
 let bridge: ApprovalEngineBridge | null = null;
 let timers: EscalationTimers | null = null;
+let coalescer: Coalescer | null = null;
+const COALESCER_WINDOW_MS = 60_000;
 
 // Per-approval bounce timers keyed by approvalId.
 const perApprovalBounceTimers = new Map<string, NodeJS.Timeout>();
@@ -156,11 +160,90 @@ const escalateToHuman = (
   }
 };
 
+const onCoalescedFlush = (payload: FlushPayload): void => {
+  if (bridge === null) return;
+  const repo = createApprovalsRepository(bridge.db);
+
+  // Resolve approvals from the DB (the coalescer holds only ids — the DB
+  // is the source of truth for status/agent/payload).
+  const approvals = payload.approvalIds
+    .map((id) => repo.getById(id))
+    .filter(
+      (a): a is NonNullable<typeof a> =>
+        a !== null && a.status === "pending" && a.routedTo === "ceo",
+    );
+
+  if (approvals.length === 0) return;
+
+  const head = approvals[0];
+  if (head === undefined) return;
+
+  // Mark followers as coalesced_with the head — accountability record so
+  // the UI can later show "decided as part of batch X".
+  for (let i = 1; i < approvals.length; i++) {
+    const follower = approvals[i];
+    if (follower !== undefined) {
+      repo.setCoalescedWith(follower.id, head.id);
+    }
+  }
+
+  // Build the wake message: one section per approval with the inputs the
+  // CEO needs to decide. Conservative — show full payload (CEO will skim).
+  const lines: string[] = [];
+  lines.push(
+    `Você tem ${approvals.length.toString()} ${approvals.length === 1 ? "decisão pendente" : "decisões pendentes"} para revisar.`,
+  );
+  if (approvals.length > 1) {
+    lines.push(
+      "Use a ferramenta `decide_batch` para decidir várias em uma só chamada (mais barato em tokens), ou `decide_request` individualmente.",
+    );
+  }
+  lines.push("");
+  lines.push("Pendentes:");
+  for (let i = 0; i < approvals.length; i++) {
+    const a = approvals[i];
+    if (a === undefined) continue;
+    lines.push(`${(i + 1).toString()}. ${a.id} — kind=${a.kind} requester=${a.agentId ?? "?"}`);
+    lines.push(`   payload: ${a.payloadJson}`);
+  }
+  const summary = lines.join("\n");
+
+  // Determine the requesterName for the wake — for batches we lean on
+  // the head's requester to keep the existing wake signature happy.
+  const requesterName =
+    head.agentId !== null ? (bridge.getAgent(head.agentId)?.name ?? "unknown") : "unknown";
+
+  wakeCeoForApproval(
+    {
+      approvalId: head.id,
+      companyId: payload.companyId,
+      requesterName,
+      summary,
+      kind: head.kind,
+    },
+    {
+      getCeo: bridge.getCeo,
+      ensureAgentRunner: bridge.ensureAgentRunner,
+      enqueue: bridge.enqueue,
+      primaryThreadId: bridge.primaryThreadId,
+      recordActivity: bridge.recordActivity,
+    },
+  );
+
+  // Arm escalation timer for the head — followers stay tied to it via
+  // coalesced_with; if the CEO times out the whole batch escalates as one.
+  timers?.arm(head.id);
+};
+
 export const setApprovalEngineBridge = (b: ApprovalEngineBridge): void => {
   bridge = b;
   timers = createEscalationTimers({
     timeoutMs: CEO_DECISION_TIMEOUT_MS,
     onEscalate: (id) => escalateToHuman(id, "timeout"),
+  });
+  coalescer = createCoalescer({
+    windowMs: COALESCER_WINDOW_MS,
+    onFlush: onCoalescedFlush,
   });
 };
 
@@ -245,27 +328,51 @@ export const routeAndDispatch = (input: {
 
   // route === "ceo"
   repo.setRouted(input.approvalId, "ceo");
-  const woke = wakeCeoForApproval(
-    {
-      approvalId: input.approvalId,
-      companyId: input.companyId,
-      requesterName: input.requesterName,
-      summary: input.summary,
-      kind: input.kind,
-    },
-    {
-      getCeo: bridge.getCeo,
-      ensureAgentRunner: bridge.ensureAgentRunner,
-      enqueue: bridge.enqueue,
-      primaryThreadId: bridge.primaryThreadId,
-      recordActivity: bridge.recordActivity,
-    },
-  );
-  if (!woke) {
-    escalateToHuman(input.approvalId, "no_ceo");
-    return "user";
+
+  // Coalescing window (piece #5): instead of waking the CEO once per
+  // approval, queue the approval. The coalescer waits up to
+  // COALESCER_WINDOW_MS (60s) collecting more approvals, then wakes the
+  // CEO ONCE with a batch. A destructive approval (Bash / Write / fire /
+  // budget) collapses the window — wake immediately.
+  if (coalescer === null) {
+    // Defensive: bridge unset means something is misconfigured. Fall back
+    // to the legacy single-approval wake path so the system stays usable.
+    const woke = wakeCeoForApproval(
+      {
+        approvalId: input.approvalId,
+        companyId: input.companyId,
+        requesterName: input.requesterName,
+        summary: input.summary,
+        kind: input.kind,
+      },
+      {
+        getCeo: bridge.getCeo,
+        ensureAgentRunner: bridge.ensureAgentRunner,
+        enqueue: bridge.enqueue,
+        primaryThreadId: bridge.primaryThreadId,
+        recordActivity: bridge.recordActivity,
+      },
+    );
+    if (!woke) {
+      escalateToHuman(input.approvalId, "no_ceo");
+      return "user";
+    }
+    timers?.arm(input.approvalId);
+    return "ceo";
   }
-  timers?.arm(input.approvalId);
+
+  const destructive =
+    input.kind === "tool_call" || input.kind === "manager_request"
+      ? isDestructiveApproval({
+          kind: input.kind,
+          payloadJson: currentApv.payloadJson,
+        })
+      : false;
+  coalescer.enqueue({
+    companyId: input.companyId,
+    approvalId: input.approvalId,
+    destructive,
+  });
   return "ceo";
 };
 
@@ -296,8 +403,10 @@ export const escalateByCeoChoice = (approvalId: string): void =>
 // Test-only: reset module state between tests.
 export const __resetApprovalEngine = (): void => {
   timers?.clearAll();
+  coalescer?.clearAll();
   for (const h of perApprovalBounceTimers.values()) clearTimeout(h);
   perApprovalBounceTimers.clear();
   bridge = null;
   timers = null;
+  coalescer = null;
 };
