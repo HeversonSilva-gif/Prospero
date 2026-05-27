@@ -31,6 +31,7 @@ export type Approval = {
   resolvedAt: number | null;
   routedTo: ApprovalRoute | null;
   escalatedAt: number | null;
+  bounceCount: number;
 };
 
 export type ToolCallPayload = {

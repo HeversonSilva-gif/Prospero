@@ -20,6 +20,7 @@ type Row = {
   resolved_at: number | null;
   routed_to: string | null;
   escalated_at: number | null;
+  bounce_count: number;
 };
 
 const rowToApproval = (r: Row): Approval => ({
@@ -34,6 +35,7 @@ const rowToApproval = (r: Row): Approval => ({
   resolvedAt: r.resolved_at,
   routedTo: (r.routed_to as ApprovalRoute | null) ?? null,
   escalatedAt: r.escalated_at,
+  bounceCount: r.bounce_count,
 });
 
 export type CreateApprovalInput = {
@@ -56,6 +58,8 @@ export type ApprovalsRepository = {
   setRouted(id: string, route: ApprovalRoute): void;
   setEscalated(id: string): void;
   listPendingRoutedToCeo(companyId: string): Approval[];
+  incrementBounceCount(id: string): void;
+  listPendingRoutedToUserForBounce(cutoffCreatedAt: number): Approval[];
 };
 
 export const createApprovalsRepository = (db: Database.Database): ApprovalsRepository => {
@@ -81,6 +85,17 @@ export const createApprovalsRepository = (db: Database.Database): ApprovalsRepos
        JOIN agents ag ON ag.id = ap.agent_id
       WHERE ap.status = 'pending' AND ap.routed_to = 'ceo' AND ag.company_id = ?
       ORDER BY ap.created_at ASC`,
+  );
+  const incrementBounce = db.prepare(
+    "UPDATE approvals SET bounce_count = bounce_count + 1 WHERE id = ?",
+  );
+  const listStuckForBounce = db.prepare(
+    `SELECT * FROM approvals
+      WHERE status = 'pending'
+        AND routed_to = 'user'
+        AND bounce_count = 0
+        AND created_at < ?
+      ORDER BY created_at ASC`,
   );
 
   return {
@@ -113,6 +128,12 @@ export const createApprovalsRepository = (db: Database.Database): ApprovalsRepos
     },
     listPendingRoutedToCeo(companyId) {
       return (listPendingCeo.all(companyId) as Row[]).map(rowToApproval);
+    },
+    incrementBounceCount(id) {
+      incrementBounce.run(id);
+    },
+    listPendingRoutedToUserForBounce(cutoffCreatedAt) {
+      return (listStuckForBounce.all(cutoffCreatedAt) as Row[]).map(rowToApproval);
     },
   };
 };

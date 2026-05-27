@@ -61,3 +61,70 @@ describe("ApprovalsRepository — CEO routing", () => {
     expect(list.map((x) => x.id)).toEqual([a.id]);
   });
 });
+
+describe("createApprovalsRepository — bounce support", () => {
+  it("getById returns bounceCount=0 for freshly created approvals", () => {
+    const d = new Database(":memory:");
+    applyMigrations(d);
+    d.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','Co',0)").run();
+    d.prepare(
+      `INSERT INTO agents
+         (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json,
+          mode, always_on, status, model, adapter_name, created_at, updated_at)
+       VALUES ('a1', 'c1', 'A', 'engineer', '', '[]', '[]',
+               'supervised', 0, 'idle', 'claude-sonnet-4-6', 'claude-oauth-local', 0, 0)`,
+    ).run();
+    const repo = createApprovalsRepository(d);
+    const apv = repo.create({ agentId: "a1", kind: "tool_call", payload: {} });
+    expect(apv.bounceCount).toBe(0);
+    d.close();
+  });
+
+  it("incrementBounceCount goes 0 -> 1 -> 2", () => {
+    const d = new Database(":memory:");
+    applyMigrations(d);
+    d.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','Co',0)").run();
+    d.prepare(
+      `INSERT INTO agents
+         (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json,
+          mode, always_on, status, model, adapter_name, created_at, updated_at)
+       VALUES ('a1', 'c1', 'A', 'engineer', '', '[]', '[]',
+               'supervised', 0, 'idle', 'claude-sonnet-4-6', 'claude-oauth-local', 0, 0)`,
+    ).run();
+    const repo = createApprovalsRepository(d);
+    const apv = repo.create({ agentId: "a1", kind: "tool_call", payload: {} });
+    repo.incrementBounceCount(apv.id);
+    expect(repo.getById(apv.id)?.bounceCount).toBe(1);
+    repo.incrementBounceCount(apv.id);
+    expect(repo.getById(apv.id)?.bounceCount).toBe(2);
+    d.close();
+  });
+
+  it("listPendingRoutedToUserForBounce filters by cutoff and routedTo=user", () => {
+    const d = new Database(":memory:");
+    applyMigrations(d);
+    d.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','Co',0)").run();
+    d.prepare(
+      `INSERT INTO agents
+         (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json,
+          mode, always_on, status, model, adapter_name, created_at, updated_at)
+       VALUES ('a1', 'c1', 'A', 'engineer', '', '[]', '[]',
+               'supervised', 0, 'idle', 'claude-sonnet-4-6', 'claude-oauth-local', 0, 0)`,
+    ).run();
+    const now = Date.now();
+    d.prepare(
+      `INSERT INTO approvals (id, agent_id, kind, payload_json, status, created_at, routed_to, bounce_count)
+       VALUES ('old-user', 'a1', 'tool_call', '{}', 'pending', ?, 'user', 0),
+              ('new-user', 'a1', 'tool_call', '{}', 'pending', ?, 'user', 0),
+              ('old-ceo',  'a1', 'tool_call', '{}', 'pending', ?, 'ceo',  0)`,
+    ).run(now - 10_000, now, now - 10_000);
+
+    const repo = createApprovalsRepository(d);
+    const stuck = repo.listPendingRoutedToUserForBounce(now - 5_000);
+    const ids = stuck.map((a) => a.id);
+    expect(ids).toContain("old-user");
+    expect(ids).not.toContain("new-user");
+    expect(ids).not.toContain("old-ceo");
+    d.close();
+  });
+});
