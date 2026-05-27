@@ -128,3 +128,42 @@ describe("createApprovalsRepository — bounce support", () => {
     d.close();
   });
 });
+
+describe("createApprovalsRepository — coalescing support (piece #5)", () => {
+  it("freshly created approvals have coalescedWith=null", () => {
+    const d = new Database(":memory:");
+    applyMigrations(d);
+    d.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','Co',0)").run();
+    d.prepare(
+      `INSERT INTO agents
+         (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json,
+          mode, always_on, status, model, adapter_name, created_at, updated_at)
+       VALUES ('a1', 'c1', 'A', 'engineer', '', '[]', '[]',
+               'supervised', 0, 'idle', 'claude-sonnet-4-6', 'claude-oauth-local', 0, 0)`,
+    ).run();
+    const repo = createApprovalsRepository(d);
+    const apv = repo.create({ agentId: "a1", kind: "tool_call", payload: {} });
+    expect(apv.coalescedWith).toBeNull();
+    d.close();
+  });
+
+  it("setCoalescedWith links a follower to the head approval and the read-back reflects it", () => {
+    const d = new Database(":memory:");
+    applyMigrations(d);
+    d.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','Co',0)").run();
+    d.prepare(
+      `INSERT INTO agents
+         (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json,
+          mode, always_on, status, model, adapter_name, created_at, updated_at)
+       VALUES ('a1', 'c1', 'A', 'engineer', '', '[]', '[]',
+               'supervised', 0, 'idle', 'claude-sonnet-4-6', 'claude-oauth-local', 0, 0)`,
+    ).run();
+    const repo = createApprovalsRepository(d);
+    const head = repo.create({ agentId: "a1", kind: "tool_call", payload: {} });
+    const follower = repo.create({ agentId: "a1", kind: "tool_call", payload: {} });
+    repo.setCoalescedWith(follower.id, head.id);
+    expect(repo.getById(follower.id)?.coalescedWith).toBe(head.id);
+    expect(repo.getById(head.id)?.coalescedWith).toBeNull();
+    d.close();
+  });
+});

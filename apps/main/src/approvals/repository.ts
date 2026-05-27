@@ -21,6 +21,7 @@ type Row = {
   routed_to: string | null;
   escalated_at: number | null;
   bounce_count: number;
+  coalesced_with: string | null;
 };
 
 const rowToApproval = (r: Row): Approval => ({
@@ -36,6 +37,7 @@ const rowToApproval = (r: Row): Approval => ({
   routedTo: (r.routed_to as ApprovalRoute | null) ?? null,
   escalatedAt: r.escalated_at,
   bounceCount: r.bounce_count,
+  coalescedWith: r.coalesced_with,
 });
 
 export type CreateApprovalInput = {
@@ -60,6 +62,7 @@ export type ApprovalsRepository = {
   listPendingRoutedToCeo(companyId: string): Approval[];
   incrementBounceCount(id: string): void;
   listPendingRoutedToUserForBounce(cutoffCreatedAt: number): Approval[];
+  setCoalescedWith(id: string, headId: string): void;
 };
 
 export const createApprovalsRepository = (db: Database.Database): ApprovalsRepository => {
@@ -97,6 +100,7 @@ export const createApprovalsRepository = (db: Database.Database): ApprovalsRepos
         AND created_at < ?
       ORDER BY created_at ASC`,
   );
+  const setCoalescedWithStmt = db.prepare("UPDATE approvals SET coalesced_with = ? WHERE id = ?");
 
   return {
     create(input) {
@@ -134,6 +138,9 @@ export const createApprovalsRepository = (db: Database.Database): ApprovalsRepos
     },
     listPendingRoutedToUserForBounce(cutoffCreatedAt) {
       return (listStuckForBounce.all(cutoffCreatedAt) as Row[]).map(rowToApproval);
+    },
+    setCoalescedWith(id, headId) {
+      setCoalescedWithStmt.run(headId, id);
     },
   };
 };

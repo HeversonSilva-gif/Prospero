@@ -32,6 +32,7 @@ export type Approval = {
   routedTo: ApprovalRoute | null;
   escalatedAt: number | null;
   bounceCount: number;
+  coalescedWith: string | null;
 };
 
 export type ToolCallPayload = {
