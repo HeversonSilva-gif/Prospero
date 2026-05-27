@@ -3,6 +3,30 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.26 — 2026-05-27
+
+### Changed
+
+- **Peça #9 fatia 2 — `GoalPlanReview` (`/goals/:id/plan`) migrada
+  pros primitivos de decisão.** Mesma linguagem visual da Tela 1
+  (chip + meta + título + hero 4 stats + seções + footer fixo). 4ª
+  stat do hero é o contador de critérios (X auto · Y humano).
+- **Novo bloco "O que define 'concluído'" (ISA editável) logo abaixo
+  do hero**, com lista dos critérios da issue (Auto verde / Revisão
+  humana amarelo + texto + regra em monospace) + botões Editar/Remover
+  inline + `+ Adicionar critério`. Wireado contra os IPCs ISA do M13
+  PR-A/B (já existiam — só precisava aparecer na UI). DB taxonomy
+  `deterministic`/`judgment` mapeada pra UI `auto`/`human`.
+- Reject preservado via `GoalRejectModal`; request-changes preservado
+  via `GoalPlanRequestChangesModal`. Nenhum handler do fluxo original
+  foi reescrito.
+
+Próxima fatia: `IssueReviewBlock` (Tela 3 — com critérios verificados)
+e modal CEO M18.
+
+Spec: `docs/superpowers/specs/2026-05-27-v0-2-scope-design.md` §Peça #9.
+Plano: `docs/superpowers/plans/2026-05-27-approval-redesign.md`.
+
 ## v0.1.25 — 2026-05-27
 
 ### Changed
