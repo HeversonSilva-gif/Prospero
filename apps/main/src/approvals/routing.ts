@@ -8,6 +8,10 @@ export type RouteInput = {
   ceoAvailable: boolean;
   managerTopic?: ManagerTopic;
   budgetOverLimit?: boolean;
+  /** Async governance — when true, fires (rule 4) fall through to CEO. */
+  relaxedFires?: boolean;
+  /** Async governance — when true, budget overruns (rule 5) fall through to CEO. */
+  relaxedBudgets?: boolean;
 };
 
 // Decide o PRIMEIRO destino de uma requisicao. Criterio-do-CEO (escalar) e
@@ -17,8 +21,8 @@ export const routeApprovalRequest = (input: RouteInput): ApprovalRoute => {
   if (input.requesterIsCeo) return "user"; // 2 (nao auto-aprova)
   if (input.kind === "tool_call" && input.reason.includes(ALWAYS_BLOCKED_TAG)) return "user"; // 3
   if (input.kind === "manager_request") {
-    if (input.managerTopic === "fire") return "user"; // 4
-    if (input.budgetOverLimit === true) return "user"; // 5
+    if (input.managerTopic === "fire" && input.relaxedFires !== true) return "user"; // 4
+    if (input.budgetOverLimit === true && input.relaxedBudgets !== true) return "user"; // 5
   }
   return "ceo"; // 6 default
 };

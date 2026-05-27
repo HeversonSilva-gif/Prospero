@@ -68,3 +68,38 @@ describe("routeApprovalRequest", () => {
     );
   });
 });
+
+describe("routeApprovalRequest — relaxed flags (M20 async governance)", () => {
+  const base = {
+    kind: "manager_request" as const,
+    reason: "",
+    requesterIsCeo: false,
+    ceoAvailable: true,
+  };
+
+  it("relaxedFires=true sends fire to ceo instead of user", () => {
+    expect(routeApprovalRequest({ ...base, managerTopic: "fire", relaxedFires: true })).toBe("ceo");
+  });
+
+  it("relaxedBudgets=true sends budget overrun to ceo instead of user", () => {
+    expect(
+      routeApprovalRequest({
+        ...base,
+        managerTopic: "budget",
+        budgetOverLimit: true,
+        relaxedBudgets: true,
+      }),
+    ).toBe("ceo");
+  });
+
+  it("relaxed flags do NOT bypass requesterIsCeo=true (CEO never auto-fires himself)", () => {
+    expect(
+      routeApprovalRequest({
+        ...base,
+        requesterIsCeo: true,
+        managerTopic: "fire",
+        relaxedFires: true,
+      }),
+    ).toBe("user");
+  });
+});
