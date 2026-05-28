@@ -42,6 +42,8 @@ import {
 } from "../auth/credential-recovery.js";
 import { computeLaneSchedule } from "../orchestrator/scheduler.js";
 import { startSchedulerTick } from "../orchestrator/scheduler-tick.js";
+import { computeReconcileDecision } from "../orchestrator/reconciler.js";
+import { createIssuesRepository } from "../issues/repository.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
 import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
 import { pickAdapterForHire } from "../agents/hire-adapter.js";
@@ -1610,6 +1612,51 @@ export const registerOrchestratorHandlers = (
     router.enqueue(ceo.id, thread.id, prompt, { kind: "user", id: null, name: "System" }, null);
     return { threadId: thread.id };
   };
+
+  // Safety-net reconciler (60s tick): the scheduler only sees the in-memory
+  // router queue, so an idle team with a full issue board never re-engages on
+  // its own (observed: 16 idle agents with 15 'todo' + 10 'review' unworked).
+  // Wake the LIVE CEO (findActiveCeo) to orchestrate — review 'review' items,
+  // assign/unblock pending work. Debounced per-CEO and skipped while the CEO is
+  // already engaged. Lives for the app's lifetime (mirrors auto-mode-expiry).
+  {
+    const issuesRepo = createIssuesRepository(db);
+    const reconcileLastWakeByCeo = new Map<string, number>();
+    const RECONCILE_DEBOUNCE_MS = 3 * 60_000;
+    const reconcileTick = (): void => {
+      // Don't reconcile while the team is parked on a Max rate-limit window.
+      const rlUntil = settingsRepo.read().rateLimitedUntil;
+      if (rlUntil !== null && Date.now() < rlUntil) return;
+      const companyRows = db.prepare("SELECT id FROM companies").all() as { id: string }[];
+      for (const { id: companyId } of companyRows) {
+        const roster = agents.listByCompany(companyId);
+        const ceo = findActiveCeo(roster);
+        const isEngaged = (a: Agent): boolean =>
+          (getAdapter(a.id)?.isAlive() ?? false) || router.hasPendingWork(a.id);
+        const decision = computeReconcileDecision({
+          ceoId: ceo?.id ?? null,
+          ceoEngaged: ceo !== null ? isEngaged(ceo) : false,
+          anyWorkerEngaged: roster.some(
+            (a) => a.terminatedAt === null && !isCeoAgent(a) && isEngaged(a),
+          ),
+          counts: {
+            todo: issuesRepo.list({ companyId, status: "todo" }).length,
+            doing: issuesRepo.list({ companyId, status: "doing" }).length,
+            review: issuesRepo.list({ companyId, status: "review" }).length,
+          },
+          ceoLastWakeAt: ceo !== null ? (reconcileLastWakeByCeo.get(ceo.id) ?? null) : null,
+          now: Date.now(),
+          debounceMs: RECONCILE_DEBOUNCE_MS,
+        });
+        if (decision.wake) {
+          deliverSystemMessage(decision.ceoId, decision.summary);
+          reconcileLastWakeByCeo.set(decision.ceoId, Date.now());
+          console.log(`[reconcile] woke CEO ${decision.ceoId} for company ${companyId}`);
+        }
+      }
+    };
+    startSchedulerTick(reconcileTick, 60_000);
+  }
 
   registerGoalsHandlers({
     db,
