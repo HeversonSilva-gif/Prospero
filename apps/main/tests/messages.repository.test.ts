@@ -95,6 +95,22 @@ describe("messages repository", () => {
     expect(delegateMsg.threadParticipants).not.toContain("user");
   });
 
+  it("getThreadParticipants returns split participants for known thread, null for unknown", () => {
+    const { repo, companyId, ceoId } = setup();
+    const m = repo.append({
+      companyId,
+      participants: ["user", ceoId],
+      senderKind: "user",
+      senderId: null,
+      content: "x",
+    });
+    const parts = repo.getThreadParticipants(m.threadId);
+    expect(parts).not.toBeNull();
+    expect(parts).toContain("user");
+    expect(parts).toContain(ceoId);
+    expect(repo.getThreadParticipants("thr_does_not_exist")).toBeNull();
+  });
+
   it("preserves tool calls JSON round-trip", () => {
     const { repo, companyId, ceoId } = setup();
     repo.append({

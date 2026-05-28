@@ -115,6 +115,7 @@ export type MessagesRepository = {
   listByParticipants(companyId: string, participants: string[]): Message[];
   listByAgentParticipating(agentId: string): Message[];
   countUnansweredQuestions(agentId: string): number;
+  getThreadParticipants(threadId: string): string[] | null;
 };
 
 export const createMessagesRepository = (db: Database.Database): MessagesRepository => {
@@ -251,6 +252,14 @@ export const createMessagesRepository = (db: Database.Database): MessagesReposit
         ...m,
         threadParticipants: participantsById.get(m.id) ?? [],
       }));
+    },
+    getThreadParticipants(threadId) {
+      const row = db.prepare("SELECT participants_json FROM threads WHERE id = ?").get(threadId) as
+        | { participants_json: string }
+        | undefined;
+      if (row === undefined) return null;
+      // participants_json is the pipe-joined sorted key from threadKey, not JSON.
+      return row.participants_json.split("|");
     },
     countUnansweredQuestions(agentId) {
       // For each question this agent sent, check whether the same thread has a

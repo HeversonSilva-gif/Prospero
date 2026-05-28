@@ -3,6 +3,42 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.29 — 2026-05-27
+
+### Fixed
+
+- **Limbo do CEO em modo supervisionado quando o coalescer batia.**
+  A `decide_batch` (tool MCP que o coalescer da peça #5 introduziu no
+  v0.1.21) não estava na allowlist de meta-tools do `gate.ts`. Resultado:
+  toda vez que a janela de 60s do coalescer fechava com mais de uma
+  approval acumulada, o CEO chamava `decide_batch` → gate roteava pro
+  usuário → CEO travava no `tool_use` esperando a própria aprovação
+  → todas as approvals coalescidas ficavam pending forever. Mesmo padrão
+  exato do hotfix v0.1.20, só que pra outro tool. Adicionado à allowlist.
+- **Allowlist meta-tools ampliada pra ops normais do CEO em supervised.**
+  Junto com `decide_batch`, também entraram: `record_artifact`,
+  `comment_on_issue`, `create_issue`, `update_issue`, `assign_issue`,
+  `criterion_judge`. Decisão: pra um CEO operar o time em supervisionado
+  ele precisa rodar o ciclo normal de issue/artifact sem aprovação humana
+  caso a caso. Continuam gated: `hire_agent`, `fire_agent` (única coisa
+  irreversível em forma de organograma).
+- **Trava/lentidão ao entrar na conversa com agente.** O
+  `AgentConversation` (e o `PedirAlgo`) fazia `messages.listByAgent`
+  toda vez que um evento `message-append` chegava — refetch + re-render
+  da lista inteira por evento. Em threads com 2k+ mensagens, um único
+  turn do CEO disparava dezenas de re-fetches em cadeia (streaming +
+  tool calls + results) e o app congelava. Backend agora carimba
+  `threadParticipants` nos broadcasts de `message-append`; renderer
+  apenda direto a partir de `ev.message` em vez de refetar. Pré-existia
+  desde sempre — só virou freeze quando a thread CEO↔user passou de 2400
+  mensagens.
+
+### Tests
+
+- +4 testes (1 cobrindo `getThreadParticipants` no repo, 3 cobrindo a
+  nova allowlist via `it.each`). Total: 1732 main + 273 renderer +
+  50 agent-runner + 105 shared.
+
 ## v0.1.28 — 2026-05-27
 
 ### Changed

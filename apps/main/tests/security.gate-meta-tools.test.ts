@@ -81,15 +81,34 @@ describe("gate — meta MCP tools auto-allow (peça #6 hotfix)", () => {
 
   describe("orchestration MCP tools (paired with decide_request)", () => {
     it.each([
+      ["mcp__dashboard__decide_batch"],
       ["mcp__dashboard__request_decision"],
       ["mcp__dashboard__request_permission"],
       ["mcp__dashboard__message_agent"],
       ["mcp__dashboard__notify_user"],
       ["mcp__dashboard__report_to_user"],
+      ["mcp__dashboard__record_artifact"],
+      ["mcp__dashboard__comment_on_issue"],
+      ["mcp__dashboard__create_issue"],
+      ["mcp__dashboard__update_issue"],
+      ["mcp__dashboard__assign_issue"],
+      ["mcp__dashboard__criterion_judge"],
     ])("%s in supervised mode → allow", (toolName) => {
       const r = evaluatePermission({
         toolName,
         toolInput: {},
+        agent: baseAgent("supervised"),
+        allowedProjectPaths: [],
+        agentCwd: USER_DATA,
+        userDataDir: USER_DATA,
+      });
+      expect(r.action).toBe("allow");
+    });
+
+    it("bare decide_batch also allowed (forward-compat if Claude drops prefix)", () => {
+      const r = evaluatePermission({
+        toolName: "decide_batch",
+        toolInput: { decisions: [] },
         agent: baseAgent("supervised"),
         allowedProjectPaths: [],
         agentCwd: USER_DATA,
@@ -123,25 +142,20 @@ describe("gate — meta MCP tools auto-allow (peça #6 hotfix)", () => {
   });
 
   describe("substantive MCP tools STILL gated in supervised mode", () => {
-    it.each([
-      ["mcp__dashboard__hire_agent"],
-      ["mcp__dashboard__fire_agent"],
-      ["mcp__dashboard__create_issue"],
-      ["mcp__dashboard__update_issue"],
-      ["mcp__dashboard__assign_issue"],
-      ["mcp__dashboard__record_artifact"],
-      ["mcp__dashboard__criterion_judge"],
-    ])("%s in supervised mode → request_user", (toolName) => {
-      const r = evaluatePermission({
-        toolName,
-        toolInput: {},
-        agent: baseAgent("supervised"),
-        allowedProjectPaths: [],
-        agentCwd: USER_DATA,
-        userDataDir: USER_DATA,
-      });
-      expect(r.action).toBe("request_user");
-    });
+    it.each([["mcp__dashboard__hire_agent"], ["mcp__dashboard__fire_agent"]])(
+      "%s in supervised mode → request_user (irreversible org-shape)",
+      (toolName) => {
+        const r = evaluatePermission({
+          toolName,
+          toolInput: {},
+          agent: baseAgent("supervised"),
+          allowedProjectPaths: [],
+          agentCwd: USER_DATA,
+          userDataDir: USER_DATA,
+        });
+        expect(r.action).toBe("request_user");
+      },
+    );
   });
 
   describe("auto mode bypasses gate as before (no regression)", () => {

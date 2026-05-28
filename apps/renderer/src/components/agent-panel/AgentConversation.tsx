@@ -34,13 +34,18 @@ export const AgentConversation: FC<Props> = ({ agent }) => {
     })();
   }, [agent.id]);
 
+  // Live updates: append directly from the event. Re-fetching the full list on
+  // every append used to freeze the chat once a thread crossed ~1k messages —
+  // each agent turn fires several appends, each one re-rendering the whole
+  // list. The backend now stamps `threadParticipants` on broadcast messages so
+  // the chat/delegation split below still works without a refetch.
   useEffect(() => {
     const off = window.prospero.agents.onEvent((ev) => {
       if (ev.kind === "message-append" && ev.agentId === agent.id) {
-        void (async () => {
-          const all = await window.prospero.messages.listByAgent(agent.id);
-          setMessages(all);
-        })();
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === ev.message.id)) return prev;
+          return [...prev, ev.message];
+        });
       }
     });
     return off;

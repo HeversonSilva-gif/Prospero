@@ -1,6 +1,6 @@
 {
   "name": "prospero",
-  "version": "0.1.28",
+  "version": "0.1.29",
   "private": true,
   "main": "apps/main/dist/index.js",
   "description": "Local orchestrator for Claude Code agents — Claude Max OAuth, Anthropic API key, or remote Docker.",
@@ -15,20 +15,6 @@
     "pnpm": ">=9"
   },
   "packageManager": "pnpm@9.12.0",
-  "scripts": {
-    "lint": "pnpm -r --parallel run lint",
-    "typecheck": "pnpm -r --parallel run typecheck",
-    "test": "pnpm -r --parallel run test",
-    "build": "pnpm -r run build",
-    "dist:win": "pnpm -r run build && pnpm --filter @prospero/main run rebuild:electron && electron-builder --win --x64",
-    "dist:linux": "pnpm -r run build && pnpm --filter @prospero/main run rebuild:electron && electron-builder --linux --x64",
-    "dev": "pnpm --parallel --filter @prospero/main --filter @prospero/renderer run dev",
-    "start": "pnpm --filter @prospero/main run start",
-    "rebuild:native": "pnpm --filter @prospero/main run rebuild:electron",
-    "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts",
-    "test:e2e:ui": "playwright test --ui --config=tests/e2e/playwright.config.ts",
-    "prepare": "husky"
-  },
   "lint-staged": {
     "{apps,packages}/**/{src,tests}/**/*.{ts,tsx}": [
       "prettier --write",
@@ -44,22 +30,5 @@
   "dependencies": {
     "better-sqlite3": "^11.3.0"
   },
-  "devDependencies": {
-    "@commitlint/cli": "^19.5.0",
-    "@commitlint/config-conventional": "^19.5.0",
-    "@eslint/js": "^9.10.0",
-    "@playwright/test": "^1.60.0",
-    "electron": "33.0.2",
-    "electron-builder": "^25.1.8",
-    "electron-playwright-helpers": "^2.1.0",
-    "eslint": "^9.10.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-react": "^7.36.1",
-    "eslint-plugin-react-hooks": "^4.6.2",
-    "husky": "^9.1.5",
-    "lint-staged": "^15.2.10",
-    "prettier": "^3.3.3",
-    "typescript": "^5.5.4",
-    "typescript-eslint": "^8.5.0"
-  }
+  "type": "module"
 }

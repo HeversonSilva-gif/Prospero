@@ -40,14 +40,22 @@ export const PedirAlgo: FC = () => {
     void reload();
   }, [reload]);
 
-  // Live updates: the CEO replies / produces a plan in the background.
+  // Live updates: append directly from the event. Refetching the full message
+  // list on every append used to freeze the chat once threads grew past ~1k
+  // messages. The backend stamps `threadParticipants` on broadcasts so we can
+  // run the same user-thread filter inline.
   useEffect(() => {
     if (goalId === undefined || ceo === null) return;
     const off = window.prospero.agents.onEvent((ev) => {
-      if (ev.kind === "message-append" && ev.agentId === ceo.id) void reload();
+      if (ev.kind !== "message-append" || ev.agentId !== ceo.id) return;
+      if (goal === null) return;
+      const m = ev.message;
+      if (m.createdAt < goal.createdAt) return;
+      if (m.threadParticipants !== undefined && !m.threadParticipants.includes("user")) return;
+      setMessages((prev) => (prev.some((p) => p.id === m.id) ? prev : [...prev, m]));
     });
     return off;
-  }, [goalId, ceo, reload]);
+  }, [goalId, ceo, goal]);
 
   // While we asked for a plan but it has not landed yet, poll for it.
   const planning = goal !== null && goal.status === "planning" && goal.currentPlan === null;

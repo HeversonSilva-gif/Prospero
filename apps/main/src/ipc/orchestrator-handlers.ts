@@ -347,12 +347,16 @@ export const registerOrchestratorHandlers = (
     } else if (kind === "user.message-append" && typeof payload === "object" && payload !== null) {
       // report_to_user appended a message to the agent's user thread but
       // can't broadcast directly from the MCP child. Re-broadcast here so
-      // the renderer's message-append listener refetches and shows it.
+      // the renderer's message-append listener appends it.
       const p = payload as { agentId: string; messageId: string };
       const row = db
         .prepare(
           `SELECT m.id, m.thread_id, m.sender_kind, m.sender_id, m.content,
-                  m.kind, m.tool_calls_json, m.created_at FROM messages m WHERE m.id = ?`,
+                  m.kind, m.tool_calls_json, m.created_at,
+                  t.participants_json AS participants_json
+             FROM messages m
+             JOIN threads t ON t.id = m.thread_id
+            WHERE m.id = ?`,
         )
         .get(p.messageId) as
         | {
@@ -364,6 +368,7 @@ export const registerOrchestratorHandlers = (
             kind: string;
             tool_calls_json: string | null;
             created_at: number;
+            participants_json: string;
           }
         | undefined;
       if (row !== undefined) {
@@ -382,6 +387,7 @@ export const registerOrchestratorHandlers = (
                 ? null
                 : (JSON.parse(row.tool_calls_json) as ToolCallView[]),
             createdAt: row.created_at,
+            threadParticipants: row.participants_json.split("|"),
           },
         });
       }
@@ -629,7 +635,12 @@ export const registerOrchestratorHandlers = (
               content: textContent,
               toolCalls: tools.length > 0 ? tools : null,
             });
-            broadcast({ kind: "message-append", agentId: agent.id, message: m });
+            const threadParticipants = messages.getThreadParticipants(threadId) ?? undefined;
+            broadcast({
+              kind: "message-append",
+              agentId: agent.id,
+              message: { ...m, ...(threadParticipants ? { threadParticipants } : {}) },
+            });
           }
         } else if (ev.kind === "tool-result") {
           const existing = collectedToolCalls.get(ev.toolUseId);
@@ -1267,7 +1278,11 @@ export const registerOrchestratorHandlers = (
         })();
       }
 
-      broadcast({ kind: "message-append", agentId: agent.id, message: userMessage });
+      broadcast({
+        kind: "message-append",
+        agentId: agent.id,
+        message: { ...userMessage, threadParticipants: ["user", agent.id].sort() },
+      });
 
       ensureAgentRunner(agent);
       enqueueOrPark(

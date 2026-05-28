@@ -71,7 +71,11 @@ export const registerIssuesHandlers = (db: Database.Database): void => {
       senderId: null,
       content,
     });
-    broadcast({ kind: "message-append", agentId: assignee.id, message: msg });
+    broadcast({
+      kind: "message-append",
+      agentId: assignee.id,
+      message: { ...msg, threadParticipants: ["user", assignee.id].sort() },
+    });
 
     try {
       writeFileSync(
