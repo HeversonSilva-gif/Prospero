@@ -67,3 +67,24 @@ export const CEO_TEMPLATE_ID = "role-ceo";
 
 export const isCeoAgent = (agent: { role: string; templateId: string | null }): boolean =>
   agent.templateId === CEO_TEMPLATE_ID || agent.role.toLowerCase() === "ceo";
+
+// The authoritative "this agent is gone" marker is `terminatedAt`, NOT `status`.
+// `terminate()` sets status='terminated', but other paths (rate-limit pause/resume,
+// a code-0 process exit) can reset a terminated agent's status back to 'idle',
+// leaving a zombie row that a status-only filter would happily select. Selecting
+// a terminated agent as CEO and force-spawning it routed approvals to a corpse
+// while the live replacement sat idle — the team never converged. Always gate on
+// `terminatedAt === null` at every consumption point.
+export const isActiveAgent = (agent: { status: string; terminatedAt: number | null }): boolean =>
+  agent.terminatedAt === null && agent.status !== "terminated" && agent.status !== "paused";
+
+export const findActiveCeo = <
+  T extends {
+    role: string;
+    templateId: string | null;
+    status: string;
+    terminatedAt: number | null;
+  },
+>(
+  agents: readonly T[],
+): T | null => agents.find((a) => isCeoAgent(a) && isActiveAgent(a)) ?? null;

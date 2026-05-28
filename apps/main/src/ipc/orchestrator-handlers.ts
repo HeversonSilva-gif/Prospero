@@ -93,7 +93,7 @@ import { wakeCeoForApproval } from "../approvals/ceo-wake.js";
 import { handleApprovalEvent } from "../approvals/event-handler.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
 import { broadcastInboxUpdate } from "./inbox-handlers.js";
-import { isCeoAgent } from "@prospero/shared";
+import { isCeoAgent, findActiveCeo } from "@prospero/shared";
 import { buildRecoveryTrail } from "../derivation/trail.js";
 import { runDerivation, defaultRunProcess } from "../derivation/runner.js";
 import { buildAuthEnv } from "../derivation/index.js";
@@ -765,6 +765,10 @@ export const registerOrchestratorHandlers = (
           // Account-wide limit → park every running agent. Reason "rate_limited"
           // marks them for auto-resume (distinct from a manual/budget pause).
           for (const id of listAdapterAgentIds()) {
+            // Skip terminated agents — pausing would overwrite their authoritative
+            // 'terminated' status with 'paused', producing a zombie that later
+            // filters mistake for live. A terminated agent holds no real work.
+            if (agents.getById(id)?.terminatedAt != null) continue;
             pauseAndStopAgent(id, "rate_limited", {
               getAdapter,
               removeAdapter,
@@ -875,6 +879,10 @@ export const registerOrchestratorHandlers = (
     const existing = getAdapter(agent.id);
     if (existing !== undefined && existing.isAlive()) return;
 
+    // Never spawn a terminated agent. `terminatedAt` is the authoritative kill
+    // marker; a zombie row whose status was reset to 'idle' must stay dead.
+    if (agent.terminatedAt !== null) return;
+
     // Account-wide Max rate limit in effect → don't spawn; the team auto-resumes
     // when the window resets (handled in drainScheduler).
     const rlUntil = settingsRepo.read().rateLimitedUntil;
@@ -979,12 +987,7 @@ export const registerOrchestratorHandlers = (
   setApprovalEngineBridge({
     db,
     getAgent: (id) => agents.getById(id),
-    getCeo: (companyId) => {
-      const all = agents.listByCompany(companyId);
-      return (
-        all.find((a) => isCeoAgent(a) && a.status !== "terminated" && a.status !== "paused") ?? null
-      );
-    },
+    getCeo: (companyId) => findActiveCeo(agents.listByCompany(companyId)),
     ensureAgentRunner: (agent) => ensureAgentRunner(agent),
     enqueue: (agentId, threadId, content, sender) =>
       router.enqueue(agentId, threadId, content, sender, null),
@@ -1082,10 +1085,7 @@ export const registerOrchestratorHandlers = (
     for (const { id: companyId } of companyRows) {
       const pending = approvalsRepo.listPendingRoutedToCeo(companyId);
       if (pending.length === 0) continue;
-      const ceo =
-        agents
-          .listByCompany(companyId)
-          .find((a) => isCeoAgent(a) && a.status !== "terminated" && a.status !== "paused") ?? null;
+      const ceo = findActiveCeo(agents.listByCompany(companyId));
       if (ceo === null) {
         // No active CEO in this company — nothing to re-wake; leave pending for
         // human resolution (the human can decide via inbox).
