@@ -50,8 +50,53 @@ files:
   - "!**/*.test.*"
   - "!**/.eslintrc*"
 
+# macOS — DMG (primary installer) + ZIP (for auto-updater delta).
+# Builds for both Intel (x64) and Apple Silicon (arm64) from a single
+# macos-latest CI runner via electron-builder's universal/arch flags.
+#
+# Code signing: set CSC_LINK (base64-encoded .p12) + CSC_KEY_PASSWORD in
+# GitHub Secrets to enable Developer ID signing. Without those vars,
+# electron-builder skips signing automatically (identity: null below acts as
+# an explicit override that also silences the "no identity" warning).
+# Notarization (required for Gatekeeper on end-user machines, macOS 10.15+):
+# add APPLE_ID, APPLE_TEAM_ID, APPLE_APP_SPECIFIC_PASSWORD secrets and
+# uncomment the afterSign hook in a follow-up PR once the Apple Developer
+# account is available.
+#
+# Users who download an unsigned build must run:
+#   xattr -rd com.apple.quarantine /Applications/Prospero.app
+# or open via right-click → Open to bypass the Gatekeeper warning.
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  # Explicitly no signing for now. Remove / override via CSC_LINK env var
+  # once the Apple Developer ID certificate is available.
+  identity: null
+  # Hardened Runtime is required for notarization. We enable it now so the
+  # entitlements are correct when signing is added — it has no effect while
+  # identity is null.
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  category: public.app-category.developertools
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+
+dmg:
+  # Minimal DMG: no license agreement, no background — keeps the installer
+  # small and fast to download. A window-based DMG can be added later.
+  title: "${productName} ${version}"
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+
 # Windows x64 desktop installer. Linux AppImage/deb target is defined below
-# for VPS deployment (see infra/docker/vps/README.md). macOS is not built.
+# for VPS deployment (see infra/docker/vps/README.md).
 win:
   target:
     - target: nsis

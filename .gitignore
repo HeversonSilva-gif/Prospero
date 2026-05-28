@@ -6,7 +6,8 @@ node_modules/
 dist/
 out/
 release/
-build/
+# Note: build/ is NOT ignored — it is electron-builder's buildResources
+# directory (icons, entitlements.plist). Build OUTPUT goes to release/ above.
 .vite/
 .turbo/
 *.tsbuildinfo

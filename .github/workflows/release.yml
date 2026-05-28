@@ -1,18 +1,38 @@
 name: Release
 
-# Cuts a GitHub Release with the Windows installer whenever a version tag is
-# pushed (e.g. `git push origin v0.1.0`). electron-builder uploads the .exe
-# plus latest.yml (the manifest electron-updater polls) to the release.
+# Cuts a GitHub Release with platform installers whenever a version tag is
+# pushed (e.g. `git push origin v0.1.0`). Three parallel jobs build on their
+# native runners — native build is required because better-sqlite3 ships a
+# platform-specific .node binary that cannot be cross-compiled.
+#
+# Artifacts per platform:
+#   Windows  → Prospero-Setup-<version>.exe  + latest.yml
+#   macOS    → Prospero-<version>-x64.dmg    + Prospero-<version>-arm64.dmg
+#              Prospero-<version>-x64.zip     + Prospero-<version>-arm64.zip
+#              latest-mac.yml
+#   Linux    → Prospero-<version>-x64.AppImage + Prospero-<version>-x64.deb
+#              latest-linux.yml
+#
+# Code signing:
+#   Windows  — no signing currently; add CSC_LINK / CSC_KEY_PASSWORD secrets
+#              for a Windows EV certificate when available.
+#   macOS    — no signing currently (identity: null in electron-builder.yml).
+#              To enable: add CSC_LINK, CSC_KEY_PASSWORD, APPLE_ID,
+#              APPLE_TEAM_ID, APPLE_APP_SPECIFIC_PASSWORD secrets, and
+#              uncomment the afterSign notarization hook in a follow-up PR.
+#   Linux    — signing not applicable for AppImage/deb.
 on:
   push:
     tags:
       - "v*"
 
 permissions:
-  contents: write # required so electron-builder can create the release
+  contents: write # required so electron-builder can create the GitHub Release
 
 jobs:
-  release:
+  # ── Windows ────────────────────────────────────────────────────────────────
+  release-win:
+    name: Release · Windows x64
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -35,10 +55,90 @@ jobs:
       - name: Build packages
         run: pnpm -r run build
 
-      - name: Rebuild native deps for Electron
+      - name: Rebuild native deps for Electron (Windows ABI)
         run: pnpm --filter @prospero/main run rebuild:electron
 
-      - name: Build and publish installer
+      - name: Build and publish Windows installer
         run: pnpm exec electron-builder --win --x64 --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── macOS ──────────────────────────────────────────────────────────────────
+  release-mac:
+    name: Release · macOS (x64 + arm64)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm -r run build
+
+      # electron-rebuild compiles better-sqlite3 for the host ABI (darwin/x64
+      # on macos-latest). The arm64 .node is built via Rosetta 2 emulation
+      # when electron-builder packages the arm64 target — electron-builder
+      # re-invokes @electron/rebuild for the arm64 ABI automatically.
+      - name: Rebuild native deps for Electron (macOS ABI)
+        run: pnpm --filter @prospero/main run rebuild:electron
+
+      - name: Build and publish macOS installers (x64 + arm64)
+        # --publish always uploads DMG + ZIP + latest-mac.yml to the GitHub
+        # Release created by the windows job (or creates it if windows lost
+        # the race — electron-builder is idempotent for the release object).
+        run: pnpm exec electron-builder --mac --x64 --arm64 --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Code signing: uncomment and add secrets when Apple Developer ID
+          # certificate is available.
+          # CSC_LINK: ${{ secrets.CSC_LINK }}
+          # CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+
+  # ── Linux ──────────────────────────────────────────────────────────────────
+  release-linux:
+    name: Release · Linux x64 (AppImage + deb)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm -r run build
+
+      - name: Rebuild native deps for Electron (Linux ABI)
+        run: pnpm --filter @prospero/main run rebuild:electron
+
+      - name: Build and publish Linux packages
+        run: pnpm exec electron-builder --linux --x64 --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

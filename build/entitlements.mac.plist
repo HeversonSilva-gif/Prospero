@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!--
+      Hardened Runtime entitlements for Prospero.app.
+
+      Required for Apple notarization (macOS 10.15+). Without notarization
+      Gatekeeper blocks the app for end-users ("damaged or incomplete").
+
+      com.apple.security.cs.allow-jit
+        V8 / Electron's JS engine uses JIT compilation. Without this
+        entitlement the hardened runtime kills the process on arm64.
+
+      com.apple.security.cs.allow-unsigned-executable-memory
+        Electron (and some native addons like better-sqlite3) map executable
+        memory pages without code-signing those pages. Required alongside JIT.
+
+      com.apple.security.cs.disable-library-validation
+        Allows loading third-party native .node addons (better-sqlite3) that
+        are not signed by Apple or the same team identity. Without this,
+        dlopen() for the addon fails at runtime.
+
+      com.apple.security.network.client
+        Prospero makes outbound HTTP calls (electron-updater checks GitHub
+        Releases; agent adapters call the Anthropic API). Required for any
+        network access from a sandboxed app.
+
+      NOTE: App Sandbox (com.apple.security.app-sandbox) is intentionally
+      NOT enabled. Prospero needs broad filesystem access (user project dirs,
+      ~/.claude credentials, arbitrary agent workspaces) that the sandbox
+      would deny. Hardened Runtime without app-sandbox is the standard pattern
+      for Electron desktop apps distributed outside the Mac App Store.
+    -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <key>com.apple.security.network.client</key>
+    <true/>
+  </dict>
+</plist>

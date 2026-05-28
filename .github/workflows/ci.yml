@@ -7,8 +7,26 @@ on:
     branches: [main]
 
 jobs:
+  # Runs lint + typecheck + test + build on all three target platforms.
+  # TypeScript and Vite are platform-agnostic, but better-sqlite3 compiles a
+  # native .node for the host ABI — so we validate the native build on each
+  # platform to catch toolchain issues before a release attempt.
+  #
+  # Note: the CI jobs use `rebuild:node` (Node.js ABI) not `rebuild:electron`
+  # (Electron ABI) — that's intentional. The `pretest` script already calls
+  # `rebuild:node`; full Electron ABI rebuild only happens in the release
+  # workflow where electron-builder is the consumer.
   build:
-    runs-on: windows-latest
+    name: CI · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # let all three platforms report; don't cancel on first failure
+      matrix:
+        os:
+          - windows-latest
+          - macos-latest
+          - ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
