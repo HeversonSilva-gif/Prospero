@@ -20,13 +20,27 @@ export interface RunSandboxedCommandInput {
   env: Record<string, string>;
 }
 
-// A minimal environment for a verification command: PATH only, plus the
-// Windows essentials. No OAuth token, no API key, no cloud credentials.
+// A minimal environment for a verification command: PATH + platform essentials.
+// No OAuth token, no API key, no cloud credentials.
+//
+// Windows extras (SystemRoot, PATHEXT): needed by cmd.exe to resolve built-ins
+// and extensions when shell:true is used.
+//
+// POSIX extras (HOME, USER/LOGNAME, TMPDIR): several common tools fail or behave
+// unexpectedly when HOME is unset (git reads ~/.gitconfig, node resolves ~, etc.).
+// TMPDIR is required on macOS for some stdlib calls. None of these carry secrets.
 export const minimalVerificationEnv = (): Record<string, string> => {
   const env: Record<string, string> = {};
+  // Universal
   if (process.env["PATH"] !== undefined) env["PATH"] = process.env["PATH"];
+  // Windows essentials
   if (process.env["SystemRoot"] !== undefined) env["SystemRoot"] = process.env["SystemRoot"];
   if (process.env["PATHEXT"] !== undefined) env["PATHEXT"] = process.env["PATHEXT"];
+  // POSIX essentials (macOS + Linux)
+  if (process.env["HOME"] !== undefined) env["HOME"] = process.env["HOME"];
+  if (process.env["USER"] !== undefined) env["USER"] = process.env["USER"];
+  if (process.env["LOGNAME"] !== undefined) env["LOGNAME"] = process.env["LOGNAME"];
+  if (process.env["TMPDIR"] !== undefined) env["TMPDIR"] = process.env["TMPDIR"];
   return env;
 };
 
