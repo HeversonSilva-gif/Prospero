@@ -45,17 +45,12 @@ export const runLifecyclePass = (db: Database.Database, now: number): LifecycleP
     )
     .all() as LifecycleRow[];
 
-  let toStale = 0;
-  let toArchived = 0;
-  for (const row of rows) {
-    const lastTouched = row.last_used ?? row.created_at;
-    let target = nextLifecycleState(lastTouched, now);
-    if (target === "archived" && row.promoted === 1) target = "stale";
-    if (target === row.lifecycle_state) continue;
-
+  // The state change and its one-time inbox notice are written atomically: a
+  // crash between them would otherwise leave the skill already transitioned (so
+  // the next pass skips it) with the notice lost forever.
+  const applyTransition = db.transaction((row: LifecycleRow, target: SkillLifecycleState) => {
     skillsRepo.setLifecycleState(row.id, target, now);
     if (target === "stale") {
-      toStale += 1;
       inboxRepo.create({
         companyId: row.company_id,
         kind: "memory_review_needed",
@@ -65,7 +60,6 @@ export const runLifecyclePass = (db: Database.Database, now: number): LifecycleP
         payloadJson: JSON.stringify({ skillId: row.id, reason: "skill_stale" }),
       });
     } else if (target === "archived") {
-      toArchived += 1;
       inboxRepo.create({
         companyId: row.company_id,
         kind: "memory_review_needed",
@@ -75,6 +69,19 @@ export const runLifecyclePass = (db: Database.Database, now: number): LifecycleP
         payloadJson: JSON.stringify({ skillId: row.id, reason: "skill_archived" }),
       });
     }
+  });
+
+  let toStale = 0;
+  let toArchived = 0;
+  for (const row of rows) {
+    const lastTouched = row.last_used ?? row.created_at;
+    let target = nextLifecycleState(lastTouched, now);
+    if (target === "archived" && row.promoted === 1) target = "stale";
+    if (target === row.lifecycle_state) continue;
+
+    applyTransition(row, target);
+    if (target === "stale") toStale += 1;
+    else if (target === "archived") toArchived += 1;
   }
   return { toStale, toArchived, revived: 0 };
 };

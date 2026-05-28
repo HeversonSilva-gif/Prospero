@@ -136,6 +136,21 @@ describe("buildMemoryBlock", () => {
     buildMemoryBlock(deps(s));
     expect(s.skillsRepo.getById(skill.id)!.viewCount).toBe(1);
   });
+
+  it("does NOT increment view_count for a skill below MIN_L0_TRUST", () => {
+    s.skillsRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "distrusted",
+      bodyPath: "p",
+      description: "DISTRUSTED-DESC",
+      source: "user_authored",
+      trust: 0.1,
+    });
+    const skill = s.skillsRepo.getByName("c1", "a1", "distrusted")!;
+    buildMemoryBlock(deps(s));
+    expect(s.skillsRepo.getById(skill.id)!.viewCount).toBe(0);
+  });
 });
 
 describe("buildMemoryBlock — role inheritance", () => {

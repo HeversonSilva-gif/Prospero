@@ -343,4 +343,19 @@ describe("curator lifecycle", () => {
     repo.recordUse(s.id);
     expect(repo.getById(s.id)?.lifecycleState).toBe("active");
   });
+
+  it("getById still returns an archived skill (reachable on demand)", () => {
+    const db = seed();
+    const repo = createSkillsRepository(db);
+    const s = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "demand-skill",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    repo.setLifecycleState(s.id, "archived", Date.now());
+    expect(repo.getById(s.id)?.id).toBe(s.id);
+  });
 });
