@@ -29,3 +29,23 @@ export const findClaudeExe = (): string | null => {
   }
   return null;
 };
+
+// On macOS and Linux the primary spawn path is cross-spawn("claude", args) which
+// uses the shell PATH — this works for most installations. However, Electron GUI
+// apps on macOS receive a restricted PATH (typically /usr/bin:/bin:/usr/sbin:/sbin)
+// that omits node version manager shims (nvm/volta/fnm/asdf). If cross-spawn fails
+// to find claude, this helper can locate the binary by scanning the full login
+// PATH directly, allowing the adapter to use an absolute path instead.
+//
+// Returns the absolute path to `claude` if found in PATH, or null if not found
+// or if called on Windows (Windows uses findClaudeExe instead).
+export const findClaudePosix = (): string | null => {
+  if (process.platform === "win32") return null;
+  // POSIX PATH separator is ":". Split and scan each directory.
+  const pathDirs = (process.env["PATH"] ?? "").split(":").filter((d) => d !== "");
+  for (const dir of pathDirs) {
+    const candidate = join(dir, "claude");
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
+};
