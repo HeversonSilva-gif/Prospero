@@ -103,7 +103,7 @@ export const rejectProposal = (db: Database.Database, input: RejectProposalInput
   const proposalsRepo = createProposalsRepository(db);
   const proposal = proposalsRepo.getById(input.proposalId);
   if (proposal === null) throw new Error(`skill proposal not found: ${input.proposalId}`);
-  if (proposal.status !== "pending") throw new Error(`skill proposal already ${input.proposalId}`);
+  if (proposal.status !== "pending") throw new Error(`skill proposal already ${proposal.status}`);
   proposalsRepo.updateStatus(input.proposalId, "rejected", input.reviewedBy, input.reason);
   resolveInbox(db, input.proposalId);
 };

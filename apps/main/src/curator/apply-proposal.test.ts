@@ -70,6 +70,47 @@ describe("acceptProposal — merge", () => {
     };
     expect(unread.n).toBe(0);
   });
+
+  it("merging skills from different agents writes to company scope (agentId null)", () => {
+    db.prepare(
+      `INSERT INTO agents
+         (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json,
+          mode, always_on, status, model, adapter_name, created_at, updated_at)
+       VALUES ('a2', 'c1', 'B', 'dev', '', '[]', '[]',
+               'supervised', 0, 'idle', 'claude-sonnet-4-6', 'claude-oauth-local', 0, 0)`,
+    ).run();
+    const repo = createSkillsRepository(db);
+    const a = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "from-a1",
+      bodyPath: join(dir, "from-a1.md"),
+      description: "d",
+      source: "user_authored",
+    });
+    const b = repo.create({
+      companyId: "c1",
+      agentId: "a2",
+      name: "from-a2",
+      bodyPath: join(dir, "from-a2.md"),
+      description: "d",
+      source: "user_authored",
+    });
+    const prop = createProposalsRepository(db).create({
+      companyId: "c1",
+      kind: "merge",
+      sourceSkillIds: [a.id, b.id],
+      proposedName: "shared",
+      proposedDescription: "merged",
+      proposedBody: "MERGED",
+      rationale: "overlap across agents",
+    });
+    const merged = acceptProposal(db, dir, { proposalId: prop.id, reviewedBy: "user" });
+    expect(merged.agentId).toBeNull();
+    // Company scope writes under companies/<id>/skills/, not agents/<id>/skills/.
+    expect(merged.bodyPath).toContain(join("companies", "c1", "skills"));
+    expect(merged.bodyPath).not.toContain(join("agents"));
+  });
 });
 
 describe("acceptProposal — patch", () => {
