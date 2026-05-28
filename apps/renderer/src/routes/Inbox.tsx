@@ -58,6 +58,7 @@ const KIND_BORDER: Record<InboxKind, string> = {
   auto_mode_expired: "border-l-4 border-l-semantic-warning",
   manager_request: "border-l-4 border-l-brand",
   ceo_decision: "border-l-4 border-l-semantic-success",
+  skill_consolidation_proposed: "border-l-4 border-l-brand",
 };
 
 type FilterKey = "all" | InboxKind;

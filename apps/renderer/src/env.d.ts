@@ -43,6 +43,7 @@ import type {
   Memory,
   SessionSearchHit,
   SkillCandidate,
+  SkillProposal,
   AgentRunRow,
   AgentBudgetStatus,
   CreateCriterionInput,
@@ -438,6 +439,14 @@ declare global {
           agentId: string,
           promoteSkillIds: string[],
         ) => Promise<{ promoted: number; softDeleted: number }>;
+        listProposals: (companyId: string) => Promise<SkillProposal[]>;
+        acceptProposal: (input: {
+          proposalId: string;
+          name?: string;
+          description?: string;
+          body?: string;
+        }) => Promise<Skill>;
+        rejectProposal: (input: { proposalId: string; reason?: string }) => Promise<{ ok: true }>;
       };
       windowControls: {
         minimize: () => Promise<void>;

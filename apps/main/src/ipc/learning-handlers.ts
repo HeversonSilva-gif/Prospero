@@ -5,12 +5,24 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { IPC } from "@prospero/shared";
 import { getUserMemoryPath } from "../memory/memory-dir.js";
-import type { Skill, Memory, SessionSearchHit, SenderKind, SkillCandidate } from "@prospero/shared";
+import type {
+  Skill,
+  Memory,
+  SessionSearchHit,
+  SenderKind,
+  SkillCandidate,
+  SkillProposal,
+} from "@prospero/shared";
 import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { createSkillCandidatesRepository } from "../memory/skill-candidates-repository.js";
 import { acceptSkillCandidate, rejectSkillCandidate } from "../memory/review-candidate.js";
 import { createInboxRepository } from "../inbox/repository.js";
+import {
+  acceptProposal as applyAcceptProposal,
+  rejectProposal as applyRejectProposal,
+} from "../curator/apply-proposal.js";
+import { createProposalsRepository } from "../curator/proposals-repository.js";
 
 // M11 PR-F1: a thumb up/down on a skill or memory.
 type RateDirection = "up" | "down";
@@ -75,6 +87,17 @@ export type LearningHandlers = {
     promoted: number;
     softDeleted: number;
   };
+  // Curator: list pending skill-consolidation proposals for a company.
+  listProposals(args: { companyId: string }): SkillProposal[];
+  // Curator: accept a proposal (merge/patch/archive), optionally with edit-flow overrides.
+  acceptProposal(args: {
+    proposalId: string;
+    name?: string;
+    description?: string;
+    body?: string;
+  }): Skill;
+  // Curator: reject a proposal with an optional reason.
+  rejectProposal(args: { proposalId: string; reason?: string }): { ok: true };
 };
 
 type SessionRow = {
@@ -220,6 +243,29 @@ export const learningHandlers = (db: Database.Database, userDataDir: string): Le
       })();
       return { promoted, softDeleted };
     },
+
+    listProposals({ companyId }) {
+      return createProposalsRepository(db).listPending(companyId);
+    },
+
+    acceptProposal({ proposalId, name, description, body }) {
+      return applyAcceptProposal(db, userDataDir, {
+        proposalId,
+        reviewedBy: "user",
+        ...(name !== undefined ? { name } : {}),
+        ...(description !== undefined ? { description } : {}),
+        ...(body !== undefined ? { body } : {}),
+      });
+    },
+
+    rejectProposal({ proposalId, reason }) {
+      applyRejectProposal(db, {
+        proposalId,
+        reviewedBy: "user",
+        ...(reason !== undefined ? { reason } : {}),
+      });
+      return { ok: true as const };
+    },
   };
 };
 
@@ -264,5 +310,16 @@ export const registerLearningHandlers = (db: Database.Database): void => {
   ipcMain.handle(
     IPC.SKILLS_PROMOTE_ON_TERMINATE,
     (_e, args: { agentId: string; promoteSkillIds: string[] }) => h.promoteSkillsOnTerminate(args),
+  );
+  ipcMain.handle(IPC.SKILL_PROPOSALS_LIST, (_e, args: { companyId: string }) =>
+    h.listProposals(args),
+  );
+  ipcMain.handle(
+    IPC.SKILL_PROPOSAL_ACCEPT,
+    (_e, args: { proposalId: string; name?: string; description?: string; body?: string }) =>
+      h.acceptProposal(args),
+  );
+  ipcMain.handle(IPC.SKILL_PROPOSAL_REJECT, (_e, args: { proposalId: string; reason?: string }) =>
+    h.rejectProposal(args),
   );
 };

@@ -44,6 +44,7 @@ import {
   type Memory,
   type SessionSearchHit,
   type SkillCandidate,
+  type SkillProposal,
   type AgentRunRow,
   type AgentBudgetStatus,
   type CreateCriterionInput,
@@ -597,6 +598,16 @@ contextBridge.exposeInMainWorld("prospero", {
         promoted: number;
         softDeleted: number;
       }>,
+    listProposals: (companyId: string) =>
+      ipcRenderer.invoke(IPC.SKILL_PROPOSALS_LIST, { companyId }) as Promise<SkillProposal[]>,
+    acceptProposal: (input: {
+      proposalId: string;
+      name?: string;
+      description?: string;
+      body?: string;
+    }) => ipcRenderer.invoke(IPC.SKILL_PROPOSAL_ACCEPT, input) as Promise<Skill>,
+    rejectProposal: (input: { proposalId: string; reason?: string }) =>
+      ipcRenderer.invoke(IPC.SKILL_PROPOSAL_REJECT, input) as Promise<{ ok: true }>,
   },
   windowControls: {
     minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE) as Promise<void>,

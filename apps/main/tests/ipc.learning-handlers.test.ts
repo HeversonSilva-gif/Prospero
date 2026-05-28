@@ -9,6 +9,7 @@ import { createMemoriesRepository } from "../src/memory/memories-repository.js";
 import { learningHandlers, toFtsMatchExpr } from "../src/ipc/learning-handlers.js";
 import { createSkillCandidatesRepository } from "../src/memory/skill-candidates-repository.js";
 import { createInboxRepository } from "../src/inbox/repository.js";
+import { createProposalsRepository } from "../src/curator/proposals-repository.js";
 
 const USERDATA = mkdtempSync(join(tmpdir(), "prospero-lh-ud-"));
 
@@ -405,5 +406,74 @@ describe("learningHandlers — skill promotion", () => {
       appliesToRole: null,
     });
     expect(result.appliesToRole).toBeNull();
+  });
+});
+
+describe("learningHandlers — skill proposals", () => {
+  it("listProposals + acceptProposal apply a merge", () => {
+    const dir = mkdtempSync(join(tmpdir(), "prospero-prop-"));
+    try {
+      const db = seed();
+      const skillsRepo = createSkillsRepository(db);
+      const skill1 = skillsRepo.create({
+        companyId: "c1",
+        agentId: "a1",
+        name: "deploy-alpha",
+        bodyPath: join(dir, "deploy-alpha.md"),
+        description: "alpha deploy",
+        source: "agent_created",
+      });
+      writeFileSync(join(dir, "deploy-alpha.md"), "# Alpha\nbuild and ship", "utf8");
+      const skill2 = skillsRepo.create({
+        companyId: "c1",
+        agentId: "a1",
+        name: "deploy-beta",
+        bodyPath: join(dir, "deploy-beta.md"),
+        description: "beta deploy",
+        source: "agent_created",
+      });
+      writeFileSync(join(dir, "deploy-beta.md"), "# Beta\nbuild and deploy", "utf8");
+      createProposalsRepository(db).create({
+        companyId: "c1",
+        kind: "merge",
+        sourceSkillIds: [skill1.id, skill2.id],
+        proposedName: "deploy-unified",
+        proposedDescription: "unified deploy runbook",
+        proposedBody: "# Unified Deploy\n1. build\n2. ship",
+        rationale: "two deploy skills merged",
+      });
+      const h = learningHandlers(db, dir);
+      const pending = h.listProposals({ companyId: "c1" });
+      expect(pending).toHaveLength(1);
+      const merged = h.acceptProposal({ proposalId: pending[0]!.id });
+      expect(merged.source).toBe("curated_merge");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejectProposal marks the proposal rejected and returns ok", () => {
+    const db = seed();
+    const skillsRepo = createSkillsRepository(db);
+    const skill = skillsRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "obsolete",
+      bodyPath: "p",
+      description: "old skill",
+      source: "agent_created",
+    });
+    createProposalsRepository(db).create({
+      companyId: "c1",
+      kind: "archive",
+      sourceSkillIds: [skill.id],
+      rationale: "no longer needed",
+    });
+    const h = learningHandlers(db, USERDATA);
+    const pending = h.listProposals({ companyId: "c1" });
+    expect(pending).toHaveLength(1);
+    const result = h.rejectProposal({ proposalId: pending[0]!.id, reason: "still useful" });
+    expect(result).toEqual({ ok: true });
+    expect(h.listProposals({ companyId: "c1" })).toHaveLength(0);
   });
 });
