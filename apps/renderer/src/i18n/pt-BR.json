@@ -979,6 +979,21 @@
       "approve": "Aprovar promoção",
       "cancel": "Cancelar"
     },
+    "skillConsolidation": {
+      "title": "Consolidação de habilidade",
+      "review": "Revisar",
+      "kind": {
+        "merge": "Mesclar",
+        "patch": "Atualizar",
+        "archive": "Arquivar"
+      },
+      "combines": "Combina {{count}} habilidades",
+      "rationale": "Por que",
+      "approve": "Aprovar",
+      "reject": "Rejeitar",
+      "cancel": "Cancelar",
+      "bodyLabel": "Conteúdo proposto"
+    },
     "verificationFailed": {
       "open": "Abrir objetivo"
     },

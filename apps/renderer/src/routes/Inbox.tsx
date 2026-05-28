@@ -5,6 +5,7 @@ import type { InboxItem, InboxKind } from "@prospero/shared";
 import { useInboxStore } from "../stores/inbox.js";
 import { useCompaniesStore } from "../stores/companies.js";
 import { SkillPromotionModal } from "../components/inbox/SkillPromotionModal.js";
+import { SkillConsolidationModal } from "../components/inbox/SkillConsolidationModal.js";
 import { TrustPromotionCard } from "../components/inbox/TrustPromotionCard.js";
 import { ApprovalDecisionModal } from "../components/inbox/ApprovalDecisionModal.js";
 
@@ -30,6 +31,16 @@ const extractSkillId = (payloadJson: string | null): string | null => {
   try {
     const p = JSON.parse(payloadJson) as { skillId?: unknown };
     return typeof p.skillId === "string" ? p.skillId : null;
+  } catch {
+    return null;
+  }
+};
+
+const extractProposalId = (payloadJson: string | null): string | null => {
+  if (payloadJson === null) return null;
+  try {
+    const p = JSON.parse(payloadJson) as { proposalId?: unknown };
+    return typeof p.proposalId === "string" ? p.proposalId : null;
   } catch {
     return null;
   }
@@ -84,6 +95,7 @@ export const Inbox: FC = () => {
   const markRead = useInboxStore((s) => s.markRead);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [promotionSkillId, setPromotionSkillId] = useState<string | null>(null);
+  const [consolidationProposalId, setConsolidationProposalId] = useState<string | null>(null);
   const [approvalModalItem, setApprovalModalItem] = useState<InboxItem | null>(null);
 
   const filtered = filter === "all" ? items : items.filter((i) => i.kind === filter);
@@ -217,6 +229,21 @@ export const Inbox: FC = () => {
                     </button>
                   );
                 })()}
+              {item.kind === "skill_consolidation_proposed" &&
+                item.readAt === null &&
+                (() => {
+                  const pid = extractProposalId(item.payloadJson);
+                  if (pid === null) return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setConsolidationProposalId(pid)}
+                      className="mt-2 text-xs text-brand hover:underline"
+                    >
+                      {t("inbox.skillConsolidation.review")}
+                    </button>
+                  );
+                })()}
               {item.kind === "verification_failed" &&
                 (() => {
                   const goalId = extractGoalId(item.payloadJson);
@@ -276,6 +303,22 @@ export const Inbox: FC = () => {
           }}
         />
       )}
+      {consolidationProposalId !== null &&
+        (() => {
+          const companyId = useCompaniesStore.getState().activeId;
+          if (companyId === null) return null;
+          return (
+            <SkillConsolidationModal
+              proposalId={consolidationProposalId}
+              companyId={companyId}
+              onClose={() => setConsolidationProposalId(null)}
+              onResolved={() => {
+                setConsolidationProposalId(null);
+                void useInboxStore.getState().load(companyId);
+              }}
+            />
+          );
+        })()}
       {approvalModalItem !== null && (
         <ApprovalDecisionModal
           item={approvalModalItem}

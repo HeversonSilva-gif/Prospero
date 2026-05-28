@@ -979,6 +979,21 @@
       "approve": "Approve promotion",
       "cancel": "Cancel"
     },
+    "skillConsolidation": {
+      "title": "Skill consolidation",
+      "review": "Review",
+      "kind": {
+        "merge": "Merge",
+        "patch": "Update",
+        "archive": "Archive"
+      },
+      "combines": "Combines {{count}} skills",
+      "rationale": "Why",
+      "approve": "Approve",
+      "reject": "Reject",
+      "cancel": "Cancel",
+      "bodyLabel": "Proposed content"
+    },
     "verificationFailed": {
       "open": "Open goal"
     },
