@@ -76,6 +76,26 @@ export type SkillCandidate = {
   createdAt: number;
 };
 
+// Curator (rec #1): a Librarian-fork proposal to merge, patch, or archive skills.
+export type SkillProposalKind = "merge" | "patch" | "archive";
+export type SkillProposalStatus = "pending" | "accepted" | "rejected";
+
+export type SkillProposal = {
+  id: string;
+  companyId: string;
+  kind: SkillProposalKind;
+  sourceSkillIds: string[];
+  proposedName: string | null;
+  proposedDescription: string | null;
+  proposedBody: string | null;
+  rationale: string;
+  status: SkillProposalStatus;
+  reviewedBy: string | null;
+  reviewedAt: number | null;
+  rejectReason: string | null;
+  createdAt: number;
+};
+
 // A single full-text match from session_search — one past message the agent
 // participated in. Returned by the learning IPC (session:search).
 export type SessionSearchHit = {

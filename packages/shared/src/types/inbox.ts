@@ -20,7 +20,8 @@ export type InboxKind =
   | "trust_promotion_suggested"
   | "auto_mode_expired"
   | "manager_request"
-  | "ceo_decision";
+  | "ceo_decision"
+  | "skill_consolidation_proposed";
 
 export type InboxItem = {
   id: string;
