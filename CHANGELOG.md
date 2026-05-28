@@ -3,6 +3,28 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.32 — 2026-05-28
+
+### Added
+
+- **Curador da biblioteca de habilidades (inspirado no Hermes).** As
+  habilidades que os agentes aprendem agora têm um ciclo de vida e passam por
+  uma curadoria automática, para a biblioteca não inchar nem envelhecer.
+  - **Ciclo de vida automático:** uma habilidade sem uso há ~30 dias é marcada
+    como "esvaindo" (um aviso na caixa de entrada, mas ela continua disponível);
+    sem uso há ~90 dias é "arquivada" — sai do conjunto ativo injetado no
+    agente, mas continua acessível sob demanda. Usar a habilidade a reativa na
+    hora. Habilidades promovidas (compartilhadas pela empresa) são protegidas:
+    nunca arquivam sozinhas.
+  - **Revisão semanal por IA (o "bibliotecário"):** uma vez por semana, em
+    segundo plano, um modelo revisa a biblioteca e propõe **fundir** habilidades
+    sobrepostas, **atualizar** as desatualizadas ou **arquivar** as de baixo
+    valor. Cada proposta chega na caixa de entrada com uma justificativa, para
+    você **aprovar ou rejeitar** — nada é fundido sem o seu aval. O texto da
+    habilidade fundida é editável antes de aprovar.
+  - **Modo de inspeção (dry-run):** dá para rodar a revisão sem criar nada,
+    apenas registrando o que ela proporia.
+
 ## v0.1.31 — 2026-05-28
 
 ### Fixed
