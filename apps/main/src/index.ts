@@ -27,6 +27,8 @@ import { getAdapter } from "./orchestrator/lifecycle.js";
 import { runMemoryMaintenance } from "./memory/maintenance.js";
 import { cleanupOrphanAttachments } from "./messages/cleanup.js";
 import { initUpdater, checkForUpdatesOnLaunch } from "./updater/index.js";
+import { startCuratorTick } from "./curator/tick.js";
+import { buildAuthEnv } from "./derivation/index.js";
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -34,6 +36,7 @@ let db: Database.Database | null = null;
 let stopPermissionWatcher: (() => Promise<void>) | null = null;
 let stopHeartbeat: (() => void) | null = null;
 let stopScheduler: (() => void) | null = null;
+let stopCuratorTick: (() => void) | null = null;
 
 const getWindow = (): BrowserWindow | null => mainWindow;
 
@@ -107,6 +110,13 @@ void app
       }
     } catch (err) {
       console.warn(`[memory] maintenance pass failed: ${String(err)}`);
+    }
+
+    // Curator (Hermes rec #1): skill-library lifecycle + weekly librarian fork.
+    try {
+      stopCuratorTick = startCuratorTick(db, () => buildAuthEnv(db!));
+    } catch (err) {
+      console.warn(`[curator] failed to start: ${String(err)}`);
     }
 
     // v0.1.18 chat-slack-like: GC stale pending attachment rows + files (TTL
@@ -241,6 +251,8 @@ app.on("activate", () => {
 app.on("before-quit", () => {
   stopScheduler?.();
   stopScheduler = null;
+  stopCuratorTick?.();
+  stopCuratorTick = null;
   stopHeartbeat?.();
   stopHeartbeat = null;
   void stopPermissionWatcher?.();
