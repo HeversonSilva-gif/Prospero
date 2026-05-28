@@ -38,17 +38,19 @@ const renderMemories = (rows: Memory[], cap: number): string => {
 };
 
 // Renders skill L0 (name + description), highest use_count / trust first.
-const renderSkills = (skills: Skill[], cap: number): string => {
+const renderSkills = (skills: Skill[], cap: number): { text: string; renderedIds: string[] } => {
   const sorted = [...skills]
     .filter((s) => s.trust >= MIN_L0_TRUST)
     .sort((a, b) => b.useCount - a.useCount || b.trust - a.trust || a.name.localeCompare(b.name));
   let out = "";
+  const renderedIds: string[] = [];
   for (const s of sorted) {
     const line = `- ${s.name}: ${s.description.trim()}\n`;
     if (out.length + line.length > cap) break;
     out += line;
+    renderedIds.push(s.id);
   }
-  return out;
+  return { text: out, renderedIds };
 };
 
 // Assembles the M11 memory + skills block injected into the agent system prompt.
@@ -75,7 +77,7 @@ export const buildMemoryBlock = (deps: BuildMemoryBlockDeps): string | undefined
   const agent = renderMemories(deps.memoriesRepo.listByAgent(deps.agentId), AGENT_CAP);
   if (agent.length > 0) sections.push(`## Your memory\n\n${agent.trimEnd()}`);
 
-  const dbSkills = renderSkills(
+  const rendered = renderSkills(
     [
       ...deps.skillsRepo.listByAgent(deps.agentId),
       ...deps.skillsRepo.listForRole(deps.companyId, deps.role),
@@ -83,6 +85,8 @@ export const buildMemoryBlock = (deps: BuildMemoryBlockDeps): string | undefined
     ],
     SKILLS_CAP,
   );
+  const dbSkills = rendered.text;
+  if (rendered.renderedIds.length > 0) deps.skillsRepo.recordView(rendered.renderedIds);
   // The operating manual and the algorithm are bundled skills every agent
   // always has. Both are synthetic L0 entries — no DB row — whose bodies the
   // skill_read fallback serves on demand (see mcp/tools-memory.ts). Listed

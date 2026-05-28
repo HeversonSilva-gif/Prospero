@@ -122,6 +122,20 @@ describe("buildMemoryBlock", () => {
     const block = buildMemoryBlock(deps(s)) ?? "";
     expect(block.indexOf("COMMON-DESC")).toBeLessThan(block.indexOf("RARE-DESC"));
   });
+
+  it("increments view_count for skills rendered into L0", () => {
+    s.skillsRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "common",
+      bodyPath: "p",
+      description: "COMMON-DESC",
+      source: "user_authored",
+    });
+    const skill = s.skillsRepo.getByName("c1", "a1", "common")!;
+    buildMemoryBlock(deps(s));
+    expect(s.skillsRepo.getById(skill.id)!.viewCount).toBe(1);
+  });
 });
 
 describe("buildMemoryBlock — role inheritance", () => {
