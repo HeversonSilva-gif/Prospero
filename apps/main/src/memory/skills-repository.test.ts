@@ -263,3 +263,84 @@ describe("skills-repository — soft-delete timestamp", () => {
     expect(row.soft_deleted_at).toBeGreaterThanOrEqual(before);
   });
 });
+
+describe("curator lifecycle", () => {
+  it("recordView increments view_count for each call", () => {
+    const db = seed();
+    const repo = createSkillsRepository(db);
+    const s = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "v-skill",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    repo.recordView([s.id]);
+    repo.recordView([s.id]);
+    expect(repo.getById(s.id)?.viewCount).toBe(2);
+  });
+
+  it("recordPatch increments patch_count", () => {
+    const db = seed();
+    const repo = createSkillsRepository(db);
+    const s = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "p-skill",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    repo.recordPatch(s.id);
+    expect(repo.getById(s.id)?.patchCount).toBe(1);
+  });
+
+  it("setLifecycleState sets lifecycleState and lifecycleChangedAt", () => {
+    const db = seed();
+    const repo = createSkillsRepository(db);
+    const s = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "ls-skill",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    repo.setLifecycleState(s.id, "archived", 1234);
+    const after = repo.getById(s.id);
+    expect(after?.lifecycleState).toBe("archived");
+    expect(after?.lifecycleChangedAt).toBe(1234);
+  });
+
+  it("listByAgent excludes archived skills", () => {
+    const db = seed();
+    const repo = createSkillsRepository(db);
+    const s = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "arc-skill",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    repo.setLifecycleState(s.id, "archived", Date.now());
+    expect(repo.listByAgent("a1")).toHaveLength(0);
+  });
+
+  it("recordUse on an archived skill revives it to active", () => {
+    const db = seed();
+    const repo = createSkillsRepository(db);
+    const s = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "rev-skill",
+      bodyPath: "p",
+      description: "d",
+      source: "user_authored",
+    });
+    repo.setLifecycleState(s.id, "archived", Date.now());
+    repo.recordUse(s.id);
+    expect(repo.getById(s.id)?.lifecycleState).toBe("active");
+  });
+});
