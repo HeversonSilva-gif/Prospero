@@ -6,7 +6,12 @@ export type SkillSource =
   | "agent_created"
   | "derived_from_issue"
   | "derived_from_recovery"
-  | "user_authored";
+  | "user_authored"
+  | "curated_merge";
+
+// Curator (rec #1): a skill's place in the lifecycle. `archived` skills drop
+// out of L0 but remain reachable via skill_read / skill_search.
+export type SkillLifecycleState = "active" | "stale" | "archived";
 
 export type Skill = {
   id: string;
@@ -24,6 +29,10 @@ export type Skill = {
   promoted: boolean;
   createdAt: number;
   softDeleted: boolean;
+  lifecycleState: SkillLifecycleState;
+  viewCount: number;
+  patchCount: number;
+  lifecycleChangedAt: number | null;
 };
 
 // M11 declarative memory entry.
