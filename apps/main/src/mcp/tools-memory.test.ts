@@ -95,6 +95,14 @@ describe("skill tools", () => {
     expect(createSkillsRepository(ctx.db).getById(created.id)?.version).toBe(2);
   });
 
+  it("skill_update increments patch_count", async () => {
+    await tool("skill_create").run({ name: "x", description: "d", body: "v1 body" }, ctx);
+    await tool("skill_update").run({ name: "x", body: "v2 body" }, ctx);
+    const repo = createSkillsRepository(ctx.db);
+    const updated = repo.getByName(ctx.companyId, ctx.agentId, "x")!;
+    expect(updated.patchCount).toBe(1);
+  });
+
   it("skill_read serves the bundled operating manual with no DB row", async () => {
     const out = JSON.parse(await tool("skill_read").run({ name: "operating-manual" }, ctx)) as {
       name: string;

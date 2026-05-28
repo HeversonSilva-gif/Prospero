@@ -178,6 +178,7 @@ const skillUpdate: Tool = {
     if (skill.promoted) throw new Error(`skill "${name}" is company-promoted and read-only`);
     writeFileSync(skill.bodyPath, body, "utf8");
     const updated = repo.update(skill.id, {});
+    repo.recordPatch(skill.id);
     return JSON.stringify({ id: updated.id, name: updated.name, version: updated.version });
   },
 };
