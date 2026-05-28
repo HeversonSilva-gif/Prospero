@@ -3,6 +3,33 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.31 — 2026-05-28
+
+### Fixed
+
+- **O time autônomo congelava com o quadro cheio (16 agentes idle, 15 tarefas
+  a fazer + 10 em revisão paradas).** Três bugs com a mesma raiz: o loop só
+  avançava se o CEO estivesse acordado e proativo.
+  - **CEO "morria e não voltava":** os seletores de CEO filtravam por
+    `status != 'terminated'`, mas a marca real de término é a coluna
+    `terminatedAt`. Um CEO terminado cujo status era revertido para `idle`
+    (pelo ciclo de pause/resume do rate-limit) passava o filtro e era
+    preferido sobre o substituto vivo — aprovações iam para o "zumbi"
+    enquanto o CEO real ficava parado. Agora a seleção e o spawn gateiam em
+    `terminatedAt`.
+  - **CEO não re-engajava sozinho:** o agendador só enxergava a fila em
+    memória, nunca o quadro de tarefas. Novo reconciliador (tick de 60s)
+    acorda o CEO vivo quando o quadro tem trabalho não-tratado.
+  - **CEO não revisava sozinho:** tarefas em "revisão" eram um beco sem
+    saída. O reconciliador agora acorda o CEO para revisar (aprovar →
+    concluído, ou devolver ao responsável); você só decide no fechamento
+    do objetivo.
+
+- **Empacotamento quebrado pelo upgrade do Electron 39.** `better-sqlite3 11`
+  não compila contra o V8 do Electron 39 (`v8::Context::GetIsolate` removido),
+  então nenhum instalador podia ser gerado. Atualizado para
+  `better-sqlite3 12.10.0`, compatível com o Electron 39.
+
 ## v0.1.30 — 2026-05-27
 
 ### Fixed
