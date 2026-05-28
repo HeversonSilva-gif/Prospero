@@ -1000,7 +1000,8 @@
       "question": "Pergunta",
       "confirmation": "Confirmado",
       "observation": "Nota"
-    }
+    },
+    "loadOlder": "Carregar {{count}} mensagens antigas"
   },
   "common": {
     "save": "Salvar",

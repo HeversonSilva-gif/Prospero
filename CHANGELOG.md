@@ -3,6 +3,20 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.30 — 2026-05-27
+
+### Fixed
+
+- **Chat ainda travava ao abrir conversa do CEO mesmo com v0.1.29.**
+  v0.1.29 tirou o refetch loop, mas o `MessageList` ainda montava as
+  2400 mensagens do thread CEO↔user de uma vez — cada uma roda
+  `MarkdownContent` (remark/rehype pipeline) + `ToolCallCard`
+  sincronamente no mount, congelando o renderer no `useEffect` inicial.
+  Agora o componente mostra só as últimas 200 por padrão com um
+  botão "Carregar X mensagens antigas" no topo. Linha de mensagem
+  também virou `React.memo` (`MessageRow`) pra que streaming durante
+  um turn re-renderize só a nova linha, não a lista inteira.
+
 ## v0.1.29 — 2026-05-27
 
 ### Fixed

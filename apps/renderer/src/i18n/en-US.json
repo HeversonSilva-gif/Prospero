@@ -1000,7 +1000,8 @@
       "question": "Question",
       "confirmation": "Confirmed",
       "observation": "Note"
-    }
+    },
+    "loadOlder": "Load {{count}} older messages"
   },
   "common": {
     "save": "Save",
