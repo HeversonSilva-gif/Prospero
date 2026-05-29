@@ -3,6 +3,45 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.35 — 2026-05-29
+
+### Security
+
+- **Logs agora são seguros de compartilhar.** O `prospero-debug.log` (que o app
+  pede pra você enviar no suporte) gravava o **prompt completo dos agentes**
+  (sua estratégia/TELOS, instruções, memória) e **todo o stdout/stderr** com
+  caminhos absolutos (`C:\Users\seu-usuário\...`) — e em modo API-key um token
+  podia escapar. Agora: o system prompt **nunca** é logado, todo log passa por
+  **redação** (segredos viram `[REDACTED]`, sua pasta de usuário vira `~`) e os
+  logs **rotacionam** (não crescem pra sempre). Vale pra debug, emergency e
+  mcp-server logs. A redação de tokens foi ampliada (Bearer, variáveis de
+  ambiente, tokens do GitHub).
+- **Export não vaza mais o caminho do seu PC.** O AGENTS.md (artefato que você
+  compartilha) emitia o caminho absoluto dos projetos; agora emite só o nome da
+  pasta. (O backup JSON completo continua igual — é privado da máquina, usado pra
+  restaurar.)
+- **Janela blindada contra navegação.** Conteúdo escrito por um agente não pode
+  mais navegar/abrir popups na janela do app; links externos abrem no navegador
+  de verdade. CSP agora é aplicada como header real.
+- **Credenciais do host não vazam pros processos filhos.** Se você tiver uma
+  chave/token exportado no ambiente, ele é removido do env passado aos processos
+  `claude` (derivação + agentes) — só a credencial pretendida chega lá.
+
+### Added
+
+- **Recall ativo:** ao receber uma tarefa, o agente recebe automaticamente as
+  **skills e memórias mais relevantes** pra ela (busca local, sem custo de IA),
+  injetadas no início do turno — o conhecimento acumulado passa a ser usado
+  proativamente, não só quando o agente lembra de procurar.
+- **Nudge de "atualize a skill":** se o agente leu uma skill e fez bastante
+  trabalho depois, ele é lembrado de **atualizar a skill** (`skill_update`) caso
+  tenha achado um jeito melhor.
+
+### Changed
+
+- O botão de demitir agente agora se chama **"Demitir"** (antes "Encerrar
+  agente"), no menu "⋯" do agente — mais claro.
+
 ## v0.1.34 — 2026-05-29
 
 ### Fixed
