@@ -15,10 +15,17 @@ Versioning: [SemVer](https://semver.org/).
   aprovação **libera a vaga de forma limpa** (a aprovação continua pendente, e
   ele é reativado e refaz a ação quando você decide) — então a equipe não
   trava mais por falta de vaga.
-- **Os agentes voltaram a ler PDFs.** A leitura de PDF do Claude depende do
-  utilitário `pdftoppm` (Poppler), que não vinha no Windows — então o agente
-  dizia "o renderizador de PDF não está disponível". Agora o Poppler vem junto
-  com o app e os agentes leem PDFs normalmente.
+- **Agentes não ficam mais presos num ciclo de reconexão.** Quando a
+  autenticação falhava de forma persistente (token sem como renovar, rede), o
+  app tentava reconectar o agente repetidamente, a cada ~15s, para sempre — e o
+  agente nunca conseguia trabalhar (parecia "travado"). Agora, após algumas
+  tentativas sem sucesso, o app **para de tentar, pausa o agente e te avisa para
+  reconectar a conta** (em vez de ficar em loop). Ao reconectar, ele retoma.
+- **Leitura de PDF: o utilitário necessário (Poppler) agora vem com o app.**
+  Antes, no Windows, o agente dizia "o renderizador de PDF não está disponível"
+  porque faltava o `pdftoppm`. Isso foi resolvido — o utilitário é encontrado e
+  executado. (Casos de PDFs dentro de projetos ainda têm um ajuste pendente para
+  uma próxima versão.)
 
 ### Segurança
 
