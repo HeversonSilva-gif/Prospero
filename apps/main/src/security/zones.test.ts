@@ -112,6 +112,29 @@ describe("zoneOf", () => {
     });
   });
 
+  // ── sbx/<slug>/... — the short layout (v0.1.38 MAX_PATH fix) ──────────────
+  it("classifies sbx/<slug> as system zone", () => {
+    expect(zoneOf(join(ROOT, "sbx", "2754ee4b0121"), ROOT)).toEqual({ kind: "system" });
+  });
+
+  it("classifies sbx/<slug>/.credentials.json as system zone", () => {
+    expect(zoneOf(join(ROOT, "sbx", "2754ee4b0121", ".credentials.json"), ROOT)).toEqual({
+      kind: "system",
+    });
+  });
+
+  it("classifies sbx/<slug>/c (the agent CWD) as system zone", () => {
+    expect(zoneOf(join(ROOT, "sbx", "2754ee4b0121", "c", "anything.txt"), ROOT)).toEqual({
+      kind: "system",
+    });
+  });
+
+  it("still classifies the legacy agent-sandbox/ tree as system (orphan protection)", () => {
+    expect(
+      zoneOf(join(ROOT, "agent-sandbox", "agent_old-uuid", ".credentials.json"), ROOT),
+    ).toEqual({ kind: "system" });
+  });
+
   it("returns null for the companies root itself (no specific company)", () => {
     expect(zoneOf(join(ROOT, "companies"), ROOT)).toBeNull();
   });

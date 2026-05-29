@@ -72,14 +72,14 @@ export const zoneOf = (absPath: string, userDataDir: string): ZoneId | null => {
 
   const prefix = parts[0];
 
-  // ── agent-sandbox/<aid>/... ───────────────────────────────────────────────
-  // Per-agent sandbox: config dir + CWD created by claude-oauth-local adapter.
-  // Contains CLAUDE_CONFIG_DIR/.credentials.json (seeded OAuth token), sandbox
-  // settings.json and per-session resume files. No agent FS tool should ever
-  // read or write here — they work inside their CWD, not the config root.
-  // Classify as "system" so every access attempt is denied + audited regardless
-  // of what allowedProjectPaths says (defense-in-depth, iss_0d783928).
-  if (prefix === "agent-sandbox") {
+  // ── sbx/<slug>/... (and legacy agent-sandbox/<aid>/...) ───────────────────
+  // Per-agent sandbox: config dir + CWD. Holds CLAUDE_CONFIG_DIR/.credentials.json
+  // (seeded OAuth token), sandbox settings.json and per-session resume/projects
+  // data. No agent FS tool should ever touch it — classify as "system" so every
+  // access is denied + audited regardless of allowedProjectPaths (iss_0d783928).
+  // `sbx` is the short v0.1.38 layout (MAX_PATH fix); `agent-sandbox` is the
+  // pre-upgrade layout — kept recognized so orphaned old dirs stay protected.
+  if (prefix === "sbx" || prefix === "agent-sandbox") {
     return { kind: "system" };
   }
 
