@@ -58,7 +58,7 @@ describe("buildExportPayload", () => {
     const payload = buildExportPayload(db, co.id, tmpUserData());
     expect(payload.company).toBe("Acme");
     expect(payload.projects).toHaveLength(1);
-    expect(payload.projects[0]?.path).toBe("D:/code/backend");
+    expect(payload.projects[0]?.path).toBe("backend");
     expect(payload.agents).toHaveLength(2);
     const bobOut = payload.agents.find((a) => a.name === "Bob");
     expect(bobOut?.reports_to).toBe("Alice");

@@ -1,3 +1,4 @@
+import { basename } from "node:path";
 import type Database from "better-sqlite3";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
@@ -26,7 +27,9 @@ export const buildExportPayload = (
   const projects = createProjectsRepository(db)
     .listByCompany(companyId)
     .filter((p) => p.archivedAt === null)
-    .map((p) => ({ name: p.name, path: p.path }));
+    // Security: emit only the folder name, not the absolute host path, because
+    // AGENTS.md is a shareable artifact that must not leak the user's directory layout.
+    .map((p) => ({ name: p.name, path: basename(p.path) }));
 
   const allAgents = createAgentsRepository(db).listByCompany(companyId);
   const liveAgents = allAgents.filter((a) => a.terminatedAt === null);
