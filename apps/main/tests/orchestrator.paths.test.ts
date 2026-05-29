@@ -3,13 +3,14 @@ import { getAgentSandboxCwd, getAgentConfigDir } from "../src/orchestrator/util/
 import { sep } from "node:path";
 
 describe("orchestrator/util/paths", () => {
-  it("getAgentSandboxCwd returns userDataDir/agent-sandbox/<id>/cwd", () => {
+  // Short layout (v0.1.38 MAX_PATH fix): shortAgentSlug("agent_1") === "1".
+  it("getAgentSandboxCwd returns userDataDir/sbx/<slug>/c", () => {
     const p = getAgentSandboxCwd("/data", "agent_1");
-    expect(p.split(sep).join("/")).toBe("/data/agent-sandbox/agent_1/cwd");
+    expect(p.split(sep).join("/")).toBe("/data/sbx/1/c");
   });
 
-  it("getAgentConfigDir returns userDataDir/agent-sandbox/<id>", () => {
+  it("getAgentConfigDir returns userDataDir/sbx/<slug>", () => {
     const p = getAgentConfigDir("/data", "agent_1");
-    expect(p.split(sep).join("/")).toBe("/data/agent-sandbox/agent_1");
+    expect(p.split(sep).join("/")).toBe("/data/sbx/1");
   });
 });

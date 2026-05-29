@@ -7,6 +7,7 @@ import {
   seedSandboxCredentials,
   writeSandboxSettings,
 } from "../src/orchestrator/adapters/claude-oauth-local/prepare-sandbox.js";
+import { getAgentConfigDir, getAgentSandboxCwd } from "../src/orchestrator/util/paths.js";
 
 describe("prepareSandbox", () => {
   it("returns ephemeral dirs when userDataDir is undefined", () => {
@@ -22,8 +23,9 @@ describe("prepareSandbox", () => {
     const tmp = mkdtempSync(join(tmpdir(), "da-test-userdata-"));
     const sb = prepareSandbox("agent_1", tmp);
     expect(sb.isEphemeralConfigDir).toBe(false);
-    expect(sb.agentConfigDir).toContain("agent_1");
-    expect(sb.agentSandboxCwd).toContain("agent_1");
+    // Short layout (v0.1.38 MAX_PATH fix): <userData>/sbx/<slug>, cwd = .../c.
+    expect(sb.agentConfigDir).toBe(getAgentConfigDir(tmp, "agent_1"));
+    expect(sb.agentSandboxCwd).toBe(getAgentSandboxCwd(tmp, "agent_1"));
     expect(existsSync(sb.agentConfigDir)).toBe(true);
     expect(existsSync(sb.agentSandboxCwd)).toBe(true);
     rmSync(tmp, { recursive: true, force: true });
