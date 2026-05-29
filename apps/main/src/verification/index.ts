@@ -1,8 +1,13 @@
 // The verification gate (spec §6.4) + production wiring.
 // applyVerificationReport transitions a `verifying` goal: all-pass -> achieved;
-// any fail -> in_progress + verification_failed inbox; pending judgment ->
-// stays verifying + verification_review inbox. runVerification = engine + gate.
+// any fail -> in_progress + verification_failed inbox (conditional — see
+// RETRY_CAP); pending judgment -> stays verifying + verification_review inbox.
+// runVerification = engine + gate.
 // recoverStuckVerifications re-runs goals left in `verifying` after a restart.
+
+// Hermes rec #3: a goal's verification may auto-retry through the CEO this many
+// times before the human is asked. `goal_criteria.attempts` bounds it.
+export const RETRY_CAP = 2;
 
 import type Database from "better-sqlite3";
 import type { CriterionResult, Goal, VerificationReport } from "@prospero/shared";
@@ -43,17 +48,26 @@ export const applyVerificationReport = (
   if (failed.length > 0) {
     goalsRepo.updateStatus(goal.id, "in_progress");
     const failedCriteria = failed.map((f) => f.criterionId);
-    createInboxRepository(db).create({
-      companyId: goal.companyId,
-      kind: "verification_failed",
-      title: `Verification failed: ${goal.title}`,
-      preview:
-        failed.length > 1
-          ? `${failed[0]!.detail.slice(0, 150)} (+${failed.length - 1} more)`
-          : failed[0]!.detail.slice(0, 200),
-      requiresAction: true,
-      payloadJson: JSON.stringify({ goalId: goal.id, failedCriteria }),
-    });
+
+    const criteria = createGoalCriteriaRepository(db).listByGoal(goal.id);
+    const failedSet = new Set(failedCriteria);
+    const retryable = criteria.some(
+      (c) => failedSet.has(c.id) && c.kind === "deterministic" && c.attempts <= RETRY_CAP,
+    );
+    if (!retryable) {
+      createInboxRepository(db).create({
+        companyId: goal.companyId,
+        kind: "verification_failed",
+        title: `Verification failed: ${goal.title}`,
+        preview:
+          failed.length > 1
+            ? `${failed[0]!.detail.slice(0, 150)} (+${failed.length - 1} more)`
+            : failed[0]!.detail.slice(0, 200),
+        requiresAction: true,
+        payloadJson: JSON.stringify({ goalId: goal.id, failedCriteria }),
+      });
+    }
+
     tryGetRecorder()?.recordActivity({
       companyId: goal.companyId,
       actor: { kind: "system" },

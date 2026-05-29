@@ -82,15 +82,89 @@ describe("verification gate", () => {
     expect(createGoalsRepository(db).getById(goalId)?.status).toBe("achieved");
   });
 
-  it("a failed check bounces the goal to in_progress and files an inbox card", async () => {
+  it("a failed check bounces the goal to in_progress and files an inbox card when at the retry cap", async () => {
     const goalId = toVerifying(db, companyId);
     addCommandCriterion(goalId);
+    // Drive attempts to 3 (> RETRY_CAP=2) so the human card IS filed.
+    const [crit] = createGoalCriteriaRepository(db).listByGoal(goalId);
+    db.prepare("UPDATE goal_criteria SET attempts = 3 WHERE id = ?").run(crit!.id);
     await runVerification(db, goalId, depsWith(1));
     expect(createGoalsRepository(db).getById(goalId)?.status).toBe("in_progress");
     const inbox = db
       .prepare("SELECT kind FROM inbox_items WHERE company_id = ?")
       .all(companyId) as { kind: string }[];
     expect(inbox.some((i) => i.kind === "verification_failed")).toBe(true);
+  });
+
+  it("under the retry cap: a deterministic failure does NOT file a human card", () => {
+    const goalId = toVerifying(db, companyId);
+    // Create a deterministic criterion with attempts=1 (under cap of 2).
+    const crit = createGoalCriteriaRepository(db).create({
+      goalId,
+      statement: "tests pass",
+      kind: "deterministic",
+      checkType: "command",
+      checkSpec: { checkType: "command", command: "x", expectedExitCode: 0, timeoutMs: 1000 },
+    });
+    db.prepare("UPDATE goal_criteria SET attempts = 1, status = 'failed' WHERE id = ?").run(
+      crit.id,
+    );
+    applyVerificationReport(db, {
+      goalId,
+      allPassed: false,
+      results: [{ criterionId: crit.id, status: "failed", detail: "x", resultJson: null }],
+      pendingJudgment: [],
+    });
+    expect(createGoalsRepository(db).getById(goalId)!.status).toBe("in_progress");
+    const cards = db
+      .prepare("SELECT COUNT(*) n FROM inbox_items WHERE kind='verification_failed'")
+      .get() as { n: number };
+    expect(cards.n).toBe(0);
+  });
+
+  it("at the cap (attempts > 2): files the human card", () => {
+    const goalId = toVerifying(db, companyId);
+    const crit = createGoalCriteriaRepository(db).create({
+      goalId,
+      statement: "tests pass",
+      kind: "deterministic",
+      checkType: "command",
+      checkSpec: { checkType: "command", command: "x", expectedExitCode: 0, timeoutMs: 1000 },
+    });
+    // attempts=3 is > RETRY_CAP=2 → human card must be filed.
+    db.prepare("UPDATE goal_criteria SET attempts = 3, status = 'failed' WHERE id = ?").run(
+      crit.id,
+    );
+    applyVerificationReport(db, {
+      goalId,
+      allPassed: false,
+      results: [{ criterionId: crit.id, status: "failed", detail: "x", resultJson: null }],
+      pendingJudgment: [],
+    });
+    const cards = db
+      .prepare("SELECT COUNT(*) n FROM inbox_items WHERE kind='verification_failed'")
+      .get() as { n: number };
+    expect(cards.n).toBe(1);
+  });
+
+  it("judgment-only failure files the human card regardless of attempts", () => {
+    const goalId = toVerifying(db, companyId);
+    const crit = createGoalCriteriaRepository(db).create({
+      goalId,
+      statement: "on brand",
+      kind: "judgment",
+    });
+    // attempts=0 (judgment) — should still file the card (never retryable by CEO).
+    applyVerificationReport(db, {
+      goalId,
+      allPassed: false,
+      results: [{ criterionId: crit.id, status: "failed", detail: "x", resultJson: null }],
+      pendingJudgment: [],
+    });
+    const cards = db
+      .prepare("SELECT COUNT(*) n FROM inbox_items WHERE kind='verification_failed'")
+      .get() as { n: number };
+    expect(cards.n).toBe(1);
   });
 
   describe("activity event on failure", () => {
