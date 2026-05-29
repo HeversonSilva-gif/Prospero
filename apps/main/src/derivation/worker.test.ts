@@ -233,7 +233,7 @@ const seedVerificationFailed = (): Database.Database => {
 };
 
 describe("createDerivationWorker — verification_failed trigger", () => {
-  it("builds the prompt from the trail and runs derivation", async () => {
+  it("writes a skill_candidate row and inbox item (not a memory) for verification_failed", async () => {
     const db = seedVerificationFailed();
     const captured: string[] = [];
     const worker = createDerivationWorker({
@@ -241,7 +241,7 @@ describe("createDerivationWorker — verification_failed trigger", () => {
       runDerivation: (input) => {
         captured.push(input.prompt);
         return Promise.resolve({
-          text: '```json\n{"body":"always typecheck before shipping"}\n```',
+          text: '```json\n{"name":"always-typecheck-before-shipping","description":"run tsc before delivery","body":"run pnpm typecheck and fix all errors before delivery"}\n```',
           usage: { input: 50, output: 10, cacheCreation: 0, cacheRead: 0 },
         });
       },
@@ -256,9 +256,22 @@ describe("createDerivationWorker — verification_failed trigger", () => {
       goalId: "g1",
       failedCriterionIds: ["cr1"],
     });
+    // Prompt must reference the goal and the failed criterion.
     expect(captured).toHaveLength(1);
     expect(captured[0]).toMatch(/Goal:/);
     expect(captured[0]).toMatch(/build passes/);
+    // Must write a skill candidate, not a preference memory.
+    const cands = createSkillCandidatesRepository(db).listPendingByAgent("a1");
+    expect(cands).toHaveLength(1);
+    expect(cands[0]!.trigger).toBe("verification_failed");
+    const inbox = db
+      .prepare("SELECT COUNT(*) n FROM inbox_items WHERE kind='skill_candidate_pending'")
+      .get() as { n: number };
+    expect(inbox.n).toBe(1);
+    const mems = db.prepare("SELECT COUNT(*) n FROM memories WHERE kind='preference'").get() as {
+      n: number;
+    };
+    expect(mems.n).toBe(0);
   });
 
   it("skips when the goal does not exist", async () => {

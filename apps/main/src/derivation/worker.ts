@@ -184,7 +184,11 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
         occurredAt: deps.now(),
       });
 
-      if (job.trigger === "issue_done" || job.trigger === "recovery") {
+      if (
+        job.trigger === "issue_done" ||
+        job.trigger === "recovery" ||
+        job.trigger === "verification_failed"
+      ) {
         const parsed = parseDerivationOutput(result.text);
         if (parsed.kind === "discard") {
           log(`agent ${job.agentId} ${job.trigger}: derivation discarded`);

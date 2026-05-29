@@ -58,6 +58,29 @@ describe("buildRetrospectivePrompt with criteria", () => {
 });
 
 describe("buildVerificationFailedPrompt", () => {
+  it("asks for a skill (name+description+body), not a bare memory body", () => {
+    const trail = {
+      goalId: "g1",
+      goalTitle: "Ship X",
+      goalDescription: "users can ship a release",
+      failed: [
+        {
+          statement: "build passes",
+          kind: "deterministic" as const,
+          attempts: 2,
+          lastDetail: "tsc error",
+        },
+      ],
+    };
+    const p = buildVerificationFailedPrompt(trail);
+    expect(p).toContain("name");
+    expect(p).toContain("description");
+    expect(p).toContain("body");
+    // Must use the SKILL contract (name+description+body) not the bare memory contract (body-only).
+    // The skill contract asks for kebab-case-skill-name; memory contract does not.
+    expect(p).toContain("kebab-case-skill-name");
+  });
+
   it("names the goal and each failed criterion with attempts and last detail", () => {
     const prompt = buildVerificationFailedPrompt({
       goalId: "g1",

@@ -138,7 +138,7 @@ ${trail.goalDescription}
 ## Failed criteria
 
 ${failedLines === "" ? "(none)" : failedLines}
-${MEMORY_OUTPUT_CONTRACT}`;
+${OUTPUT_CONTRACT}`;
 };
 
 // Prompt for an `approval.rejected` preference — what the user does NOT want.
