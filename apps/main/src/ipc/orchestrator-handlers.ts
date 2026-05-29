@@ -42,7 +42,13 @@ import {
 } from "../auth/credential-recovery.js";
 import { computeLaneSchedule } from "../orchestrator/scheduler.js";
 import { startSchedulerTick } from "../orchestrator/scheduler-tick.js";
-import { computeReconcileDecision } from "../orchestrator/reconciler.js";
+import {
+  computeReconcileDecision,
+  type VerificationFailedGoal,
+} from "../orchestrator/reconciler.js";
+import { RETRY_CAP } from "../verification/index.js";
+import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
+import { createGoalsRepository } from "../goals/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
 import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
@@ -1621,6 +1627,33 @@ export const registerOrchestratorHandlers = (
   // already engaged. Lives for the app's lifetime (mirrors auto-mode-expiry).
   {
     const issuesRepo = createIssuesRepository(db);
+    const goalsRepoR = createGoalsRepository(db);
+    const criteriaRepoR = createGoalCriteriaRepository(db);
+    const retryableFailedGoals = (companyId: string): VerificationFailedGoal[] => {
+      const out: VerificationFailedGoal[] = [];
+      const inProgress = goalsRepoR
+        .listByCompany(companyId)
+        .filter((g) => g.status === "in_progress");
+      for (const goal of inProgress) {
+        const goalIssues = issuesRepo.listByGoal(goal.id);
+        const allTerminal =
+          goalIssues.length > 0 &&
+          goalIssues.every((i) => i.status === "done" || i.status === "cancelled");
+        if (!allTerminal) continue;
+        const criteria = criteriaRepoR.listByGoal(goal.id);
+        const failedDet = criteria.filter(
+          (c) => c.kind === "deterministic" && c.status === "failed",
+        );
+        if (failedDet.length === 0) continue;
+        if (!failedDet.some((c) => c.attempts <= RETRY_CAP)) continue;
+        out.push({
+          id: goal.id,
+          title: goal.title,
+          failedCriteria: failedDet.map((c) => c.statement),
+        });
+      }
+      return out;
+    };
     const reconcileLastWakeByCeo = new Map<string, number>();
     const RECONCILE_DEBOUNCE_MS = 3 * 60_000;
     const reconcileTick = (): void => {
@@ -1644,6 +1677,7 @@ export const registerOrchestratorHandlers = (
             doing: issuesRepo.list({ companyId, status: "doing" }).length,
             review: issuesRepo.list({ companyId, status: "review" }).length,
           },
+          verificationFailedGoals: retryableFailedGoals(companyId),
           ceoLastWakeAt: ceo !== null ? (reconcileLastWakeByCeo.get(ceo.id) ?? null) : null,
           now: Date.now(),
           debounceMs: RECONCILE_DEBOUNCE_MS,
