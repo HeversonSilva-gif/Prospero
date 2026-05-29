@@ -18,6 +18,7 @@
     },
     "create": {
       "title": "New company",
+      "onboardingHint": "We'll create the company and its CEO, who will chat with you to build it.",
       "namePlaceholder": "Company name",
       "submit": "Create",
       "submitting": "Creating…",
@@ -31,6 +32,20 @@
       "lastWarning": "This is your only company — you'll have no companies after deletion.",
       "confirm": "Delete",
       "deleting": "Deleting…"
+    }
+  },
+  "novaEmpresa": {
+    "title": "New company",
+    "subtitle": "Chat with the CEO to build your company.",
+    "exit": "Exit",
+    "preparing": "Preparing your CEO…",
+    "seed": "Hi! I just created the company \"{{name}}\". Help me build it: ask me questions to understand the business and its goals, then propose the initial team and suggest a first project.",
+    "teamReady": "Your team is set! Let's define the first project.",
+    "defineProject": "Define first project",
+    "steps": {
+      "negocio": "Understanding the business",
+      "time": "Building the team",
+      "projeto": "First project"
     }
   },
   "goals": {

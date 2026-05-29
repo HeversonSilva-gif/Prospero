@@ -2,11 +2,16 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useCompaniesStore } from "../stores/companies.js";
 
-type Props = { onClose: () => void };
+// onCreated receives the new company id so the caller can route into the
+// conversational onboarding wizard. Kept as a callback so this modal stays
+// router-agnostic (CompanySwitcher passes the navigate).
+type Props = { onClose: () => void; onCreated?: (companyId: string) => void };
 
-export const CreateCompanyModal = ({ onClose }: Props) => {
+export const CreateCompanyModal = ({ onClose, onCreated }: Props) => {
   const { t } = useTranslation();
-  const create = useCompaniesStore((s) => s.create);
+  // createOnboarding (not the bare `create`) so the company is born WITH its CEO —
+  // otherwise the user lands in an empty company with nothing to do.
+  const createOnboarding = useCompaniesStore((s) => s.createOnboarding);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,8 +25,9 @@ export const CreateCompanyModal = ({ onClose }: Props) => {
     setBusy(true);
     setError(null);
     try {
-      await create(trimmed);
+      const created = await createOnboarding(trimmed);
       onClose();
+      onCreated?.(created.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -38,7 +44,8 @@ export const CreateCompanyModal = ({ onClose }: Props) => {
         className="bg-surface rounded-lg shadow-xl w-full max-w-md p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold mb-4">{t("company.create.title")}</h2>
+        <h2 className="text-lg font-semibold mb-1">{t("company.create.title")}</h2>
+        <p className="text-xs text-ink-muted mb-4">{t("company.create.onboardingHint")}</p>
         <input
           type="text"
           value={name}

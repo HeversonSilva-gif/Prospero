@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCompaniesStore } from "../stores/companies.js";
 import { CreateCompanyModal } from "./CreateCompanyModal.js";
@@ -6,6 +7,7 @@ import { DeleteCompanyConfirm } from "./DeleteCompanyConfirm.js";
 
 export const CompanySwitcher = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const companies = useCompaniesStore((s) => s.companies);
   const activeId = useCompaniesStore((s) => s.activeId);
   const setActive = useCompaniesStore((s) => s.setActive);
@@ -35,7 +37,12 @@ export const CompanySwitcher = () => {
         >
           + {t("company.switcher.createFirst")}
         </button>
-        {showCreate && <CreateCompanyModal onClose={() => setShowCreate(false)} />}
+        {showCreate && (
+          <CreateCompanyModal
+            onClose={() => setShowCreate(false)}
+            onCreated={(companyId) => navigate(`/empresa/nova/${companyId}`)}
+          />
+        )}
       </>
     );
   }
@@ -94,7 +101,12 @@ export const CompanySwitcher = () => {
           </button>
         </div>
       )}
-      {showCreate && <CreateCompanyModal onClose={() => setShowCreate(false)} />}
+      {showCreate && (
+        <CreateCompanyModal
+          onClose={() => setShowCreate(false)}
+          onCreated={(companyId) => navigate(`/empresa/nova/${companyId}`)}
+        />
+      )}
       {pendingDeleteId !== null && (
         <DeleteCompanyConfirm
           companyId={pendingDeleteId}

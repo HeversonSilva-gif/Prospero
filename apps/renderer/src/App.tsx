@@ -38,6 +38,7 @@ const Activity = lazy(() => import("./routes/Activity.js").then((m) => ({ defaul
 const Costs = lazy(() => import("./routes/Costs.js"));
 const Goals = lazy(() => import("./routes/Goals.js"));
 const PedirAlgo = lazy(() => import("./routes/PedirAlgo.js"));
+const NovaEmpresaWizard = lazy(() => import("./routes/NovaEmpresaWizard.js"));
 const PlanoRevisao = lazy(() => import("./routes/PlanoRevisao.js"));
 const GoalDetail = lazy(() => import("./routes/GoalDetail.js"));
 const Agents = lazy(() => import("./routes/Agents.js").then((m) => ({ default: m.Agents })));
@@ -420,6 +421,20 @@ export const App = () => {
                   <Layout>
                     <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
                       <PedirAlgo />
+                    </Suspense>
+                  </Layout>
+                ) : (
+                  <Navigate to="/setup" replace />
+                )
+              }
+            />
+            <Route
+              path="/empresa/nova/:companyId"
+              element={
+                appReady ? (
+                  <Layout>
+                    <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                      <NovaEmpresaWizard />
                     </Suspense>
                   </Layout>
                 ) : (

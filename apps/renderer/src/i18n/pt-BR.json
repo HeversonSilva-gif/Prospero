@@ -18,6 +18,7 @@
     },
     "create": {
       "title": "Nova empresa",
+      "onboardingHint": "Vamos criar a empresa e seu CEO, que vai conversar com você para montá-la.",
       "namePlaceholder": "Nome da empresa",
       "submit": "Criar",
       "submitting": "Criando…",
@@ -31,6 +32,20 @@
       "lastWarning": "Esta é a única empresa — você ficará sem empresas após deletar.",
       "confirm": "Deletar",
       "deleting": "Deletando…"
+    }
+  },
+  "novaEmpresa": {
+    "title": "Nova empresa",
+    "subtitle": "Converse com o CEO para montar sua empresa.",
+    "exit": "Sair",
+    "preparing": "Preparando seu CEO…",
+    "seed": "Oi! Acabei de criar a empresa \"{{name}}\". Me ajude a montá-la: me faça perguntas para entender o negócio e os objetivos, depois proponha o time inicial e sugira um primeiro projeto.",
+    "teamReady": "Seu time está montado! Vamos definir o primeiro projeto.",
+    "defineProject": "Definir primeiro projeto",
+    "steps": {
+      "negocio": "Conhecendo o negócio",
+      "time": "Montando o time",
+      "projeto": "Primeiro projeto"
     }
   },
   "goals": {
