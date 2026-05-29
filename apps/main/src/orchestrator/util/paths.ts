@@ -16,8 +16,13 @@ export const shortAgentSlug = (agentId: string): string =>
 // operate on CWD (ls, pwd, cat README.md) cannot leak project files even if the agent
 // has misconfigured allowedProjects. Real project work requires absolute paths, which
 // the security gate validates against allowedProjectPaths.
-export const getAgentSandboxCwd = (userDataDir: string, agentId: string): string =>
-  join(userDataDir, "agent-sandbox", agentId, "cwd");
-
+//
+// Layout is intentionally SHORT (`sbx/<slug>/c`) so that when Claude encodes the
+// absolute CWD into a session dir name (<config>/projects/<encoded-cwd>/...), the PDF
+// rasterization output path stays under Windows MAX_PATH (260). See the short-sandbox
+// design (v0.1.38). zones.ts classifies the `sbx/` prefix as the system zone.
 export const getAgentConfigDir = (userDataDir: string, agentId: string): string =>
-  join(userDataDir, "agent-sandbox", agentId);
+  join(userDataDir, "sbx", shortAgentSlug(agentId));
+
+export const getAgentSandboxCwd = (userDataDir: string, agentId: string): string =>
+  join(getAgentConfigDir(userDataDir, agentId), "c");

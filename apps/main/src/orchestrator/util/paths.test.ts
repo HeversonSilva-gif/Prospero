@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { shortAgentSlug } from "./paths.js";
+import { join } from "node:path";
+import { shortAgentSlug, getAgentConfigDir, getAgentSandboxCwd } from "./paths.js";
 
 describe("shortAgentSlug", () => {
   it("strips the agent_ prefix and dashes, taking the first 12 hex chars", () => {
@@ -25,5 +26,22 @@ describe("shortAgentSlug", () => {
     expect(shortAgentSlug("agent_2754ee4b-0121-4b84-a3a0-47673d37493f")).toMatch(
       /^[a-f0-9]{1,12}$/,
     );
+  });
+});
+
+describe("sandbox layout (short sbx/<slug>)", () => {
+  const UD = "/ud";
+  const ID = "agent_2754ee4b-0121-4b84-a3a0-47673d37493f";
+
+  it("config dir is <userData>/sbx/<slug>", () => {
+    expect(getAgentConfigDir(UD, ID)).toBe(join(UD, "sbx", "2754ee4b0121"));
+  });
+
+  it("cwd is <userData>/sbx/<slug>/c", () => {
+    expect(getAgentSandboxCwd(UD, ID)).toBe(join(UD, "sbx", "2754ee4b0121", "c"));
+  });
+
+  it("cwd is nested under the config dir (so the whole tree is one system zone)", () => {
+    expect(getAgentSandboxCwd(UD, ID).startsWith(getAgentConfigDir(UD, ID))).toBe(true);
   });
 });
