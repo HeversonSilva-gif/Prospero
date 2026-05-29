@@ -3,6 +3,24 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.38 — 2026-05-29
+
+### Corrigido
+
+- **Agentes voltam a ler PDFs de imagem (screenshots, digitalizações).** A
+  v0.1.37 trouxe o utilitário de PDF (Poppler), mas no Windows o caminho onde
+  ele gravava a imagem da página estourava o limite de 260 caracteres do sistema
+  — então a leitura falhava com "não foi possível escrever a imagem". A pasta de
+  trabalho de cada agente passou a usar um nome curto, encurtando esse caminho
+  com folga. Os agentes leem PDFs de imagem normalmente.
+
+### Notas
+
+- Esta versão muda o layout interno da pasta de cada agente. No primeiro uso após
+  atualizar, cada agente inicia uma sessão nova do assistente (o histórico de
+  conversa "cru" recomeça) — todo o resto (tarefas, memória, conversas, equipe)
+  permanece intacto.
+
 ## v0.1.37 — 2026-05-29
 
 ### Corrigido
