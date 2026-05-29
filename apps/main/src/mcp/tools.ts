@@ -12,6 +12,11 @@ import { createIssuesRepository } from "../issues/repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
 import { createSettingsRepository } from "../settings/repository.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
+import {
+  deferredMarkerPath,
+  preapprovalKey,
+  preapprovalPath,
+} from "../approvals/deferred-approval.js";
 import { createArtifactsRepository } from "../artifacts/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { recomputeAgentTrust } from "../trust/engine.js";
@@ -55,9 +60,14 @@ export const waitForResolution = async (
 ): Promise<
   | { behavior: "allow"; decidedBy?: string }
   | { behavior: "deny"; message: string; decidedBy?: string }
+  | { behavior: "deferred"; decidedBy?: string }
 > => {
   const res = join(dir, `${toolUseId}.res.json`);
   const den = join(dir, `${toolUseId}.deny.json`);
+  // The scheduler writes this to reclaim the slot from a long-blocked agent
+  // WITHOUT killing it mid-call: the poll returns, the turn ends cleanly, and
+  // the approval stays pending for a real decision later (v0.1.37 wake fix).
+  const defer = join(dir, `${toolUseId}.defer.json`);
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     if (existsSync(res)) {
@@ -73,6 +83,10 @@ export const waitForResolution = async (
       };
       safeUnlink(den);
       return d;
+    }
+    if (existsSync(defer)) {
+      safeUnlink(defer);
+      return { behavior: "deferred" };
     }
     await new Promise((r) => setTimeout(r, 100));
   }
@@ -560,6 +574,17 @@ export const toolDefinitions = [
           : {});
       const toolUseId = rawInput.tool_use_id ?? rawInput.permission_request_id ?? "unknown";
 
+      // One-shot pre-approval (v0.1.37 slot-reclaim re-execution): a deferred
+      // approval that was later APPROVED leaves a pre-approval fence for the
+      // exact same action. The agent's re-attempt consumes it and is allowed
+      // without a fresh gate — completing the decision the user/CEO already made.
+      const preKey = preapprovalKey(rawInput.tool_name, toolInput);
+      const prePath = preapprovalPath(ctx.permissionsDir, ctx.agentId, preKey);
+      if (existsSync(prePath)) {
+        safeUnlink(prePath);
+        return JSON.stringify({ behavior: "allow", updatedInput: toolInput });
+      }
+
       // Persist a structured approval row so the inbox surface gets a typed
       // payload + audit history. Inbox row stores only the approval pointer.
       const approvals = createApprovalsRepository(ctx.db);
@@ -593,6 +618,36 @@ export const toolDefinitions = [
         }),
       );
       const result = await waitForResolution(ctx.permissionsDir, toolUseId, 30 * 60_000);
+      // Deferred: the scheduler reclaimed the slot. Leave the approval PENDING
+      // (no decide, no trust recompute) and keep req.json so it stays decidable.
+      // End the turn with a non-failure message — MAIN re-engages the agent and
+      // the action re-runs once the approval is actually decided.
+      if (result.behavior === "deferred") {
+        // Leave a marker so MAIN's re-engagement sweep knows to wake this agent
+        // (and pre-approve the re-attempt) once the still-pending approval is
+        // actually decided. Keyed by approvalId; carries what's needed to re-run.
+        try {
+          writeFileSync(
+            deferredMarkerPath(ctx.permissionsDir, approval.id),
+            JSON.stringify({
+              approvalId: approval.id,
+              agentId: ctx.agentId,
+              toolName: rawInput.tool_name,
+              toolInput,
+              toolUseId,
+            }),
+          );
+        } catch {
+          /* best-effort; without the marker the approval still resolves normally */
+        }
+        return JSON.stringify({
+          behavior: "deny",
+          message:
+            "Aprovação ainda pendente — pausando para liberar um slot de execução. " +
+            "Encerre o turno; você será reativado e esta ação será reexecutada assim que " +
+            "a aprovação for decidida. Não tente contornar a permissão.",
+        });
+      }
       approvals.decide(
         approval.id,
         result.behavior === "allow" ? "approved" : "rejected",

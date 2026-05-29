@@ -1,6 +1,15 @@
 import { ipcMain, BrowserWindow, app } from "electron";
 import type Database from "better-sqlite3";
-import { readFileSync, existsSync, mkdirSync, renameSync, rmdirSync } from "node:fs";
+import {
+  readFileSync,
+  existsSync,
+  mkdirSync,
+  renameSync,
+  rmdirSync,
+  readdirSync,
+  writeFileSync,
+  unlinkSync,
+} from "node:fs";
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import {
@@ -100,6 +109,8 @@ import {
 import { wakeCeoForApproval } from "../approvals/ceo-wake.js";
 import { handleApprovalEvent } from "../approvals/event-handler.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
+import { preapprovalKey, preapprovalPath } from "../approvals/deferred-approval.js";
+import { getPermissionsDir } from "../security/permissions-dir.js";
 import { broadcastInboxUpdate } from "./inbox-handlers.js";
 import { isCeoAgent, findActiveCeo } from "@prospero/shared";
 import { buildRecoveryTrail } from "../derivation/trail.js";
@@ -934,6 +945,101 @@ export const registerOrchestratorHandlers = (
   // Continuous drain: keeps the ≤MAX_CONCURRENT_AGENTS slots filled whenever
   // an agent has pending work but no live adapter. Called on turn-complete,
   // onExit, and a periodic 8-second tick so the org is always in motion.
+  // ── v0.1.37 slot reclaim (clean-cancel) ──────────────────────────────────
+  const permDir = getPermissionsDir(app.getPath("userData"));
+  const safeUnlinkFile = (p: string): void => {
+    try {
+      unlinkSync(p);
+    } catch {
+      /* best-effort */
+    }
+  };
+
+  // Reclaim a parked (approval-blocked) agent's slot WITHOUT killing it mid-call:
+  // write its pending tool_call's defer fence so request_permission RETURNS, the
+  // turn ends cleanly, and the agent goes idle. Returns false (→ caller hard-kills)
+  // when no pending tool_call approval is found.
+  const deferParkedAgent = (agentId: string): boolean => {
+    const apvRepo = createApprovalsRepository(db);
+    const pending = apvRepo
+      .listByAgent(agentId)
+      .find((a) => a.status === "pending" && a.kind === "tool_call");
+    if (pending === undefined) return false;
+    let toolUseId: string | undefined;
+    try {
+      toolUseId = (JSON.parse(pending.payloadJson) as { tool_use_id?: string }).tool_use_id;
+    } catch {
+      return false;
+    }
+    if (toolUseId === undefined || toolUseId === "") return false;
+    try {
+      writeFileSync(
+        join(permDir, `${toolUseId}.defer.json`),
+        JSON.stringify({ behavior: "deferred" }),
+      );
+    } catch {
+      return false;
+    }
+    return true;
+  };
+
+  // Wake agents whose deferred approval has since been decided. request_permission
+  // drops a <approvalId>.deferred.json marker when it defers; once the approval is
+  // decided we re-engage the agent (one-shot — marker deleted). On approve we also
+  // pre-approve the identical retry so it doesn't re-route (completes the decision
+  // the user/CEO already made, not a new grant).
+  const reengageDeferredApprovals = (): void => {
+    let files: string[];
+    try {
+      files = readdirSync(permDir).filter((f) => f.endsWith(".deferred.json"));
+    } catch {
+      return;
+    }
+    const apvRepo = createApprovalsRepository(db);
+    for (const f of files) {
+      const p = join(permDir, f);
+      let marker: {
+        agentId: string;
+        toolName: string;
+        toolInput: Record<string, unknown>;
+        approvalId: string;
+      };
+      try {
+        marker = JSON.parse(readFileSync(p, "utf8")) as typeof marker;
+      } catch {
+        safeUnlinkFile(p);
+        continue;
+      }
+      const apv = apvRepo.getById(marker.approvalId);
+      if (apv === null) {
+        safeUnlinkFile(p);
+        continue;
+      }
+      if (apv.status === "pending") continue; // not decided yet — keep the marker
+      safeUnlinkFile(p); // decided → one-shot re-engage
+      if (apv.status === "approved") {
+        try {
+          const key = preapprovalKey(marker.toolName, marker.toolInput);
+          writeFileSync(
+            preapprovalPath(permDir, marker.agentId, key),
+            JSON.stringify({ at: Date.now() }),
+          );
+        } catch {
+          /* best-effort — without it the retry just re-routes once */
+        }
+        deliverSystemMessage(
+          marker.agentId,
+          `Sua ação "${marker.toolName}" foi APROVADA. Execute-a agora para concluir a tarefa.`,
+        );
+      } else {
+        deliverSystemMessage(
+          marker.agentId,
+          `Sua ação "${marker.toolName}" foi recusada${apv.decisionNote !== null ? `: ${apv.decisionNote}` : ""}. Siga sem ela.`,
+        );
+      }
+    }
+  };
+
   const drainScheduler = (): void => {
     // Max rate-limit gate. While active, spawn nothing. When the window resets,
     // clear the gate and resume the parked team so each agent continues from
@@ -959,22 +1065,38 @@ export const registerOrchestratorHandlers = (
       const a = agents.getById(id);
       return a !== null && isCeoAgent(a);
     };
-    const running = listAdapterAgentIds().map((id) => ({
-      id,
-      isCeo: isCeoId(id),
-      hasWork: (agents.getById(id)?.status ?? "idle") !== "idle" || router.hasPendingWork(id),
-    }));
+    reengageDeferredApprovals();
+    const running = listAdapterAgentIds().map((id) => {
+      const status = agents.getById(id)?.status ?? "idle";
+      return {
+        id,
+        isCeo: isCeoId(id),
+        hasWork: status !== "idle" || router.hasPendingWork(id),
+        // "waiting" = blocked on a pending approval (set in index.ts on each
+        // permission request). Such an agent holds a slot but makes no progress,
+        // so it's evictable via a clean defer (below) — otherwise it starves
+        // newly-delegated agents that can never get a slot (v0.1.37 wake bug).
+        parked: status === "waiting",
+      };
+    });
     const runningSet = new Set(running.map((r) => r.id));
     const waiting = router
       .listPendingAgentIds()
-      .filter((id) => !runningSet.has(id)) // pending work but no live adapter
+      // pending work but no live adapter, AND not itself blocked on an approval
+      // (a parked agent has nothing to do until its approval is decided — don't
+      // re-spawn it into the slot we just reclaimed; the re-engage sweep wakes it).
+      .filter((id) => !runningSet.has(id) && (agents.getById(id)?.status ?? "idle") !== "waiting")
       .map((id) => ({ id, isCeo: isCeoId(id), hasWork: true }));
     if (running.length === 0 && waiting.length === 0) return; // short-circuit common idle case
     // Lane-aware: reserve one slot so the CEO can always spawn to decide approvals.
     const { toSpawn, toEvict } = computeLaneSchedule(running, waiting, MAX_CONCURRENT_AGENTS);
     for (const id of toEvict) {
-      // Only evict idle agents (no work) — safe: they have no in-flight turn.
-      // Preserve session (no clearSessionId) so the victim --resumes on wake.
+      // A parked (approval-blocked) victim is reclaimed by a CLEAN defer, not a
+      // hard kill: its request_permission poll returns, the turn ends, the agent
+      // goes idle (slot frees next pass), the approval stays pending, and the
+      // re-engage sweep wakes it once decided. Truly-idle victims have no
+      // in-flight turn, so a kill is safe (session preserved for --resume).
+      if (agents.getById(id)?.status === "waiting" && deferParkedAgent(id)) continue;
       getAdapter(id)?.kill();
       removeAdapter(id);
     }

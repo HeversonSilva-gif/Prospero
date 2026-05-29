@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { existsSync, readFileSync, mkdtempSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Database from "better-sqlite3";
@@ -144,6 +144,34 @@ describe("decide_request", () => {
         note: "ok",
       }),
     });
+  });
+});
+
+const reqPermTool = toolDefinitions.find((t) => t.name === "request_permission")!;
+
+describe("request_permission — deferred (slot reclaim)", () => {
+  it("a .defer.json ends the turn cleanly and leaves the approval PENDING", async () => {
+    const env = setup();
+    const ctx = { ...env.ctx, agentId: "bot1" };
+    // Scheduler pre-writes the defer fence for this tool_use_id.
+    writeFileSync(join(env.dir, "tu_def.defer.json"), JSON.stringify({ behavior: "deferred" }));
+    const out = JSON.parse(
+      await reqPermTool.run(
+        { tool_name: "Write", input: { path: "/x" }, tool_use_id: "tu_def" },
+        ctx,
+      ),
+    ) as { behavior: string; message: string };
+    // Turn-ending deny-style signal (claude's prompt-tool only accepts allow/deny).
+    expect(out.behavior).toBe("deny");
+    expect(out.message).toContain("reexecutada");
+    // The approval row stays PENDING — it was NOT decided/rejected by the defer,
+    // so it can still be decided for real later (then the agent re-runs the tool).
+    const count = env.db
+      .prepare("SELECT COUNT(*) n FROM approvals WHERE agent_id='bot1' AND status='pending'")
+      .get() as { n: number };
+    expect(count.n).toBe(1);
+    // And the request fence is preserved so the pending approval stays decidable.
+    expect(existsSync(join(env.dir, "tu_def.req.json"))).toBe(true);
   });
 });
 

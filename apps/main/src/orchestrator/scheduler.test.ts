@@ -83,6 +83,40 @@ describe("computeScheduleActions", () => {
     expect(result.toEvict).toEqual(["r1"]);
   });
 
+  it("parked (approval-blocked) running agent yields its slot to a waiter", () => {
+    // 4 running, all hasWork, but r4 is parked (blocked on a user approval —
+    // making no progress). 1 waiter. No truly-idle agent. Pre-fix this starved
+    // the waiter forever; now the parked agent is evicted to free its slot.
+    const result = computeScheduleActions(
+      [
+        { id: "r1", hasWork: true },
+        { id: "r2", hasWork: true },
+        { id: "r3", hasWork: true },
+        { id: "r4", hasWork: true, parked: true },
+      ],
+      ["w1"],
+      4,
+    );
+    expect(result.toSpawn).toEqual(["w1"]);
+    expect(result.toEvict).toEqual(["r4"]);
+  });
+
+  it("evicts truly-idle agents before parked ones", () => {
+    // r3 idle, r4 parked, 2 waiters → idle evicted first, then parked.
+    const result = computeScheduleActions(
+      [
+        { id: "r1", hasWork: true },
+        { id: "r2", hasWork: true },
+        { id: "r3", hasWork: false },
+        { id: "r4", hasWork: true, parked: true },
+      ],
+      ["w1", "w2"],
+      4,
+    );
+    expect(result.toSpawn).toEqual(["w1", "w2"]);
+    expect(result.toEvict).toEqual(["r3", "r4"]);
+  });
+
   it("running > max (over-provisioned) → no free slots, behaves safely", () => {
     // 5 running but max=4 — free = max(0, 4-5) = 0
     const result = computeScheduleActions(
@@ -169,6 +203,22 @@ describe("computeLaneSchedule (CEO management lane)", () => {
       4,
     );
     expect(r.toSpawn).toEqual([]);
+  });
+
+  it("a parked (approval-blocked) worker yields its slot to a waiting worker", () => {
+    // 3 workers running (lane reserves the 4th), w3 parked on an approval, a
+    // fresh worker w4 waiting → w3 is evicted so w4 can run.
+    const r = computeLaneSchedule(
+      [
+        { id: "w1", isCeo: false, hasWork: true },
+        { id: "w2", isCeo: false, hasWork: true },
+        { id: "w3", isCeo: false, hasWork: true, parked: true },
+      ],
+      lane(["w4", false, true]),
+      4,
+    );
+    expect(r.toSpawn).toEqual(["w4"]);
+    expect(r.toEvict).toEqual(["w3"]);
   });
 
   it("no CEO involved → behaves like a max-1 worker pool", () => {
