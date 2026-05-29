@@ -6,6 +6,7 @@ const base: ReconcileInput = {
   ceoEngaged: false,
   anyWorkerEngaged: false,
   counts: { todo: 0, doing: 0, review: 0 },
+  verificationFailedGoals: [],
   ceoLastWakeAt: null,
   now: 10_000_000,
   debounceMs: 180_000,
@@ -79,5 +80,48 @@ describe("computeReconcileDecision", () => {
       ceoLastWakeAt: base.now - 200_000, // > 3 min ago
     });
     expect(d.wake).toBe(true);
+  });
+
+  it("wakes the CEO when a goal failed verification, even with an idle board", () => {
+    const d = computeReconcileDecision({
+      ceoId: "ceo1",
+      ceoEngaged: false,
+      anyWorkerEngaged: true,
+      counts: { todo: 0, doing: 0, review: 0 },
+      verificationFailedGoals: [{ id: "g1", title: "Ship X", failedCriteria: ["tests pass"] }],
+      ceoLastWakeAt: null,
+      now: 1000,
+      debounceMs: 180000,
+    });
+    expect(d.wake).toBe(true);
+    if (d.wake) expect(d.summary).toContain("Ship X");
+  });
+
+  it("does not wake with no failed goals and a calm board", () => {
+    const d = computeReconcileDecision({
+      ceoId: "ceo1",
+      ceoEngaged: false,
+      anyWorkerEngaged: true,
+      counts: { todo: 0, doing: 0, review: 0 },
+      verificationFailedGoals: [],
+      ceoLastWakeAt: null,
+      now: 1000,
+      debounceMs: 180000,
+    });
+    expect(d.wake).toBe(false);
+  });
+
+  it("respects the debounce for failed-verification wakes", () => {
+    const d = computeReconcileDecision({
+      ceoId: "ceo1",
+      ceoEngaged: false,
+      anyWorkerEngaged: true,
+      counts: { todo: 0, doing: 0, review: 0 },
+      verificationFailedGoals: [{ id: "g1", title: "X", failedCriteria: [] }],
+      ceoLastWakeAt: 1000,
+      now: 1000 + 60_000,
+      debounceMs: 180_000,
+    });
+    expect(d.wake).toBe(false);
   });
 });

@@ -22,6 +22,8 @@ export type ReconcileCounts = {
   review: number;
 };
 
+export type VerificationFailedGoal = { id: string; title: string; failedCriteria: string[] };
+
 export type ReconcileInput = {
   /** The live CEO id (findActiveCeo result), or null when the company has none. */
   ceoId: string | null;
@@ -30,6 +32,8 @@ export type ReconcileInput = {
   /** Any non-CEO agent currently running or with queued work. */
   anyWorkerEngaged: boolean;
   counts: ReconcileCounts;
+  /** Goals that failed verification and returned to in_progress with all issues done. */
+  verificationFailedGoals: VerificationFailedGoal[];
   /** When this CEO was last woken by the reconciler (null = never). */
   ceoLastWakeAt: number | null;
   now: number;
@@ -39,23 +43,39 @@ export type ReconcileInput = {
 export type ReconcileDecision = { wake: false } | { wake: true; ceoId: string; summary: string };
 
 export const computeReconcileDecision = (input: ReconcileInput): ReconcileDecision => {
-  const { ceoId, ceoEngaged, anyWorkerEngaged, counts, ceoLastWakeAt, now, debounceMs } = input;
+  const {
+    ceoId,
+    ceoEngaged,
+    anyWorkerEngaged,
+    counts,
+    verificationFailedGoals,
+    ceoLastWakeAt,
+    now,
+    debounceMs,
+  } = input;
   if (ceoId === null) return { wake: false }; // no live CEO — only a human can step in
   if (ceoEngaged) return { wake: false }; // CEO already on it
-  const actionable = counts.todo + counts.doing + counts.review;
+  const failedCount = verificationFailedGoals.length;
+  const actionable = counts.todo + counts.doing + counts.review + failedCount;
   if (actionable === 0) return { wake: false }; // nothing to orchestrate
   const stalled = !anyWorkerEngaged; // whole team idle but work remains
   const reviewPending = counts.review > 0; // CEO must review (human only at goal close)
+  const verificationFailedPending = failedCount > 0;
   // Workers are progressing and nothing is waiting on the CEO → leave them be.
-  if (!stalled && !reviewPending) return { wake: false };
+  if (!stalled && !reviewPending && !verificationFailedPending) return { wake: false };
   if (ceoLastWakeAt !== null && now - ceoLastWakeAt < debounceMs) return { wake: false };
-  return { wake: true, ceoId, summary: buildSummary(counts, stalled, reviewPending) };
+  return {
+    wake: true,
+    ceoId,
+    summary: buildSummary(counts, stalled, reviewPending, verificationFailedGoals),
+  };
 };
 
 const buildSummary = (
   counts: ReconcileCounts,
   stalled: boolean,
   reviewPending: boolean,
+  verificationFailedGoals: VerificationFailedGoal[],
 ): string => {
   const head = stalled
     ? "[ORQUESTRACAO] O quadro tem trabalho pendente e ninguem esta progredindo."
@@ -70,6 +90,19 @@ const buildSummary = (
   if (stalled) {
     actions.push(
       "Atribua o trabalho pendente com assign_issue e acorde o responsavel com message_agent. Se algum agente travou, destrave-o.",
+    );
+  }
+  if (verificationFailedGoals.length > 0) {
+    const lines = verificationFailedGoals.map(
+      (g) =>
+        `- "${g.title}" falhou em: ${g.failedCriteria.length > 0 ? g.failedCriteria.join("; ") : "(criterios)"}`,
+    );
+    actions.push(
+      [
+        "Estes objetivos falharam na verificacao e voltaram para in_progress, mas as tarefas estao concluidas — reabra a tarefa relevante e mande corrigir:",
+        ...lines,
+        "Para cada um: reabra a tarefa com update_issue (status para 'todo'), reatribua com assign_issue e acorde o responsavel com message_agent explicando o que falhou. Voce decide — nao escale ao humano.",
+      ].join("\n"),
     );
   }
   return [head, board, ...actions].join("\n");
