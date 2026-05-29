@@ -2,12 +2,13 @@ import { describe, it, expect } from "vitest";
 import {
   createNudgeTracker,
   NUDGE_SKILL_HINT,
+  NUDGE_SKILL_PATCH_HINT,
   NUDGE_CONSOLIDATION_HINT,
   TURN_THRESHOLD,
   TOOL_THRESHOLD,
 } from "./nudge.js";
 
-const quiet = { toolUseCount: 0, memoryNearFull: false };
+const quiet = { toolUseCount: 0, memoryNearFull: false, readSkill: false };
 
 describe("createNudgeTracker", () => {
   it("returns null before the turn threshold is reached", () => {
@@ -28,26 +29,28 @@ describe("createNudgeTracker", () => {
 
   it("returns the skill hint when cumulative tool calls cross the threshold", () => {
     const t = createNudgeTracker();
-    expect(t.recordTurn("a1", { toolUseCount: TOOL_THRESHOLD, memoryNearFull: false })).toBe(
-      NUDGE_SKILL_HINT,
-    );
+    expect(
+      t.recordTurn("a1", { toolUseCount: TOOL_THRESHOLD, memoryNearFull: false, readSkill: false }),
+    ).toBe(NUDGE_SKILL_HINT);
     // tool counter reset — the next turn does not re-fire
     expect(t.recordTurn("a1", quiet)).toBeNull();
   });
 
   it("returns the consolidation hint once when memory is near full", () => {
     const t = createNudgeTracker();
-    expect(t.recordTurn("a1", { toolUseCount: 0, memoryNearFull: true })).toBe(
+    expect(t.recordTurn("a1", { toolUseCount: 0, memoryNearFull: true, readSkill: false })).toBe(
       NUDGE_CONSOLIDATION_HINT,
     );
     // does not repeat on the next near-full turn
-    expect(t.recordTurn("a1", { toolUseCount: 0, memoryNearFull: true })).toBeNull();
+    expect(
+      t.recordTurn("a1", { toolUseCount: 0, memoryNearFull: true, readSkill: false }),
+    ).toBeNull();
   });
 
   it("consolidation hint resets the work counters — no immediate follow-up skill hint", () => {
     const t = createNudgeTracker();
     // tools at threshold AND memory near full on the same turn -> consolidation fires
-    t.recordTurn("a1", { toolUseCount: TOOL_THRESHOLD, memoryNearFull: true });
+    t.recordTurn("a1", { toolUseCount: TOOL_THRESHOLD, memoryNearFull: true, readSkill: false });
     // the work counters must have been reset -> the next quiet turn is null
     expect(t.recordTurn("a1", quiet)).toBeNull();
   });
@@ -63,5 +66,46 @@ describe("createNudgeTracker", () => {
     for (let i = 0; i < TURN_THRESHOLD - 1; i += 1) t.recordTurn("a1", quiet);
     t.clear("a1");
     expect(t.recordTurn("a1", quiet)).toBeNull(); // counting restarts from zero
+  });
+
+  it("returns plain skill hint when no readSkill has been set before threshold", () => {
+    const t = createNudgeTracker();
+    let last: string | null = null;
+    for (let i = 0; i < TURN_THRESHOLD; i += 1)
+      last = t.recordTurn("a1", { toolUseCount: 0, memoryNearFull: false, readSkill: false });
+    expect(last).toBe(NUDGE_SKILL_HINT);
+  });
+
+  it("returns patch hint when readSkill was true on the threshold turn", () => {
+    const t = createNudgeTracker();
+    let last: string | null = null;
+    for (let i = 0; i < TURN_THRESHOLD - 1; i += 1) last = t.recordTurn("a1", quiet);
+    last = t.recordTurn("a1", { toolUseCount: 0, memoryNearFull: false, readSkill: true });
+    expect(last).toBe(NUDGE_SKILL_PATCH_HINT);
+  });
+
+  it("readSkillThisSession is sticky — earlier readSkill:true influences a later threshold fire", () => {
+    const t = createNudgeTracker();
+    // First turn sets readSkill; all subsequent turns are quiet
+    t.recordTurn("a1", { toolUseCount: 0, memoryNearFull: false, readSkill: true });
+    let last: string | null = null;
+    for (let i = 0; i < TURN_THRESHOLD - 1; i += 1) last = t.recordTurn("a1", quiet);
+    expect(last).toBe(NUDGE_SKILL_PATCH_HINT);
+  });
+
+  it("clear() resets readSkillThisSession — fresh threshold fire returns plain hint", () => {
+    const t = createNudgeTracker();
+    // Accumulate readSkill, fire the threshold once
+    t.recordTurn("a1", { toolUseCount: 0, memoryNearFull: false, readSkill: true });
+    for (let i = 0; i < TURN_THRESHOLD - 1; i += 1) t.recordTurn("a1", quiet);
+    // clear resets everything including readSkillThisSession
+    t.clear("a1");
+    let last: string | null = null;
+    for (let i = 0; i < TURN_THRESHOLD; i += 1) last = t.recordTurn("a1", quiet);
+    expect(last).toBe(NUDGE_SKILL_HINT);
+  });
+
+  it("NUDGE_SKILL_PATCH_HINT starts with NUDGE_SKILL_HINT text (reuse, not duplication)", () => {
+    expect(NUDGE_SKILL_PATCH_HINT.startsWith(NUDGE_SKILL_HINT)).toBe(true);
   });
 });

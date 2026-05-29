@@ -22,6 +22,10 @@ export const NUDGE_SKILL_HINT =
   "checkpoint. If any of it is a reusable procedure worth repeating, save it " +
   "with skill_create. If it is a durable fact worth remembering, use memory_add.";
 
+export const NUDGE_SKILL_PATCH_HINT =
+  NUDGE_SKILL_HINT +
+  " You read a skill earlier this session — if you found a better approach than what it documented, update it with skill_update.";
+
 export const NUDGE_CONSOLIDATION_HINT =
   "[memory note] Your declarative memory is nearly full. Consolidate it before " +
   "adding more: drop stale entries with memory_remove, or merge overlapping ones.";
@@ -31,6 +35,8 @@ export type NudgeInput = {
   toolUseCount: number;
   // True when the agent's rendered declarative memory is past 90% of its cap.
   memoryNearFull: boolean;
+  // True when this turn included a skill_read tool call.
+  readSkill: boolean;
 };
 
 export type NudgeTracker = {
@@ -45,6 +51,7 @@ type AgentNudgeState = {
   turns: number;
   tools: number;
   consolidationSent: boolean;
+  readSkillThisSession: boolean;
 };
 
 export const createNudgeTracker = (): NudgeTracker => {
@@ -53,7 +60,7 @@ export const createNudgeTracker = (): NudgeTracker => {
   const ensure = (agentId: string): AgentNudgeState => {
     let s = states.get(agentId);
     if (s === undefined) {
-      s = { turns: 0, tools: 0, consolidationSent: false };
+      s = { turns: 0, tools: 0, consolidationSent: false, readSkillThisSession: false };
       states.set(agentId, s);
     }
     return s;
@@ -64,6 +71,7 @@ export const createNudgeTracker = (): NudgeTracker => {
       const s = ensure(agentId);
       s.turns += 1;
       s.tools += Math.max(0, input.toolUseCount);
+      s.readSkillThisSession ||= input.readSkill;
 
       // Memory pressure wins, and only fires once per session.
       if (input.memoryNearFull && !s.consolidationSent) {
@@ -76,7 +84,7 @@ export const createNudgeTracker = (): NudgeTracker => {
       if (s.turns >= TURN_THRESHOLD || s.tools >= TOOL_THRESHOLD) {
         s.turns = 0;
         s.tools = 0;
-        return NUDGE_SKILL_HINT;
+        return s.readSkillThisSession ? NUDGE_SKILL_PATCH_HINT : NUDGE_SKILL_HINT;
       }
       return null;
     },

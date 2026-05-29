@@ -718,10 +718,17 @@ export const registerOrchestratorHandlers = (
             }
           }
           const toolUseCount = collectedToolCalls.size;
+          const readSkill = [...collectedToolCalls.values()].some((tc) =>
+            tc.name.endsWith("skill_read"),
+          );
           collectedToolCalls.clear();
           router.onTurnComplete(agent.id);
           const memoryNearFull = agentMemoryNearFull(createMemoriesRepository(db), agent.id);
-          const nudge = nudgeTracker.recordTurn(agent.id, { toolUseCount, memoryNearFull });
+          const nudge = nudgeTracker.recordTurn(agent.id, {
+            toolUseCount,
+            memoryNearFull,
+            readSkill,
+          });
           if (nudge !== null) router.setPendingNudge(agent.id, nudge);
           const stillBusy = router.getCurrentThread(agent.id) !== null;
           // Respect a status the budget enforcer (checkAndPause, above) or a
