@@ -3,6 +3,22 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.34 — 2026-05-29
+
+### Fixed
+
+- **CEO (ou qualquer agente) "zumbi" que sumia sem responder.** Quando um agente
+  era terminado e logo depois o ciclo de pausa/retomada do rate-limit rodava, a
+  retomada revertia o status dele de `terminated` para `idle` — mas a marca real
+  de término (`terminated_at`) continuava setada. Resultado: um agente morto que
+  ainda aparecia na "Minha equipe" como ativo e aceitava mensagens, mas nunca as
+  processava (o spawn corretamente recusa agentes terminados), porque a lista de
+  agentes filtra por `status` e o status estava errado. Você podia passar dias
+  achando que falava com o CEO enquanto ele estava morto. Dois reparos: a
+  retomada agora **nunca ressuscita** um agente terminado, e o boot **cura**
+  qualquer zumbi existente (volta o status para `terminated`, somindo da equipe).
+  O botão de demitir já existia no menu "⋯" do agente ("Demitir", em vermelho).
+
 ## v0.1.33 — 2026-05-28
 
 ### Added
