@@ -26,19 +26,26 @@ import { registerTrustHandlers } from "./trust-handlers.js";
 import { registerBriefingHandlers } from "./briefing-handlers.js";
 import { registerApprovalHandlers } from "./approval-handlers.js";
 import { registerGovernanceHandlers } from "./governance-handlers.js";
+import type { ActivityEventRow } from "@prospero/shared";
 import { initRecorder } from "../activity/index.js";
 import { initInbox, createInboxRepository } from "../inbox/index.js";
 import { initDerivation } from "../derivation/index.js";
 import { initRoutinesEngine, tryGetRoutinesEngine } from "../routines/index.js";
 import { recoverStuckVerifications } from "../verification/index.js";
 import { buildVerificationDeps } from "../verification/deps.js";
+import { initRecall } from "../recall/index.js";
 
 export const registerIpcHandlers = (db: Database.Database): { stopScheduler: () => void } => {
   ipcMain.handle(IPC.PING, () => "pong");
   const derivation = initDerivation(db);
+  // recall.onActivity is set after the orchestrator (and thus the router) is
+  // ready. We capture a late-bound reference so initRecorder can be called
+  // first (keeping the recorder available to createAgentsRepository at boot).
+  let recallOnActivity: ((row: ActivityEventRow) => void) | null = null;
   initRecorder(db, (row) => {
     derivation.onActivity(row);
     tryGetRoutinesEngine()?.onActivity(row);
+    recallOnActivity?.(row);
   });
   initRoutinesEngine(db);
   initInbox(createInboxRepository(db));
@@ -49,7 +56,8 @@ export const registerIpcHandlers = (db: Database.Database): { stopScheduler: () 
   registerAuthHandlers(db);
   registerCompaniesHandlers(db);
   registerMessagesHandlers(db);
-  const { stopScheduler } = registerOrchestratorHandlers(db);
+  const { stopScheduler, router } = registerOrchestratorHandlers(db);
+  recallOnActivity = initRecall(db, router).onActivity;
   registerPermissionHandlers(db);
   registerInboxHandlers(db);
   registerProjectsHandlers(db);

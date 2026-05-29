@@ -220,6 +220,32 @@ describe("createRouter — requestDrain callback", () => {
   });
 });
 
+describe("createRouter — setPendingSeedIfAbsent", () => {
+  it("sets pendingSeed when none is currently parked", () => {
+    const sent: string[] = [];
+    const router = createRouter({
+      writeStdin: (_id, content) => sent.push(content),
+      hasLiveAdapter: () => true,
+    });
+    router.setPendingSeedIfAbsent("ag", "RECALL-SEED");
+    router.enqueue("ag", "th", "hi", { kind: "user", id: null, name: "User" }, null);
+    expect(sent[0]).toContain("RECALL-SEED");
+  });
+
+  it("does NOT overwrite an existing parked seed", () => {
+    const sent: string[] = [];
+    const router = createRouter({
+      writeStdin: (_id, content) => sent.push(content),
+      hasLiveAdapter: () => true,
+    });
+    router.setPendingSeed("ag", "COMPACTION-SEED");
+    router.setPendingSeedIfAbsent("ag", "RECALL-SEED");
+    router.enqueue("ag", "th", "hi", { kind: "user", id: null, name: "User" }, null);
+    expect(sent[0]).toContain("COMPACTION-SEED");
+    expect(sent[0]).not.toContain("RECALL-SEED");
+  });
+});
+
 describe("router — messageId threading", () => {
   it("writeStdin receives messageId from enqueue", () => {
     const writeStdin = vi.fn();

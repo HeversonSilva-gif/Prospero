@@ -47,6 +47,8 @@ export type Router = {
   setPendingNudge(agentId: string, nudge: string): void;
   // Park a compaction seed to ride along with the agent's next turn.
   setPendingSeed(agentId: string, seed: string): void;
+  // Park a recall seed ONLY when no seed is already parked (compaction has priority).
+  setPendingSeedIfAbsent(agentId: string, seed: string): void;
 };
 
 const formatSender = (sender: Sender, content: string): string =>
@@ -130,6 +132,12 @@ export const createRouter = (opts: RouterOptions): Router => {
     },
     setPendingSeed(agentId, seed) {
       ensure(agentId).pendingSeed = seed;
+    },
+    setPendingSeedIfAbsent(agentId, seed) {
+      const s = ensure(agentId);
+      if (s.pendingSeed === null) {
+        s.pendingSeed = seed;
+      }
     },
   };
 };

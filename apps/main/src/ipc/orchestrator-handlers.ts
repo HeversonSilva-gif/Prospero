@@ -58,7 +58,7 @@ import {
   type TestConnectionResult,
 } from "../orchestrator/adapters/claude-oauth-remote-docker/test-connection.js";
 import { createRouter } from "../orchestrator/router.js";
-import type { Sender } from "../orchestrator/router.js";
+import type { Router, Sender } from "../orchestrator/router.js";
 import type { ParsedEvent } from "@prospero/shared";
 import { mapToolUseToAction } from "../orchestrator/current-action-mapper.js";
 import {
@@ -119,7 +119,7 @@ const broadcast = (event: AgentEvent): void => {
 
 export const registerOrchestratorHandlers = (
   db: Database.Database,
-): { stopScheduler: () => void } => {
+): { stopScheduler: () => void; router: Router } => {
   const agents = createAgentsRepository(db, tryGetRecorder());
 
   // Boot recovery: agents left in a transient/error state by a crash, an app
@@ -1764,5 +1764,5 @@ export const registerOrchestratorHandlers = (
     console.error("[scheduler] boot drain failed", e);
   }
 
-  return { stopScheduler };
+  return { stopScheduler, router };
 };
