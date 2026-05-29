@@ -50,6 +50,35 @@ describe("repository lifecycle methods", () => {
     expect(events[0]!.payload).toEqual({ from: false, to: true });
   });
 
+  it("resume does NOT revive a terminated agent (zombie guard)", () => {
+    const { repo, activityRepo, agent } = setup();
+    repo.terminate(agent.id, "test");
+    expect(repo.getById(agent.id)!.status).toBe("terminated");
+    repo.resume(agent.id);
+    // Must stay terminated — resuming a terminated agent is a no-op. A prior bug
+    // reverted status to 'idle' here, creating a "zombie" (terminated_at set but
+    // status idle) that still showed in the roster and accepted messages.
+    expect(repo.getById(agent.id)!.status).toBe("terminated");
+    const resumed = activityRepo.query({ companyId: "co_1", filters: { action: "agent.resumed" } });
+    expect(resumed).toHaveLength(0);
+  });
+
+  it("healTerminatedStatus heals a zombie (terminated_at set but status idle)", () => {
+    const { db, repo, agent } = setup();
+    repo.terminate(agent.id, "test");
+    // Simulate the pre-fix bug: a resume reverted status to idle while terminated_at stayed set.
+    db.prepare("UPDATE agents SET status = 'idle' WHERE id = ?").run(agent.id);
+    expect(repo.getById(agent.id)!.status).toBe("idle");
+    expect(repo.healTerminatedStatus()).toBe(1);
+    expect(repo.getById(agent.id)!.status).toBe("terminated");
+  });
+
+  it("healTerminatedStatus leaves a live agent alone", () => {
+    const { repo, agent } = setup();
+    expect(repo.healTerminatedStatus()).toBe(0);
+    expect(repo.getById(agent.id)!.status).toBe("idle");
+  });
+
   it("setCapabilities records added/removed deltas in payload", () => {
     const { repo, activityRepo, agent } = setup();
     repo.setCapabilities(agent.id, ["read_code", "run_tests"]);

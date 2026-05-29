@@ -128,6 +128,13 @@ export const registerOrchestratorHandlers = (
   const stuckReset = agents.resetStuckAgents();
   if (stuckReset > 0) console.warn(`[boot] reset ${String(stuckReset)} stuck agent(s) to idle`);
 
+  // Boot heal: a terminated agent whose status drifted to idle (the pre-fix
+  // resume bug) is a "zombie" — it shows in the status-filtered roster and
+  // silently swallows user messages. Force status back to 'terminated'.
+  const zombiesHealed = agents.healTerminatedStatus();
+  if (zombiesHealed > 0)
+    console.warn(`[boot] healed ${String(zombiesHealed)} terminated-agent zombie(s)`);
+
   const messages = createMessagesRepository(db);
   const inbox = createInboxRepository(db);
   const costsRepo = createCostsRepository(db);

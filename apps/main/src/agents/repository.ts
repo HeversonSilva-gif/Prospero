@@ -138,6 +138,11 @@ export type AgentsRepository = {
    *  process after a restart) back to idle. Leaves paused & terminated agents
    *  alone and preserves session ids. Returns the number reset. */
   resetStuckAgents(): number;
+  /** Boot heal: a terminated agent (terminated_at set) whose status drifted away
+   *  from 'terminated' (the pre-fix resume bug) is a "zombie" — it still shows in
+   *  the status-filtered roster and accepts messages. Force status back to
+   *  'terminated' so the existing filters hide it. Idempotent. Returns count. */
+  healTerminatedStatus(): number;
 };
 
 // `recorder` is optional so existing test setups (`createAgentsRepository(db)`)
@@ -475,6 +480,12 @@ export const createAgentsRepository = (
     resume(id) {
       const row = byId.get(id) as Row | undefined;
       if (row === undefined) return;
+      // Never revive a terminated agent. The rate-limit pause/resume cycle used
+      // to flip a terminated agent's status back to 'idle' here, creating a
+      // "zombie" (terminated_at set but status idle) that still showed in the
+      // roster (filtered by status) and silently accepted user messages it could
+      // never process (spawn correctly refuses terminated agents).
+      if (row.terminated_at !== null) return;
       db.prepare(
         "UPDATE agents SET status = 'idle', paused_at = NULL, pause_reason = NULL, updated_at = ? WHERE id = ?",
       ).run(Date.now(), id);
@@ -537,6 +548,13 @@ export const createAgentsRepository = (
             AND terminated_at IS NULL`,
       );
       return stmt.run(Date.now()).changes;
+    },
+    healTerminatedStatus() {
+      return db
+        .prepare(
+          "UPDATE agents SET status = 'terminated', updated_at = ? WHERE terminated_at IS NOT NULL AND status != 'terminated'",
+        )
+        .run(Date.now()).changes;
     },
     setRole(id, roleTemplateId, opts) {
       const role = db
