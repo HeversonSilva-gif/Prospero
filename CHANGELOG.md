@@ -3,6 +3,27 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.33 — 2026-05-28
+
+### Added
+
+- **O time agora aprende com as falhas e tenta corrigir sozinho (inspirado no
+  Hermes).** Duas peças que fecham o ciclo de aprendizado:
+  - **Falha de verificação vira proposta de habilidade.** Quando um objetivo
+    falha na verificação, em vez de só anotar uma preferência silenciosa, o
+    sistema deriva uma **proposta de habilidade** ("o que um agente deveria saber
+    pra evitar essa falha?") que chega na sua caixa de entrada pra aprovar — a
+    falha é o sinal mais rico, agora aproveitado.
+  - **O objetivo que falhou volta a ser tentado, sozinho.** Antes, um objetivo
+    reprovado na verificação ficava num beco sem saída (voltava para "em
+    andamento" mas com todas as tarefas concluídas, e ninguém reabria). Agora o
+    reconciliador acorda o CEO para **reabrir a tarefa, reatribuir e mandar
+    corrigir** — automaticamente, **até 2 tentativas**. Só depois disso é que cai
+    um aviso pra você decidir. Falhas de critérios objetivos (determinísticos)
+    entram nesse retry automático; falhas de julgamento continuam indo direto
+    pra você. O contador de tentativas garante que o ciclo sempre termina (sem
+    loop infinito).
+
 ## v0.1.32 — 2026-05-28
 
 ### Added
