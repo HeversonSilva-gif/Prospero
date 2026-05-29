@@ -1,7 +1,6 @@
 import { app, BrowserWindow } from "electron";
 import type { Tray } from "electron";
 import type Database from "better-sqlite3";
-import { appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { IPC } from "@prospero/shared";
 import { createMainWindow } from "./window/main-window.js";
@@ -28,6 +27,7 @@ import { runMemoryMaintenance } from "./memory/maintenance.js";
 import { cleanupOrphanAttachments } from "./messages/cleanup.js";
 import { initUpdater, checkForUpdatesOnLaunch } from "./updater/index.js";
 import { startCuratorTick } from "./curator/tick.js";
+import { safeAppend } from "./logging/safe-log.js";
 import { buildAuthEnv } from "./derivation/index.js";
 
 let mainWindow: BrowserWindow | null = null;
@@ -71,7 +71,9 @@ const logEmergency = (err: unknown): void => {
     const dir = app.getPath("userData");
     const path = join(dir, "emergency.log");
     const msg = err instanceof Error ? `${err.message}\n${err.stack ?? ""}` : String(err);
-    appendFileSync(path, `[${new Date().toISOString()}] uncaughtException: ${msg}\n\n`);
+    // safeAppend redacts secrets + the user's home path (stack traces are full
+    // of absolute paths) and rotates the file. Stays disk-only — never sent out.
+    safeAppend(path, `[${new Date().toISOString()}] uncaughtException: ${msg}\n`);
   } catch {
     // best effort
   }

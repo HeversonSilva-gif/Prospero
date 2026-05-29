@@ -5,22 +5,21 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import Database from "better-sqlite3";
-import { writeFileSync, appendFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
+import { safeAppend } from "../logging/safe-log.js";
 
 // Self-log to a file. When claude spawns this MCP server, its stdout/stderr are
 // consumed by claude (the host only sees "Available MCP tools: none"), so this
 // file is the only window into how far the server actually gets. Path is derived
-// straight from DB_PATH so it works before any other setup.
+// straight from DB_PATH so it works before any other setup. Routed through
+// safeAppend so the log redacts secrets + the user's home path and stays bounded
+// (this file is bundled into the CJS child, so the helper resolves fine here).
 const slog = (msg: string): void => {
-  try {
-    const p = process.env["DB_PATH"];
-    if (p !== undefined) {
-      appendFileSync(join(dirname(p), "mcp-server.log"), `[${new Date().toISOString()}] ${msg}\n`);
-    }
-  } catch {
-    /* ignore */
+  const p = process.env["DB_PATH"];
+  if (p !== undefined) {
+    safeAppend(join(dirname(p), "mcp-server.log"), `[${new Date().toISOString()}] ${msg}`);
   }
 };
 slog(
