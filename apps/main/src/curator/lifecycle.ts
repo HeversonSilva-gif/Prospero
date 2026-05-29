@@ -19,7 +19,15 @@ export const nextLifecycleState = (lastTouched: number, now: number): SkillLifec
   return "archived";
 };
 
-export type LifecyclePassResult = { toStale: number; toArchived: number; revived: number };
+export type LifecyclePassResult = {
+  toStale: number;
+  toArchived: number;
+  revived: number;
+  // Companies that got a new inbox notice this pass — the caller must broadcast
+  // an inbox update for each, or the stale/archived cards stay invisible until
+  // some other event reloads the renderer's inbox.
+  affectedCompanyIds: string[];
+};
 
 type LifecycleRow = {
   id: string;
@@ -73,6 +81,7 @@ export const runLifecyclePass = (db: Database.Database, now: number): LifecycleP
 
   let toStale = 0;
   let toArchived = 0;
+  const affected = new Set<string>();
   for (const row of rows) {
     const lastTouched = row.last_used ?? row.created_at;
     let target = nextLifecycleState(lastTouched, now);
@@ -82,6 +91,7 @@ export const runLifecyclePass = (db: Database.Database, now: number): LifecycleP
     applyTransition(row, target);
     if (target === "stale") toStale += 1;
     else if (target === "archived") toArchived += 1;
+    affected.add(row.company_id);
   }
-  return { toStale, toArchived, revived: 0 };
+  return { toStale, toArchived, revived: 0, affectedCompanyIds: [...affected] };
 };

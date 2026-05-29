@@ -26,6 +26,11 @@ export type RunCuratorPassDeps = {
     env: Record<string, string>;
   }) => Promise<RunDerivationResult>;
   authEnv: () => Record<string, string>;
+  // Notifies the renderer that a company's inbox changed. The curator runs on a
+  // main-process tick (no IPC request to ride), so it must broadcast explicitly
+  // like every other non-handler inbox writer. Optional + defaulted to a no-op
+  // so tests can run the pass without an electron broadcast.
+  broadcastInbox?: (companyId: string) => void;
 };
 
 const readSetting = (db: Database.Database, key: string): string | undefined => {
@@ -47,7 +52,10 @@ const writeSetting = (db: Database.Database, key: string, value: string): void =
 // not advance the throttle.
 export const runCuratorPass = async (deps: RunCuratorPassDeps): Promise<CuratorPassResult> => {
   const { db, now } = deps;
+  const broadcastInbox = deps.broadcastInbox ?? ((): void => {});
   const lifecycle = runLifecyclePass(db, now);
+  // Surface the lifecycle stale/archived cards the pass just wrote.
+  for (const companyId of lifecycle.affectedCompanyIds) broadcastInbox(companyId);
 
   const dryRun = readSetting(db, DRY_RUN_KEY) === "1";
   const last = Number(readSetting(db, LAST_RUN_KEY) ?? "0");
@@ -111,6 +119,8 @@ export const runCuratorPass = async (deps: RunCuratorPassDeps): Promise<CuratorP
     forkRan = forkRan || r.ran;
     proposalsCreated += r.proposalsCreated;
     tokens += r.tokens;
+    // The librarian wrote skill_consolidation_proposed cards for this company.
+    if (r.proposalsCreated > 0) broadcastInbox(companyId);
   }
   writeSetting(db, LAST_RUN_KEY, String(now));
   return { lifecycle, fork: { ran: forkRan, proposalsCreated, tokens } };

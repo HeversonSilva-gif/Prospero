@@ -76,6 +76,30 @@ describe("runCuratorPass", () => {
     expect(forkCalls).toBe(2);
   });
 
+  it("broadcasts an inbox update for a company when the librarian creates proposals", async () => {
+    const repo = createSkillsRepository(db);
+    const s1 = repo.getByName("c1", "a1", "skill1")!.id;
+    const archiveFork = (): Promise<{
+      text: string;
+      usage: { input: number; output: number; cacheCreation: number; cacheRead: number };
+    }> =>
+      Promise.resolve({
+        text: JSON.stringify([{ kind: "archive", sourceSkillIds: [s1], rationale: "stale" }]),
+        usage: { input: 0, output: 0, cacheCreation: 0, cacheRead: 0 },
+      });
+    const broadcasts: string[] = [];
+    await runCuratorPass({
+      db,
+      now: 1000 * DAY,
+      runDerivation: archiveFork,
+      authEnv: () => ({}),
+      broadcastInbox: (cid) => broadcasts.push(cid),
+    });
+    // The librarian created an inbox card for c1 — the renderer only reloads on
+    // the broadcast, so it must fire or the proposal is invisible until reload.
+    expect(broadcasts).toContain("c1");
+  });
+
   it("dry-run runs the fork but persists nothing and does not advance the throttle", async () => {
     db.prepare("INSERT INTO settings (key, value) VALUES ('curator_dry_run','1')").run();
     const repo = createSkillsRepository(db);

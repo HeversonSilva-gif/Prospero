@@ -1,6 +1,7 @@
 import type Database from "better-sqlite3";
 import { startSchedulerTick } from "../orchestrator/scheduler-tick.js";
 import { runCuratorPass } from "./pass.js";
+import { broadcastInboxUpdate } from "../ipc/inbox-handlers.js";
 import { runDerivation, defaultRunProcess, type RunProcess } from "../derivation/runner.js";
 
 const HOURLY_MS = 60 * 60 * 1000;
@@ -21,6 +22,13 @@ export const startCuratorTick = (
       now: Date.now(),
       runDerivation: (input) => runDerivation({ runProcess }, input),
       authEnv,
+      broadcastInbox: (companyId) => {
+        try {
+          broadcastInboxUpdate(companyId);
+        } catch (err) {
+          console.warn(`[curator] broadcastInboxUpdate failed: ${String(err)}`);
+        }
+      },
     }).catch((err) => console.warn(`[curator] pass failed: ${String(err)}`));
   };
   runPass(); // boot catch-up
