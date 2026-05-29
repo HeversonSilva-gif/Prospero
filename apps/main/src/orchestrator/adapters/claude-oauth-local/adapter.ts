@@ -18,7 +18,7 @@ import { findClaudeExe } from "./resolve-binary.js";
 import { prepareSandbox, seedSandboxCredentials, writeSandboxSettings } from "./prepare-sandbox.js";
 import { parseStreamLine } from "./stream-parser.js";
 import { FakeClaude, isFakeClaudeEnabled } from "./fake-claude.js";
-import { buildSpawnEnv } from "../../env.js";
+import { buildSpawnEnv, type SpawnEnvBase } from "../../env.js";
 import { setupMcpHandshake } from "../../mcp-handshake.js";
 import { mergeSpawnEnv } from "../../util/env-merge.js";
 import {
@@ -178,16 +178,48 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
     if (this.ctx.userDataDir !== undefined) {
       logFilePath = resolve(this.ctx.userDataDir, "prospero-debug.log");
     }
-    const env = buildSpawnEnv(
-      this.ctx.agent,
-      this.ctx.oauthToken,
-      this.ctx.dbPath,
-      this.ctx.permissionsDir,
-      this.ctx.eventsDir,
+    // Prepare the per-agent sandbox first so we know whether credentials could
+    // be seeded before we decide what to put in the spawn env.
+    const { agentConfigDir, agentSandboxCwd, isEphemeralConfigDir } = prepareSandbox(
+      this.ctx.agent.id,
+      this.ctx.userDataDir,
+    );
+    const credentialsSeeded = seedSandboxCredentials(agentConfigDir);
+    writeSandboxSettings(agentConfigDir);
+
+    // SEC-CRIT-01: when the credentials file was successfully seeded to
+    // CLAUDE_CONFIG_DIR, claude reads auth from that file — we must NOT
+    // inject CLAUDE_CODE_OAUTH_TOKEN into the spawn environment.  The token
+    // in the env is inherited by every bash sub-process the agent spawns,
+    // leaking the OAuth token to untrusted agent-authored shell commands.
+    // We only fall back to the env-var path when seeding failed (host has no
+    // ~/.claude/.credentials.json — very rare, but must still work).
+    const baseEnv: SpawnEnvBase = {
+      AGENT_ID: this.ctx.agent.id,
+      COMPANY_ID: this.ctx.agent.companyId,
+      DB_PATH: this.ctx.dbPath,
+      PERMISSIONS_DIR: this.ctx.permissionsDir,
+      EVENTS_DIR: this.ctx.eventsDir,
+    };
+    const env = credentialsSeeded
+      ? baseEnv
+      : buildSpawnEnv(
+          this.ctx.agent,
+          this.ctx.oauthToken,
+          this.ctx.dbPath,
+          this.ctx.permissionsDir,
+          this.ctx.eventsDir,
+        );
+
+    dlog(
+      `credentials seeded=${String(credentialsSeeded)} — CLAUDE_CODE_OAUTH_TOKEN in env=${String(!credentialsSeeded)}`,
     );
 
-    const handshake = setupMcpHandshake(env, this.ctx.mcpServerJsPath);
-    mcpHealthCheckOnce(handshake.mcpServerJsPath, env);
+    // setupMcpHandshake only reads AGENT_ID/COMPANY_ID/DB_PATH/PERMISSIONS_DIR/
+    // EVENTS_DIR from env — the OAuth token is never written to the on-disk
+    // mcp.json — so passing baseEnv is safe regardless of the seeding outcome.
+    const handshake = setupMcpHandshake(baseEnv, this.ctx.mcpServerJsPath);
+    mcpHealthCheckOnce(handshake.mcpServerJsPath, baseEnv);
     const args = buildClaudeArgs(this.ctx.agent, handshake.mcpConfigPath, {
       ...(this.ctx.narratedActive === true ? { narratedActive: true } : {}),
       ...(this.ctx.telosBlock !== undefined ? { telosBlock: this.ctx.telosBlock } : {}),
@@ -199,14 +231,6 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
         ? { instructionsBlock: this.ctx.instructionsBlock }
         : {}),
     });
-
-    const { agentConfigDir, agentSandboxCwd, isEphemeralConfigDir } = prepareSandbox(
-      this.ctx.agent.id,
-      this.ctx.userDataDir,
-    );
-
-    seedSandboxCredentials(agentConfigDir);
-    writeSandboxSettings(agentConfigDir);
 
     const spawnCwd = this.ctx.cwd ?? agentSandboxCwd;
     const spawnEnv = mergeSpawnEnv(env, agentConfigDir);
