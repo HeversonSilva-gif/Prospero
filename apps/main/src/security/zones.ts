@@ -72,6 +72,17 @@ export const zoneOf = (absPath: string, userDataDir: string): ZoneId | null => {
 
   const prefix = parts[0];
 
+  // ── agent-sandbox/<aid>/... ───────────────────────────────────────────────
+  // Per-agent sandbox: config dir + CWD created by claude-oauth-local adapter.
+  // Contains CLAUDE_CONFIG_DIR/.credentials.json (seeded OAuth token), sandbox
+  // settings.json and per-session resume files. No agent FS tool should ever
+  // read or write here — they work inside their CWD, not the config root.
+  // Classify as "system" so every access attempt is denied + audited regardless
+  // of what allowedProjectPaths says (defense-in-depth, iss_0d783928).
+  if (prefix === "agent-sandbox") {
+    return { kind: "system" };
+  }
+
   // ── companies/<cid>/... ────────────────────────────────────────────────────
   if (prefix === "companies") {
     return classifyCompaniesSubpath(parts);

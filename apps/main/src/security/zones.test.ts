@@ -88,6 +88,30 @@ describe("zoneOf", () => {
     expect(zoneOf(join(ROOT, "logs", "app.log"), ROOT)).toBeNull();
   });
 
+  // ── agent-sandbox/<aid>/... (iss_0d783928) ───────────────────────────────
+
+  it("classifies agent-sandbox/<aid> as system zone", () => {
+    expect(zoneOf(join(ROOT, "agent-sandbox", "agent-123"), ROOT)).toEqual({ kind: "system" });
+  });
+
+  it("classifies agent-sandbox/<aid>/.credentials.json as system zone", () => {
+    expect(zoneOf(join(ROOT, "agent-sandbox", "agent-123", ".credentials.json"), ROOT)).toEqual({
+      kind: "system",
+    });
+  });
+
+  it("classifies agent-sandbox/<aid>/cwd as system zone", () => {
+    expect(zoneOf(join(ROOT, "agent-sandbox", "agent-123", "cwd"), ROOT)).toEqual({
+      kind: "system",
+    });
+  });
+
+  it("classifies deep path inside agent-sandbox as system zone", () => {
+    expect(zoneOf(join(ROOT, "agent-sandbox", "agent-123", "settings.json"), ROOT)).toEqual({
+      kind: "system",
+    });
+  });
+
   it("returns null for the companies root itself (no specific company)", () => {
     expect(zoneOf(join(ROOT, "companies"), ROOT)).toBeNull();
   });
