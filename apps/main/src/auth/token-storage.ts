@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import { safeStorage } from "electron";
+import { app, safeStorage } from "electron";
 import { readFileSync } from "node:fs";
 import type { TokenSource, TokenStatus } from "@prospero/shared";
 import { isWellFormedToken } from "./token-validate.js";
@@ -73,11 +73,12 @@ export const loadTokenStatus = (db: Database.Database): TokenStatus => {
 };
 
 export const loadDecryptedToken = (db: Database.Database): string | null => {
-  // E2E bypass: when PROSPERO_E2E_TOKEN_PATH is set, read a plaintext
-  // token from that file. The fake-claude stub (also gated by env var) is the
-  // only consumer, so a fake token works.
+  // SEC-CRIT-02: E2E bypass is ONLY active in non-packaged (dev/test) builds.
+  // In the packaged app app.isPackaged === true; the bypass is dead code there.
+  // Without this guard, anyone who can set PROSPERO_E2E_TOKEN_PATH in the
+  // environment of the installed app can bypass safeStorage entirely.
   const e2eTokenPath = process.env["PROSPERO_E2E_TOKEN_PATH"];
-  if (e2eTokenPath !== undefined && e2eTokenPath !== "") {
+  if (e2eTokenPath !== undefined && e2eTokenPath !== "" && !app.isPackaged) {
     try {
       return readFileSync(e2eTokenPath, "utf8").trim();
     } catch {

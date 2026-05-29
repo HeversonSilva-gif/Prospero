@@ -1,8 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations } from "../src/db/migrations.js";
 
+// vi.hoisted ensures mockApp is initialised before the vi.mock factory runs
+// (vi.mock is hoisted to the top of the compiled output; a plain `const`
+// defined above it is NOT available inside the factory — ReferenceError).
+const { mockApp } = vi.hoisted(() => ({ mockApp: { isPackaged: false } }));
+
 vi.mock("electron", () => ({
+  app: mockApp,
   safeStorage: {
     isEncryptionAvailable: () => true,
     encryptString: (raw: string) => Buffer.from("ENC:" + raw, "utf8"),
@@ -60,5 +66,53 @@ describe("token-storage", () => {
   it("rejects malformed tokens", () => {
     const db = setup();
     expect(() => saveToken(db, { raw: "not-a-token", source: "manual" })).toThrow();
+  });
+});
+
+// ── SEC-CRIT-02: E2E bypass guard ────────────────────────────────────────────
+
+describe("loadDecryptedToken E2E bypass (SEC-CRIT-02)", () => {
+  const TOKEN_FILE_VAR = "PROSPERO_E2E_TOKEN_PATH";
+  const originalPath = process.env[TOKEN_FILE_VAR];
+
+  afterEach(() => {
+    // Restore env + isPackaged after each test
+    if (originalPath !== undefined) process.env[TOKEN_FILE_VAR] = originalPath;
+    else delete process.env[TOKEN_FILE_VAR];
+    mockApp.isPackaged = false;
+  });
+
+  it("bypass is inactive when env var is not set (normal path)", () => {
+    delete process.env[TOKEN_FILE_VAR];
+    const db = setup();
+    // No token in DB → should return null via normal path
+    expect(loadDecryptedToken(db)).toBeNull();
+  });
+
+  it("bypass returns null in packaged build even when env var is set (SEC-CRIT-02)", () => {
+    process.env[TOKEN_FILE_VAR] = "/some/path/token.txt";
+    mockApp.isPackaged = true; // simulate production build
+    const db = setup();
+    // Must NOT read the file — falls through to DB path, returns null (empty DB)
+    expect(loadDecryptedToken(db)).toBeNull();
+  });
+
+  it("bypass is active in non-packaged build when env var points to existing file", async () => {
+    // Write a temp token file and point the env var at it
+    const { writeFileSync, unlinkSync, mkdtempSync } = await import("node:fs");
+    const path = await import("node:path");
+    const { tmpdir } = await import("node:os");
+    const dir = mkdtempSync(path.join(tmpdir(), "prospero-test-"));
+    const tokenFile = path.join(dir, "token.txt");
+    const fakeToken = "sk-ant-oat01-fake-e2e-token-xyz"; // gitleaks:allow — test fixture, not a real secret
+    writeFileSync(tokenFile, fakeToken + "\n", "utf8");
+    process.env[TOKEN_FILE_VAR] = tokenFile;
+    mockApp.isPackaged = false; // dev build
+    try {
+      const db = setup();
+      expect(loadDecryptedToken(db)).toBe(fakeToken);
+    } finally {
+      unlinkSync(tokenFile);
+    }
   });
 });
