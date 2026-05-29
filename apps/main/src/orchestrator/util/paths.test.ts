@@ -45,3 +45,32 @@ describe("sandbox layout (short sbx/<slug>)", () => {
     expect(getAgentSandboxCwd(UD, ID).startsWith(getAgentConfigDir(UD, ID))).toBe(true);
   });
 });
+
+describe("PDF rasterization output path stays under Windows MAX_PATH", () => {
+  // Claude writes rasterized PDF pages to:
+  //   <configDir>\projects\<encoded-cwd>\<sessionUuid>\tool-results\pdf-<uuid>\page-NN.jpg
+  // The suffix after <encoded-cwd> uses fixed-length UUIDs (not the PDF name), so its
+  // length is deterministic. Mirror Claude's dir encoding: replace : \ / with -.
+  const encode = (p: string): string => p.replace(/[:\\/]/g, "-");
+
+  // len("\projects") + len("\" + 36-char sessionUuid) + len("\tool-results")
+  //   + len("\pdf-" + 36-char uuid) + len("\page-NN.jpg")
+  const CLAUDE_SUFFIX_LEN =
+    "\\projects".length +
+    1 +
+    36 + // session uuid dir
+    "\\tool-results".length +
+    "\\pdf-".length +
+    36 + // pdf uuid
+    "\\page-NN.jpg".length;
+
+  it("worst-case output path is < 260 for a realistic Windows userData", () => {
+    // Real installed-app userData on Windows (longest realistic prefix).
+    const userData = "C:\\Users\\hever\\AppData\\Roaming\\prospero";
+    const id = "agent_2754ee4b-0121-4b84-a3a0-47673d37493f";
+    const configDir = getAgentConfigDir(userData, id);
+    const cwd = getAgentSandboxCwd(userData, id);
+    const total = configDir.length + "\\projects\\".length + encode(cwd).length + CLAUDE_SUFFIX_LEN;
+    expect(total).toBeLessThan(260);
+  });
+});
