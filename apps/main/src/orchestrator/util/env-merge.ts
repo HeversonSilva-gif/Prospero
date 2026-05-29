@@ -1,4 +1,6 @@
+import { delimiter } from "node:path";
 import type { AnySpawnEnv } from "../env.js";
+import { resolvePopplerBinDir } from "../poppler.js";
 
 // Credential env vars that, if set on the HOST process, must NOT be inherited by
 // a spawned child. The child gets exactly the credential our orchestration layer
@@ -27,8 +29,20 @@ export const stripHostCredentials = (base: NodeJS.ProcessEnv = process.env): Nod
 // CLAUDE_CONFIG_DIR (forces the sandbox dir regardless of host CLAUDE_CONFIG_DIR).
 // Stripping the host baseline ensures a host-set credential can never leak into
 // the child and override the intended one.
+// Prepends the bundled Poppler bin dir to PATH so the agent's claude Read tool
+// can rasterize PDFs (it shells out to pdftoppm). No-op when Poppler isn't
+// bundled — the child then falls back to any host pdftoppm.
+const withPopplerOnPath = (base: NodeJS.ProcessEnv): NodeJS.ProcessEnv => {
+  const bin = resolvePopplerBinDir();
+  if (bin === null) return base;
+  // Windows env is case-insensitive but the key casing varies (PATH/Path).
+  const key = Object.keys(base).find((k) => k.toUpperCase() === "PATH") ?? "PATH";
+  const current = base[key] ?? "";
+  return { ...base, [key]: current === "" ? bin : `${bin}${delimiter}${current}` };
+};
+
 export const mergeSpawnEnv = (env: AnySpawnEnv, configDir: string): NodeJS.ProcessEnv => ({
-  ...stripHostCredentials(),
+  ...withPopplerOnPath(stripHostCredentials()),
   ...env,
   CLAUDE_CONFIG_DIR: configDir,
 });

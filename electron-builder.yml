@@ -50,6 +50,15 @@ files:
   - "!**/*.test.*"
   - "!**/.eslintrc*"
 
+# Bundled Poppler (pdftoppm) so the agent's claude Read tool can rasterize PDFs.
+# Populated by scripts/fetch-poppler.mjs (run in dist:* before electron-builder);
+# resolved at runtime via process.resourcesPath/poppler and prepended to the
+# spawned agent's PATH. Empty on macOS/Linux for now (host pdftoppm fallback).
+extraResources:
+  - from: resources/poppler
+    to: poppler
+    filter: ["**/*"]
+
 # macOS — DMG (primary installer) + ZIP (for auto-updater delta).
 # Builds for both Intel (x64) and Apple Silicon (arm64) from a single
 # macos-latest CI runner via electron-builder's universal/arch flags.

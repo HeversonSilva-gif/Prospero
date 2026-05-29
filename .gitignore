@@ -6,6 +6,9 @@ node_modules/
 dist/
 out/
 release/
+# Bundled Poppler binaries — fetched at build time by scripts/fetch-poppler.mjs,
+# not committed (large; download-in-build per the v0.1.37 decision).
+resources/poppler/
 # Note: build/ is NOT ignored — it is electron-builder's buildResources
 # directory (icons, entitlements.plist). Build OUTPUT goes to release/ above.
 .vite/
