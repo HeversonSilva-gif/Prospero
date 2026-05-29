@@ -5,6 +5,7 @@ import { join } from "node:path";
 import crossSpawn from "cross-spawn";
 import { findClaudeExe } from "../orchestrator/adapters/claude-oauth-local/resolve-binary.js";
 import { seedSandboxCredentials } from "../orchestrator/adapters/claude-oauth-local/prepare-sandbox.js";
+import { stripHostCredentials } from "../orchestrator/util/env-merge.js";
 
 // Token usage from one derivation run, normalized to the cost layer's shape.
 export type DerivationUsage = {
@@ -64,6 +65,21 @@ export const parseRunnerOutput = (stdout: string): RunDerivationResult => {
   throw new Error("derivation runner produced no result event");
 };
 
+// Builds the child env for a derivation run. The inherited baseline is the host
+// env with credential vars STRIPPED (stripHostCredentials), so a host-set
+// CLAUDE_CODE_OAUTH_TOKEN/ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN can never leak
+// in. The intended `env` (the derivation's own auth) + CLAUDE_CONFIG_DIR are
+// layered on top, so the only credential the child sees is the one we pass.
+// Extracted so the env construction is unit-testable without spawning.
+export const buildChildEnv = (
+  env: Record<string, string>,
+  configDir: string,
+): NodeJS.ProcessEnv => ({
+  ...stripHostCredentials(),
+  ...env,
+  CLAUDE_CONFIG_DIR: configDir,
+});
+
 // The real process I/O: spawn `claude`, write the prompt to stdin, collect stdout.
 //
 // Auth: OAuth runs get an ephemeral CLAUDE_CONFIG_DIR seeded with the host's live
@@ -78,7 +94,7 @@ export const defaultRunProcess: RunProcess = (args, env, stdin) =>
   new Promise((resolve, reject) => {
     const configDir = mkdtempSync(join(tmpdir(), "da-headless-cfg-"));
     if ("CLAUDE_CODE_OAUTH_TOKEN" in env) seedSandboxCredentials(configDir);
-    const fullEnv: NodeJS.ProcessEnv = { ...process.env, ...env, CLAUDE_CONFIG_DIR: configDir };
+    const fullEnv: NodeJS.ProcessEnv = buildChildEnv(env, configDir);
     const cleanup = (): void => {
       try {
         rmSync(configDir, { recursive: true, force: true });

@@ -1,5 +1,35 @@
-import { describe, it, expect } from "vitest";
-import { buildDerivationArgs, parseRunnerOutput, runDerivation } from "./runner.js";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { buildChildEnv, buildDerivationArgs, parseRunnerOutput, runDerivation } from "./runner.js";
+
+describe("buildChildEnv", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("does not inherit a stray host credential — only the intended one survives", () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "HOST-STRAY-KEY");
+    vi.stubEnv("CLAUDE_CODE_OAUTH_TOKEN", "HOST-STRAY-OAUTH");
+    vi.stubEnv("ANTHROPIC_AUTH_TOKEN", "HOST-STRAY-AUTH");
+    const env = buildChildEnv({ ANTHROPIC_API_KEY: "INTENDED-KEY" }, "/tmp/cfg");
+    // The intended credential wins; the host's stray values never appear.
+    expect(env["ANTHROPIC_API_KEY"]).toBe("INTENDED-KEY");
+    expect(env["CLAUDE_CODE_OAUTH_TOKEN"]).toBeUndefined();
+    expect(env["ANTHROPIC_AUTH_TOKEN"]).toBeUndefined();
+    expect(env["CLAUDE_CONFIG_DIR"]).toBe("/tmp/cfg");
+  });
+
+  it("strips a host credential entirely when the derivation passes none", () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "HOST-STRAY-KEY");
+    const env = buildChildEnv({}, "/tmp/cfg");
+    expect(env["ANTHROPIC_API_KEY"]).toBeUndefined();
+  });
+
+  it("preserves non-credential host env (e.g. PATH)", () => {
+    vi.stubEnv("PATH", "/usr/bin:/bin");
+    const env = buildChildEnv({}, "/tmp/cfg");
+    expect(env["PATH"]).toBe("/usr/bin:/bin");
+  });
+});
 
 describe("buildDerivationArgs", () => {
   it("builds a no-tools print-mode arg list for the given model", () => {
