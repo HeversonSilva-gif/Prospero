@@ -11,6 +11,7 @@ import { getAgentMemoryDir, skillBodyPath } from "./memory-dir.js";
 const SOURCE_BY_TRIGGER: Record<SkillCandidateTrigger, SkillSource> = {
   issue_done: "derived_from_issue",
   recovery: "derived_from_recovery",
+  verification_failed: "derived_from_verification",
 };
 
 export type AcceptCandidateInput = {

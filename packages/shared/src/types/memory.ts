@@ -6,6 +6,7 @@ export type SkillSource =
   | "agent_created"
   | "derived_from_issue"
   | "derived_from_recovery"
+  | "derived_from_verification"
   | "user_authored"
   | "curated_merge";
 
@@ -56,7 +57,7 @@ export type Memory = {
 };
 
 // Pending auto-derivation suggestion. Never becomes a Skill without human review.
-export type SkillCandidateTrigger = "issue_done" | "recovery";
+export type SkillCandidateTrigger = "issue_done" | "recovery" | "verification_failed";
 export type SkillCandidateStatus = "pending" | "accepted" | "rejected";
 
 export type SkillCandidate = {
