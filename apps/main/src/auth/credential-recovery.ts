@@ -40,6 +40,48 @@ export const isAuthError = (line: string): boolean => {
   return false;
 };
 
+// The Claude CLI (stream-json mode used by the local adapter) surfaces auth
+// failures as structured JSON events on STDOUT, not as plaintext on stderr:
+//   {"type":"system","subtype":"api_retry",...,"error_status":401,"error":"authentication_failed"}
+//   {"type":"result",...,"is_error":true,"api_error_status":401,"result":"...401 Invalid authentication credentials"}
+// The stderr-only `isAuthError` trigger therefore NEVER fired in production —
+// auto-recovery was effectively dead (0 `auth:recover` entries despite repeated
+// 401s in the wild). This detector watches the stdout stream. Detection is
+// SCOPED to the CLI's own system/result event types so an agent that merely
+// prints "authentication_failed" in its own assistant output can't trigger a
+// spurious kill+respawn. Only 401 counts as auth — transient 502/server_error
+// retries must NOT trigger recovery.
+export const isAuthFailureStreamEvent = (line: string): boolean => {
+  const trimmed = line.trim();
+  if (trimmed === "" || trimmed[0] !== "{") return false;
+  let data: unknown;
+  try {
+    data = JSON.parse(trimmed);
+  } catch {
+    return false;
+  }
+  if (data === null || typeof data !== "object") return false;
+  const o = data as Record<string, unknown>;
+  const type = o["type"];
+
+  // api_retry — the earliest signal, emitted on the first failed attempt.
+  if (type === "system" && o["subtype"] === "api_retry") {
+    if (o["error"] === "authentication_failed") return true;
+    if (o["error_status"] === 401) return true;
+    return false;
+  }
+
+  // result — the terminal turn outcome carrying the auth failure.
+  if (type === "result") {
+    if (o["api_error_status"] === 401) return true;
+    const result = o["result"];
+    if (typeof result === "string" && isAuthError(result)) return true;
+    return false;
+  }
+
+  return false;
+};
+
 // Injected at orchestrator init (apps/main/src/orchestrator/index.ts). Tests set
 // these directly via the setters below. Keeping them as module-level state keeps
 // the recovery pipeline a pure function of its inputs (no electron `app` import here

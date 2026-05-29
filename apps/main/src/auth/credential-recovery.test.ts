@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { RecoveryStatusEvent } from "@prospero/shared";
 import {
   isAuthError,
+  isAuthFailureStreamEvent,
   recoverAgent,
   setRecoveryBroadcastFn,
   setRespawnFn,
@@ -52,6 +53,54 @@ describe("isAuthError", () => {
 
   it("is case-insensitive on the auth keywords", () => {
     expect(isAuthError("INVALID AUTHENTICATION CREDENTIALS")).toBe(true);
+  });
+});
+
+describe("isAuthFailureStreamEvent — auth errors on the stdout JSON stream", () => {
+  // These are the EXACT lines captured from a real prospero-debug.log when the
+  // sandbox credential went stale (2026-05-29). The CLI emits auth failures as
+  // structured JSON on stdout, not as plaintext on stderr — which is why the
+  // stderr-only trigger never fired and auto-recovery never ran.
+  it("matches the api_retry event carrying error:authentication_failed", () => {
+    expect(
+      isAuthFailureStreamEvent(
+        '{"type":"system","subtype":"api_retry","attempt":1,"max_retries":10,"retry_delay_ms":520.9,"error_status":401,"error":"authentication_failed","session_id":"x","uuid":"y"}',
+      ),
+    ).toBe(true);
+  });
+
+  it("matches the result event carrying api_error_status:401", () => {
+    expect(
+      isAuthFailureStreamEvent(
+        '{"type":"result","subtype":"success","is_error":true,"api_error_status":401,"duration_ms":2383,"num_turns":1,"result":"Failed to authenticate. API Error: 401 Invalid authentication credentials","session_id":"x"}',
+      ),
+    ).toBe(true);
+  });
+
+  it("does NOT match transient server errors (502 / server_error)", () => {
+    expect(
+      isAuthFailureStreamEvent(
+        '{"type":"system","subtype":"api_retry","attempt":1,"error_status":502,"error":"server_error","session_id":"x"}',
+      ),
+    ).toBe(false);
+  });
+
+  it("does NOT match an assistant message that merely mentions authentication_failed", () => {
+    // An agent discussing this very code must not trigger a spurious respawn —
+    // detection is scoped to the CLI's own system/result event types.
+    expect(
+      isAuthFailureStreamEvent(
+        '{"type":"assistant","message":{"content":[{"type":"text","text":"the error_status:401 authentication_failed case"}]}}',
+      ),
+    ).toBe(false);
+  });
+
+  it("does NOT match normal stream lines or non-JSON noise", () => {
+    expect(isAuthFailureStreamEvent('{"type":"system","subtype":"init","session_id":"x"}')).toBe(
+      false,
+    );
+    expect(isAuthFailureStreamEvent("[debug] startup ok")).toBe(false);
+    expect(isAuthFailureStreamEvent("")).toBe(false);
   });
 });
 

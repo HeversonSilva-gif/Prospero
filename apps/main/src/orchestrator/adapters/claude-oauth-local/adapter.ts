@@ -21,7 +21,11 @@ import { FakeClaude, isFakeClaudeEnabled } from "./fake-claude.js";
 import { buildSpawnEnv } from "../../env.js";
 import { setupMcpHandshake } from "../../mcp-handshake.js";
 import { mergeSpawnEnv } from "../../util/env-merge.js";
-import { isAuthError, recoverAgent } from "../../../auth/credential-recovery.js";
+import {
+  isAuthError,
+  isAuthFailureStreamEvent,
+  recoverAgent,
+} from "../../../auth/credential-recovery.js";
 import { safeAppend } from "../../../logging/safe-log.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -244,6 +248,12 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
         dlog(`stdout: ${preview}`);
         const parsed = parseStreamLine(line);
         if (parsed !== null) this.handleParsedEvent(parsed);
+        // The CLI emits 401 auth failures as JSON on stdout (not stderr), so the
+        // recovery trigger must watch this stream too — otherwise it never fires.
+        if (isAuthFailureStreamEvent(line)) {
+          dlog(`stdout: auth-failure detected → triggering auto-recovery`);
+          this.maybeTriggerAutoRecovery();
+        }
       });
     }
 
