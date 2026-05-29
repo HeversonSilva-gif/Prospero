@@ -88,15 +88,28 @@ export const isAuthFailureStreamEvent = (line: string): boolean => {
 // — preserves testability).
 type RespawnFn = (agentId: string) => Promise<unknown>;
 type BroadcastFn = (event: RecoveryStatusEvent) => void;
+type PauseFn = (agentId: string, reason: string) => void;
 let respawnFn: RespawnFn | null = null;
 let userDataDir: string | null = null;
 let broadcastFn: BroadcastFn | null = null;
+let pauseFn: PauseFn | null = null;
 
 const LOCK_TIMEOUT_MS = 30_000;
 const COOLDOWN_MS = 15_000;
 
+// Circuit breaker: if an agent needs auto-401 recovery more than this many times
+// within the window, respawning clearly isn't fixing the auth (dead refresh
+// token, persistent network failure, …). Respawning with the same bad credential
+// would loop forever (~once per cooldown), burning the agent so it never
+// completes a turn — it looks "stuck idle". Trip the breaker instead: pause the
+// agent + tell the user to reconnect. A user-reconnect resets the counter.
+const BREAKER_WINDOW_MS = 5 * 60_000;
+const BREAKER_MAX_RECOVERIES = 4;
+
 const inFlight = new Map<string, Promise<RecoveryResult>>();
 const lastSuccessAt = new Map<string, number>();
+// Timestamps of recent auto-401 recovery attempts per agent (for the breaker).
+const autoRecoveryTimes = new Map<string, number[]>();
 
 export const setRespawnFn = (fn: RespawnFn): void => {
   respawnFn = fn;
@@ -110,6 +123,10 @@ export const setRecoveryBroadcastFn = (fn: BroadcastFn): void => {
   broadcastFn = fn;
 };
 
+export const setRecoveryPauseFn = (fn: PauseFn): void => {
+  pauseFn = fn;
+};
+
 const broadcast = (event: RecoveryStatusEvent): void => {
   if (broadcastFn !== null) broadcastFn(event);
 };
@@ -118,8 +135,10 @@ export const __resetRecoveryState = (): void => {
   respawnFn = null;
   userDataDir = null;
   broadcastFn = null;
+  pauseFn = null;
   inFlight.clear();
   lastSuccessAt.clear();
+  autoRecoveryTimes.clear();
 };
 
 export const recoverAgent = async (
@@ -128,10 +147,36 @@ export const recoverAgent = async (
 ): Promise<RecoveryResult> => {
   dlog(`recoverAgent agentId=${agentId} reason=${opts.reason}`);
 
+  // A user-initiated reconnect is a fresh start — clear the breaker so a token
+  // the user just refreshed gets a clean shot.
+  if (opts.reason === "user-reconnect") {
+    autoRecoveryTimes.delete(agentId);
+  }
+
   const existing = inFlight.get(agentId);
   if (existing !== undefined) {
     dlog(`recoverAgent agentId=${agentId} short-circuit=skipped-recovering`);
     return { kind: "skipped-recovering", agentId };
+  }
+
+  // Circuit breaker (auto-401 only): if we've respawned this agent repeatedly in
+  // the window and it keeps 401-ing, respawning isn't the fix. Pause the agent
+  // and ask the user to reconnect instead of looping forever.
+  if (opts.reason === "auto-401") {
+    const now = Date.now();
+    const recent = (autoRecoveryTimes.get(agentId) ?? []).filter(
+      (t) => now - t < BREAKER_WINDOW_MS,
+    );
+    recent.push(now);
+    autoRecoveryTimes.set(agentId, recent);
+    if (recent.length > BREAKER_MAX_RECOVERIES) {
+      dlog(
+        `recoverAgent agentId=${agentId} CIRCUIT-OPEN n=${recent.length.toString()} window=${BREAKER_WINDOW_MS.toString()}ms — pausing, user must reconnect`,
+      );
+      broadcast({ agentId, phase: "circuit-open", reason: "auth-unrecoverable" });
+      if (pauseFn !== null) pauseFn(agentId, "auth");
+      return { kind: "circuit-open", agentId };
+    }
   }
 
   const lastSuccess = lastSuccessAt.get(agentId);

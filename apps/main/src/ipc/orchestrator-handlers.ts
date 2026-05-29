@@ -46,6 +46,7 @@ import {
 import { createRespawnFn, type PendingTurn, type SpawnState } from "../orchestrator/respawn.js";
 import {
   setRecoveryBroadcastFn,
+  setRecoveryPauseFn,
   setRespawnFn,
   setUserDataDir,
 } from "../auth/credential-recovery.js";
@@ -905,6 +906,31 @@ export const registerOrchestratorHandlers = (
   setRecoveryBroadcastFn((event) => {
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.send(IPC.AUTH_RECOVERY_STATUS, event);
+    }
+  });
+  // Circuit breaker: when auto-recovery gives up (repeated 401s respawning can't
+  // fix), pause + stop the agent so it stops thrashing. The circuit-open
+  // broadcast above drives the reconnect banner; pausing the row + killing the
+  // adapter stops the loop until the user reconnects.
+  setRecoveryPauseFn((agentId, reason) => {
+    pauseAndStopAgent(agentId, reason, {
+      getAdapter,
+      removeAdapter,
+      pause: (id, r) => agents.pause(id, r),
+    });
+    const a = agents.getById(agentId);
+    if (a !== null) {
+      broadcast({ kind: "status-changed", agentId, status: "paused", updatedAt: Date.now() });
+      inbox.create({
+        companyId: a.companyId,
+        kind: "security_alert",
+        actorId: agentId,
+        title: "Reconexão necessária",
+        preview: `${a.name} foi pausado: a autenticação falhou repetidamente. Reconecte sua conta para retomar.`,
+        requiresAction: true,
+        payloadJson: JSON.stringify({ reason: "auth-unrecoverable", agentId }),
+      });
+      broadcastInboxUpdate(a.companyId);
     }
   });
 

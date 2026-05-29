@@ -24,10 +24,15 @@ export type RecoveryResult =
   | { kind: "skipped-not-running"; agentId: string }
   | { kind: "skipped-recovering"; agentId: string }
   | { kind: "skipped-cooldown"; agentId: string }
+  // Circuit breaker: too many auto-401 recoveries in a short window means
+  // respawning isn't fixing the auth (e.g. the host refresh token is dead, not
+  // just the short-lived access token). Stop thrashing — the agent is paused and
+  // the user is asked to reconnect.
+  | { kind: "circuit-open"; agentId: string }
   | { kind: "failed"; agentId: string; reason: string };
 
 export type RecoveryStatusEvent = {
   agentId: string;
-  phase: "started" | "recovered" | "host-stale" | "failed";
+  phase: "started" | "recovered" | "host-stale" | "failed" | "circuit-open";
   reason?: string;
 };

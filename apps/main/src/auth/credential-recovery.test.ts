@@ -5,6 +5,7 @@ import {
   isAuthFailureStreamEvent,
   recoverAgent,
   setRecoveryBroadcastFn,
+  setRecoveryPauseFn,
   setRespawnFn,
   setUserDataDir,
   __resetRecoveryState,
@@ -403,5 +404,59 @@ describe("recoverAgent — broadcasts", () => {
     await recoverAgent("agent-1", { reason: "user-reconnect" });
 
     expect(broadcasts).toEqual([]);
+  });
+});
+
+describe("recoverAgent — circuit breaker (auth-unrecoverable loop)", () => {
+  beforeEach(() => {
+    __resetRecoveryState();
+    vi.clearAllMocks();
+    setUserDataDir("/tmp/test-userdata");
+    // Make every recovery "succeed" (respawn works) but the agent keeps needing
+    // recovery — the loop the breaker must stop. Bypass the cooldown by faking a
+    // live adapter and a respawn that resolves immediately.
+    vi.mocked(getAdapter).mockReturnValue({ isAlive: () => true, kill: vi.fn() } as never);
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(true);
+    setRespawnFn(() => Promise.resolve(null));
+  });
+
+  it("trips after the 5th auto-401 in the window: pauses + broadcasts circuit-open", async () => {
+    const broadcasts: RecoveryStatusEvent[] = [];
+    setRecoveryBroadcastFn((e) => broadcasts.push(e));
+    const paused: Array<{ id: string; reason: string }> = [];
+    setRecoveryPauseFn((id, reason) => paused.push({ id, reason }));
+
+    // The breaker counts every auto-401 call in the window (before the cooldown
+    // gate), so 5 calls trip it regardless of cooldown skips on calls 2-4.
+    const results = [];
+    for (let i = 0; i < 5; i++) {
+      results.push(await recoverAgent("agent-1", { reason: "auto-401" }));
+    }
+
+    expect(results[4]?.kind).toBe("circuit-open");
+    expect(paused).toContainEqual({ id: "agent-1", reason: "auth" });
+    expect(broadcasts.some((b) => b.phase === "circuit-open")).toBe(true);
+    // Once open, further auto-401s stay open (no respawn thrash).
+    expect((await recoverAgent("agent-1", { reason: "auto-401" })).kind).toBe("circuit-open");
+  });
+
+  it("does NOT count user-reconnect toward the breaker", async () => {
+    setRecoveryPauseFn(() => {});
+    for (let i = 0; i < 10; i++) {
+      const r = await recoverAgent("agent-1", { reason: "user-reconnect" });
+      expect(r.kind).not.toBe("circuit-open");
+    }
+  });
+
+  it("a user-reconnect resets the breaker (un-trips it)", async () => {
+    setRecoveryPauseFn(() => {});
+    for (let i = 0; i < 5; i++) await recoverAgent("agent-1", { reason: "auto-401" });
+    expect((await recoverAgent("agent-1", { reason: "auto-401" })).kind).toBe("circuit-open");
+
+    // Reconnect clears the window; the next auto-401 is no longer tripped.
+    await recoverAgent("agent-1", { reason: "user-reconnect" });
+    const after = await recoverAgent("agent-1", { reason: "auto-401" });
+    expect(after.kind).not.toBe("circuit-open");
   });
 });
