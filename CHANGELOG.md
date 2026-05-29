@@ -3,6 +3,44 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.36 — 2026-05-29
+
+### Corrigido
+
+- **A reconexão automática quando o token expira voltou a funcionar.** Quando o
+  token de um agente ficava velho (sessão longa), o app deveria re-seedar a
+  credencial fresca e reconectar sozinho — mas **isso nunca disparava**. O Claude
+  CLI passou a reportar o erro 401 como JSON na **saída padrão**, e a detecção só
+  escutava o canal de erro; resultado: zero reconexões em produção, apesar de 401
+  acontecendo. Agora o 401 é detectado no canal certo e a auto-reconexão dispara
+  no primeiro sinal de falha de autenticação.
+- **As propostas do Curador agora aparecem na hora.** As sugestões semanais do
+  bibliotecário e os avisos de skill obsoleta/arquivada eram gravados mas só
+  apareciam na Caixa de entrada quando algum outro evento a recarregava. Agora o
+  Curador notifica a interface assim que cria os cards.
+
+### Adicionado
+
+- **"Nova empresa" agora é uma conversa com o CEO.** Antes, criar uma empresa
+  abria uma tela vazia, sem CEO e sem por onde começar. Agora, ao criar uma
+  empresa, nasce junto o **CEO (no modelo mais inteligente, Opus 4.8)** e você cai
+  numa **conversa ao vivo**: ele entrevista você sobre o negócio, propõe o time
+  inicial e sugere um primeiro projeto. Um indicador de etapas (Conhecendo o
+  negócio → Montando o time → Primeiro projeto) acompanha o progresso. O fluxo de
+  primeira-execução continua igual.
+- **CEO no Opus 4.8.** Todo CEO novo passa a usar o modelo mais capaz disponível,
+  e o Opus 4.8 entrou na lista de modelos selecionáveis.
+
+### Segurança
+
+- **Atalho de token para testes (E2E) bloqueado no app instalado.** A variável
+  `PROSPERO_E2E_TOKEN_PATH`, usada só em desenvolvimento, era honrada também no
+  app empacotado — agora ela é ignorada fora do modo de desenvolvimento.
+- **Pasta-sandbox de cada agente blindada.** O diretório que guarda a credencial
+  OAuth semeada e os arquivos de sessão de cada agente passa a ser tratado como
+  zona de sistema: nenhuma ferramenta de arquivo de agente pode lê-lo ou
+  escrevê-lo, e toda tentativa é negada e auditada.
+
 ## v0.1.35 — 2026-05-29
 
 ### Security
