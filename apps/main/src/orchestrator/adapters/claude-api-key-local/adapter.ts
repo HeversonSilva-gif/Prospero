@@ -1,7 +1,7 @@
 import { spawn as nodeSpawn, type ChildProcess } from "node:child_process";
 import crossSpawn from "cross-spawn";
 import { createInterface } from "node:readline";
-import { appendFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
+import { rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import type {
@@ -20,18 +20,17 @@ import { FakeClaude, isFakeClaudeEnabled } from "../claude-oauth-local/fake-clau
 import { buildSpawnEnvApiKey } from "../../env.js";
 import { setupMcpHandshake } from "../../mcp-handshake.js";
 import { mergeSpawnEnv } from "../../util/env-merge.js";
+import { safeAppend } from "../../../logging/safe-log.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const logFile = resolve(__dirname, "../../orchestrator.log");
+// Diagnostic log. Default sits next to compiled code (read-only asar when
+// packaged); start() redirects it to the writable userData/prospero-debug.log —
+// the same file the oauth adapter uses — once the SpawnContext is available.
+let logFile = resolve(__dirname, "../../orchestrator.log");
 const dlog = (msg: string): void => {
-  try {
-    const logDir = dirname(logFile);
-    if (!existsSync(logDir)) mkdirSync(logDir, { recursive: true });
-    appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`, "utf8");
-  } catch {
-    /* ignore log errors */
-  }
+  // safeAppend redacts secrets + the user's home path and rotates the file.
+  safeAppend(logFile, `[${new Date().toISOString()}] ${msg}`);
 };
 
 export class ClaudeApiKeyLocalAdapter implements AgentAdapter {
@@ -58,6 +57,11 @@ export class ClaudeApiKeyLocalAdapter implements AgentAdapter {
     }
     if (this.ctx.apiKey === undefined) {
       throw new Error("claude-api-key-local requires apiKey in SpawnContext");
+    }
+    // Redirect the diagnostic log to the writable, shared debug log under
+    // userData (the default path lives inside the read-only asar when packaged).
+    if (this.ctx.userDataDir !== undefined) {
+      logFile = resolve(this.ctx.userDataDir, "prospero-debug.log");
     }
 
     const env = buildSpawnEnvApiKey(

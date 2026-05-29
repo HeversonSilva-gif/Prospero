@@ -1,7 +1,7 @@
 import { spawn as nodeSpawn, type ChildProcess } from "node:child_process";
 import crossSpawn from "cross-spawn";
 import { createInterface } from "node:readline";
-import { appendFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import type {
@@ -22,8 +22,29 @@ import { buildSpawnEnv } from "../../env.js";
 import { setupMcpHandshake } from "../../mcp-handshake.js";
 import { mergeSpawnEnv } from "../../util/env-merge.js";
 import { isAuthError, recoverAgent } from "../../../auth/credential-recovery.js";
+import { safeAppend } from "../../../logging/safe-log.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Build a log-safe view of the spawn args: never emit the value following a
+// large/secret flag (above all --system-prompt, which embeds the company TELOS,
+// agent instructions, memory and project context in cleartext). We log only the
+// flag name plus a length marker for those.
+const REDACTED_VALUE_FLAGS = new Set(["--system-prompt", "--append-system-prompt"]);
+const redactArgsForLog = (args: string[]): string => {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i] ?? "";
+    if (REDACTED_VALUE_FLAGS.has(a) && i + 1 < args.length) {
+      const val = args[i + 1] ?? "";
+      out.push(a, `<${a.replace(/^--/, "")}: ${val.length} chars>`);
+      i++; // skip the value
+    } else {
+      out.push(a);
+    }
+  }
+  return out.join(" ");
+};
 
 // Pure builder for the stream-json `user` payload claude-code expects on stdin.
 // Exported so we can test the wire format without spawning a child process.
@@ -47,13 +68,9 @@ export const buildSendInputPayload = (content: string | ContentBlock[]): string 
 // start() redirects this to userData (writable) before the first write.
 let logFilePath = resolve(__dirname, "../../orchestrator.log");
 const dlog = (msg: string): void => {
-  try {
-    const logDir = dirname(logFilePath);
-    if (!existsSync(logDir)) mkdirSync(logDir, { recursive: true });
-    appendFileSync(logFilePath, `[${new Date().toISOString()}] ${msg}\n`, "utf8");
-  } catch {
-    /* ignore log errors */
-  }
+  // safeAppend redacts secrets + the user's home path and rotates the file, so
+  // the debug log stays safe to share for support.
+  safeAppend(logFilePath, `[${new Date().toISOString()}] ${msg}`);
 };
 
 // One-time diagnostic. Claude reports "Available MCP tools: none" but hides the
@@ -192,7 +209,7 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
 
     dlog(`spawn claude for agent=${this.ctx.agent.id} cwd=${spawnCwd}`);
     dlog(`configDir=${agentConfigDir} ephemeral=${String(isEphemeralConfigDir)}`);
-    dlog(`args: ${JSON.stringify(args)}`);
+    dlog(`args: ${redactArgsForLog(args)}`);
 
     if (isFakeClaudeEnabled()) {
       dlog(`spawn strategy: FakeClaude stub (E2E mode)`);
