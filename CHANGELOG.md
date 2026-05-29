@@ -3,6 +3,29 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.37 — 2026-05-29
+
+### Corrigido
+
+- **Agentes especialistas agora acordam e trabalham quando recebem uma tarefa.**
+  Quando o CEO delegava para um agente novo, a mensagem chegava mas o agente
+  ficava parado — só havia 4 "vagas" de execução simultânea (limite do Max), e
+  agentes presos esperando uma aprovação não respondida **seguravam essas vagas
+  para sempre**, sem deixar os novos rodarem. Agora um agente bloqueado em
+  aprovação **libera a vaga de forma limpa** (a aprovação continua pendente, e
+  ele é reativado e refaz a ação quando você decide) — então a equipe não
+  trava mais por falta de vaga.
+- **Os agentes voltaram a ler PDFs.** A leitura de PDF do Claude depende do
+  utilitário `pdftoppm` (Poppler), que não vinha no Windows — então o agente
+  dizia "o renderizador de PDF não está disponível". Agora o Poppler vem junto
+  com o app e os agentes leem PDFs normalmente.
+
+### Segurança
+
+- **Token de OAuth não vai mais no ambiente do processo filho** quando as
+  credenciais já são entregues pelo arquivo seguro — fecha a última superfície
+  de exposição do token via variável de ambiente (SEC-CRIT-01).
+
 ## v0.1.36 — 2026-05-29
 
 ### Corrigido
