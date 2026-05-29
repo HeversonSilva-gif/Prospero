@@ -10,6 +10,7 @@ export const DEFAULT_CLAUDE_MODEL = "claude-sonnet-4-6";
 // Known preset model ids exposed in the Settings UI dropdown. Custom ids are
 // also accepted (text input), validated against MODEL_ID_REGEX downstream.
 export const CLAUDE_MODEL_PRESETS = [
+  "claude-opus-4-8",
   "claude-opus-4-7",
   "claude-sonnet-4-6",
   "claude-haiku-4-5-20251001",

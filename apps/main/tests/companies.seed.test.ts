@@ -14,4 +14,12 @@ describe("createDemoCompany", () => {
     expect(agents[0]?.name).toBe("CEO");
     expect(agents[0]?.role).toBe("Chief Executive Officer");
   });
+
+  it("seeds the CEO with the smartest model (Opus 4.8)", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    const company = createDemoCompany(db);
+    const ceo = createAgentsRepository(db).listByCompany(company.id)[0];
+    expect(ceo?.model).toBe("claude-opus-4-8");
+  });
 });

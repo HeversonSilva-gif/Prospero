@@ -42,6 +42,8 @@ export const createCEOAgent = (
     // the 30-min permission gate — the CEO froze. can_hire/can_assign default to
     // 1 at the column level, so the CEO can hire and assign.
     capabilities: ["delegation", "issues", "inbox", "chat", "fs-read"],
-    model: "claude-opus-4-7",
+    // The CEO runs the smartest available model — it interviews the owner during
+    // onboarding and plans the whole company. Opus 4.8 (latest) per product call.
+    model: "claude-opus-4-8",
   });
 };
