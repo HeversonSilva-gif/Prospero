@@ -614,7 +614,7 @@
       "menu": {
         "copyId": "Copy Agent ID",
         "resetSession": "Reset session",
-        "terminate": "Terminate agent"
+        "terminate": "Dismiss"
       },
       "status": {
         "idle": "Idle",
@@ -627,10 +627,10 @@
       }
     },
     "terminate": {
-      "title": "Terminate agent?",
+      "title": "Dismiss agent?",
       "message": "{{name}} will stop responding. Past messages stay in history. This cannot be undone.",
       "reasonLabel": "Reason (optional)",
-      "confirm": "Terminate",
+      "confirm": "Dismiss",
       "cancel": "Cancel",
       "promoteTitle": "Promote this agent's private skills?",
       "promoteHint": "Checked skills become shared on the agent's role. Unchecked ones are removed after 30 days."

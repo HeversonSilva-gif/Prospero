@@ -614,7 +614,7 @@
       "menu": {
         "copyId": "Copiar ID do agente",
         "resetSession": "Resetar sessão",
-        "terminate": "Encerrar agente"
+        "terminate": "Demitir"
       },
       "status": {
         "idle": "Ocioso",
@@ -627,10 +627,10 @@
       }
     },
     "terminate": {
-      "title": "Encerrar agente?",
+      "title": "Demitir agente?",
       "message": "{{name}} vai parar de responder. Mensagens passadas ficam no histórico. Não dá pra desfazer.",
       "reasonLabel": "Motivo (opcional)",
-      "confirm": "Encerrar",
+      "confirm": "Demitir",
       "cancel": "Cancelar",
       "promoteTitle": "Promover skills privados deste agente?",
       "promoteHint": "Skills marcados viram compartilhados no papel do agente. Os não marcados são removidos após 30 dias."
