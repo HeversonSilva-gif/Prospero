@@ -3,6 +3,26 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.39 — 2026-05-30
+
+### Corrigido
+
+- **Erro recorrente "Failed to authenticate. API Error: 401" nos agentes.** Ao
+  renovar o acesso, o serviço da Anthropic troca também a chave de renovação (a
+  anterior é revogada). O app recopiava a credencial do sistema para a área de
+  cada agente a cada início/reconexão e, com isso, podia sobrescrever uma
+  credencial que o próprio agente já tinha renovado — devolvendo a ele uma chave
+  de renovação já revogada e travando-o em 401 mesmo depois de reconectar. Agora
+  a cópia nunca rebaixa uma credencial mais nova: cada agente preserva o token
+  válido que renovou.
+
+### Notas
+
+- Trocar o token pela tela do app não muda a credencial usada pelos agentes em
+  execução — eles usam o login do Claude do sistema
+  (`~/.claude/.credentials.json`). Para trocar de conta de verdade, faça login no
+  Claude do sistema (rode `claude` no terminal) e reconecte.
+
 ## v0.1.38 — 2026-05-29
 
 ### Corrigido
