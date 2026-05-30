@@ -76,6 +76,21 @@ contextBridge.exposeInMainWorld("prospero", {
     setExecutorMode: (mode: "atomic" | "narrated") =>
       ipcRenderer.invoke(IPC.SETTINGS_SET_EXECUTOR_MODE, mode) as Promise<{ ok: true }>,
   },
+  connections: {
+    xStatus: (companyId: string) =>
+      ipcRenderer.invoke(IPC.CONNECTIONS_X_STATUS, companyId) as Promise<{
+        connected: boolean;
+        handle?: string;
+      }>,
+    xConnect: (companyId: string, clientId: string) =>
+      ipcRenderer.invoke(IPC.CONNECTIONS_X_CONNECT, { companyId, clientId }) as Promise<{
+        connected: boolean;
+        handle?: string;
+        error?: string;
+      }>,
+    xDisconnect: (companyId: string) =>
+      ipcRenderer.invoke(IPC.CONNECTIONS_X_DISCONNECT, companyId) as Promise<{ connected: false }>,
+  },
   auth: {
     status: () => ipcRenderer.invoke(IPC.AUTH_TOKEN_STATUS) as Promise<TokenStatus>,
     set: (raw: string, source: TokenSource) =>

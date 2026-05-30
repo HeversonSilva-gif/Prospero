@@ -74,6 +74,14 @@ declare global {
         getExecutorMode: () => Promise<"atomic" | "narrated">;
         setExecutorMode: (mode: "atomic" | "narrated") => Promise<{ ok: true }>;
       };
+      connections: {
+        xStatus: (companyId: string) => Promise<{ connected: boolean; handle?: string }>;
+        xConnect: (
+          companyId: string,
+          clientId: string,
+        ) => Promise<{ connected: boolean; handle?: string; error?: string }>;
+        xDisconnect: (companyId: string) => Promise<{ connected: false }>;
+      };
       auth: {
         status: () => Promise<TokenStatus>;
         set: (raw: string, source: TokenSource) => Promise<TokenStatus>;
