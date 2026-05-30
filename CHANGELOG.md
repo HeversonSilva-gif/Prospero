@@ -3,6 +3,31 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.1.40 — 2026-05-30
+
+### Corrigido
+
+- **Agentes não ficam mais presos em "error" depois de uma atualização.** A
+  mudança de pasta interna da v0.1.38 deixou as conversas antigas dos agentes
+  "órfãs": ao tentar retomar uma conversa que não existe mais no novo local, o
+  agente falhava na largada e travava em "error" (só voltava reiniciando o app),
+  e a tarefa que ele ia fazer se perdia. Agora o agente detecta a conversa órfã e
+  simplesmente começa uma nova — sem travar, sem perder a tarefa.
+- **Agentes em "error" se recuperam sozinhos.** Antes, um agente que caísse em
+  "error" só voltava ao reiniciar o app. Agora ele é reativado automaticamente em
+  segundo plano (com limite de tentativas, pra não ficar em loop se algo estiver
+  de fato quebrado).
+- **Limpar ou trocar o token na tela do app não derruba mais os agentes.** Os
+  agentes autenticam pelo login do Claude do sistema (`~/.claude`); o app exigia,
+  desnecessariamente, um token salvo também nele — então limpar esse token deixava
+  os agentes em "error" mesmo com o login do sistema válido. Corrigido.
+
+### Melhorias
+
+- **Erros de inicialização de agente agora são gravados no log**
+  (`prospero-debug.log`) em vez de sumirem no console — diagnóstico de problemas
+  futuros fica muito mais fácil.
+
 ## v0.1.39 — 2026-05-30
 
 ### Corrigido
