@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -54,5 +54,82 @@ describe("seedSandboxCredentials", () => {
     const dir = mkdtempSync(join(tmpdir(), "da-test-cfg-"));
     expect(() => seedSandboxCredentials(dir)).not.toThrow();
     rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+// The Anthropic OAuth refresh ROTATES the refresh token (the old one is revoked).
+// When the agent's sandboxed claude refreshes, it writes a newer credential into
+// its own CLAUDE_CONFIG_DIR/.credentials.json AND revokes the refresh token the
+// host file still holds. Reseeding the (now-stale) host copy over that fresher
+// sandbox file hands the agent a revoked refresh token → it 401s and can't
+// recover. So a reseed must never DOWNGRADE: keep whichever credential expires
+// later. This is the surgical half of the 2026-05-30 401-loop fix.
+describe("seedSandboxCredentials — no-clobber on refresh-token rotation", () => {
+  const writeCreds = (path: string, marker: string, expiresAt: number | null): void => {
+    writeFileSync(
+      path,
+      JSON.stringify({
+        claudeAiOauth: { accessToken: marker, refreshToken: `${marker}-refresh`, expiresAt },
+      }),
+    );
+  };
+  const seededMarker = (sandboxDir: string): string => {
+    const parsed = JSON.parse(readFileSync(join(sandboxDir, ".credentials.json"), "utf8")) as {
+      claudeAiOauth: { accessToken: string };
+    };
+    return parsed.claudeAiOauth.accessToken;
+  };
+  const withDirs = (fn: (hostCreds: string, sandboxDir: string) => void): void => {
+    const hostDir = mkdtempSync(join(tmpdir(), "da-host-"));
+    const sandboxDir = mkdtempSync(join(tmpdir(), "da-sbx-"));
+    try {
+      fn(join(hostDir, ".credentials.json"), sandboxDir);
+    } finally {
+      rmSync(hostDir, { recursive: true, force: true });
+      rmSync(sandboxDir, { recursive: true, force: true });
+    }
+  };
+
+  it("keeps the sandbox credential when it is fresher than the host", () => {
+    withDirs((hostCreds, sandboxDir) => {
+      writeCreds(hostCreds, "HOST", 1000);
+      writeCreds(join(sandboxDir, ".credentials.json"), "SANDBOX", 2000); // refreshed, newer
+      expect(seedSandboxCredentials(sandboxDir, hostCreds)).toBe(true);
+      expect(seededMarker(sandboxDir)).toBe("SANDBOX"); // NOT clobbered
+    });
+  });
+
+  it("overwrites the sandbox credential when the host is fresher", () => {
+    withDirs((hostCreds, sandboxDir) => {
+      writeCreds(hostCreds, "HOST", 2000); // host re-login / newer
+      writeCreds(join(sandboxDir, ".credentials.json"), "SANDBOX", 1000);
+      expect(seedSandboxCredentials(sandboxDir, hostCreds)).toBe(true);
+      expect(seededMarker(sandboxDir)).toBe("HOST");
+    });
+  });
+
+  it("seeds when the sandbox has no credential yet", () => {
+    withDirs((hostCreds, sandboxDir) => {
+      writeCreds(hostCreds, "HOST", 1000);
+      expect(seedSandboxCredentials(sandboxDir, hostCreds)).toBe(true);
+      expect(seededMarker(sandboxDir)).toBe("HOST");
+    });
+  });
+
+  it("overwrites (safe default) when expiry is unknown on either side", () => {
+    withDirs((hostCreds, sandboxDir) => {
+      writeCreds(hostCreds, "HOST", null);
+      writeCreds(join(sandboxDir, ".credentials.json"), "SANDBOX", 2000);
+      expect(seedSandboxCredentials(sandboxDir, hostCreds)).toBe(true);
+      expect(seededMarker(sandboxDir)).toBe("HOST");
+    });
+  });
+
+  it("returns false (no seed) when the host file is missing", () => {
+    withDirs((hostCreds, sandboxDir) => {
+      // hostCreds path intentionally not written
+      expect(seedSandboxCredentials(sandboxDir, hostCreds)).toBe(false);
+      expect(existsSync(join(sandboxDir, ".credentials.json"))).toBe(false);
+    });
   });
 });

@@ -1,4 +1,11 @@
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { getAgentConfigDir, getAgentSandboxCwd } from "../../util/paths.js";
@@ -31,15 +38,52 @@ export const prepareSandbox = (agentId: string, userDataDir: string | undefined)
   };
 };
 
+// Default location of the host's OAuth credential file.
+const hostCredentialsPath = (): string => join(homedir(), ".claude", ".credentials.json");
+
+// Reads the OAuth access-token expiry (ms epoch) out of a .credentials.json, or
+// null when the file is absent / unparseable / has no expiry. Used purely to
+// compare freshness between the host file and a sandbox copy.
+const readCredentialExpiry = (credsPath: string): number | null => {
+  try {
+    const parsed = JSON.parse(readFileSync(credsPath, "utf8")) as {
+      claudeAiOauth?: { expiresAt?: unknown };
+    };
+    const exp = parsed.claudeAiOauth?.expiresAt;
+    return typeof exp === "number" ? exp : null;
+  } catch {
+    return null;
+  }
+};
+
 // claude reads OAuth Max token from <CLAUDE_CONFIG_DIR>/.credentials.json (keychain)
 // and only falls back to env vars in --bare mode. The agent uses the same Anthropic
 // account as the host (same machine, same OAuth Max), so we seed the sandbox keychain
 // from the host's credentials. This intentionally shares the credential — but blocks
 // everything else (hooks, skills, global MCP servers, projects, sessions, snapshots).
-export const seedSandboxCredentials = (agentConfigDir: string): boolean => {
-  const hostCreds = join(homedir(), ".claude", ".credentials.json");
+//
+// NO-CLOBBER (refresh-token rotation safety): Anthropic ROTATES the refresh token
+// on every refresh — the previous one is revoked. The sandboxed claude refreshes
+// on its own and writes a NEWER credential into its CLAUDE_CONFIG_DIR, which also
+// revokes the refresh token the host file still holds. Blindly copying the host
+// file back over a fresher sandbox copy therefore hands the agent a now-revoked
+// refresh token → it 401s and can't recover (the recurring loop fixed 2026-05-30).
+// So we never DOWNGRADE: when we can prove the sandbox credential is strictly
+// newer (both expiries known), keep it. Every ambiguous case reseeds from host,
+// preserving the original behaviour. `hostCreds` is injectable for tests.
+export const seedSandboxCredentials = (
+  agentConfigDir: string,
+  hostCreds: string = hostCredentialsPath(),
+): boolean => {
   const sandboxCreds = join(agentConfigDir, ".credentials.json");
   if (!existsSync(hostCreds)) return false;
+  if (existsSync(sandboxCreds)) {
+    const hostExp = readCredentialExpiry(hostCreds);
+    const sandboxExp = readCredentialExpiry(sandboxCreds);
+    if (hostExp !== null && sandboxExp !== null && sandboxExp > hostExp) {
+      return true; // sandbox already holds a fresher token — do not clobber it
+    }
+  }
   try {
     copyFileSync(hostCreds, sandboxCreds);
     return true;
