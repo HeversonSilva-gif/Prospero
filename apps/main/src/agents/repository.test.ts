@@ -249,6 +249,36 @@ describe("budget + run policy", () => {
   });
 });
 
+describe("listErroredAgentIds", () => {
+  it("returns ids of non-terminated 'error' agents only", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const now = Date.now();
+    const insertAgent = (id: string, status: string, terminatedAt?: number) => {
+      db.prepare(
+        `INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json, mode, always_on, status, created_at, updated_at)
+         VALUES (?, 'c1', ?, 'tester', 'p', '[]', '[]', 'supervised', 0, ?, ?, ?)`,
+      ).run(id, id, status, now, now);
+      if (terminatedAt !== undefined) {
+        db.prepare("UPDATE agents SET terminated_at = ? WHERE id = ?").run(terminatedAt, id);
+      }
+    };
+    insertAgent("e1", "error");
+    insertAgent("e2", "error");
+    insertAgent("ok", "idle");
+    insertAgent("busy", "working");
+    insertAgent("term-error", "error", now); // error but terminated → excluded
+
+    expect(repo.listErroredAgentIds().sort()).toEqual(["e1", "e2"]);
+  });
+
+  it("returns an empty array when no agent is in error", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    expect(repo.listErroredAgentIds()).toEqual([]);
+  });
+});
+
 describe("resetStuckAgents", () => {
   it("resets error/working/thinking/waiting agents to idle; leaves paused, terminated, and already-idle alone; returns count reset", () => {
     const db = setupDb();

@@ -143,6 +143,10 @@ export type AgentsRepository = {
    *  the status-filtered roster and accepts messages. Force status back to
    *  'terminated' so the existing filters hide it. Idempotent. Returns count. */
   healTerminatedStatus(): number;
+  /** Runtime auto-heal: ids of non-terminated agents currently in 'error'. Lets
+   *  the scheduler re-enable a stuck agent WITHOUT an app restart (boot-heal only
+   *  runs at startup). Used with a per-agent retry cap to avoid respawn storms. */
+  listErroredAgentIds(): string[];
 };
 
 // `recorder` is optional so existing test setups (`createAgentsRepository(db)`)
@@ -555,6 +559,13 @@ export const createAgentsRepository = (
           "UPDATE agents SET status = 'terminated', updated_at = ? WHERE terminated_at IS NOT NULL AND status != 'terminated'",
         )
         .run(Date.now()).changes;
+    },
+    listErroredAgentIds() {
+      return (
+        db
+          .prepare("SELECT id FROM agents WHERE status = 'error' AND terminated_at IS NULL")
+          .all() as Array<{ id: string }>
+      ).map((r) => r.id);
     },
     setRole(id, roleTemplateId, opts) {
       const role = db

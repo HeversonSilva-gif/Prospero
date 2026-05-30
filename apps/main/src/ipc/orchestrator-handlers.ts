@@ -12,6 +12,7 @@ import {
 } from "node:fs";
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
+import { safeAppend } from "../logging/safe-log.js";
 import {
   IPC,
   MODEL_ID_REGEX,
@@ -129,10 +130,34 @@ const broadcast = (event: AgentEvent): void => {
   }
 };
 
+// Mirrors orchestrator-level errors (spawn rejections, non-zero exits) into the
+// shared prospero-debug.log. Pre-0.1.40 these went only to console.error — i.e.
+// the Electron MAIN process stderr, which is captured NOWHERE in the packaged
+// app — so a failed agent spawn was invisible (we couldn't see WHY it errored,
+// the exact gap that made the 2026-05-30 stuck-agent triage a guessing game).
+// safeAppend redacts secrets + the home path and rotates the file.
+const olog = (msg: string): void => {
+  try {
+    safeAppend(
+      join(app.getPath("userData"), "prospero-debug.log"),
+      `[${new Date().toISOString()}] [orchestrator] ${msg}`,
+    );
+  } catch {
+    /* best-effort — never let logging break the orchestrator */
+  }
+};
+
 export const registerOrchestratorHandlers = (
   db: Database.Database,
 ): { stopScheduler: () => void; router: Router } => {
   const agents = createAgentsRepository(db, tryGetRecorder());
+
+  // Runtime auto-heal (B, v0.1.40): per-agent count of error→idle heals since the
+  // agent last exited cleanly. Caps respawn churn for a genuinely-broken agent —
+  // after MAX it stays visible in `error` instead of looping. Cleared on a clean
+  // (code 0) exit. See healErroredAgents() near the drain.
+  const autoHealAttempts = new Map<string, number>();
+  const MAX_AUTO_HEALS = 3;
 
   // Boot recovery: agents left in a transient/error state by a crash, an app
   // update restart, or the (now-fixed) config-change bug have no live process at
@@ -572,6 +597,7 @@ export const registerOrchestratorHandlers = (
   const handleSpawnError = (agentId: string, err: Error): void => {
     recoveryTracker.markErrored(agentId);
     console.error(`[claude:${agentId}] spawn error: ${err.message}`);
+    olog(`spawn error agent=${agentId}: ${err.message}`);
     removeAdapter(agentId);
     agents.clearSessionId(agentId);
     agents.updateStatus(agentId, { status: "error", currentAction: null });
@@ -863,6 +889,9 @@ export const registerOrchestratorHandlers = (
         if (code !== 0) {
           recoveryTracker.markErrored(agent.id);
           agents.clearSessionId(agent.id);
+          olog(`agent=${agent.id} → error on exit code=${String(code)}`);
+        } else {
+          autoHealAttempts.delete(agent.id); // clean exit resets the auto-heal budget
         }
         agents.updateStatus(agent.id, {
           status: code === 0 ? "idle" : "error",
@@ -1066,6 +1095,26 @@ export const registerOrchestratorHandlers = (
     }
   };
 
+  // Runtime auto-heal (B, v0.1.40): an agent stuck in `error` with no live
+  // process (a fast exit-1 from an orphaned --resume, a transient spawn failure)
+  // would otherwise sit stuck until the next app restart (boot-heal only runs at
+  // startup). Reset it to idle so the scheduler re-engages it from where it left
+  // off. Capped per agent so a genuinely-broken agent can't respawn-storm —
+  // after MAX_AUTO_HEALS it stays visible in `error`.
+  const healErroredAgents = (): void => {
+    for (const id of agents.listErroredAgentIds()) {
+      if (getAdapter(id)?.isAlive() === true) continue; // a live turn owns it — not stuck
+      const attempts = autoHealAttempts.get(id) ?? 0;
+      if (attempts >= MAX_AUTO_HEALS) continue; // gave up — leave it visible in `error`
+      autoHealAttempts.set(id, attempts + 1);
+      agents.updateStatus(id, { status: "idle", currentAction: null });
+      broadcast({ kind: "status-changed", agentId: id, status: "idle", updatedAt: Date.now() });
+      olog(
+        `auto-heal agent=${id} error→idle (attempt ${String(attempts + 1)}/${String(MAX_AUTO_HEALS)})`,
+      );
+    }
+  };
+
   const drainScheduler = (): void => {
     // Max rate-limit gate. While active, spawn nothing. When the window resets,
     // clear the gate and resume the parked team so each agent continues from
@@ -1091,6 +1140,7 @@ export const registerOrchestratorHandlers = (
       const a = agents.getById(id);
       return a !== null && isCeoAgent(a);
     };
+    healErroredAgents();
     reengageDeferredApprovals();
     const running = listAdapterAgentIds().map((id) => {
       const status = agents.getById(id)?.status ?? "idle";
