@@ -164,6 +164,9 @@ export const IPC = {
   UPDATER_INSTALL_NOW: "updater:install-now",
   UPDATER_EVENT: "updater:event",
   ISSUES_LIST_CRITERIA_RESULTS: "issues:list-criteria-results",
+  CONNECTIONS_X_STATUS: "connections:x-status",
+  CONNECTIONS_X_CONNECT: "connections:x-connect",
+  CONNECTIONS_X_DISCONNECT: "connections:x-disconnect",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

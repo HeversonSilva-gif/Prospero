@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { postTweet, XApiError, type XHttp } from "./x-client.js";
+import { postTweet, getMe, XApiError, type XHttp } from "./x-client.js";
 
 // `postTweet` is a thin, electron-free HTTP client over the X v2 "create tweet"
 // endpoint. We inject the HTTP fn so we can assert the EXACT request shape (url,
@@ -8,6 +8,29 @@ import { postTweet, XApiError, type XHttp } from "./x-client.js";
 // The fakes are non-async (return Promise.resolve) to satisfy require-await.
 
 type Init = { method: string; headers: Record<string, string>; body?: string };
+
+describe("x-client getMe", () => {
+  it("GETs the authenticated user's id + handle with the bearer token", async () => {
+    let captured: { url: string; init: Init } | undefined;
+    const http: XHttp = (url, init) => {
+      captured = { url, init };
+      return Promise.resolve({
+        status: 200,
+        json: () => Promise.resolve({ data: { id: "42", username: "me" } }),
+      });
+    };
+    const me = await getMe(http, "TOK");
+    expect(captured?.url).toBe("https://api.x.com/2/users/me");
+    expect(captured?.init.method).toBe("GET");
+    expect(captured?.init.headers.Authorization).toBe("Bearer TOK");
+    expect(me).toEqual({ id: "42", username: "me" });
+  });
+
+  it("throws XApiError on 401", async () => {
+    const http: XHttp = () => Promise.resolve({ status: 401, json: () => Promise.resolve({}) });
+    await expect(getMe(http, "BAD")).rejects.toBeInstanceOf(XApiError);
+  });
+});
 
 describe("x-client postTweet", () => {
   it("POSTs the tweet with a bearer token and returns id + url", async () => {

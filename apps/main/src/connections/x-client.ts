@@ -24,6 +24,25 @@ export class XApiError extends Error {
 }
 
 const CREATE_TWEET_URL = "https://api.x.com/2/tweets";
+const ME_URL = "https://api.x.com/2/users/me";
+
+// Fetches the authenticated user's id + @handle, for the connection's display
+// metadata after OAuth. Throws XApiError on failure (401 → caller refreshes).
+export const getMe = async (
+  http: XHttp,
+  accessToken: string,
+): Promise<{ id: string; username: string }> => {
+  const res = await http(ME_URL, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (res.status === 401) throw new XApiError(401, "X authentication failed");
+  const data = (await res.json()) as { data?: { id?: string; username?: string }; detail?: string };
+  if (res.status >= 400 || data.data?.id === undefined || data.data.username === undefined) {
+    throw new XApiError(res.status, data.detail ?? `X API error ${String(res.status)}`);
+  }
+  return { id: data.data.id, username: data.data.username };
+};
 
 export const postTweet = async (
   http: XHttp,

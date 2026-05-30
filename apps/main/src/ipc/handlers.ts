@@ -3,6 +3,7 @@ import type Database from "better-sqlite3";
 import { IPC } from "@prospero/shared";
 import { registerSettingsHandlers } from "./settings-handlers.js";
 import { registerAuthHandlers } from "./auth-handlers.js";
+import { registerConnectionsHandlers } from "./connections-handlers.js";
 import { registerAttachmentHandlers } from "./attachment-handlers.js";
 import { registerCompaniesHandlers } from "./companies-handlers.js";
 import { registerMessagesHandlers } from "./messages-handlers.js";
@@ -54,6 +55,7 @@ export const registerIpcHandlers = (db: Database.Database): { stopScheduler: () 
   recoverStuckVerifications(db, buildVerificationDeps());
   registerSettingsHandlers(db);
   registerAuthHandlers(db);
+  registerConnectionsHandlers(db);
   registerCompaniesHandlers(db);
   registerMessagesHandlers(db);
   const { stopScheduler, router } = registerOrchestratorHandlers(db);
