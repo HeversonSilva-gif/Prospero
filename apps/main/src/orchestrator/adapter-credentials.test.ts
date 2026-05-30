@@ -13,6 +13,17 @@ describe("resolveAdapterCredentials", () => {
     });
   });
 
+  it("returns no token for claude-oauth-local when none is configured", () => {
+    // The local adapter authenticates from the seeded host ~/.claude credential
+    // file (prepare-sandbox); the DB token is only an env fallback when seeding
+    // fails. So it is OPTIONAL here — requiring it stranded agents in `error`
+    // whenever the user cleared the token in the UI despite a valid host login
+    // (the 2026-05-30 "trocar o token derruba os agentes" bug).
+    expect(
+      resolveAdapterCredentials("claude-oauth-local", { ...loaders, loadOauthToken: () => null }),
+    ).toEqual({});
+  });
+
   it("returns the OAuth token for claude-oauth-remote-docker", () => {
     expect(resolveAdapterCredentials("claude-oauth-remote-docker", loaders)).toEqual({
       oauthToken: "oauth-tok",

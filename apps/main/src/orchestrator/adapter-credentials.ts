@@ -8,15 +8,25 @@ export type CredentialLoaders = {
 };
 
 /**
- * Maps an adapter name to the credential it needs. Both OAuth adapters — local
- * and remote-docker — require the OAuth token; the API-key adapter requires the
- * API key. Throws for an unknown adapter or a missing credential.
+ * Maps an adapter name to the credential it needs. The LOCAL OAuth adapter seeds
+ * auth from the host's ~/.claude/.credentials.json file, so its DB token is only
+ * an env fallback — OPTIONAL. The REMOTE-docker adapter has no host file to seed
+ * from, so it REQUIRES the token. The API-key adapter requires the API key.
+ * Throws for an unknown adapter or a required-but-missing credential.
  */
 export const resolveAdapterCredentials = (
   adapterName: string,
   loaders: CredentialLoaders,
 ): AdapterCredentials => {
-  if (adapterName === "claude-oauth-local" || adapterName === "claude-oauth-remote-docker") {
+  if (adapterName === "claude-oauth-local") {
+    // Optional: prepare-sandbox seeds the host credential file into the agent's
+    // CLAUDE_CONFIG_DIR; the token here is only injected into the env when that
+    // seed fails. Requiring it upfront stranded agents in `error` whenever the
+    // user cleared the token in the UI despite a valid host login (2026-05-30).
+    const token = loaders.loadOauthToken();
+    return token === null ? {} : { oauthToken: token };
+  }
+  if (adapterName === "claude-oauth-remote-docker") {
     const token = loaders.loadOauthToken();
     if (token === null) throw new Error("OAuth token not configured");
     return { oauthToken: token };

@@ -169,9 +169,6 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
       throw new Error("Adapter already started; create a new instance to respawn");
     }
 
-    if (this.ctx.oauthToken === undefined) {
-      throw new Error("claude-oauth-local requires oauthToken in SpawnContext");
-    }
     // Redirect the diagnostic log to a writable location — the default sits
     // inside the read-only asar when packaged. userData/prospero-debug.log is
     // what to ask the user for when the agent misbehaves in the installed app.
@@ -187,6 +184,19 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
     const credentialsSeeded = seedSandboxCredentials(agentConfigDir);
     writeSandboxSettings(agentConfigDir);
 
+    // Auth source: the seeded host credential file (preferred) or, ONLY when
+    // seeding failed (host has no ~/.claude/.credentials.json), the configured
+    // token via the env var. The DB token is therefore OPTIONAL — requiring it
+    // upfront stranded agents in `error` whenever the user cleared the token in
+    // the UI even though the host login was valid (2026-05-30). If NEITHER a host
+    // file nor a token exists there is no credential at all; fail clearly.
+    const oauthToken = this.ctx.oauthToken;
+    if (!credentialsSeeded && oauthToken === undefined) {
+      throw new Error(
+        "claude-oauth-local: no credential available — host ~/.claude/.credentials.json is missing and no token is configured. Reconnect or run `claude` to log in.",
+      );
+    }
+
     // SEC-CRIT-01: when the credentials file was successfully seeded to
     // CLAUDE_CONFIG_DIR, claude reads auth from that file — we must NOT
     // inject CLAUDE_CODE_OAUTH_TOKEN into the spawn environment.  The token
@@ -201,15 +211,16 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
       PERMISSIONS_DIR: this.ctx.permissionsDir,
       EVENTS_DIR: this.ctx.eventsDir,
     };
-    const env = credentialsSeeded
-      ? baseEnv
-      : buildSpawnEnv(
-          this.ctx.agent,
-          this.ctx.oauthToken,
-          this.ctx.dbPath,
-          this.ctx.permissionsDir,
-          this.ctx.eventsDir,
-        );
+    const env =
+      credentialsSeeded || oauthToken === undefined
+        ? baseEnv
+        : buildSpawnEnv(
+            this.ctx.agent,
+            oauthToken,
+            this.ctx.dbPath,
+            this.ctx.permissionsDir,
+            this.ctx.eventsDir,
+          );
 
     dlog(
       `credentials seeded=${String(credentialsSeeded)} — CLAUDE_CODE_OAUTH_TOKEN in env=${String(!credentialsSeeded)}`,
