@@ -3,6 +3,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
@@ -91,6 +92,28 @@ export const seedSandboxCredentials = (
     // Caller logs; we swallow to avoid breaking spawn on credential read errors.
     return false;
   }
+};
+
+// claude stores a session transcript at
+// <CLAUDE_CONFIG_DIR>/projects/<encoded-cwd>/<sessionId>.jsonl. Returns whether a
+// transcript for `sessionId` exists under ANY project subdir (we look for the
+// file rather than replicate claude's cwd-encoding). The v0.1.38 sandbox-path
+// change (agent-sandbox/<id> → sbx/<slug>) ORPHANED old-layout sessions:
+// `claude --resume <orphaned id>` exits 1 ("No conversation found") and strands
+// the agent in `error`. The spawn path calls this to drop --resume for an
+// orphaned session and start fresh — the intended v0.1.38 behaviour, minus the
+// error + lost message.
+export const sessionTranscriptExists = (configDir: string, sessionId: string): boolean => {
+  if (sessionId === "") return false;
+  const projectsDir = join(configDir, "projects");
+  let subdirs: string[];
+  try {
+    subdirs = readdirSync(projectsDir);
+  } catch {
+    return false; // projects dir absent/unreadable → not resumable
+  }
+  const file = `${sessionId}.jsonl`;
+  return subdirs.some((sub) => existsSync(join(projectsDir, sub, file)));
 };
 
 // Per-agent settings.json routes filesystem tools through --permission-prompt-tool

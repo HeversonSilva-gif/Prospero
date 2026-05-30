@@ -14,6 +14,8 @@ import { loadDecryptedToken } from "../auth/token-storage.js";
 import { loadDecryptedApiKey } from "../auth/api-key-storage.js";
 import { databasePath } from "../db/path.js";
 import { getPermissionsDir } from "../security/permissions-dir.js";
+import { getAgentConfigDir } from "./util/paths.js";
+import { sessionTranscriptExists } from "./adapters/claude-oauth-local/prepare-sandbox.js";
 import { ensureAdapter, type AdapterCallbacks, type EnsureAdapterOptions } from "./lifecycle.js";
 
 /**
@@ -93,8 +95,26 @@ export type RespawnFn = (agentId: string) => Promise<AgentAdapter | null>;
 export const createRespawnFn = (deps: RespawnDeps): RespawnFn => {
   return async (agentId: string): Promise<AgentAdapter | null> => {
     const agents = createAgentsRepository(deps.db);
-    const agent = agents.getById(agentId);
+    let agent = agents.getById(agentId);
     if (agent === null) return null;
+
+    // v0.1.38 orphaned-session guard: a stored claudeSessionId from the old
+    // sandbox layout (agent-sandbox/<id>) has no transcript under the new
+    // sbx/<slug> config dir, so `claude --resume <id>` exits 1 ("No conversation
+    // found"), the message this spawn was meant to handle is delivered to the
+    // dying process and lost, and the agent is stranded in `error`. Drop the
+    // stale session so it starts fresh instead — the intended v0.1.38 behaviour,
+    // minus the error + lost message.
+    if (
+      agent.claudeSessionId !== null &&
+      !sessionTranscriptExists(
+        getAgentConfigDir(app.getPath("userData"), agent.id),
+        agent.claudeSessionId,
+      )
+    ) {
+      agents.clearSessionId(agent.id);
+      agent = { ...agent, claudeSessionId: null };
+    }
 
     const adapterName = agent.adapterName ?? "claude-oauth-local";
     const { oauthToken, apiKey } = resolveAdapterCredentials(adapterName, {

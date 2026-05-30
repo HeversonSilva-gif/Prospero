@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   prepareSandbox,
   seedSandboxCredentials,
+  sessionTranscriptExists,
   writeSandboxSettings,
 } from "../src/orchestrator/adapters/claude-oauth-local/prepare-sandbox.js";
 import { getAgentConfigDir, getAgentSandboxCwd } from "../src/orchestrator/util/paths.js";
@@ -29,6 +30,45 @@ describe("prepareSandbox", () => {
     expect(existsSync(sb.agentConfigDir)).toBe(true);
     expect(existsSync(sb.agentSandboxCwd)).toBe(true);
     rmSync(tmp, { recursive: true, force: true });
+  });
+});
+
+// v0.1.38 switched the sandbox dir layout (agent-sandbox/<id> → sbx/<slug>),
+// which ORPHANED every pre-update --resume session: the stored claudeSessionId
+// points at a transcript under the old path, so `claude --resume <id>` exits 1
+// with "No conversation found", stranding the agent in `error`. The spawn path
+// must detect a non-resumable session and start fresh instead. This guard is
+// what makes that decision (sessions live at <config>/projects/<enc-cwd>/<id>.jsonl).
+describe("sessionTranscriptExists", () => {
+  const withConfigDir = (fn: (dir: string) => void): void => {
+    const dir = mkdtempSync(join(tmpdir(), "da-cfg-"));
+    try {
+      fn(dir);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+
+  it("returns false when the projects dir is absent", () => {
+    withConfigDir((dir) => {
+      expect(sessionTranscriptExists(dir, "sess-1")).toBe(false);
+    });
+  });
+
+  it("returns false when no transcript matches the session id", () => {
+    withConfigDir((dir) => {
+      mkdirSync(join(dir, "projects", "C--proj-cwd"), { recursive: true });
+      writeFileSync(join(dir, "projects", "C--proj-cwd", "other-session.jsonl"), "{}");
+      expect(sessionTranscriptExists(dir, "sess-1")).toBe(false);
+    });
+  });
+
+  it("returns true when the session transcript exists under a project subdir", () => {
+    withConfigDir((dir) => {
+      mkdirSync(join(dir, "projects", "C--proj-cwd"), { recursive: true });
+      writeFileSync(join(dir, "projects", "C--proj-cwd", "sess-1.jsonl"), "{}");
+      expect(sessionTranscriptExists(dir, "sess-1")).toBe(true);
+    });
   });
 });
 
