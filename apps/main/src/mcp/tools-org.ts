@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { createOrgPlansRepository } from "../agents/org-plans-repository.js";
-import { createInboxRepository } from "../inbox/repository.js";
 import { sanitizeMemoryBody } from "../memory/sanitizer.js";
 import { OrgPlanPayloadSchema, type OrgPlanPayload } from "../schemas/orgPlan.js";
 import type { ToolContext } from "./tools.js";
@@ -15,7 +14,7 @@ type Tool = {
 const submitOrgPlan: Tool = {
   name: "submit_org_plan",
   description:
-    "Submit a proposed organization design — roles (each with a full charter), agents, and the reporting hierarchy. Validates the payload (Zod + DAG + per-charter sanitizer), stores it, and files an org_proposed inbox item for the user to review and approve. Only the CEO should call this.",
+    "Submit a proposed organization design — roles (each with a full charter), agents, and the reporting hierarchy. Validates the payload (Zod + DAG + per-charter sanitizer), stores it, and emits org.proposed so the main process critiques the charters and surfaces the proposal. Only the CEO should call this.",
   inputSchema: z.object({ plan: z.unknown() }),
   // eslint-disable-next-line @typescript-eslint/require-await
   run: async (input, ctx) => {
@@ -64,15 +63,9 @@ const submitOrgPlan: Tool = {
       agents: payload.agents,
     });
 
-    createInboxRepository(ctx.db).create({
-      companyId: ctx.companyId,
-      kind: "org_proposed",
-      actorId: ctx.agentId,
-      title: "Organization design proposed",
-      preview: payload.summary.slice(0, 200),
-      requiresAction: true,
-      payloadJson: JSON.stringify({ orgPlanId: orgPlan.id }),
-    });
+    // MAIN critiques the charters off this event and creates the org_proposed card
+    // only after the critic decides (deep enough → card; generic → feedback to CEO).
+    ctx.emit({ kind: "org.proposed", payload: { orgPlanId: orgPlan.id } });
 
     return JSON.stringify({ orgPlanId: orgPlan.id });
   },

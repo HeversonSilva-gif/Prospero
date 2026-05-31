@@ -14,7 +14,7 @@ const tool = (name: string) => {
   return def;
 };
 
-const newCtx = (): ToolContext => {
+const newCtx = (): { ctx: ToolContext; emitted: Array<{ kind: string; payload: unknown }> } => {
   const db = new Database(":memory:");
   applyMigrations(db);
   db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','Acme',0)").run();
@@ -23,14 +23,16 @@ const newCtx = (): ToolContext => {
        allowed_projects_json, mode, always_on, status, created_at, updated_at)
      VALUES ('ceo','c1','Boss','ceo','sp','[]','[]','supervised',0,'idle',0,0)`,
   ).run();
-  return {
+  const emitted: Array<{ kind: string; payload: unknown }> = [];
+  const ctx: ToolContext = {
     agentId: "ceo",
     companyId: "c1",
     db,
     permissionsDir: "/tmp/perms",
     userDataDir: mkdtempSync(join(tmpdir(), "prospero-org-")),
-    emit: () => {},
+    emit: (e) => emitted.push(e),
   };
+  return { ctx, emitted };
 };
 
 const validPayload = {
@@ -51,21 +53,23 @@ const validPayload = {
 
 describe("submit_org_plan", () => {
   let ctx: ToolContext;
+  let emitted: Array<{ kind: string; payload: unknown }>;
   beforeEach(() => {
-    ctx = newCtx();
+    ({ ctx, emitted } = newCtx());
   });
 
-  it("inserts an org plan and an org_proposed inbox item", async () => {
+  it("inserts an org plan and emits org.proposed (no inbox card — MAIN gates it)", async () => {
     const out = JSON.parse(await tool("submit_org_plan").run({ plan: validPayload }, ctx)) as {
       orgPlanId: string;
     };
     expect(out.orgPlanId).toMatch(/^orgplan_/);
-    const plan = createOrgPlansRepository(ctx.db).getById(out.orgPlanId);
-    expect(plan?.roles[0]?.name).toBe("Traffic Manager");
-    const inbox = ctx.db
-      .prepare("SELECT kind FROM inbox_items WHERE company_id = 'c1'")
-      .all() as Array<{ kind: string }>;
-    expect(inbox.map((i) => i.kind)).toEqual(["org_proposed"]);
+    expect(createOrgPlansRepository(ctx.db).getById(out.orgPlanId)?.roles[0]?.name).toBe(
+      "Traffic Manager",
+    );
+    // The card is now created by MAIN after the critic runs — the tool only emits.
+    expect(emitted).toEqual([{ kind: "org.proposed", payload: { orgPlanId: out.orgPlanId } }]);
+    const inbox = ctx.db.prepare("SELECT kind FROM inbox_items WHERE company_id = 'c1'").all();
+    expect(inbox).toEqual([]);
   });
 
   it("accepts a plan passed as a stringified JSON object", async () => {
