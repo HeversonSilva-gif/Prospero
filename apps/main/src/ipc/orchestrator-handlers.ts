@@ -120,6 +120,12 @@ import { getPermissionsDir } from "../security/permissions-dir.js";
 import { createConnectionsRepository } from "../connections/connections-repository.js";
 import { handleXPostEvent } from "../connections/x-post-event.js";
 import { safeStorageCipher, httpFetch } from "./connections-handlers.js";
+import { getUserMetrics, getTweetMetrics } from "../connections/x-client.js";
+import { createXPostsRepository } from "../connections/x-posts-repository.js";
+import { createXMetricsRepository } from "../connections/x-metrics-repository.js";
+import { collectXMetrics } from "../connections/collect-x-metrics.js";
+import { startXMetricsPoller } from "../connections/x-metrics-poller.js";
+import { getValidXAccessToken } from "../connections/x-token-manager.js";
 import { broadcastInboxUpdate } from "./inbox-handlers.js";
 import { isCeoAgent, findActiveCeo } from "@prospero/shared";
 import { buildRecoveryTrail } from "../derivation/trail.js";
@@ -593,6 +599,13 @@ export const registerOrchestratorHandlers = (
           writeResult: (postId, result) =>
             writeFileSync(join(permDir, `${postId}.xpost.json`), JSON.stringify(result)),
           now: () => Date.now(),
+          onPosted: (tweetId, text) =>
+            createXPostsRepository(db).record({
+              companyId,
+              tweetId,
+              text,
+              postedAt: Date.now(),
+            }),
         },
         companyId,
         p,
@@ -608,6 +621,39 @@ export const registerOrchestratorHandlers = (
 
   const eventsDir = getEventsDir(app.getPath("userData"));
   void startEventsWatcher({ dir: eventsDir, onEvent: dispatchAgentEvent });
+
+  // P3 Senses: daily X analytics ingestion. System-side (no agent turn). Fail-soft
+  // per company; reuses the auto-refreshing token manager. 30-day post window.
+  const X_METRICS_INTERVAL_MS = 24 * 60 * 60_000;
+  const X_POST_WINDOW_MS = 30 * 24 * 60 * 60_000;
+  const stopXMetricsPoller = startXMetricsPoller({
+    intervalMs: X_METRICS_INTERVAL_MS,
+    run: () => {
+      const cipher = safeStorageCipher();
+      const connections = createConnectionsRepository(db, cipher);
+      const posts = createXPostsRepository(db);
+      const metrics = createXMetricsRepository(db);
+      return collectXMetrics({
+        listCompaniesWithX: () =>
+          (
+            db
+              .prepare("SELECT DISTINCT company_id FROM connections WHERE kind = 'x'")
+              .all() as Array<{
+              company_id: string;
+            }>
+          ).map((r) => r.company_id),
+        getToken: (companyId) =>
+          getValidXAccessToken(connections, httpFetch, companyId, () => Date.now()),
+        getUserMetrics: (token) => getUserMetrics(httpFetch, token),
+        recentPosts: (companyId) => posts.recentByCompany(companyId, Date.now() - X_POST_WINDOW_MS),
+        getTweetMetrics: (token, ids) => getTweetMetrics(httpFetch, token, ids),
+        insertAccount: (i) => metrics.insertAccount(i),
+        insertTweet: (i) => metrics.insertTweet(i),
+        now: () => Date.now(),
+      });
+    },
+  });
+  void stopXMetricsPoller; // held for symmetry; process-lifetime poller
 
   // Serializes compaction per project (same-agent overlap AND two agents on one
   // project): the digest write is a non-atomic read-modify-write and a redundant
