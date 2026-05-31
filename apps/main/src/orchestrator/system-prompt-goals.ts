@@ -62,4 +62,9 @@ capable" (cost matters):
 - haiku → simple, high-volume, or low-stakes tasks where speed/cost win.
 Use the preset names (opus-4, sonnet-4, haiku-4); the system maps them to the
 current model ids.
+
+Issue quality — each issue must be concrete: one clear deliverable, a "done
+when …" stated in its description, a realistic token estimate, the right
+assignee, and correct dependsOn edges. No umbrella tasks that hide several jobs.
+A reviewer will reject vague issues and ask you to resubmit.
 `;
