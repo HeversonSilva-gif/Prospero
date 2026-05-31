@@ -15,6 +15,7 @@ import { AjustesGovernanca } from "./routes/AjustesGovernanca.js";
 import { SetupWizard } from "./routes/SetupWizard.js";
 import { Agent as AgentRoute } from "./routes/Agent.js";
 import { OrgPlan } from "./routes/OrgPlan.js";
+import { BusinessPlan } from "./routes/BusinessPlan.js";
 import { Inbox } from "./routes/Inbox.js";
 import { Projects } from "./routes/Projects.js";
 import { useProjectsStore } from "./stores/projects.js";
@@ -318,6 +319,18 @@ export const App = () => {
                 appReady ? (
                   <Layout>
                     <OrgPlan />
+                  </Layout>
+                ) : (
+                  <Navigate to="/setup" replace />
+                )
+              }
+            />
+            <Route
+              path="/business-plan"
+              element={
+                appReady ? (
+                  <Layout>
+                    <BusinessPlan />
                   </Layout>
                 ) : (
                   <Navigate to="/setup" replace />
