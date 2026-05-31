@@ -185,7 +185,7 @@ const getCostBaselineTool: Tool = {
 const submitGoalPlan: Tool = {
   name: "submit_goal_plan",
   description:
-    "Submit a structured plan for a goal in 'planning' status. Validates payload (Zod + DAG). Creates a new plan version and transitions the goal to 'proposed'. The user reviews and approves the plan in the UI.",
+    "Submit a structured plan for a goal in 'planning' status. Validates payload (Zod + DAG). Creates a new plan version (status critiquing) and emits goal.plan_proposed; the main process critiques the issues and surfaces the plan for review.",
   inputSchema: z.object({
     goalId: z.string(),
     plan: z.unknown(),
@@ -230,10 +230,7 @@ const submitGoalPlan: Tool = {
     }
     const payload: GoalPlanPayload = parsed.data;
 
-    const existing = plansRepo.getCurrent(goal.id);
-    if (existing && existing.status === "proposed") {
-      plansRepo.markSuperseded(existing.id);
-    }
+    plansRepo.supersedeActiveForGoal(goal.id);
 
     const version = plansRepo.nextVersion(goal.id);
     const plan = plansRepo.insert({
@@ -250,30 +247,10 @@ const submitGoalPlan: Tool = {
       estimatedDurationDays: payload.estimatedDurationDays ?? null,
       estimatedCostCents: payload.estimatedCostCents ?? null,
       risks: payload.risks,
+      status: "critiquing",
     });
 
-    goalsRepo.updateStatus(goal.id, "proposed");
-
-    const ceo = createAgentsRepository(ctx.db).getById(ctx.agentId);
-    const ceoName = ceo?.name ?? "CEO";
-    createInboxRepository(ctx.db).create({
-      companyId: ctx.companyId,
-      kind: "goal_proposed",
-      actorId: ctx.agentId,
-      title: `${ceoName} proposed a plan for "${goal.title}"`,
-      preview: payload.summary.slice(0, 200),
-      payloadJson: JSON.stringify({ goalId: goal.id, planId: plan.id }),
-      requiresAction: true,
-    });
-    // BrowserWindow is undefined when this tool runs outside an Electron host
-    // (unit tests). The DB write above is what matters; broadcast is best-effort.
-    try {
-      for (const win of BrowserWindow.getAllWindows()) {
-        win.webContents.send(IPC.INBOX_UPDATE, { companyId: ctx.companyId });
-      }
-    } catch {
-      /* tests run without an Electron host */
-    }
+    ctx.emit({ kind: "goal.plan_proposed", payload: { goalId: goal.id, planId: plan.id } });
 
     tryGetRecorder()?.recordActivity({
       companyId: ctx.companyId,

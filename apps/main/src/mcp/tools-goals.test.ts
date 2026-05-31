@@ -5,10 +5,12 @@ import { goalsToolDefinitions } from "./tools-goals.js";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createGoalsRepository } from "../goals/repository.js";
+import { createGoalPlansRepository } from "../goals/plans-repository.js";
 import type { ToolContext } from "./tools.js";
 
 const setup = (): {
   ctx: ToolContext;
+  emitted: Array<{ kind: string; payload: unknown }>;
   companyId: string;
   ceoId: string;
 } => {
@@ -25,6 +27,7 @@ const setup = (): {
     model: "sonnet-4",
     templateId: "ceo",
   });
+  const emitted: Array<{ kind: string; payload: unknown }> = [];
   return {
     ctx: {
       agentId: ceo.id,
@@ -32,8 +35,9 @@ const setup = (): {
       db,
       permissionsDir: "",
       userDataDir: "/tmp/userdata",
-      emit: () => undefined,
+      emit: (e) => emitted.push(e),
     },
+    emitted,
     companyId: company.id,
     ceoId: ceo.id,
   };
@@ -196,7 +200,7 @@ describe("submit_goal_plan", () => {
     );
   });
 
-  it("accepts valid plan and creates version 1 + transitions goal to proposed", async () => {
+  it("inserts plan as critiquing, goal stays planning, no inbox card, emits goal.plan_proposed", async () => {
     const goalsRepo = createGoalsRepository(env.ctx.db);
     const goal = goalsRepo.create({ companyId: env.companyId, title: "X" });
     goalsRepo.updateStatus(goal.id, "planning");
@@ -208,8 +212,20 @@ describe("submit_goal_plan", () => {
     };
     expect(result.version).toBe(1);
 
-    const afterGoal = goalsRepo.getById(goal.id);
-    expect(afterGoal?.status).toBe("proposed");
+    // Plan is critiquing (MAIN's critic gates the card)
+    expect(createGoalPlansRepository(env.ctx.db).getById(result.planId)?.status).toBe("critiquing");
+    // Goal stays planning until MAIN flips it
+    expect(goalsRepo.getById(goal.id)?.status).toBe("planning");
+    // No inbox card created by the tool
+    const inbox = env.ctx.db
+      .prepare("SELECT kind FROM inbox_items WHERE company_id = ?")
+      .all(env.companyId);
+    expect(inbox).toEqual([]);
+    // Event emitted
+    expect(env.emitted).toContainEqual({
+      kind: "goal.plan_proposed",
+      payload: { goalId: goal.id, planId: result.planId },
+    });
   });
 
   it("accepts a plan passed as a stringified JSON object", async () => {
@@ -223,21 +239,27 @@ describe("submit_goal_plan", () => {
       await tool.run({ goalId: goal.id, plan: JSON.stringify(validPayload) }, env.ctx),
     ) as { version: number };
     expect(result.version).toBe(1);
-    expect(goalsRepo.getById(goal.id)?.status).toBe("proposed");
+    // Goal stays planning (MAIN gates the transition)
+    expect(goalsRepo.getById(goal.id)?.status).toBe("planning");
   });
 
-  it("supersedes existing proposed plan when re-submitted in planning state", async () => {
+  it("supersedes existing active plan (critiquing or proposed) when re-submitted in planning state", async () => {
     const goalsRepo = createGoalsRepository(env.ctx.db);
     const goal = goalsRepo.create({ companyId: env.companyId, title: "X" });
     goalsRepo.updateStatus(goal.id, "planning");
     const tool = findTool("submit_goal_plan");
-    await tool.run({ goalId: goal.id, plan: validPayload }, env.ctx);
-    goalsRepo.updateStatus(goal.id, "planning");
+    const first = JSON.parse(await tool.run({ goalId: goal.id, plan: validPayload }, env.ctx)) as {
+      planId: string;
+      version: number;
+    };
+    // Goal is still planning (MAIN gates the transition) — can re-submit directly
     const second = JSON.parse(await tool.run({ goalId: goal.id, plan: validPayload }, env.ctx)) as {
       planId: string;
       version: number;
     };
     expect(second.version).toBe(2);
+    // First plan superseded by supersedeActiveForGoal
+    expect(createGoalPlansRepository(env.ctx.db).getById(first.planId)?.status).toBe("superseded");
   });
 
   it("returns Zod errors as structured detail", async () => {
