@@ -43,7 +43,7 @@ const validPayload = {
       name: "Traffic Manager",
       description: "Runs paid acquisition",
       charter: "# Traffic Manager\n\n## Identity\n\nLeads media buying.",
-      model: "claude-sonnet-4-6",
+      model: "sonnet-4",
       capabilities: ["chat", "web"],
       icon: "📈",
     },

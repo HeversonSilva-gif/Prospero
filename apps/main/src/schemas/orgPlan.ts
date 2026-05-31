@@ -7,6 +7,7 @@
 // Indexes are 0-based and sequential (0..N-1), matching the goal plan schema.
 
 import { z } from "zod";
+import { MODEL_PRESETS } from "../agents/model-presets.js";
 
 const indexRef = z.union([z.number().int().nonnegative(), z.literal("CEO")]);
 
@@ -15,7 +16,7 @@ const ProposedRoleSchema = z.object({
   name: z.string().min(1).max(80),
   description: z.string().min(1).max(500),
   charter: z.string().min(1).max(20000),
-  model: z.string().min(1).max(120),
+  model: z.enum(MODEL_PRESETS),
   capabilities: z.array(z.string()).max(20),
   icon: z.string().max(16).nullable(),
 });

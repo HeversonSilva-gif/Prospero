@@ -6,14 +6,9 @@
 // TS interfaces for the same shapes live in packages/shared/src/types/goal.ts.
 
 import { z } from "zod";
+import { MODEL_PRESETS } from "../agents/model-presets.js";
 
-export const MODEL_PRESETS = [
-  "opus-4",
-  "sonnet-4",
-  "haiku-4",
-  "opus-4-thinking",
-  "sonnet-4-thinking",
-] as const;
+export { MODEL_PRESETS } from "../agents/model-presets.js";
 
 const indexRef = z.union([z.number().int().nonnegative(), z.literal("CEO")]);
 
