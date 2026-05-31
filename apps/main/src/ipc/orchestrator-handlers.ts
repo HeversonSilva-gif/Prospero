@@ -126,6 +126,7 @@ import { createXMetricsRepository } from "../connections/x-metrics-repository.js
 import { collectXMetrics } from "../connections/collect-x-metrics.js";
 import { startXMetricsPoller } from "../connections/x-metrics-poller.js";
 import { getValidXAccessToken } from "../connections/x-token-manager.js";
+import { reviewXGrowth } from "../connections/x-growth-review.js";
 import { broadcastInboxUpdate } from "./inbox-handlers.js";
 import { isCeoAgent, findActiveCeo } from "@prospero/shared";
 import { buildRecoveryTrail } from "../derivation/trail.js";
@@ -654,6 +655,56 @@ export const registerOrchestratorHandlers = (
     },
   });
   void stopXMetricsPoller; // held for symmetry; process-lifetime poller
+
+  // P3 Self-adjust: weekly growth review. When follower growth stalls, nudge the
+  // CEO to revise the content strategy (posts still go through the gate). De-dup
+  // in-memory: at most one nudge per company per week.
+  const X_GROWTH_REVIEW_INTERVAL_MS = 7 * 24 * 60 * 60_000;
+  const xGrowthLastNudged = new Map<string, number>();
+  const stopXGrowthReview = startXMetricsPoller({
+    intervalMs: X_GROWTH_REVIEW_INTERVAL_MS,
+    run: () => {
+      const metrics = createXMetricsRepository(db);
+      reviewXGrowth({
+        listCompaniesWithX: () =>
+          (
+            db
+              .prepare("SELECT DISTINCT company_id FROM connections WHERE kind = 'x'")
+              .all() as Array<{
+              company_id: string;
+            }>
+          ).map((r) => r.company_id),
+        accountSeries: (companyId, sinceMs) => metrics.accountSeries(companyId, sinceMs),
+        windowMs: X_GROWTH_REVIEW_INTERVAL_MS,
+        now: () => Date.now(),
+        shouldNudge: (companyId) =>
+          Date.now() - (xGrowthLastNudged.get(companyId) ?? 0) >= X_GROWTH_REVIEW_INTERVAL_MS,
+        onStagnant: (companyId, summary) => {
+          const ceo = findActiveCeo(agents.listByCompany(companyId));
+          if (ceo === null) return;
+          deliverSystemMessage(
+            ceo.id,
+            `[X_GROWTH] Crescimento no X precisa de atenção: ${summary}. ` +
+              `Reavalie a estratégia de conteúdo — use x_insights_read para ver o que funcionou — ` +
+              `e proponha ajustes. Novos posts passam pela aprovação normal.`,
+          );
+          inbox.create({
+            companyId,
+            kind: "suggestion",
+            actorId: ceo.id,
+            title: "Crescimento no X estagnou",
+            preview: summary,
+            requiresAction: false,
+            payloadJson: JSON.stringify({ kind: "x_growth_review", summary }),
+          });
+          broadcastInboxUpdate(companyId);
+          xGrowthLastNudged.set(companyId, Date.now());
+        },
+      });
+      return Promise.resolve();
+    },
+  });
+  void stopXGrowthReview; // process-lifetime poller (mirrors the metrics poller)
 
   // Serializes compaction per project (same-agent overlap AND two agents on one
   // project): the digest write is a non-atomic read-modify-write and a redundant
