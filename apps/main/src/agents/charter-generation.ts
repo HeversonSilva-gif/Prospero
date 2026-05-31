@@ -3,7 +3,7 @@ import { CHARTER_SECTIONS } from "@prospero/shared";
 import { sanitizeMemoryBody } from "../memory/sanitizer.js";
 import { createCostsRepository } from "../costs/repository.js";
 import { estimateCostCents } from "../costs/pricing.js";
-import { SEED_CHARTERS } from "./seed-charters.js";
+import { CHARTER_DEPTH_EXEMPLAR } from "./charter-exemplar.js";
 import type { RunDerivationResult } from "../derivation/runner.js";
 
 // One-shot charter generation. Builds a generation prompt, runs a headless
@@ -17,9 +17,31 @@ const GENERATION_MODEL = "claude-sonnet-4-6";
 
 // Builds the single prompt string fed to the headless runner (which reads the
 // whole prompt from stdin — there is no separate --system-prompt). Includes the
-// 8-section spec and one seed charter as a worked example.
-export const buildCharterGenerationPrompt = (description: string): string => {
+// 8-section spec, the depth exemplar (as a "match depth, not domain" reference),
+// the real business context, and optional regeneration feedback.
+export const buildCharterGenerationPrompt = (
+  description: string,
+  businessContext: string,
+  feedback?: string,
+): string => {
   const sections = CHARTER_SECTIONS.map((s, i) => `${i + 1}. ${s}`).join("\n");
+  const businessBlock =
+    businessContext.trim() !== ""
+      ? [
+          "This is the business the role serves — anchor the charter to it:",
+          "",
+          businessContext,
+          "",
+        ]
+      : [];
+  const feedbackBlock =
+    feedback !== undefined && feedback.trim() !== ""
+      ? [
+          "A reviewer found the previous draft too generic or shallow. Fix this:",
+          feedback.trim(),
+          "",
+        ]
+      : [];
   return [
     "You are an expert at writing role charters for a company of AI agents.",
     "",
@@ -27,11 +49,16 @@ export const buildCharterGenerationPrompt = (description: string): string => {
     "sections, in this order:",
     sections,
     "",
-    "Here is a complete example charter — match this depth, structure and tone:",
+    "Here is an expert charter — match the DEPTH, not the domain or wording.",
+    "Write for the business below, not for this example.",
     "",
-    SEED_CHARTERS["role-engineer"] ?? "",
+    CHARTER_DEPTH_EXEMPLAR,
     "",
-    "Write a complete charter for the role described below. Keep it concrete and",
+    ...businessBlock,
+    ...feedbackBlock,
+    "Write a complete charter for the role described below, specific to this",
+    "business — reference what it actually does, its audience, and its channel.",
+    "Avoid archetype boilerplate that would fit any company. Keep it concrete and",
     "roughly 50-90 lines. Output ONLY the charter markdown — a `# ` title line",
     "followed by the eight `## ` sections. No preamble, no commentary, no code",
     "fences.",
@@ -60,9 +87,11 @@ export type GenerateCharterDeps = {
 
 export type GenerateCharterInput = {
   description: string;
+  businessContext: string;
   env: Record<string, string>;
   // Active company for the cost event; null skips cost recording.
   companyId: string | null;
+  feedback?: string;
 };
 
 export const generateCharter = async (
@@ -73,7 +102,7 @@ export const generateCharter = async (
   if (description === "") throw new Error("a role description is required");
 
   const result = await deps.runDerivation({
-    prompt: buildCharterGenerationPrompt(description),
+    prompt: buildCharterGenerationPrompt(description, input.businessContext, input.feedback),
     model: GENERATION_MODEL,
     env: input.env,
   });
