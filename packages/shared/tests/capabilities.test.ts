@@ -9,9 +9,10 @@ import {
 } from "../src/capabilities.js";
 
 describe("capability catalog", () => {
-  it("includes the 9 canonical capability ids", () => {
+  it("includes the 10 canonical capability ids", () => {
     expect(Object.keys(CAPABILITY_CATALOG).sort()).toEqual([
       "chat",
+      "connectors",
       "delegation",
       "fs-read",
       "fs-write",
@@ -20,6 +21,13 @@ describe("capability catalog", () => {
       "memory",
       "shell",
       "web",
+    ]);
+  });
+
+  it("includes the connectors capability with the X publish tools", () => {
+    expect(CAPABILITY_CATALOG.connectors.tools).toEqual([
+      "mcp__dashboard__post_to_x",
+      "mcp__dashboard__reply_on_x",
     ]);
   });
 

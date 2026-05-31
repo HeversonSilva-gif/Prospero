@@ -5,6 +5,8 @@ import { isCeoAgent } from "@prospero/shared";
 import { HIRE_AGENT_INPUT_SCHEMA } from "../schemas/hire-agent-input.js";
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+import type { XPostEventResult } from "../connections/x-post-event.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
@@ -91,6 +93,148 @@ export const waitForResolution = async (
     await new Promise((r) => setTimeout(r, 100));
   }
   return { behavior: "deny", message: "Approval timeout" };
+};
+
+type GateOutcome =
+  | { decision: "allow" }
+  | { decision: "deny"; message: string }
+  | { decision: "deferred"; message: string };
+
+const GATE_DEFERRED_MESSAGE =
+  "Aprovação ainda pendente — pausando para liberar um slot de execução. " +
+  "Encerre o turno; você será reativado e esta ação será reexecutada assim que " +
+  "a aprovação for decidida. Não tente contornar a permissão.";
+
+// Routes a side-effect action through the approval gate — the SAME machinery the
+// filesystem permission-prompt uses (create approval row → write the .req.json the
+// permission watcher reads → block until the user/CEO decides). Shared by
+// `request_permission` (claude's filesystem prompt) AND by the outward connector
+// tools (post_to_x / reply_on_x). The connector tools call this directly so they
+// SELF-GATE: they cannot publish without an approval regardless of how claude-code
+// routes MCP-tool permissions (a tool in --allowedTools is otherwise run with no
+// prompt — see prepare-sandbox.ts). One-shot pre-approval fences (deferred →
+// approved re-attempts) and slot-reclaim defers are honoured here for both callers.
+const gateAction = async (
+  ctx: ToolContext,
+  toolName: string,
+  toolInput: Record<string, unknown>,
+  toolUseId: string,
+): Promise<GateOutcome> => {
+  // One-shot pre-approval (v0.1.37 slot-reclaim re-execution): a deferred approval
+  // that was later APPROVED leaves a pre-approval fence for the exact same action.
+  // The re-attempt consumes it and is allowed without a fresh gate.
+  const preKey = preapprovalKey(toolName, toolInput);
+  const prePath = preapprovalPath(ctx.permissionsDir, ctx.agentId, preKey);
+  if (existsSync(prePath)) {
+    safeUnlink(prePath);
+    return { decision: "allow" };
+  }
+
+  const approvals = createApprovalsRepository(ctx.db);
+  const approval = approvals.create({
+    agentId: ctx.agentId,
+    kind: "tool_call",
+    payload: { tool_name: toolName, tool_input: toolInput, tool_use_id: toolUseId },
+  });
+  tryGetRecorder()?.recordActivity({
+    companyId: ctx.companyId,
+    actor: { kind: "agent", id: ctx.agentId },
+    action: "approval.requested",
+    entityKind: "approval",
+    entityId: approval.id,
+    agentId: ctx.agentId,
+    payload: { kind: "tool_call", toolName },
+  });
+
+  const reqPath = join(ctx.permissionsDir, `${toolUseId}.req.json`);
+  writeFileSync(
+    reqPath,
+    JSON.stringify({
+      tool_use_id: toolUseId,
+      agentId: ctx.agentId,
+      tool_name: toolName,
+      tool_input: toolInput,
+    }),
+  );
+  const result = await waitForResolution(ctx.permissionsDir, toolUseId, 30 * 60_000);
+  // Deferred: the scheduler reclaimed the slot. Leave the approval PENDING (no
+  // decide, no trust recompute) and keep req.json so it stays decidable; leave a
+  // marker so MAIN's re-engagement sweep wakes this agent once the still-pending
+  // approval is actually decided.
+  if (result.behavior === "deferred") {
+    try {
+      writeFileSync(
+        deferredMarkerPath(ctx.permissionsDir, approval.id),
+        JSON.stringify({
+          approvalId: approval.id,
+          agentId: ctx.agentId,
+          toolName,
+          toolInput,
+          toolUseId,
+        }),
+      );
+    } catch {
+      /* best-effort; without the marker the approval still resolves normally */
+    }
+    return { decision: "deferred", message: GATE_DEFERRED_MESSAGE };
+  }
+  approvals.decide(
+    approval.id,
+    result.behavior === "allow" ? "approved" : "rejected",
+    result.decidedBy ?? "user",
+    result.behavior === "deny" ? result.message : undefined,
+  );
+  // A user decision is a track-record signal — recompute the calling agent's trust
+  // ladder. Idempotent + try/catch so a trust failure can never break the gate.
+  try {
+    recomputeAgentTrust(ctx.db, ctx.agentId);
+  } catch (err) {
+    console.warn("[approval] recomputeAgentTrust failed", err);
+  }
+  safeUnlink(reqPath);
+  return result.behavior === "allow"
+    ? { decision: "allow" }
+    : { decision: "deny", message: result.message };
+};
+
+// Polls for the result the MAIN-process `x.post` handler writes back (keyed by
+// postId) so post_to_x / reply_on_x return the tweet URL — or a clear error — to
+// the agent in the same turn. Mirrors waitForResolution's fence-file pattern.
+const waitForXResult = async (
+  dir: string,
+  postId: string,
+  timeoutMs: number,
+): Promise<XPostEventResult> => {
+  const path = join(dir, `${postId}.xpost.json`);
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (existsSync(path)) {
+      const r = JSON.parse(readFileSync(path, "utf8")) as XPostEventResult;
+      safeUnlink(path);
+      return r;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return { ok: false, error: "Tempo esgotado aguardando a publicação no X." };
+};
+
+// Emits the `x.post` event MAIN reacts to (only MAIN holds the safeStorage cipher
+// to decrypt the company's token), then waits for the result. Called ONLY after
+// gateAction has approved the outward tool call.
+const runXPost = async (
+  ctx: ToolContext,
+  args: { text: string; inReplyToId?: string },
+): Promise<string> => {
+  const postId = randomUUID();
+  ctx.emit({
+    kind: "x.post",
+    payload:
+      args.inReplyToId !== undefined
+        ? { postId, text: args.text, inReplyToId: args.inReplyToId }
+        : { postId, text: args.text },
+  });
+  const result = await waitForXResult(ctx.permissionsDir, postId, 90_000);
+  return JSON.stringify(result);
 };
 
 export const toolDefinitions = [
@@ -574,102 +718,47 @@ export const toolDefinitions = [
           : {});
       const toolUseId = rawInput.tool_use_id ?? rawInput.permission_request_id ?? "unknown";
 
-      // One-shot pre-approval (v0.1.37 slot-reclaim re-execution): a deferred
-      // approval that was later APPROVED leaves a pre-approval fence for the
-      // exact same action. The agent's re-attempt consumes it and is allowed
-      // without a fresh gate — completing the decision the user/CEO already made.
-      const preKey = preapprovalKey(rawInput.tool_name, toolInput);
-      const prePath = preapprovalPath(ctx.permissionsDir, ctx.agentId, preKey);
-      if (existsSync(prePath)) {
-        safeUnlink(prePath);
-        return JSON.stringify({ behavior: "allow", updatedInput: toolInput });
-      }
-
-      // Persist a structured approval row so the inbox surface gets a typed
-      // payload + audit history. Inbox row stores only the approval pointer.
-      const approvals = createApprovalsRepository(ctx.db);
-      const approval = approvals.create({
-        agentId: ctx.agentId,
-        kind: "tool_call",
-        payload: {
-          tool_name: rawInput.tool_name,
-          tool_input: toolInput,
-          tool_use_id: toolUseId,
-        },
-      });
-      tryGetRecorder()?.recordActivity({
-        companyId: ctx.companyId,
-        actor: { kind: "agent", id: ctx.agentId },
-        action: "approval.requested",
-        entityKind: "approval",
-        entityId: approval.id,
-        agentId: ctx.agentId,
-        payload: { kind: "tool_call", toolName: rawInput.tool_name },
-      });
-
-      const reqPath = join(ctx.permissionsDir, `${toolUseId}.req.json`);
-      writeFileSync(
-        reqPath,
-        JSON.stringify({
-          tool_use_id: toolUseId,
-          agentId: ctx.agentId,
-          tool_name: rawInput.tool_name,
-          tool_input: toolInput,
-        }),
-      );
-      const result = await waitForResolution(ctx.permissionsDir, toolUseId, 30 * 60_000);
-      // Deferred: the scheduler reclaimed the slot. Leave the approval PENDING
-      // (no decide, no trust recompute) and keep req.json so it stays decidable.
-      // End the turn with a non-failure message — MAIN re-engages the agent and
-      // the action re-runs once the approval is actually decided.
-      if (result.behavior === "deferred") {
-        // Leave a marker so MAIN's re-engagement sweep knows to wake this agent
-        // (and pre-approve the re-attempt) once the still-pending approval is
-        // actually decided. Keyed by approvalId; carries what's needed to re-run.
-        try {
-          writeFileSync(
-            deferredMarkerPath(ctx.permissionsDir, approval.id),
-            JSON.stringify({
-              approvalId: approval.id,
-              agentId: ctx.agentId,
-              toolName: rawInput.tool_name,
-              toolInput,
-              toolUseId,
-            }),
-          );
-        } catch {
-          /* best-effort; without the marker the approval still resolves normally */
-        }
-        return JSON.stringify({
-          behavior: "deny",
-          message:
-            "Aprovação ainda pendente — pausando para liberar um slot de execução. " +
-            "Encerre o turno; você será reativado e esta ação será reexecutada assim que " +
-            "a aprovação for decidida. Não tente contornar a permissão.",
-        });
-      }
-      approvals.decide(
-        approval.id,
-        result.behavior === "allow" ? "approved" : "rejected",
-        result.decidedBy ?? "user",
-        result.behavior === "deny" ? result.message : undefined,
-      );
-      // M14 PR-A: a user decision is a track-record signal — recompute the
-      // calling agent's trust ladder. Idempotent + try/catch so a trust
-      // failure can never break the gate flow.
-      try {
-        recomputeAgentTrust(ctx.db, ctx.agentId);
-      } catch (err) {
-        console.warn("[approval] recomputeAgentTrust failed", err);
-      }
-      safeUnlink(reqPath);
+      const outcome = await gateAction(ctx, rawInput.tool_name, toolInput, toolUseId);
       // Claude Code's --permission-prompt-tool requires `updatedInput` (a Record) on
       // allow responses. Without it, the response fails Zod validation on claude's
-      // side and the gated tool gets an "invalid_union" error.
-      if (result.behavior === "allow") {
+      // side and the gated tool gets an "invalid_union" error. Deny + deferred both
+      // surface as a deny-style turn-ending signal (claude accepts only allow/deny).
+      if (outcome.decision === "allow") {
         return JSON.stringify({ behavior: "allow", updatedInput: toolInput });
       }
-      return JSON.stringify(result);
+      return JSON.stringify({ behavior: "deny", message: outcome.message });
+    },
+  },
+  {
+    name: "post_to_x",
+    description:
+      "Publish a tweet on the company's connected X account. The text is reviewed via the " +
+      "approval gate before it goes live (graduates to automatic as the agent earns trust). " +
+      "Returns the published tweet's URL, or a clear error if X isn't connected / was rejected.",
+    inputSchema: z.object({ text: z.string().min(1).max(4000) }),
+    run: async (input: { text: string }, ctx: ToolContext): Promise<string> => {
+      const toolInput = { text: input.text };
+      const outcome = await gateAction(ctx, "post_to_x", toolInput, randomUUID());
+      if (outcome.decision !== "allow") {
+        return JSON.stringify({ ok: false, status: outcome.decision, message: outcome.message });
+      }
+      return runXPost(ctx, { text: input.text });
+    },
+  },
+  {
+    name: "reply_on_x",
+    description:
+      "Reply to a tweet on the company's connected X account (pass the id of the tweet you are " +
+      "replying to). Reviewed via the approval gate before it goes live (auto once trusted). " +
+      "Returns the reply's tweet URL, or a clear error if X isn't connected / was rejected.",
+    inputSchema: z.object({ tweet_id: z.string().min(1), text: z.string().min(1).max(4000) }),
+    run: async (input: { tweet_id: string; text: string }, ctx: ToolContext): Promise<string> => {
+      const toolInput = { tweet_id: input.tweet_id, text: input.text };
+      const outcome = await gateAction(ctx, "reply_on_x", toolInput, randomUUID());
+      if (outcome.decision !== "allow") {
+        return JSON.stringify({ ok: false, status: outcome.decision, message: outcome.message });
+      }
+      return runXPost(ctx, { text: input.text, inReplyToId: input.tweet_id });
     },
   },
   {

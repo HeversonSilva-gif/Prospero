@@ -158,6 +158,42 @@ describe("gate — meta MCP tools auto-allow (peça #6 hotfix)", () => {
     );
   });
 
+  // 0.2.X P1 — the X connector. Publishing to a real account is irreversible, so
+  // the publish tools must NOT be classified as read-only or meta (which would
+  // auto-allow them even in supervised mode). The tools also self-gate in the MCP
+  // child, but this locks the gate's own verdict as a second, independent guard.
+  describe("X connector publish tools — gated in supervised, auto when trusted", () => {
+    it.each([["mcp__dashboard__post_to_x"], ["mcp__dashboard__reply_on_x"]])(
+      "%s in supervised mode → request_user (irreversible external publish)",
+      (toolName) => {
+        const r = evaluatePermission({
+          toolName,
+          toolInput: { text: "gm" },
+          agent: baseAgent("supervised"),
+          allowedProjectPaths: [],
+          agentCwd: USER_DATA,
+          userDataDir: USER_DATA,
+        });
+        expect(r.action).toBe("request_user");
+      },
+    );
+
+    it.each([["mcp__dashboard__post_to_x"], ["mcp__dashboard__reply_on_x"]])(
+      "%s in auto mode → allow (trust-graduated)",
+      (toolName) => {
+        const r = evaluatePermission({
+          toolName,
+          toolInput: { text: "gm" },
+          agent: baseAgent("auto"),
+          allowedProjectPaths: [],
+          agentCwd: USER_DATA,
+          userDataDir: USER_DATA,
+        });
+        expect(r.action).toBe("allow");
+      },
+    );
+  });
+
   describe("auto mode bypasses gate as before (no regression)", () => {
     it("any tool in auto mode → allow", () => {
       const r = evaluatePermission({

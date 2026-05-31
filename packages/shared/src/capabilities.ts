@@ -22,6 +22,7 @@ export const KNOWN_CLAUDE_TOOLS = [
 
 export type CapabilityId =
   | "chat"
+  | "connectors"
   | "delegation"
   | "fs-read"
   | "fs-write"
@@ -138,6 +139,13 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
       "mcp__dashboard__project_context_read",
       "mcp__dashboard__project_context_note",
     ],
+  },
+  connectors: {
+    id: "connectors",
+    description:
+      "Publish on the company's connected external accounts (X): post a tweet, reply to a tweet. " +
+      "Each publish is gated for approval first (graduates to automatic via trust tiers).",
+    tools: ["mcp__dashboard__post_to_x", "mcp__dashboard__reply_on_x"],
   },
 };
 
