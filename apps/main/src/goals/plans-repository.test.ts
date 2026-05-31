@@ -36,6 +36,37 @@ const samplePlan = (goalId: string, proposedByAgentId: string, version: number) 
   risks: [],
 });
 
+const setup = () => {
+  const db = new Database(":memory:");
+  applyMigrations(db);
+  const company = createCompaniesRepository(db).create({ name: "Acme" });
+  const agent = createAgentsRepository(db).create({
+    companyId: company.id,
+    name: "CEO",
+    role: "ceo",
+    systemPrompt: "You are the CEO.",
+    mode: "supervised",
+    alwaysOn: true,
+    model: "sonnet-4",
+  });
+  const goal = createGoalsRepository(db).create({ companyId: company.id, title: "Plan goal" });
+  const repo = createGoalPlansRepository(db);
+  return { db, companyId: company.id, agentId: agent.id, goalId: goal.id, repo };
+};
+
+const baseInsert = (goalId: string) => ({
+  goalId,
+  proposedByAgentId: "agent_placeholder",
+  version: 1,
+  summary: "Base insert summary spanning at least twenty characters.",
+  agentsToHire: [] as [],
+  issuesToCreate: [] as [],
+  estimatedTotalTokens: null,
+  estimatedDurationDays: null,
+  estimatedCostCents: null,
+  risks: [] as [],
+});
+
 describe("goalPlansRepository", () => {
   let env: ReturnType<typeof newDb>;
   beforeEach(() => {
@@ -101,5 +132,41 @@ describe("goalPlansRepository", () => {
     expect(after?.status).toBe("approved");
     expect(after?.decidedBy).toBe("user");
     expect(after?.decidedAt).toBeGreaterThan(0);
+  });
+
+  it("inserts as critiquing when status is given, and getCurrent hides it", () => {
+    const { repo, goalId, agentId } = setup();
+    const plan = repo.insert({
+      ...baseInsert(goalId),
+      proposedByAgentId: agentId,
+      status: "critiquing",
+    });
+    expect(plan.status).toBe("critiquing");
+    expect(repo.getCurrent(goalId)).toBeNull();
+  });
+
+  it("markProposed flips critiquing → proposed (no-op otherwise)", () => {
+    const { repo, goalId, agentId } = setup();
+    const plan = repo.insert({
+      ...baseInsert(goalId),
+      proposedByAgentId: agentId,
+      status: "critiquing",
+    });
+    repo.markProposed(plan.id);
+    expect(repo.getById(plan.id)?.status).toBe("proposed");
+    repo.markApproved(plan.id, { decidedBy: "user" });
+    repo.markProposed(plan.id); // no-op on non-critiquing
+    expect(repo.getById(plan.id)?.status).toBe("approved");
+  });
+
+  it("supersedeActiveForGoal supersedes proposed + critiquing", () => {
+    const { repo, goalId, agentId } = setup();
+    const a = repo.insert({
+      ...baseInsert(goalId),
+      proposedByAgentId: agentId,
+      status: "critiquing",
+    });
+    repo.supersedeActiveForGoal(goalId);
+    expect(repo.getById(a.id)?.status).toBe("superseded");
   });
 });

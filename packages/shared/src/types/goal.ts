@@ -18,7 +18,7 @@ export type GoalStatus =
   | "achieved"
   | "cancelled";
 
-export type GoalPlanStatus = "proposed" | "approved" | "rejected" | "superseded";
+export type GoalPlanStatus = "critiquing" | "proposed" | "approved" | "rejected" | "superseded";
 
 export type RiskSeverity = "low" | "medium" | "high";
 

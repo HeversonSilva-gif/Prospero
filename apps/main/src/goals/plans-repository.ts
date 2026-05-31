@@ -13,6 +13,7 @@ export type GoalPlanInsert = {
   estimatedDurationDays: number | null;
   estimatedCostCents: number | null;
   risks: Risk[];
+  status?: GoalPlanStatus;
 };
 
 export type GoalPlansRepository = {
@@ -24,6 +25,8 @@ export type GoalPlansRepository = {
   markApproved(id: string, opts: { decidedBy: string }): void;
   markRejected(id: string, userFeedback: string | null): void;
   markSuperseded(id: string): void;
+  markProposed(id: string): void;
+  supersedeActiveForGoal(goalId: string): void;
 };
 
 type Row = {
@@ -75,7 +78,7 @@ export const createGoalPlansRepository = (db: Database.Database): GoalPlansRepos
       @id, @goalId, @version, @proposedByAgentId, @summary,
       @agentsToHireJson, @issuesToCreateJson,
       @estimatedTotalTokens, @estimatedDurationDays, @estimatedCostCents,
-      @risksJson, 'proposed', NULL, @proposedAt, NULL, NULL
+      @risksJson, @status, NULL, @proposedAt, NULL, NULL
     )
   `);
 
@@ -110,6 +113,15 @@ export const createGoalPlansRepository = (db: Database.Database): GoalPlansRepos
     UPDATE goal_plans SET status = 'superseded', decided_at = ?, decided_by = 'user' WHERE id = ?
   `);
 
+  const markProposedStmt = db.prepare(
+    `UPDATE goal_plans SET status = 'proposed' WHERE id = ? AND status = 'critiquing'`,
+  );
+
+  const supersedeActiveStmt = db.prepare(
+    `UPDATE goal_plans SET status = 'superseded', decided_at = ?, decided_by = 'system'
+     WHERE goal_id = ? AND status IN ('proposed','critiquing')`,
+  );
+
   const insert = (input: GoalPlanInsert): GoalPlan => {
     const id = `plan_${randomUUID()}`;
     const proposedAt = Date.now();
@@ -125,6 +137,7 @@ export const createGoalPlansRepository = (db: Database.Database): GoalPlansRepos
       estimatedDurationDays: input.estimatedDurationDays,
       estimatedCostCents: input.estimatedCostCents,
       risksJson: JSON.stringify(input.risks),
+      status: input.status ?? "proposed",
       proposedAt,
     });
     return rowToPlan(getByIdStmt.get(id) as Row);
@@ -162,6 +175,14 @@ export const createGoalPlansRepository = (db: Database.Database): GoalPlansRepos
     markSupersededStmt.run(Date.now(), id);
   };
 
+  const markProposed = (id: string): void => {
+    markProposedStmt.run(id);
+  };
+
+  const supersedeActiveForGoal = (goalId: string): void => {
+    supersedeActiveStmt.run(Date.now(), goalId);
+  };
+
   return {
     insert,
     getById,
@@ -171,5 +192,7 @@ export const createGoalPlansRepository = (db: Database.Database): GoalPlansRepos
     markApproved,
     markRejected,
     markSuperseded,
+    markProposed,
+    supersedeActiveForGoal,
   };
 };
