@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { postTweet, getMe, XApiError, type XHttp } from "./x-client.js";
+import {
+  postTweet,
+  getMe,
+  getUserMetrics,
+  getTweetMetrics,
+  XApiError,
+  type XHttp,
+} from "./x-client.js";
 
 // `postTweet` is a thin, electron-free HTTP client over the X v2 "create tweet"
 // endpoint. We inject the HTTP fn so we can assert the EXACT request shape (url,
@@ -75,5 +82,68 @@ describe("x-client postTweet", () => {
       status: 403,
       message: "duplicate content",
     });
+  });
+});
+
+describe("getUserMetrics", () => {
+  it("requests public_metrics and parses the counts", async () => {
+    let url = "";
+    const http: XHttp = (u, init) => {
+      url = u;
+      expect(init.headers.Authorization).toBe("Bearer AT");
+      return Promise.resolve({
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: {
+              public_metrics: { followers_count: 100, following_count: 10, tweet_count: 42 },
+            },
+          }),
+      });
+    };
+    const m = await getUserMetrics(http, "AT");
+    expect(url).toContain("user.fields=public_metrics");
+    expect(m).toEqual({ followers: 100, following: 10, tweets: 42 });
+  });
+  it("throws XApiError on 401", async () => {
+    const http: XHttp = () => Promise.resolve({ status: 401, json: () => Promise.resolve({}) });
+    await expect(getUserMetrics(http, "AT")).rejects.toBeInstanceOf(XApiError);
+  });
+});
+
+describe("getTweetMetrics", () => {
+  it("requests the ids with public_metrics and maps each tweet", async () => {
+    let url = "";
+    const http: XHttp = (u) => {
+      url = u;
+      return Promise.resolve({
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: [
+              {
+                id: "t1",
+                public_metrics: {
+                  impression_count: 500,
+                  like_count: 9,
+                  reply_count: 2,
+                  retweet_count: 3,
+                  quote_count: 1,
+                },
+              },
+            ],
+          }),
+      });
+    };
+    const out = await getTweetMetrics(http, "AT", ["t1", "t2"]);
+    expect(url).toContain("ids=t1,t2");
+    expect(url).toContain("tweet.fields=public_metrics");
+    expect(out).toEqual([
+      { id: "t1", impressions: 500, likes: 9, replies: 2, reposts: 3, quotes: 1 },
+    ]);
+  });
+  it("returns [] for an empty id list without calling http", async () => {
+    const http: XHttp = () => Promise.reject(new Error("should not be called"));
+    expect(await getTweetMetrics(http, "AT", [])).toEqual([]);
   });
 });
