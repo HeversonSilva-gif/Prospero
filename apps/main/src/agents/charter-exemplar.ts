@@ -1,10 +1,9 @@
-import { CHARTER_SECTIONS } from "@prospero/shared";
-
 // Depth reference for charter generation — an expert-level charter for an X
 // content/growth role. NOT a hireable seed role and NEVER copied verbatim: the
 // generation prompt uses it purely to show how deep + concrete a charter should
 // be, and explicitly tells the model to match the DEPTH, not the domain. Keep
-// the 8 sections in CHARTER_SECTIONS order.
+// the 8 sections in CHARTER_SECTIONS order (asserted by validateCharter in the
+// charter-generation test).
 export const CHARTER_DEPTH_EXEMPLAR = `# X Growth & Content Lead — Role Charter
 
 ## Identity
@@ -67,6 +66,3 @@ A week is done when the planned posts shipped through the gate, genuine replies
 were answered, the best-performing angle is recorded, and at least one
 buying-signal conversation was routed to the owner.
 `;
-
-// Sanity: the exemplar validates by construction (CHARTER_SECTIONS used above).
-export const CHARTER_DEPTH_EXEMPLAR_SECTIONS = CHARTER_SECTIONS;

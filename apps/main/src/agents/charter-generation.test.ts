@@ -38,6 +38,7 @@ describe("buildCharterGenerationPrompt", () => {
     for (const s of CHARTER_SECTIONS) expect(prompt).toContain(s);
     expect(prompt).toContain("runs paid acquisition campaigns");
     expect(prompt).toContain("BeanBox");
+    expect(prompt).toContain("X Growth & Content Lead");
     expect(prompt.toLowerCase()).toContain("match the depth");
     expect(prompt.toLowerCase()).toContain("not the domain");
   });
