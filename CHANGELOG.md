@@ -3,6 +3,37 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.0 — 2026-05-31
+
+Primeira virada do **"One Person Business"**: seu negócio agora tem mãos e
+sentidos no X, e o CEO planeja com mais profundidade. _As funcionalidades do X
+precisam de uma conta conectada (Ajustes › Conta) — veja o fim desta seção._
+
+### Adicionado
+
+- **Conector do X (postar e responder).** Os agentes podem publicar e responder
+  no X. Você conecta a sua conta em **Ajustes › Conta** (cola o Client ID do seu
+  app do X; os tokens ficam criptografados na sua máquina, nada vai pro git).
+  **Toda publicação passa pela sua aprovação primeiro** e vira automática só
+  conforme o agente ganha confiança.
+- **CEO mais fundo (menos genérico).** Os charters dos papéis agora são gerados
+  **específicos pro seu negócio** (puxam a missão da empresa, o público, o canal)
+  em vez de modelos genéricos — com um revisor que rejeita charter raso e pede pra
+  aprofundar. Vale tanto na criação de papel quanto no desenho da empresa.
+- **CEO escolhe o modelo certo por agente** (Opus pra raciocínio difícil, Sonnet
+  pro geral, Haiku pro simples) e **planeja com mais detalhe** — um revisor pega
+  tarefas vagas no plano e pede pro CEO refazer antes de te mostrar.
+- **Crescimento no X.** O Prospero acompanha sozinho as métricas da sua conta
+  (seguidores) e dos posts (engajamento), monta um resumo de **"o que está
+  funcionando"** que o agente usa pra escrever melhor, e **te avisa quando o
+  crescimento estagna** sugerindo ajustar a estratégia.
+
+### Para experimentar o X
+
+Crie um app no X Developer (tipo Native/Public, Read+Write), cole o **Client ID**
+em **Ajustes › Conta** e conecte. Sem isso, o restante do app funciona normal — só
+as funções do X ficam inativas.
+
 ## v0.1.40 — 2026-05-30
 
 ### Corrigido
