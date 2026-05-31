@@ -19,13 +19,15 @@ const OAUTH_TIMEOUT_MS = 5 * 60_000;
 
 // safeStorage-backed cipher — the real encryption boundary the connections repo
 // stays decoupled from (so the repo is unit-testable; this lives here with electron).
-const safeStorageCipher = (): Cipher => ({
+// Exported so the orchestrator's `x.post` event handler can decrypt the company's
+// token in MAIN (the MCP child has no safeStorage).
+export const safeStorageCipher = (): Cipher => ({
   encrypt: (plain) => safeStorage.encryptString(plain).toString("base64"),
   decrypt: (stored) => safeStorage.decryptString(Buffer.from(stored, "base64")),
 });
 
 // Adapts global fetch (Node 18+/Electron) to the connectors' injected XHttp shape.
-const httpFetch: XHttp = async (url, init) => {
+export const httpFetch: XHttp = async (url, init) => {
   const res = await fetch(url, init);
   return { status: res.status, json: () => res.json() };
 };

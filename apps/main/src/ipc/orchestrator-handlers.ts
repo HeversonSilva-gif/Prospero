@@ -113,6 +113,9 @@ import { handleApprovalEvent } from "../approvals/event-handler.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
 import { preapprovalKey, preapprovalPath } from "../approvals/deferred-approval.js";
 import { getPermissionsDir } from "../security/permissions-dir.js";
+import { createConnectionsRepository } from "../connections/connections-repository.js";
+import { handleXPostEvent } from "../connections/x-post-event.js";
+import { safeStorageCipher, httpFetch } from "./connections-handlers.js";
 import { broadcastInboxUpdate } from "./inbox-handlers.js";
 import { isCeoAgent, findActiveCeo } from "@prospero/shared";
 import { buildRecoveryTrail } from "../derivation/trail.js";
@@ -467,6 +470,25 @@ export const registerOrchestratorHandlers = (
       // CEO-side approval tools run in the MCP child (no engine bridge there);
       // they emit these events so MAIN does the routing/decision work.
       handleApprovalEvent({ kind, agentId: event.agentId, companyId, payload });
+    } else if (kind === "x.post" && typeof payload === "object" && payload !== null) {
+      // The post_to_x / reply_on_x tools self-gate in the MCP child, then emit this
+      // once approved. Only MAIN holds the safeStorage cipher to decrypt the
+      // company's X token, so the actual publish happens here; the result is written
+      // back (keyed by postId) for the still-waiting tool to return to the agent.
+      const p = payload as { postId: string; text: string; inReplyToId?: string };
+      const permDir = getPermissionsDir(app.getPath("userData"));
+      const repo = createConnectionsRepository(db, safeStorageCipher());
+      void handleXPostEvent(
+        {
+          repo,
+          http: httpFetch,
+          writeResult: (postId, result) =>
+            writeFileSync(join(permDir, `${postId}.xpost.json`), JSON.stringify(result)),
+          now: () => Date.now(),
+        },
+        companyId,
+        p,
+      );
     }
   };
 
