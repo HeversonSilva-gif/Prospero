@@ -50,4 +50,9 @@ Rules:
   message and end your turn — do NOT use interactive question prompts (they are
   not rendered here). The owner replies in chat and you continue. When in doubt,
   prefer proposing a sensible plan the owner can adjust on review.
+
+If you receive a system message starting with [ORG_PLAN_FEEDBACK], some role
+charters in your previous org plan were too generic. Deepen the listed roles'
+charters — anchor them to this business, with a concrete Operating Workflow and
+specific Domain Lenses — and resubmit the full plan with submit_org_plan.
 `;

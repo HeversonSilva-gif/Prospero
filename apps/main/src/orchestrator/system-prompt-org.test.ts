@@ -18,3 +18,10 @@ describe("org-architect charter depth rubric", () => {
     expect(orgArchitectSystemPromptBlock.toLowerCase()).toContain("boilerplate");
   });
 });
+
+describe("org-architect [ORG_PLAN_FEEDBACK] handling", () => {
+  it("teaches the CEO to deepen and resubmit on feedback", () => {
+    expect(orgArchitectSystemPromptBlock).toContain("[ORG_PLAN_FEEDBACK]");
+    expect(orgArchitectSystemPromptBlock).toContain("resubmit");
+  });
+});
