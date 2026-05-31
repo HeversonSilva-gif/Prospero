@@ -136,6 +136,7 @@
       "includeAgent": "Include agent {{name}}",
       "includeIssue": "Include issue {{title}}",
       "status": {
+        "critiquing": "In review",
         "proposed": "Proposed",
         "approved": "Approved",
         "rejected": "Rejected",
