@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { buildBusinessContext, BUSINESS_CONTEXT_CAP } from "./business-context.js";
+import Database from "better-sqlite3";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  buildBusinessContext,
+  BUSINESS_CONTEXT_CAP,
+  gatherBusinessContext,
+} from "./business-context.js";
+import { applyMigrations } from "../db/migrations.js";
 
 describe("buildBusinessContext", () => {
   it("assembles company name, X handle, and TELOS into one block", () => {
@@ -33,5 +42,29 @@ describe("buildBusinessContext", () => {
     });
     // The block has a fixed header + the capped telos; assert the telos slice is capped.
     expect(out.length).toBeLessThan(BUSINESS_CONTEXT_CAP + 200);
+  });
+});
+
+describe("gatherBusinessContext", () => {
+  it("reads company name + X @handle from the db (TELOS absent → omitted)", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','BeanBox',0)").run();
+    db.prepare(
+      `INSERT INTO connections (id, company_id, kind, ciphertext, metadata_json, created_at, updated_at)
+       VALUES ('cn1','c1','x','xxx', ?, 0, 0)`,
+    ).run(JSON.stringify({ handle: "@beanbox" }));
+    const emptyDir = mkdtempSync(join(tmpdir(), "ud-")); // no telos.md → readTelos returns null
+    const out = gatherBusinessContext(db, emptyDir, "c1");
+    expect(out).toContain("BeanBox");
+    expect(out).toContain("@beanbox");
+    expect(out).not.toContain("TELOS");
+  });
+
+  it("returns an empty string for a null companyId", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    const dir = mkdtempSync(join(tmpdir(), "ud-"));
+    expect(gatherBusinessContext(db, dir, null)).toBe("");
   });
 });
