@@ -113,7 +113,7 @@ export const NovaEmpresaWizard: FC = () => {
     () => agents.filter((a) => !isCeoAgent(a) && a.status !== "terminated").length,
     [agents],
   );
-  const phase = deriveOnboardingPhase({ teamSize, orgPlanProposed });
+  const phase = deriveOnboardingPhase({ teamSize, businessPlanProposed: false, orgPlanProposed });
 
   const sendReply = async (text: string): Promise<void> => {
     if (ceo === null) return;
