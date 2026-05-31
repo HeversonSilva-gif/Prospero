@@ -66,6 +66,8 @@ describe("submit_org_plan", () => {
     expect(createOrgPlansRepository(ctx.db).getById(out.orgPlanId)?.roles[0]?.name).toBe(
       "Traffic Manager",
     );
+    // New plans are inserted as 'critiquing'; MAIN flips to 'proposed' after critic approves.
+    expect(createOrgPlansRepository(ctx.db).getById(out.orgPlanId)?.status).toBe("critiquing");
     // The card is now created by MAIN after the critic runs — the tool only emits.
     expect(emitted).toEqual([{ kind: "org.proposed", payload: { orgPlanId: out.orgPlanId } }]);
     const inbox = ctx.db.prepare("SELECT kind FROM inbox_items WHERE company_id = 'c1'").all();
@@ -83,7 +85,7 @@ describe("submit_org_plan", () => {
     );
   });
 
-  it("supersedes a prior proposed plan", async () => {
+  it("supersedes a prior active plan on resubmit", async () => {
     const first = JSON.parse(await tool("submit_org_plan").run({ plan: validPayload }, ctx)) as {
       orgPlanId: string;
     };

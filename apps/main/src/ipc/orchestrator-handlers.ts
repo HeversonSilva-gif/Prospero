@@ -379,8 +379,9 @@ export const registerOrchestratorHandlers = (
   const orgPlanRevisions = new Map<string, number>();
 
   const handleOrgProposed = async (orgPlanId: string, companyId: string): Promise<void> => {
-    const plan = createOrgPlansRepository(db).getById(orgPlanId);
-    if (plan === null || plan.status !== "proposed") return;
+    const orgPlans = createOrgPlansRepository(db);
+    const plan = orgPlans.getById(orgPlanId);
+    if (plan === null || plan.status !== "critiquing") return;
     const businessContext = gatherBusinessContext(db, app.getPath("userData"), companyId);
     const { genericRoles } = await critiqueOrgPlan(
       { db, runDerivation: (i) => runDerivation({ runProcess: defaultRunProcess }, i) },
@@ -394,7 +395,7 @@ export const registerOrchestratorHandlers = (
     });
     if (outcome === "revise") {
       orgPlanRevisions.set(companyId, attempts + 1);
-      // Leave the plan 'proposed' (not superseded) — the CEO's resubmit supersedes
+      // Leave the plan 'critiquing' (not superseded) — the CEO's resubmit supersedes
       // it via submit_org_plan's own prior-supersede logic. No card yet.
       deliverSystemMessage(plan.proposedByAgentId, formatOrgPlanFeedback(genericRoles));
       return;
@@ -402,6 +403,7 @@ export const registerOrchestratorHandlers = (
     orgPlanRevisions.delete(companyId);
     const note =
       genericRoles.length > 0 ? "⚠ Revisar — alguns charters podem estar genéricos. " : "";
+    orgPlans.markProposed(orgPlanId);
     inbox.create({
       companyId,
       kind: "org_proposed",

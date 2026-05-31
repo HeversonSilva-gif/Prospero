@@ -52,8 +52,7 @@ const submitOrgPlan: Tool = {
     }
 
     const repo = createOrgPlansRepository(ctx.db);
-    const prior = repo.getCurrentForCompany(ctx.companyId);
-    if (prior !== null) repo.markSuperseded(prior.id);
+    repo.supersedeActiveForCompany(ctx.companyId);
 
     const orgPlan = repo.insert({
       companyId: ctx.companyId,
