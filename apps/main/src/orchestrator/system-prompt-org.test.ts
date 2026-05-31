@@ -25,3 +25,11 @@ describe("org-architect [ORG_PLAN_FEEDBACK] handling", () => {
     expect(orgArchitectSystemPromptBlock).toContain("resubmit");
   });
 });
+
+describe("model selection rubric (org)", () => {
+  it("teaches when to use opus / sonnet / haiku", () => {
+    expect(orgArchitectSystemPromptBlock.toLowerCase()).toContain("opus");
+    expect(orgArchitectSystemPromptBlock.toLowerCase()).toContain("haiku");
+    expect(orgArchitectSystemPromptBlock).toContain("default");
+  });
+});

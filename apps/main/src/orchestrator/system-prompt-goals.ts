@@ -54,4 +54,12 @@ Principles:
 If a system message starts with \`[FEEDBACK]\` appended after the
 GOAL_PLAN_REQUEST block, the user requested changes to a previous plan
 version — incorporate the feedback and submit version N+1.
+
+Choosing a model per role/agent — pick by the work, not "always the most
+capable" (cost matters):
+- opus → hard reasoning, architecture, ambiguous or high-stakes judgment.
+- sonnet → general execution and writing. This is the sensible default.
+- haiku → simple, high-volume, or low-stakes tasks where speed/cost win.
+Use the preset names (opus-4, sonnet-4, haiku-4); the system maps them to the
+current model ids.
 `;
