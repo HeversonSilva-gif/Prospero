@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCompaniesStore } from "../stores/companies.js";
-import { CreateCompanyModal } from "./CreateCompanyModal.js";
+import { GenesisEntry } from "./GenesisEntry.js";
 import { DeleteCompanyConfirm } from "./DeleteCompanyConfirm.js";
 
 export const CompanySwitcher = () => {
@@ -38,9 +38,9 @@ export const CompanySwitcher = () => {
           + {t("company.switcher.createFirst")}
         </button>
         {showCreate && (
-          <CreateCompanyModal
+          <GenesisEntry
             onClose={() => setShowCreate(false)}
-            onCreated={(companyId) => navigate(`/empresa/nova/${companyId}`)}
+            onCreated={(companyId, door) => navigate(`/empresa/nova/${companyId}?porta=${door}`)}
           />
         )}
       </>
@@ -102,9 +102,9 @@ export const CompanySwitcher = () => {
         </div>
       )}
       {showCreate && (
-        <CreateCompanyModal
+        <GenesisEntry
           onClose={() => setShowCreate(false)}
-          onCreated={(companyId) => navigate(`/empresa/nova/${companyId}`)}
+          onCreated={(companyId, door) => navigate(`/empresa/nova/${companyId}?porta=${door}`)}
         />
       )}
       {pendingDeleteId !== null && (
