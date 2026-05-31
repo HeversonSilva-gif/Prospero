@@ -21,7 +21,8 @@ export type InboxKind =
   | "auto_mode_expired"
   | "manager_request"
   | "ceo_decision"
-  | "skill_consolidation_proposed";
+  | "skill_consolidation_proposed"
+  | "business_proposed";
 
 export type InboxItem = {
   id: string;

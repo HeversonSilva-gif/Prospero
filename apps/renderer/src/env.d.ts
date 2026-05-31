@@ -28,6 +28,7 @@ import type {
   RoleDetail,
   OrgPlan,
   ApplyOrgPlanResult,
+  BusinessPlan,
   ActivityEventRow,
   ActivityQueryParams,
   CostsQueryInput,
@@ -317,6 +318,11 @@ declare global {
           includeAgentIndexes?: number[];
         }) => Promise<ApplyOrgPlanResult>;
         reject: (input: { orgPlanId: string; reason?: string }) => Promise<{ ok: true }>;
+      };
+      businessPlan: {
+        getCurrent: () => Promise<BusinessPlan | null>;
+        approve: (businessPlanId: string) => Promise<{ ok: boolean; error?: string }>;
+        reject: (businessPlanId: string, reason?: string) => Promise<{ ok: true }>;
       };
       activity: {
         query: (params: ActivityQueryParams) => Promise<ActivityEventRow[]>;

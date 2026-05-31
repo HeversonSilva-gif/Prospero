@@ -141,6 +141,13 @@ import { createOrgPlansRepository } from "../agents/org-plans-repository.js";
 import { gatherBusinessContext } from "../agents/business-context.js";
 import { critiqueOrgPlan, decideOrgPlanOutcome } from "../agents/org-plan-critique.js";
 import { formatOrgPlanFeedback } from "../agents/format-org-feedback.js";
+import { createBusinessPlansRepository } from "../agents/business-plans-repository.js";
+import {
+  critiqueBusinessPlan,
+  decideBusinessPlanOutcome,
+} from "../agents/business-plan-critique.js";
+import { formatBusinessPlanFeedback } from "../agents/format-business-plan-feedback.js";
+import { buildCapabilityBoundary } from "../agents/genesis/capability-boundary.js";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -396,6 +403,11 @@ export const registerOrchestratorHandlers = (
   const GOAL_PLAN_REVISION_CAP = 1;
   const goalPlanRevisions = new Map<string, number>();
 
+  // P4.1 — business-plan critic. Cap of 1 auto-revision per company, same shape as
+  // the org-plan critic. In-memory; resets when the card is created (and on restart).
+  const BUSINESS_PLAN_REVISION_CAP = 1;
+  const businessPlanRevisions = new Map<string, number>();
+
   const handleOrgProposed = async (orgPlanId: string, companyId: string): Promise<void> => {
     const orgPlans = createOrgPlansRepository(db);
     const plan = orgPlans.getById(orgPlanId);
@@ -430,6 +442,56 @@ export const registerOrchestratorHandlers = (
       preview: (note + plan.summary).slice(0, 200),
       requiresAction: true,
       payloadJson: JSON.stringify({ orgPlanId }),
+    });
+    broadcastInboxUpdate(companyId);
+  };
+
+  const handleBusinessPlanProposed = async (
+    businessPlanId: string,
+    companyId: string,
+  ): Promise<void> => {
+    const repo = createBusinessPlansRepository(db);
+    const plan = repo.getById(businessPlanId);
+    if (plan === null || plan.status !== "critiquing") return;
+    const verdict = await critiqueBusinessPlan(
+      { runDerivation: (i) => runDerivation({ runProcess: defaultRunProcess }, i) },
+      {
+        plan: {
+          concept: plan.concept,
+          monetization: plan.monetization,
+          marketing: plan.marketing,
+          identity: plan.identity,
+          dropped: plan.dropped,
+        },
+        capabilityBoundary: buildCapabilityBoundary(["x"]),
+        env: buildAuthEnv(db),
+      },
+    );
+    const flagged = !verdict.feasible || !verdict.specific;
+    const attempts = businessPlanRevisions.get(companyId) ?? 0;
+    const outcome = decideBusinessPlanOutcome({
+      flagged,
+      attempts,
+      cap: BUSINESS_PLAN_REVISION_CAP,
+    });
+    if (outcome === "revise") {
+      businessPlanRevisions.set(companyId, attempts + 1);
+      // Leave the plan 'critiquing' — the CEO's resubmit supersedes it via
+      // submit_business_plan's own prior-supersede logic. No card yet.
+      deliverSystemMessage(plan.proposedByAgentId, formatBusinessPlanFeedback(verdict.feedback));
+      return;
+    }
+    businessPlanRevisions.delete(companyId);
+    const note = flagged ? "⚠ Revisar — pode estar genérico ou inviável. " : "";
+    repo.markProposed(businessPlanId);
+    inbox.create({
+      companyId,
+      kind: "business_proposed",
+      actorId: plan.proposedByAgentId,
+      title: "Negócio proposto",
+      preview: (note + plan.concept).slice(0, 200),
+      requiresAction: true,
+      payloadJson: JSON.stringify({ businessPlanId }),
     });
     broadcastInboxUpdate(companyId);
   };
@@ -614,6 +676,13 @@ export const registerOrchestratorHandlers = (
     } else if (kind === "org.proposed" && typeof payload === "object" && payload !== null) {
       const p = payload as { orgPlanId: string };
       void handleOrgProposed(p.orgPlanId, companyId);
+    } else if (
+      kind === "business_plan.proposed" &&
+      typeof payload === "object" &&
+      payload !== null
+    ) {
+      const p = payload as { businessPlanId: string };
+      void handleBusinessPlanProposed(p.businessPlanId, companyId);
     } else if (kind === "goal.plan_proposed" && typeof payload === "object" && payload !== null) {
       const p = payload as { goalId: string; planId: string };
       void handleGoalPlanProposed(p.goalId, p.planId);

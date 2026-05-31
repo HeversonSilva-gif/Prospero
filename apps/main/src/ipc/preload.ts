@@ -28,6 +28,7 @@ import {
   type RoleDetail,
   type OrgPlan,
   type ApplyOrgPlanResult,
+  type BusinessPlan,
   type ActivityEventRow,
   type ActivityQueryParams,
   type CostsQueryInput,
@@ -418,6 +419,19 @@ contextBridge.exposeInMainWorld("prospero", {
     }) => ipcRenderer.invoke(IPC.ORG_PLAN_APPROVE, input) as Promise<ApplyOrgPlanResult>,
     reject: (input: { orgPlanId: string; reason?: string }) =>
       ipcRenderer.invoke(IPC.ORG_PLAN_REJECT, input) as Promise<{ ok: true }>,
+  },
+  businessPlan: {
+    getCurrent: () =>
+      ipcRenderer.invoke(IPC.BUSINESS_PLAN_GET_CURRENT) as Promise<BusinessPlan | null>,
+    approve: (businessPlanId: string) =>
+      ipcRenderer.invoke(IPC.BUSINESS_PLAN_APPROVE, { businessPlanId }) as Promise<{
+        ok: boolean;
+        error?: string;
+      }>,
+    reject: (businessPlanId: string, reason?: string) =>
+      ipcRenderer.invoke(IPC.BUSINESS_PLAN_REJECT, { businessPlanId, reason }) as Promise<{
+        ok: true;
+      }>,
   },
   activity: {
     query: (params: ActivityQueryParams) =>

@@ -20,6 +20,7 @@ import { registerAgentsMdHandlers } from "./agents-md-handlers.js";
 import { registerLearningHandlers } from "./learning-handlers.js";
 import { registerInstructionsHandlers } from "./instructions-handlers.js";
 import { registerOrgPlanHandlers } from "./org-plan-handlers.js";
+import { registerBusinessPlanHandlers } from "./business-plan-handlers.js";
 import { registerIsaHandlers } from "./isa-handlers.js";
 import { registerTelosHandlers } from "./telos-handlers.js";
 import { registerSecurityHandlers } from "./security-handlers.js";
@@ -72,6 +73,7 @@ export const registerIpcHandlers = (db: Database.Database): { stopScheduler: () 
   registerLearningHandlers(db);
   registerInstructionsHandlers(db);
   registerOrgPlanHandlers(db);
+  registerBusinessPlanHandlers(db);
   registerIsaHandlers(db);
   registerTelosHandlers(db);
   registerSecurityHandlers(db);
