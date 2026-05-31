@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FC } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { isCeoAgent, type Message } from "@prospero/shared";
 import { useAgentsStore } from "../stores/agents.js";
@@ -7,6 +7,7 @@ import { useCompaniesStore } from "../stores/companies.js";
 import { MessageList } from "../components/MessageList.js";
 import { Composer } from "../components/Composer.js";
 import { OrgPlanProposedBanner } from "../components/OrgPlanProposedBanner.js";
+import { BusinessPlanProposedBanner } from "../components/BusinessPlanProposedBanner.js";
 import { OnboardingStepper } from "../components/OnboardingStepper.js";
 import { deriveOnboardingPhase } from "../lib/onboarding.js";
 
@@ -25,6 +26,8 @@ export const NovaEmpresaWizard: FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { companyId } = useParams<{ companyId: string }>();
+  const [searchParams] = useSearchParams();
+  const door = searchParams.get("porta") as "ajuda" | "ideia" | null;
 
   const agents = useAgentsStore((s) => s.agents);
   const loadAgents = useAgentsStore((s) => s.load);
@@ -40,6 +43,7 @@ export const NovaEmpresaWizard: FC = () => {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [orgPlanProposed, setOrgPlanProposed] = useState(false);
+  const [businessPlanProposed, setBusinessPlanProposed] = useState(false);
   const seededFor = useRef<string | null>(null);
 
   // Make sure this company is the active one and its agents (incl. the CEO) are
@@ -62,7 +66,8 @@ export const NovaEmpresaWizard: FC = () => {
 
   // Seed the conversation once: a brand-new CEO has an empty thread, so we kick
   // it off with an opening instruction (idempotent per company — only if the
-  // thread is still empty after the first load).
+  // thread is still empty after the first load). The message is tailored to the
+  // door the user picked: "ajuda" (no idea) vs "ideia" (has an idea).
   useEffect(() => {
     if (ceo === null || companyId === undefined || company === null) return;
     if (seededFor.current === companyId) return;
@@ -71,10 +76,11 @@ export const NovaEmpresaWizard: FC = () => {
       return;
     }
     seededFor.current = companyId;
+    const seedKey = door === "ideia" ? "genesis.seed.idea" : "genesis.seed.help";
     void window.prospero.agents
-      .sendMessage({ agentId: ceo.id, content: t("novaEmpresa.seed", { name: company.name }) })
+      .sendMessage({ agentId: ceo.id, content: t(seedKey) })
       .then(() => reload());
-  }, [ceo, companyId, company, messages.length, t, reload]);
+  }, [ceo, companyId, company, door, messages.length, t, reload]);
 
   // Live append (same pattern as Pedir algo — avoids refetching the whole list).
   useEffect(() => {
@@ -87,15 +93,22 @@ export const NovaEmpresaWizard: FC = () => {
     return off;
   }, [ceo]);
 
-  // Poll for a pending org plan + refresh the roster, so the stepper advances
-  // even when the triggering write came from the MCP child (no broadcast).
+  // Poll for a pending org plan + business plan + refresh the roster, so the
+  // stepper advances even when the triggering write came from the MCP child
+  // (no broadcast).
   useEffect(() => {
     if (companyId === undefined) return;
     let cancelled = false;
     const tick = async (): Promise<void> => {
       try {
-        const plan = await window.prospero.orgPlan.getCurrent();
-        if (!cancelled) setOrgPlanProposed(plan !== null);
+        const [orgPlan, bizPlan] = await Promise.all([
+          window.prospero.orgPlan.getCurrent(),
+          window.prospero.businessPlan.getCurrent(),
+        ]);
+        if (!cancelled) {
+          setOrgPlanProposed(orgPlan !== null);
+          setBusinessPlanProposed(bizPlan !== null);
+        }
       } catch {
         /* best-effort */
       }
@@ -113,7 +126,7 @@ export const NovaEmpresaWizard: FC = () => {
     () => agents.filter((a) => !isCeoAgent(a) && a.status !== "terminated").length,
     [agents],
   );
-  const phase = deriveOnboardingPhase({ teamSize, businessPlanProposed: false, orgPlanProposed });
+  const phase = deriveOnboardingPhase({ teamSize, businessPlanProposed, orgPlanProposed });
 
   const sendReply = async (text: string): Promise<void> => {
     if (ceo === null) return;
@@ -145,6 +158,7 @@ export const NovaEmpresaWizard: FC = () => {
 
       <OnboardingStepper active={phase} />
 
+      <BusinessPlanProposedBanner />
       <OrgPlanProposedBanner />
 
       {phase === "projeto" && (
