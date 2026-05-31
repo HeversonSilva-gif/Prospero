@@ -57,13 +57,15 @@ describe("applyOrgPlan", () => {
   });
 
   it("creates roles with charters on disk and agents wired into the hierarchy", () => {
-    const plan = createOrgPlansRepository(db).insert({
+    const repo = createOrgPlansRepository(db);
+    const plan = repo.insert({
       companyId: "c1",
       proposedByAgentId: "ceo",
       summary: "s",
       roles,
       agents,
     });
+    repo.markProposed(plan.id);
     const result = applyOrgPlan(db, userData, plan.id);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -92,13 +94,15 @@ describe("applyOrgPlan", () => {
       defaultModel: "claude-sonnet-4-6",
       defaultCapabilities: ["chat"],
     });
-    const plan = createOrgPlansRepository(db).insert({
+    const repo = createOrgPlansRepository(db);
+    const plan = repo.insert({
       companyId: "c1",
       proposedByAgentId: "ceo",
       summary: "s",
       roles,
       agents,
     });
+    repo.markProposed(plan.id);
     const result = applyOrgPlan(db, userData, plan.id);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -110,13 +114,15 @@ describe("applyOrgPlan", () => {
   });
 
   it("applies only the included subset", () => {
-    const plan = createOrgPlansRepository(db).insert({
+    const repo = createOrgPlansRepository(db);
+    const plan = repo.insert({
       companyId: "c1",
       proposedByAgentId: "ceo",
       summary: "s",
       roles,
       agents,
     });
+    repo.markProposed(plan.id);
     const result = applyOrgPlan(db, userData, plan.id, {
       includeRoleIndexes: new Set([0]),
       includeAgentIndexes: new Set([0]),
