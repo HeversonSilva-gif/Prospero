@@ -15,6 +15,7 @@ describe("buildBusinessContext", () => {
     const out = buildBusinessContext({
       companyName: "BeanBox",
       xHandle: "@beanbox",
+      voice: null,
       telos: "## Mission\n\nSell single-origin coffee subscriptions.",
     });
     expect(out).toContain("# This business");
@@ -25,11 +26,18 @@ describe("buildBusinessContext", () => {
   });
 
   it("returns an empty string when nothing is known", () => {
-    expect(buildBusinessContext({ companyName: null, xHandle: null, telos: null })).toBe("");
+    expect(
+      buildBusinessContext({ companyName: null, xHandle: null, voice: null, telos: null }),
+    ).toBe("");
   });
 
   it("degrades gracefully when only the TELOS is missing", () => {
-    const out = buildBusinessContext({ companyName: "BeanBox", xHandle: null, telos: null });
+    const out = buildBusinessContext({
+      companyName: "BeanBox",
+      xHandle: null,
+      voice: null,
+      telos: null,
+    });
     expect(out).toContain("BeanBox");
     expect(out).not.toContain("TELOS");
   });
@@ -38,6 +46,7 @@ describe("buildBusinessContext", () => {
     const out = buildBusinessContext({
       companyName: null,
       xHandle: null,
+      voice: null,
       telos: "x".repeat(BUSINESS_CONTEXT_CAP + 500),
     });
     // The block has a fixed header + the capped telos; assert the telos slice is capped.
@@ -81,4 +90,44 @@ describe("gatherBusinessContext", () => {
     const dir = mkdtempSync(join(tmpdir(), "ud-"));
     expect(gatherBusinessContext(db, dir, null)).toBe("");
   });
+});
+
+// Task 13: brand voice + handle fallback tests
+
+const dbWith = (setup: (db: Database.Database) => void): Database.Database => {
+  const db = new Database(":memory:");
+  applyMigrations(db);
+  db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','Cozinha de 15',0)").run();
+  setup(db);
+  return db;
+};
+
+it("includes brand voice when set", () => {
+  const db = dbWith((d) =>
+    d.prepare("UPDATE companies SET brand_voice = 'friendly, short' WHERE id = 'c1'").run(),
+  );
+  const dir = mkdtempSync(join(tmpdir(), "ud-"));
+  expect(gatherBusinessContext(db, dir, "c1")).toContain("friendly, short");
+});
+
+it("uses the proposed handle when X is not connected", () => {
+  const db = dbWith((d) =>
+    d.prepare("UPDATE companies SET proposed_x_handle = '@c15' WHERE id = 'c1'").run(),
+  );
+  const dir = mkdtempSync(join(tmpdir(), "ud-"));
+  expect(gatherBusinessContext(db, dir, "c1")).toContain("@c15");
+});
+
+it("prefers the connected X handle over the proposed one", () => {
+  const db = dbWith((d) => {
+    d.prepare("UPDATE companies SET proposed_x_handle = '@proposed' WHERE id = 'c1'").run();
+    d.prepare(
+      `INSERT INTO connections (id, company_id, kind, ciphertext, metadata_json, created_at, updated_at)
+       VALUES ('cn1','c1','x','x',?,0,0)`,
+    ).run(JSON.stringify({ handle: "@real" }));
+  });
+  const dir = mkdtempSync(join(tmpdir(), "ud-"));
+  const ctx = gatherBusinessContext(db, dir, "c1");
+  expect(ctx).toContain("@real");
+  expect(ctx).not.toContain("@proposed");
 });
