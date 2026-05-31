@@ -1722,6 +1722,8 @@
       "continue": "Continuar"
     },
     "proposedBanner": "O CEO propôs seu negócio.",
-    "reviewCta": "Revisar"
+    "reviewCta": "Revisar",
+    "pageTitle": "Plano de negócio",
+    "none": "Nenhum plano de negócio aguardando revisão."
   }
 }

@@ -1722,6 +1722,8 @@
       "continue": "Continue"
     },
     "proposedBanner": "The CEO proposed your business.",
-    "reviewCta": "Review"
+    "reviewCta": "Review",
+    "pageTitle": "Business plan",
+    "none": "No business plan awaiting review."
   }
 }
