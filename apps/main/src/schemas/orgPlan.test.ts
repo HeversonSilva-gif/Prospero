@@ -6,7 +6,7 @@ const role = (index: number) => ({
   name: `Role ${index}`,
   description: "does things",
   charter: "# Role\n\n## Identity\n\nbody",
-  model: "claude-sonnet-4-6",
+  model: "sonnet-4",
   capabilities: ["chat"],
   icon: null,
 });

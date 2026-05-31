@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { GoalPlan, GoalPlanStatus } from "@prospero/shared";
 
 const STATUS_BADGE: Record<GoalPlanStatus, string> = {
+  critiquing: "bg-surface-soft text-ink-soft",
   proposed: "bg-brand-bg text-brand",
   approved: "bg-semantic-success/20 text-semantic-success",
   rejected: "bg-semantic-danger/20 text-semantic-danger",
