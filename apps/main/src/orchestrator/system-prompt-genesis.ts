@@ -1,11 +1,18 @@
 // CEO-only system-prompt block for business GENESIS — used when the owner is
-// creating a business (especially "não tenho ideia"). Loaded for the CEO in
-// build-args.ts alongside the org + goals blocks. Encodes the two invariants.
+// creating a business (especially "não tenho ideia"). Composed for the CEO in
+// build-args.ts alongside the org + goals blocks. It embeds the capability
+// boundary (what the AI team can build/run/maintain — INV-2) right under the
+// heading, so the "capability section above" the model reads is the real
+// boundary, and the X-as-first-channel framing (INV-1) follows.
 
-export const genesisSystemPromptBlock = `
+// Takes the capability boundary prose (from buildCapabilityBoundary) so the
+// dynamic, connector-keyed limit reaches the CEO — not just a static paraphrase.
+export const buildGenesisSystemPromptBlock = (capabilityBoundary: string): string => `
 ---
 
 # Creating the business (genesis)
+
+${capabilityBoundary}
 
 When the owner is setting up a new business — especially if they say they have no
 idea — your job is to give them ONE concrete business to run, then build it.

@@ -3,7 +3,8 @@ import { composeSystemPrompt } from "../../system-prompt.js";
 import { goalsSystemPromptBlock } from "../../system-prompt-goals.js";
 import { orgArchitectSystemPromptBlock } from "../../system-prompt-org.js";
 import { buildNarratedBlock } from "../../system-prompt-narrated.js";
-import { genesisSystemPromptBlock } from "../../system-prompt-genesis.js";
+import { buildGenesisSystemPromptBlock } from "../../system-prompt-genesis.js";
+import { buildCapabilityBoundary } from "../../../agents/genesis/capability-boundary.js";
 
 // We deliberately omit `-p` (--print): that flag makes claude wait for stdin EOF before
 // emitting any assistant output, which is incompatible with the persistent runner that
@@ -40,7 +41,11 @@ export const buildClaudeArgs = (
       ...(isCeo
         ? {
             goalsBlock:
-              goalsSystemPromptBlock + orgArchitectSystemPromptBlock + genesisSystemPromptBlock,
+              goalsSystemPromptBlock +
+              orgArchitectSystemPromptBlock +
+              // X is the system's first marketing channel; the boundary reaches
+              // the CEO so it only proposes what the AI can build/run/maintain.
+              buildGenesisSystemPromptBlock(buildCapabilityBoundary(["x"])),
           }
         : {}),
       ...(narratedBlock !== undefined ? { narratedBlock } : {}),
