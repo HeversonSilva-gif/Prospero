@@ -21,7 +21,7 @@ export type ProposedAgent = {
   rationale: string;
 };
 
-export type OrgPlanStatus = "proposed" | "approved" | "rejected" | "superseded";
+export type OrgPlanStatus = "critiquing" | "proposed" | "approved" | "rejected" | "superseded";
 
 export type OrgPlan = {
   id: string;

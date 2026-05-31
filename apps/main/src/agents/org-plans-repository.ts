@@ -14,10 +14,15 @@ export type OrgPlansRepository = {
   insert(input: OrgPlanInsert): OrgPlan;
   getById(id: string): OrgPlan | null;
   // The current 'proposed' plan for a company, or null.
+  // NOTE: plans in 'critiquing' status are intentionally excluded here.
   getCurrentForCompany(companyId: string): OrgPlan | null;
   markApproved(id: string): void;
   markRejected(id: string, userFeedback: string | null): void;
   markSuperseded(id: string): void;
+  // Flip a 'critiquing' plan to 'proposed' (no-op if already proposed/other).
+  markProposed(id: string): void;
+  // Supersede all active (proposed OR critiquing) plans for a company on resubmit.
+  supersedeActiveForCompany(companyId: string): void;
 };
 
 type Row = {
@@ -53,7 +58,7 @@ export const createOrgPlansRepository = (db: Database.Database): OrgPlansReposit
        status, user_feedback, proposed_at, decided_at)
     VALUES
       (@id, @companyId, @proposedByAgentId, @summary, @rolesJson, @agentsJson,
-       'proposed', NULL, @proposedAt, NULL)
+       'critiquing', NULL, @proposedAt, NULL)
   `);
   const byIdStmt = db.prepare("SELECT * FROM org_plans WHERE id = ?");
   const currentStmt = db.prepare(
@@ -67,6 +72,12 @@ export const createOrgPlansRepository = (db: Database.Database): OrgPlansReposit
   );
   const supersedeStmt = db.prepare(
     "UPDATE org_plans SET status = 'superseded', decided_at = ? WHERE id = ?",
+  );
+  const markProposedStmt = db.prepare(
+    "UPDATE org_plans SET status = 'proposed' WHERE id = ? AND status = 'critiquing'",
+  );
+  const supersedeActiveForCompanyStmt = db.prepare(
+    "UPDATE org_plans SET status = 'superseded', decided_at = ? WHERE company_id = ? AND status IN ('proposed','critiquing')",
   );
 
   const getById = (id: string): OrgPlan | null => {
@@ -101,6 +112,12 @@ export const createOrgPlansRepository = (db: Database.Database): OrgPlansReposit
     },
     markSuperseded(id) {
       supersedeStmt.run(Date.now(), id);
+    },
+    markProposed(id) {
+      markProposedStmt.run(id);
+    },
+    supersedeActiveForCompany(companyId) {
+      supersedeActiveForCompanyStmt.run(Date.now(), companyId);
     },
   };
 };
