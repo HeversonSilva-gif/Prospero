@@ -70,6 +70,7 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
       "mcp__dashboard__read_thread",
       // Org design (CEO architect) + role library reads.
       "mcp__dashboard__submit_org_plan",
+      "mcp__dashboard__submit_business_plan",
       "mcp__dashboard__list_role_templates",
       // Goal planning + execution (M8.5). Without these the planning CEO hit the
       // permission gate on every call and froze.

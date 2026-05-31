@@ -38,6 +38,7 @@ import { issuesToolDefinitions } from "./tools-issues.js";
 import { memoryToolDefinitions } from "./tools-memory.js";
 import { isaToolDefinitions } from "./tools-isa.js";
 import { projectContextToolDefinitions } from "./tools-project-context.js";
+import { genesisToolDefinitions } from "./tools-genesis.js";
 
 const agentId = process.env["AGENT_ID"];
 const companyId = process.env["COMPANY_ID"];
@@ -108,6 +109,7 @@ const allToolDefinitions = [
   ...toolDefinitions,
   ...goalsToolDefinitions,
   ...orgToolDefinitions,
+  ...genesisToolDefinitions,
   ...issuesToolDefinitions,
   ...memoryToolDefinitions,
   ...isaToolDefinitions,
