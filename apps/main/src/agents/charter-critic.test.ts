@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import Database from "better-sqlite3";
+import { CHARTER_SECTIONS, validateCharter } from "@prospero/shared";
 import { applyMigrations } from "../db/migrations.js";
-import { buildCritiquePrompt, critiqueCharter } from "./charter-critic.js";
+import { buildCritiquePrompt, critiqueCharter, generateCharterDeep } from "./charter-critic.js";
 import type { RunDerivationResult } from "../derivation/runner.js";
 
 const newDb = (): Database.Database => {
@@ -13,6 +14,18 @@ const newDb = (): Database.Database => {
 
 const runner = (text: string) => (): Promise<RunDerivationResult> =>
   Promise.resolve({ text, usage: { input: 10, output: 20, cacheCreation: 0, cacheRead: 0 } });
+
+// Returns derivation results in order — generation and critique calls alternate.
+const queueRunner = (texts: string[]) => {
+  let i = 0;
+  return (): Promise<RunDerivationResult> => {
+    const text = texts[Math.min(i++, texts.length - 1)]!;
+    return Promise.resolve({
+      text,
+      usage: { input: 1, output: 1, cacheCreation: 0, cacheRead: 0 },
+    });
+  };
+};
 
 describe("buildCritiquePrompt", () => {
   it("asks for a JSON verdict and includes the charter + business context", () => {
@@ -64,5 +77,48 @@ describe("critiqueCharter", () => {
     );
     expect(out.specific).toBe(true);
     expect(out.depthOk).toBe(true);
+  });
+});
+
+const CHARTER = (tag: string) =>
+  `# Role — ${tag}\n\n${CHARTER_SECTIONS.map((s) => `## ${s}\n\nContent ${tag} for ${s}.`).join("\n\n")}\n`;
+
+describe("generateCharterDeep", () => {
+  it("returns immediately when the first draft passes", async () => {
+    const db = newDb();
+    const pass = JSON.stringify({ specific: true, depthOk: true, genericFlags: [], feedback: "" });
+    // Calls alternate: generation, then critique. First draft passes → no retry.
+    const deps = { db, runDerivation: queueRunner([CHARTER("v1"), pass]) };
+    const out = await generateCharterDeep(deps, {
+      description: "x",
+      businessContext: "b",
+      env: {},
+      companyId: "c1",
+    });
+    expect(validateCharter(out.charter).ok).toBe(true);
+    expect(out.critique.specific).toBe(true);
+  });
+
+  it("regenerates once when the first draft is generic, then stops at the cap", async () => {
+    const db = newDb();
+    const fail = JSON.stringify({
+      specific: false,
+      depthOk: true,
+      genericFlags: ["generic"],
+      feedback: "Name the product.",
+    });
+    // gen1, critique1(fail), gen2, critique2(fail) → cap reached, returns last
+    const deps = {
+      db,
+      runDerivation: queueRunner([CHARTER("v1"), fail, CHARTER("v2"), fail]),
+    };
+    const out = await generateCharterDeep(deps, {
+      description: "x",
+      businessContext: "b",
+      env: {},
+      companyId: "c1",
+    });
+    expect(out.charter).toContain("v2"); // used the regenerated draft
+    expect(out.critique.specific).toBe(false); // still flagged, but we stop at cap
   });
 });

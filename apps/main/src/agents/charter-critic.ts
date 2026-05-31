@@ -2,6 +2,7 @@ import type Database from "better-sqlite3";
 import { createCostsRepository } from "../costs/repository.js";
 import { estimateCostCents } from "../costs/pricing.js";
 import type { RunDerivationResult } from "../derivation/runner.js";
+import { generateCharter, type GenerateCharterDeps } from "./charter-generation.js";
 
 // Judges whether a generated charter is SPECIFIC to the business (vs generic
 // archetype boilerplate) and deep enough. Headless Sonnet — same model + runner
@@ -124,4 +125,47 @@ export const critiqueCharter = async (
   }
 
   return coerce(extractJson(result.text));
+};
+
+// Max generation attempts. Attempt 1 = initial draft; attempt 2 = one targeted
+// regeneration using the critic's feedback. Past the cap we return the best draft
+// (the human still reviews it in the charter editor).
+const DEEP_CAP = 2;
+
+export type GenerateDeepInput = {
+  description: string;
+  businessContext: string;
+  env: Record<string, string>;
+  companyId: string | null;
+};
+
+export const generateCharterDeep = async (
+  deps: GenerateCharterDeps & CritiqueDeps,
+  input: GenerateDeepInput,
+): Promise<{ charter: string; critique: CharterCritique }> => {
+  let critique: CharterCritique = {
+    specific: false,
+    depthOk: false,
+    genericFlags: [],
+    feedback: "",
+  };
+  let charter = "";
+  for (let attempt = 0; attempt < DEEP_CAP; attempt++) {
+    const gen = await generateCharter(deps, {
+      description: input.description,
+      businessContext: input.businessContext,
+      env: input.env,
+      companyId: input.companyId,
+      ...(attempt > 0 ? { feedback: critique.feedback } : {}),
+    });
+    charter = gen.charter;
+    critique = await critiqueCharter(deps, {
+      charter,
+      businessContext: input.businessContext,
+      env: input.env,
+      companyId: input.companyId,
+    });
+    if (critique.specific && critique.depthOk) break;
+  }
+  return { charter, critique };
 };
