@@ -17,6 +17,8 @@ export type XMetricsRepository = {
   insertTweet: (input: { companyId: string } & TweetSnapshot) => void;
   latestAccount: (companyId: string) => AccountSnapshot | null;
   tweetSeries: (companyId: string, tweetId: string, sinceMs: number) => TweetSnapshot[];
+  accountSeries: (companyId: string, sinceMs: number) => AccountSnapshot[];
+  latestPerTweet: (companyId: string, sinceMs: number) => TweetSnapshot[];
 };
 
 export const createXMetricsRepository = (db: Database.Database): XMetricsRepository => {
@@ -36,6 +38,19 @@ export const createXMetricsRepository = (db: Database.Database): XMetricsReposit
     `SELECT subject_id, impressions, likes, replies, reposts, quotes, captured_at FROM x_metrics
      WHERE company_id = ? AND kind = 'tweet' AND subject_id = ? AND captured_at >= ?
      ORDER BY captured_at ASC`,
+  );
+  const accountSeriesStmt = db.prepare(
+    `SELECT followers, captured_at FROM x_metrics
+     WHERE company_id = ? AND kind = 'account' AND captured_at >= ?
+     ORDER BY captured_at ASC`,
+  );
+  // SQLite bare-column-with-MAX: the non-aggregated columns come from the row
+  // holding MAX(captured_at) within each subject_id group.
+  const latestPerTweetStmt = db.prepare(
+    `SELECT subject_id, impressions, likes, replies, reposts, quotes, MAX(captured_at) AS captured_at
+     FROM x_metrics
+     WHERE company_id = ? AND kind = 'tweet' AND captured_at >= ?
+     GROUP BY subject_id`,
   );
   return {
     insertAccount(input) {
@@ -62,6 +77,33 @@ export const createXMetricsRepository = (db: Database.Database): XMetricsReposit
     },
     tweetSeries(companyId, tweetId, sinceMs) {
       const rows = tweetSeriesStmt.all(companyId, tweetId, sinceMs) as Array<{
+        subject_id: string;
+        impressions: number;
+        likes: number;
+        replies: number;
+        reposts: number;
+        quotes: number;
+        captured_at: number;
+      }>;
+      return rows.map((r) => ({
+        tweetId: r.subject_id,
+        impressions: r.impressions,
+        likes: r.likes,
+        replies: r.replies,
+        reposts: r.reposts,
+        quotes: r.quotes,
+        capturedAt: r.captured_at,
+      }));
+    },
+    accountSeries(companyId, sinceMs) {
+      const rows = accountSeriesStmt.all(companyId, sinceMs) as Array<{
+        followers: number;
+        captured_at: number;
+      }>;
+      return rows.map((r) => ({ followers: r.followers, capturedAt: r.captured_at }));
+    },
+    latestPerTweet(companyId, sinceMs) {
+      const rows = latestPerTweetStmt.all(companyId, sinceMs) as Array<{
         subject_id: string;
         impressions: number;
         likes: number;
