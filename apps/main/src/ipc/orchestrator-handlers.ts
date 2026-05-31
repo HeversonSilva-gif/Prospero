@@ -126,6 +126,10 @@ import { shouldCompact } from "../context/should-compact.js";
 import { hashSources } from "../context/freshness.js";
 import { relativeDigestPath } from "../context/digest-dir.js";
 import { estimateCostCents } from "../costs/pricing.js";
+import { createOrgPlansRepository } from "../agents/org-plans-repository.js";
+import { gatherBusinessContext } from "../agents/business-context.js";
+import { critiqueOrgPlan, decideOrgPlanOutcome } from "../agents/org-plan-critique.js";
+import { formatOrgPlanFeedback } from "../agents/format-org-feedback.js";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -367,6 +371,49 @@ export const registerOrchestratorHandlers = (
     },
   });
 
+  // P2 peça 2 — org-plan charter critic. Cap of 1 auto-revision per company: a
+  // first generic submission earns one [ORG_PLAN_FEEDBACK] round-trip to the CEO;
+  // the resubmission is surfaced regardless. In-memory, keyed by company; resets
+  // on the card being created (and on restart — worst case one extra critique).
+  const ORG_PLAN_REVISION_CAP = 1;
+  const orgPlanRevisions = new Map<string, number>();
+
+  const handleOrgProposed = async (orgPlanId: string, companyId: string): Promise<void> => {
+    const plan = createOrgPlansRepository(db).getById(orgPlanId);
+    if (plan === null || plan.status !== "proposed") return;
+    const businessContext = gatherBusinessContext(db, app.getPath("userData"), companyId);
+    const { genericRoles } = await critiqueOrgPlan(
+      { db, runDerivation: (i) => runDerivation({ runProcess: defaultRunProcess }, i) },
+      { roles: plan.roles, businessContext, env: buildAuthEnv(db), companyId },
+    );
+    const attempts = orgPlanRevisions.get(companyId) ?? 0;
+    const outcome = decideOrgPlanOutcome({
+      genericCount: genericRoles.length,
+      attempts,
+      cap: ORG_PLAN_REVISION_CAP,
+    });
+    if (outcome === "revise") {
+      orgPlanRevisions.set(companyId, attempts + 1);
+      // Leave the plan 'proposed' (not superseded) — the CEO's resubmit supersedes
+      // it via submit_org_plan's own prior-supersede logic. No card yet.
+      deliverSystemMessage(plan.proposedByAgentId, formatOrgPlanFeedback(genericRoles));
+      return;
+    }
+    orgPlanRevisions.delete(companyId);
+    const note =
+      genericRoles.length > 0 ? "⚠ Revisar — alguns charters podem estar genéricos. " : "";
+    inbox.create({
+      companyId,
+      kind: "org_proposed",
+      actorId: plan.proposedByAgentId,
+      title: "Organization design proposed",
+      preview: (note + plan.summary).slice(0, 200),
+      requiresAction: true,
+      payloadJson: JSON.stringify({ orgPlanId }),
+    });
+    broadcastInboxUpdate(companyId);
+  };
+
   // Dispatch agent-emitted side-channel events (inter-agent delivery, hire/fire,
   // issue notifications). Called from the file-based events watcher; previously
   // ran inside the per-agent onStderr handler but stderr forwarding from the MCP
@@ -489,6 +536,9 @@ export const registerOrchestratorHandlers = (
         companyId,
         p,
       );
+    } else if (kind === "org.proposed" && typeof payload === "object" && payload !== null) {
+      const p = payload as { orgPlanId: string };
+      void handleOrgProposed(p.orgPlanId, companyId);
     }
   };
 
