@@ -138,6 +138,9 @@ describe("orgPlansRepository", () => {
 
     expect(repo.getById(critiquing.id)?.status).toBe("superseded");
     expect(repo.getById("manual_proposed")?.status).toBe("superseded");
+    // the SQL stamps decided_at on each superseded row — lock it in
+    expect(repo.getById(critiquing.id)?.decidedAt).not.toBeNull();
+    expect(repo.getById("manual_proposed")?.decidedAt).not.toBeNull();
   });
 
   it("supersedeActiveForCompany leaves approved/rejected plans untouched", () => {

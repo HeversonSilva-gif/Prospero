@@ -12,7 +12,7 @@ CREATE TABLE org_plans_new (
   summary              TEXT NOT NULL,
   roles_json           TEXT NOT NULL,
   agents_json          TEXT NOT NULL,
-  status               TEXT NOT NULL DEFAULT 'proposed'
+  status               TEXT NOT NULL DEFAULT 'critiquing'
                          CHECK (status IN ('critiquing','proposed','approved','rejected','superseded')),
   user_feedback        TEXT,
   proposed_at          INTEGER NOT NULL,
