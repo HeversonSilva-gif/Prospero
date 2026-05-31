@@ -1,5 +1,6 @@
 import type { ProposedRole } from "@prospero/shared";
 import { critiqueCharter, type CritiqueDeps } from "./charter-critic.js";
+import { decidePlanOutcome } from "./plan-outcome.js";
 
 // Reuse the charter layer's deps alias rather than re-declaring the shape — the
 // charter critic aliases CritiqueDeps = GenerateCharterDeps for exactly this
@@ -39,11 +40,18 @@ export const critiqueOrgPlan = async (
   return { genericRoles };
 };
 
-// Pure decision: re-engage the CEO with feedback (`revise`) only when there are
-// generic charters AND a revision attempt remains; otherwise surface the proposal
-// (`card`). Keeping this pure makes the main-process branch trivial to reason about.
+// Thin adapter over decidePlanOutcome that preserves the original
+// `{ genericCount, attempts, cap } → "card" | "revise"` contract so that
+// orchestrator-handlers.ts and existing tests need no changes.
 export const decideOrgPlanOutcome = (input: {
   genericCount: number;
   attempts: number;
   cap: number;
-}): "card" | "revise" => (input.genericCount > 0 && input.attempts < input.cap ? "revise" : "card");
+}): "card" | "revise" =>
+  decidePlanOutcome({
+    flaggedCount: input.genericCount,
+    attempts: input.attempts,
+    cap: input.cap,
+  }) === "revise"
+    ? "revise"
+    : "card";
