@@ -8,7 +8,8 @@ import {
   deleteCharterDir,
   copyCharter,
 } from "../agents/role-charter-store.js";
-import { generateCharter } from "../agents/charter-generation.js";
+import { gatherBusinessContext } from "../agents/business-context.js";
+import { generateCharterDeep } from "../agents/charter-critic.js";
 import { runDerivation, defaultRunProcess } from "../derivation/runner.js";
 import { buildAuthEnv } from "../derivation/index.js";
 import { createSettingsRepository } from "../settings/repository.js";
@@ -103,10 +104,12 @@ export const registerRolesHandlers = (db: Database.Database): void => {
     async (_e, payload: { description: string }): Promise<{ charter: string }> => {
       const env = buildAuthEnv(db);
       const companyId = createSettingsRepository(db).read().activeCompanyId;
-      return generateCharter(
+      const businessContext = gatherBusinessContext(db, userDataDir, companyId);
+      const { charter } = await generateCharterDeep(
         { db, runDerivation: (i) => runDerivation({ runProcess: defaultRunProcess }, i) },
-        { description: payload.description, env, companyId },
+        { description: payload.description, businessContext, env, companyId },
       );
+      return { charter };
     },
   );
 };
