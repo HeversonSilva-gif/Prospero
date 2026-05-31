@@ -6,6 +6,8 @@ import Database from "better-sqlite3";
 import { applyMigrations } from "../db/migrations.js";
 import { preapprovalKey, preapprovalPath } from "../approvals/deferred-approval.js";
 import { toolDefinitions, type ToolContext } from "./tools.js";
+import { createXPostsRepository } from "../connections/x-posts-repository.js";
+import { createXMetricsRepository } from "../connections/x-metrics-repository.js";
 
 const postTool = toolDefinitions.find((t) => t.name === "post_to_x")!;
 const replyTool = toolDefinitions.find((t) => t.name === "reply_on_x")!;
@@ -134,5 +136,44 @@ describe("reply_on_x", () => {
       payload: expect.objectContaining({ text: "obrigado!", inReplyToId: "555" }),
     });
     expect(existsSync(join(dir, `${req.tool_use_id}.req.json`))).toBe(false);
+  });
+});
+
+const insightsTool = toolDefinitions.find((t) => t.name === "x_insights_read")!;
+
+describe("x_insights_read", () => {
+  it("returns a digest assembled from the metrics + posts stores", async () => {
+    const { db, dir } = setup();
+    const now = Date.now();
+    createXPostsRepository(db).record({
+      companyId: "c1",
+      tweetId: "t2",
+      text: "the winner post",
+      postedAt: now - 1000,
+    });
+    const m = createXMetricsRepository(db);
+    m.insertAccount({ companyId: "c1", followers: 100, capturedAt: now - 3000 });
+    m.insertAccount({ companyId: "c1", followers: 130, capturedAt: now - 1000 });
+    m.insertTweet({
+      companyId: "c1",
+      tweetId: "t2",
+      impressions: 900,
+      likes: 40,
+      replies: 5,
+      reposts: 8,
+      quotes: 2,
+      capturedAt: now - 1000,
+    });
+    const ctx: ToolContext = {
+      agentId: "bot1",
+      companyId: "c1",
+      db,
+      permissionsDir: dir,
+      userDataDir: dir,
+      emit: () => {},
+    };
+    const out = await insightsTool.run({}, ctx);
+    expect(out).toContain("the winner post");
+    expect(out).toContain("130");
   });
 });

@@ -19,6 +19,7 @@ const MCP_ALLOWLIST = new Set([
   "read_thread",
   "check_status",
   "list_pending_requests",
+  "x_insights_read",
 ]);
 
 // MCP tools come through with the `mcp__<server>__` prefix (e.g.

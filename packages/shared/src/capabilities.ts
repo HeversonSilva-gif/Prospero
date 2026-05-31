@@ -145,7 +145,11 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
     description:
       "Publish on the company's connected external accounts (X): post a tweet, reply to a tweet. " +
       "Each publish is gated for approval first (graduates to automatic via trust tiers).",
-    tools: ["mcp__dashboard__post_to_x", "mcp__dashboard__reply_on_x"],
+    tools: [
+      "mcp__dashboard__post_to_x",
+      "mcp__dashboard__reply_on_x",
+      "mcp__dashboard__x_insights_read",
+    ],
   },
 };
 

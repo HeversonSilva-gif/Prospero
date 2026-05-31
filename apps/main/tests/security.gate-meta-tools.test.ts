@@ -128,6 +128,7 @@ describe("gate — meta MCP tools auto-allow (peça #6 hotfix)", () => {
       ["mcp__dashboard__check_status"],
       ["mcp__dashboard__isa_read"],
       ["mcp__dashboard__telos_read"],
+      ["mcp__dashboard__x_insights_read"],
     ])("%s in supervised mode → allow (read-only)", (toolName) => {
       const r = evaluatePermission({
         toolName,

@@ -23,6 +23,9 @@ import { createArtifactsRepository } from "../artifacts/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { recomputeAgentTrust } from "../trust/engine.js";
 import type { ManagerTopic } from "../approvals/types.js";
+import { createXPostsRepository } from "../connections/x-posts-repository.js";
+import { createXMetricsRepository } from "../connections/x-metrics-repository.js";
+import { buildXInsights } from "../connections/x-insights.js";
 
 export type ToolContext = {
   agentId: string;
@@ -759,6 +762,30 @@ export const toolDefinitions = [
         return JSON.stringify({ ok: false, status: outcome.decision, message: outcome.message });
       }
       return runXPost(ctx, { text: input.text, inReplyToId: input.tweet_id });
+    },
+  },
+  {
+    name: "x_insights_read",
+    description:
+      "Read a 'what's working' digest of the company's X account (follower trend + top posts by " +
+      "engagement) from the ingested metrics. Read-only — use it before composing a post to inform strategy.",
+    inputSchema: z.object({ days: z.number().int().positive().max(90).optional() }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (input: { days?: number }, ctx: ToolContext): Promise<string> => {
+      const windowMs = (input.days ?? 30) * 24 * 60 * 60_000;
+      const since = Date.now() - windowMs;
+      const posts = createXPostsRepository(ctx.db).recentByCompany(ctx.companyId, since);
+      const metrics = createXMetricsRepository(ctx.db);
+      const latest = metrics.latestPerTweet(ctx.companyId, since);
+      const metricById = new Map(latest.map((m) => [m.tweetId, m]));
+      return buildXInsights({
+        accountSeries: metrics.accountSeries(ctx.companyId, since),
+        posts: posts.map((p) => ({
+          tweetId: p.tweetId,
+          text: p.text,
+          metric: metricById.get(p.tweetId) ?? null,
+        })),
+      });
     },
   },
   {

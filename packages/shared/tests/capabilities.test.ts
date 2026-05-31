@@ -28,6 +28,7 @@ describe("capability catalog", () => {
     expect(CAPABILITY_CATALOG.connectors.tools).toEqual([
       "mcp__dashboard__post_to_x",
       "mcp__dashboard__reply_on_x",
+      "mcp__dashboard__x_insights_read",
     ]);
   });
 
