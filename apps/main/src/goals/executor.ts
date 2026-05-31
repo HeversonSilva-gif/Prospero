@@ -1,4 +1,5 @@
 import type Database from "better-sqlite3";
+import { resolveModelPreset } from "../agents/model-presets.js";
 import { createGoalsRepository } from "./repository.js";
 import { createGoalPlansRepository } from "./plans-repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
@@ -125,7 +126,7 @@ export const executePlanAtomic = (
           systemPrompt: a.personaSummary,
           mode: "supervised",
           alwaysOn: false,
-          model: a.model,
+          model: resolveModelPreset(a.model),
           capabilities: a.capabilities,
           templateId: a.roleTemplateId,
         });

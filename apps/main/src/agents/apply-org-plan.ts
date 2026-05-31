@@ -6,6 +6,7 @@ import {
   type ProposedRole,
 } from "@prospero/shared";
 import { tryGetRecorder } from "../activity/index.js";
+import { resolveModelPreset } from "./model-presets.js";
 import { createAgentsRepository } from "./repository.js";
 import { createRoleTemplatesRepository } from "./role-templates-repository.js";
 import { createOrgPlansRepository } from "./org-plans-repository.js";
@@ -102,7 +103,7 @@ export const applyOrgPlan = (
           name: uniqueRoleName(role.name),
           description: role.description,
           icon: role.icon,
-          defaultModel: role.model,
+          defaultModel: resolveModelPreset(role.model),
           defaultCapabilities: role.capabilities,
         });
         writeCharter(userDataDir, created.id, role.charter);
@@ -148,7 +149,7 @@ export const applyOrgPlan = (
           systemPrompt: "",
           mode: "supervised",
           alwaysOn: false,
-          model: role.model,
+          model: resolveModelPreset(role.model),
           capabilities: role.capabilities,
           templateId: roleId,
         });
