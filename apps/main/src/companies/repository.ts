@@ -11,6 +11,8 @@ export type CompaniesRepository = {
   setBriefingReviewedAt(id: string, reviewedAt: number): void;
   setBriefingHeadline(id: string, json: string): void;
   getBriefingHeadlineRaw(id: string): string | null;
+  rename(id: string, name: string): void;
+  setBrandIdentity(id: string, identity: { voice: string; proposedXHandle: string }): void;
 };
 
 type CompanyRow = {
@@ -48,6 +50,10 @@ export const createCompaniesRepository = (db: Database.Database): CompaniesRepos
   const getBriefingHeadlineStmt = db.prepare(
     "SELECT briefing_headline_json AS json FROM companies WHERE id = ?",
   );
+  const renameStmt = db.prepare("UPDATE companies SET name = ? WHERE id = ?");
+  const setBrandIdentityStmt = db.prepare(
+    "UPDATE companies SET brand_voice = ?, proposed_x_handle = ? WHERE id = ?",
+  );
 
   return {
     create(input) {
@@ -79,6 +85,12 @@ export const createCompaniesRepository = (db: Database.Database): CompaniesRepos
     getBriefingHeadlineRaw(id) {
       const row = getBriefingHeadlineStmt.get(id) as { json: string | null } | undefined;
       return row?.json ?? null;
+    },
+    rename(id, name) {
+      renameStmt.run(name, id);
+    },
+    setBrandIdentity(id, identity) {
+      setBrandIdentityStmt.run(identity.voice, identity.proposedXHandle, id);
     },
   };
 };

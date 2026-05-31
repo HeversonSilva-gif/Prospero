@@ -73,4 +73,24 @@ describe("companies repository", () => {
     repo.setTelosPath(company.id, "companies/c/telos.md");
     expect(repo.getById(company.id)?.telosPath).toBe("companies/c/telos.md");
   });
+
+  it("rename changes the company name", () => {
+    const db = setupDb();
+    const repo = createCompaniesRepository(db);
+    const c = repo.create({ name: "Novo negócio" });
+    repo.rename(c.id, "Cozinha de 15");
+    expect(repo.getById(c.id)?.name).toBe("Cozinha de 15");
+  });
+
+  it("setBrandIdentity persists voice + proposed handle (readable via raw SQL)", () => {
+    const db = setupDb();
+    const repo = createCompaniesRepository(db);
+    const c = repo.create({ name: "X" });
+    repo.setBrandIdentity(c.id, { voice: "friendly, short", proposedXHandle: "@c15" });
+    const row = db
+      .prepare("SELECT brand_voice AS v, proposed_x_handle AS h FROM companies WHERE id = ?")
+      .get(c.id) as { v: string; h: string };
+    expect(row.v).toBe("friendly, short");
+    expect(row.h).toBe("@c15");
+  });
 });
