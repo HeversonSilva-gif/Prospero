@@ -78,6 +78,18 @@ describe("critiqueCharter", () => {
     expect(out.specific).toBe(true);
     expect(out.depthOk).toBe(true);
   });
+
+  it("fails open when runDerivation throws", async () => {
+    const db = newDb();
+    const out = await critiqueCharter(
+      { db, runDerivation: () => Promise.reject(new Error("claude CLI unavailable")) },
+      { charter: "c", businessContext: "b", env: {}, companyId: "c1" },
+    );
+    expect(out.specific).toBe(true);
+    expect(out.depthOk).toBe(true);
+    // throw path skips cost recording (no result available)
+    expect(db.prepare("SELECT 1 FROM cost_events WHERE company_id='c1'").get()).toBeUndefined();
+  });
 });
 
 const CHARTER = (tag: string) =>

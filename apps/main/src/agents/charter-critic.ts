@@ -1,4 +1,3 @@
-import type Database from "better-sqlite3";
 import { createCostsRepository } from "../costs/repository.js";
 import { estimateCostCents } from "../costs/pricing.js";
 import type { RunDerivationResult } from "../derivation/runner.js";
@@ -70,14 +69,9 @@ const coerce = (raw: unknown): CharterCritique => {
   };
 };
 
-export type CritiqueDeps = {
-  db: Database.Database;
-  runDerivation: (input: {
-    prompt: string;
-    model: string;
-    env: Record<string, string>;
-  }) => Promise<RunDerivationResult>;
-};
+// Same shape as charter generation needs (db + headless runner); reuse it so the
+// two modules can't drift.
+export type CritiqueDeps = GenerateCharterDeps;
 
 export type CritiqueInput = {
   charter: string;
@@ -140,7 +134,7 @@ export type GenerateDeepInput = {
 };
 
 export const generateCharterDeep = async (
-  deps: GenerateCharterDeps & CritiqueDeps,
+  deps: GenerateCharterDeps  ,
   input: GenerateDeepInput,
 ): Promise<{ charter: string; critique: CharterCritique }> => {
   let critique: CharterCritique = {
