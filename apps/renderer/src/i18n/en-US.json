@@ -43,9 +43,10 @@
     "teamReady": "Your team is set! Let's define the first project.",
     "defineProject": "Define first project",
     "steps": {
-      "negocio": "Understanding the business",
-      "time": "Building the team",
-      "projeto": "First project"
+      "negocio": "Getting to know you",
+      "plano": "Business plan",
+      "time": "Your team",
+      "projeto": "First post"
     }
   },
   "goals": {
@@ -1666,5 +1667,61 @@
       "5": "Friday",
       "6": "Saturday"
     }
+  },
+  "genesis": {
+    "placeholderName": "New business",
+    "entry": {
+      "title": "Let's build your business",
+      "subtitle": "Choose how you want to start. The CEO will chat with you and build the plan.",
+      "help": {
+        "title": "I have no idea — help me decide",
+        "desc": "The CEO interviews you, discovers niches that fit your profile, and proposes the plan."
+      },
+      "idea": {
+        "title": "I already know what I want",
+        "desc": "Describe your idea to the CEO, who shapes it into a feasible plan for you to approve."
+      }
+    },
+    "seed": {
+      "help": "Hello! I'm going to help you find an online business that makes sense for you. I'll ask you a few questions about your interests, skills, and availability — and at the end I'll propose a concrete business plan. Let's start: what do you enjoy doing most in your free time?",
+      "idea": "Hello! Tell me about the business idea you have in mind. I want to understand what you want to sell, who you're selling to, and why you believe it will work — so I can shape a feasible business plan and present it to you for approval."
+    }
+  },
+  "businessPlan": {
+    "chip": "Business",
+    "meta": "CEO proposed your business — review and approve to build the team",
+    "stats": {
+      "channel": "Initial channel"
+    },
+    "feasibilityNote": "Everything here is built, operated, and maintained by your AI team — no dependency on you.",
+    "sections": {
+      "concept": "The business",
+      "monetization": "What it sells / how it earns",
+      "marketing": "How it reaches people",
+      "identity": "Brand identity",
+      "dropped": "Dropped (not viable for AI)"
+    },
+    "initialChannelX": "X (text) — initial channel",
+    "laterChannels": "Later",
+    "identity": {
+      "name": "Name",
+      "voice": "Voice",
+      "handle": "Handle"
+    },
+    "handleHint": "Suggested X handle — reconciled when you connect the real account.",
+    "approve": "Approve and build the team",
+    "approving": "Approving…",
+    "refine": "Refine…",
+    "refinePlaceholder": "What would you like to adjust in the plan?",
+    "sendRefine": "Send to CEO for review",
+    "refineMessage": "Revise the business plan with this feedback from the owner: {{feedback}}",
+    "approveFailed": "Could not approve the plan. Please try again.",
+    "applied": {
+      "title": "Business approved.",
+      "detail": "The CEO will now build your team.",
+      "continue": "Continue"
+    },
+    "proposedBanner": "The CEO proposed your business.",
+    "reviewCta": "Review"
   }
 }

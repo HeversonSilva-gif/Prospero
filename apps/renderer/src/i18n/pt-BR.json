@@ -43,9 +43,10 @@
     "teamReady": "Seu time está montado! Vamos definir o primeiro projeto.",
     "defineProject": "Definir primeiro projeto",
     "steps": {
-      "negocio": "Conhecendo o negócio",
-      "time": "Montando o time",
-      "projeto": "Primeiro projeto"
+      "negocio": "Conhecendo você",
+      "plano": "Plano de negócio",
+      "time": "Seu time",
+      "projeto": "Primeiro post"
     }
   },
   "goals": {
@@ -1666,5 +1667,61 @@
       "5": "sexta",
       "6": "sábado"
     }
+  },
+  "genesis": {
+    "placeholderName": "Novo negócio",
+    "entry": {
+      "title": "Vamos criar seu negócio",
+      "subtitle": "Escolha como quer começar. O CEO vai conversar com você e montar o plano.",
+      "help": {
+        "title": "Não tenho ideia — me ajuda a decidir",
+        "desc": "O CEO te entrevista, descobre nichos que encaixam no seu perfil e propõe o plano."
+      },
+      "idea": {
+        "title": "Já sei o que quero",
+        "desc": "Descreva sua ideia para o CEO, ele molda um plano viável e te mostra para aprovar."
+      }
+    },
+    "seed": {
+      "help": "Olá! Vou te ajudar a encontrar um negócio online que faz sentido pra você. Vou te fazer algumas perguntas sobre seus interesses, habilidades e disponibilidade — e no final proponho um plano de negócio concreto. Pode começar me contando: o que você mais gosta de fazer no seu tempo livre?",
+      "idea": "Olá! Me conte sobre a ideia de negócio que você tem em mente. Quero entender o que você quer vender, para quem e por que acredita que vai funcionar — assim posso moldar um plano de negócio viável e apresentar para você aprovar."
+    }
+  },
+  "businessPlan": {
+    "chip": "Negócio",
+    "meta": "CEO propôs seu negócio — revise e aprove para montar o time",
+    "stats": {
+      "channel": "Canal inicial"
+    },
+    "feasibilityNote": "Tudo aqui é construído, operado e mantido pela sua equipe de IA — sem depender de você.",
+    "sections": {
+      "concept": "O negócio",
+      "monetization": "O que vende / como fatura",
+      "marketing": "Como chega nas pessoas",
+      "identity": "Identidade da marca",
+      "dropped": "Descartado (inviável para a IA)"
+    },
+    "initialChannelX": "X (texto) — canal inicial",
+    "laterChannels": "Depois",
+    "identity": {
+      "name": "Nome",
+      "voice": "Voz",
+      "handle": "Handle"
+    },
+    "handleHint": "Sugestão para o canal X — reconcilia quando você conectar a conta real.",
+    "approve": "Aprovar e montar o time",
+    "approving": "Aprovando…",
+    "refine": "Refinar…",
+    "refinePlaceholder": "O que você quer ajustar no plano?",
+    "sendRefine": "Enviar para o CEO revisar",
+    "refineMessage": "Revise o plano de negócio com este feedback do dono: {{feedback}}",
+    "approveFailed": "Não foi possível aprovar o plano. Tente novamente.",
+    "applied": {
+      "title": "Negócio aprovado.",
+      "detail": "O CEO vai montar seu time agora.",
+      "continue": "Continuar"
+    },
+    "proposedBanner": "O CEO propôs seu negócio.",
+    "reviewCta": "Revisar"
   }
 }
