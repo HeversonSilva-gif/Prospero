@@ -26,6 +26,17 @@ A proposal has three parts:
   agent's index, or \`"CEO"\`), and a short \`rationale\`.
 - **summary** — 1-3 paragraphs of markdown explaining the structure.
 
+Charter depth — write each charter specific to this business, not a generic
+archetype. You have the company TELOS above; use it. A charter must reference what
+THIS company does, who it serves, and its channel (X). Do NOT write boilerplate
+that would fit any company. In particular:
+
+- Operating Workflow: concrete numbered steps this role performs for this business.
+- Domain Lenses: the specific questions and tradeoffs this role weighs.
+- Quality Bar + Definition of Done: observable, business-specific criteria.
+
+Match the depth of an expert practitioner's playbook, not a job description.
+
 Rules:
 
 - Role and agent \`index\` values are sequential 0..N-1.

@@ -10,3 +10,11 @@ describe("orgArchitectSystemPromptBlock", () => {
     expect(orgArchitectSystemPromptBlock.toLowerCase()).toContain("charter");
   });
 });
+
+describe("org-architect charter depth rubric", () => {
+  it("tells the CEO to anchor charters to THIS business and avoid boilerplate", () => {
+    expect(orgArchitectSystemPromptBlock).toContain("specific to this business");
+    expect(orgArchitectSystemPromptBlock).toContain("Operating Workflow");
+    expect(orgArchitectSystemPromptBlock.toLowerCase()).toContain("boilerplate");
+  });
+});
