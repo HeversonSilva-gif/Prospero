@@ -133,4 +133,31 @@ describe("generateCharterDeep", () => {
     expect(out.charter).toContain("v2"); // used the regenerated draft
     expect(out.critique.specific).toBe(false); // still flagged, but we stop at cap
   });
+
+  it("keeps the attempt-1 draft when the retry generation throws", async () => {
+    const db = newDb();
+    const fail = JSON.stringify({
+      specific: false,
+      depthOk: true,
+      genericFlags: ["generic"],
+      feedback: "Name the product.",
+    });
+    // gen1 ok, critique1(fail), then retry generation rejects → fall back to gen1.
+    let i = 0;
+    const responses = [CHARTER("v1"), fail];
+    const runDerivation = (): Promise<RunDerivationResult> => {
+      if (i >= responses.length) return Promise.reject(new Error("sanitizer rejected the draft"));
+      const text = responses[i++]!;
+      return Promise.resolve({
+        text,
+        usage: { input: 1, output: 1, cacheCreation: 0, cacheRead: 0 },
+      });
+    };
+    const out = await generateCharterDeep(
+      { db, runDerivation },
+      { description: "x", businessContext: "b", env: {}, companyId: "c1" },
+    );
+    expect(out.charter).toContain("v1"); // fell back to the last good draft, did not throw
+    expect(out.critique.specific).toBe(false); // still carrying the attempt-1 verdict
+  });
 });

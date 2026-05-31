@@ -134,7 +134,7 @@ export type GenerateDeepInput = {
 };
 
 export const generateCharterDeep = async (
-  deps: GenerateCharterDeps  ,
+  deps: GenerateCharterDeps,
   input: GenerateDeepInput,
 ): Promise<{ charter: string; critique: CharterCritique }> => {
   let critique: CharterCritique = {
@@ -145,13 +145,19 @@ export const generateCharterDeep = async (
   };
   let charter = "";
   for (let attempt = 0; attempt < DEEP_CAP; attempt++) {
-    const gen = await generateCharter(deps, {
-      description: input.description,
-      businessContext: input.businessContext,
-      env: input.env,
-      companyId: input.companyId,
-      ...(attempt > 0 ? { feedback: critique.feedback } : {}),
-    });
+    let gen;
+    try {
+      gen = await generateCharter(deps, {
+        description: input.description,
+        businessContext: input.businessContext,
+        env: input.env,
+        companyId: input.companyId,
+        ...(attempt > 0 ? { feedback: critique.feedback } : {}),
+      });
+    } catch (e) {
+      if (charter !== "") break; // keep the last good draft rather than discard it
+      throw e; // first attempt failed → nothing to fall back to
+    }
     charter = gen.charter;
     critique = await critiqueCharter(deps, {
       charter,
