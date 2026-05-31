@@ -60,6 +60,10 @@ import {
 import { RETRY_CAP } from "../verification/index.js";
 import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
 import { createGoalsRepository } from "../goals/repository.js";
+import { createGoalPlansRepository } from "../goals/plans-repository.js";
+import { critiqueGoalPlan } from "../agents/goal-plan-critique.js";
+import { decidePlanOutcome } from "../agents/plan-outcome.js";
+import { formatGoalPlanRequest } from "../goals/format-request.js";
 import { createIssuesRepository } from "../issues/repository.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
 import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
@@ -378,6 +382,13 @@ export const registerOrchestratorHandlers = (
   const ORG_PLAN_REVISION_CAP = 1;
   const orgPlanRevisions = new Map<string, number>();
 
+  // P2 peça C — goal-plan issue critic. Cap of 1 auto-revision per goal: a first
+  // vague submission earns one [FEEDBACK] round-trip to the CEO; the resubmission
+  // is surfaced regardless. In-memory, keyed by goalId; resets when the card is
+  // created (and on restart — worst case one extra critique).
+  const GOAL_PLAN_REVISION_CAP = 1;
+  const goalPlanRevisions = new Map<string, number>();
+
   const handleOrgProposed = async (orgPlanId: string, companyId: string): Promise<void> => {
     const orgPlans = createOrgPlansRepository(db);
     const plan = orgPlans.getById(orgPlanId);
@@ -414,6 +425,54 @@ export const registerOrchestratorHandlers = (
       payloadJson: JSON.stringify({ orgPlanId }),
     });
     broadcastInboxUpdate(companyId);
+  };
+
+  const handleGoalPlanProposed = async (goalId: string, planId: string): Promise<void> => {
+    const goalsRepo = createGoalsRepository(db);
+    const plansRepo = createGoalPlansRepository(db);
+    const plan = plansRepo.getById(planId);
+    const goal = goalsRepo.getById(goalId);
+    if (plan === null || goal === null || plan.status !== "critiquing") return;
+    const { vagueIssues } = await critiqueGoalPlan(
+      { db, runDerivation: (i) => runDerivation({ runProcess: defaultRunProcess }, i) },
+      {
+        goalTitle: goal.title,
+        goalDescription: goal.description ?? "",
+        issues: plan.issuesToCreate.map((i) => ({ title: i.title, description: i.description })),
+        env: buildAuthEnv(db),
+        companyId: goal.companyId,
+      },
+    );
+    const attempts = goalPlanRevisions.get(goalId) ?? 0;
+    const outcome = decidePlanOutcome({
+      flaggedCount: vagueIssues.length,
+      attempts,
+      cap: GOAL_PLAN_REVISION_CAP,
+    });
+    if (outcome === "revise") {
+      goalPlanRevisions.set(goalId, attempts + 1);
+      const feedback =
+        "Some issues are too vague (no concrete deliverable / done-when):\n" +
+        vagueIssues.map((v) => `- ${v.title}: ${v.feedback}`).join("\n");
+      // Re-engage the CEO via the existing goal-plan feedback loop. The goal is
+      // still 'planning' and the plan stays 'critiquing' (hidden) until resubmit.
+      deliverSystemMessage(plan.proposedByAgentId, formatGoalPlanRequest(goal, feedback));
+      return;
+    }
+    goalPlanRevisions.delete(goalId);
+    plansRepo.markProposed(planId);
+    goalsRepo.updateStatus(goalId, "proposed");
+    const note = vagueIssues.length > 0 ? "⚠ Revisar — algumas issues podem estar vagas. " : "";
+    inbox.create({
+      companyId: goal.companyId,
+      kind: "goal_proposed",
+      actorId: plan.proposedByAgentId,
+      title: `Plano proposto para "${goal.title}"`,
+      preview: (note + plan.summary).slice(0, 200),
+      requiresAction: true,
+      payloadJson: JSON.stringify({ goalId, planId }),
+    });
+    broadcastInboxUpdate(goal.companyId);
   };
 
   // Dispatch agent-emitted side-channel events (inter-agent delivery, hire/fire,
@@ -541,6 +600,9 @@ export const registerOrchestratorHandlers = (
     } else if (kind === "org.proposed" && typeof payload === "object" && payload !== null) {
       const p = payload as { orgPlanId: string };
       void handleOrgProposed(p.orgPlanId, companyId);
+    } else if (kind === "goal.plan_proposed" && typeof payload === "object" && payload !== null) {
+      const p = payload as { goalId: string; planId: string };
+      void handleGoalPlanProposed(p.goalId, p.planId);
     }
   };
 
