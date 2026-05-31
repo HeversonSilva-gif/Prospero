@@ -5,6 +5,7 @@ import { readTelos } from "../companies/telos-store.js";
 // concrete to THIS company instead of generic archetypes. Pure builder (parts
 // injected); gatherBusinessContext below wires the real readers.
 
+/** Max chars of the TELOS body included in the context block. */
 export const BUSINESS_CONTEXT_CAP = 4000;
 
 export type BusinessContextParts = {
@@ -44,9 +45,9 @@ export const gatherBusinessContext = (
     | undefined;
   const conn = db
     .prepare("SELECT metadata_json FROM connections WHERE company_id = ? AND kind = 'x'")
-    .get(companyId) as { metadata_json: string } | undefined;
+    .get(companyId) as { metadata_json: string | null } | undefined;
   let xHandle: string | null = null;
-  if (conn !== undefined) {
+  if (conn?.metadata_json != null) {
     const meta = JSON.parse(conn.metadata_json) as { handle?: unknown };
     xHandle = typeof meta.handle === "string" ? meta.handle : null;
   }

@@ -41,7 +41,7 @@ describe("buildBusinessContext", () => {
       telos: "x".repeat(BUSINESS_CONTEXT_CAP + 500),
     });
     // The block has a fixed header + the capped telos; assert the telos slice is capped.
-    expect(out.length).toBeLessThan(BUSINESS_CONTEXT_CAP + 200);
+    expect(out.length).toBeLessThan(BUSINESS_CONTEXT_CAP + 100);
   });
 });
 
@@ -59,6 +59,20 @@ describe("gatherBusinessContext", () => {
     expect(out).toContain("BeanBox");
     expect(out).toContain("@beanbox");
     expect(out).not.toContain("TELOS");
+  });
+
+  it("does not throw when the x connection has no metadata_json (NULL)", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c1','BeanBox',0)").run();
+    db.prepare(
+      `INSERT INTO connections (id, company_id, kind, ciphertext, created_at, updated_at)
+       VALUES ('cn1','c1','x','xxx', 0, 0)`,
+    ).run(); // metadata_json defaults to NULL
+    const dir = mkdtempSync(join(tmpdir(), "ud-"));
+    const out = gatherBusinessContext(db, dir, "c1");
+    expect(out).toContain("BeanBox");
+    expect(out).not.toContain("@");
   });
 
   it("returns an empty string for a null companyId", () => {
