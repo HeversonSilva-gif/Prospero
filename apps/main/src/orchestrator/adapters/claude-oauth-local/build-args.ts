@@ -3,6 +3,7 @@ import { composeSystemPrompt } from "../../system-prompt.js";
 import { goalsSystemPromptBlock } from "../../system-prompt-goals.js";
 import { orgArchitectSystemPromptBlock } from "../../system-prompt-org.js";
 import { buildNarratedBlock } from "../../system-prompt-narrated.js";
+import { genesisSystemPromptBlock } from "../../system-prompt-genesis.js";
 
 // We deliberately omit `-p` (--print): that flag makes claude wait for stdin EOF before
 // emitting any assistant output, which is incompatible with the persistent runner that
@@ -36,7 +37,12 @@ export const buildClaudeArgs = (
       // string. Fall back to system_prompt if the host did not pass a bundle.
       agentPersona: opts.instructionsBlock ?? agent.systemPrompt,
       capabilities: agent.capabilities,
-      ...(isCeo ? { goalsBlock: goalsSystemPromptBlock + orgArchitectSystemPromptBlock } : {}),
+      ...(isCeo
+        ? {
+            goalsBlock:
+              goalsSystemPromptBlock + orgArchitectSystemPromptBlock + genesisSystemPromptBlock,
+          }
+        : {}),
       ...(narratedBlock !== undefined ? { narratedBlock } : {}),
       ...(opts.telosBlock !== undefined ? { telosBlock: opts.telosBlock } : {}),
       ...(opts.memoryBlock !== undefined ? { memoryBlock: opts.memoryBlock } : {}),
