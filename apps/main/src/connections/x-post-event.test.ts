@@ -75,4 +75,41 @@ describe("handleXPostEvent", () => {
     if (r !== undefined && r.ok === false) expect(r.error).toMatch(/conectad/i);
     else expect.fail("expected a failure result");
   });
+
+  it("calls onPosted with the tweet id + text on success", async () => {
+    const repo = setupRepo();
+    repo.save(
+      "c1",
+      "x",
+      { accessToken: "AT", refreshToken: "RT", expiresAt: 9_999_999_999 },
+      { clientId: "cid" },
+    );
+    const http: XHttp = () =>
+      Promise.resolve({ status: 201, json: () => Promise.resolve({ data: { id: "555" } }) });
+    const posted: Array<{ id: string; text: string }> = [];
+    await handleXPostEvent(
+      {
+        repo,
+        http,
+        writeResult: () => {},
+        now: () => 0,
+        onPosted: (id, text) => posted.push({ id, text }),
+      },
+      "c1",
+      { postId: "p1", text: "gm world" },
+    );
+    expect(posted).toEqual([{ id: "555", text: "gm world" }]);
+  });
+
+  it("does NOT call onPosted on failure", async () => {
+    const repo = setupRepo(); // no connection → executeXPost throws
+    const http: XHttp = () => Promise.reject(new Error("nope"));
+    const posted: string[] = [];
+    await handleXPostEvent(
+      { repo, http, writeResult: () => {}, now: () => 0, onPosted: (id) => posted.push(id) },
+      "c1",
+      { postId: "p2", text: "x" },
+    );
+    expect(posted).toEqual([]);
+  });
 });

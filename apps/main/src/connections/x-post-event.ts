@@ -20,6 +20,7 @@ export const handleXPostEvent = async (
     http: XHttp;
     writeResult: (postId: string, result: XPostEventResult) => void;
     now: () => number;
+    onPosted?: (tweetId: string, text: string) => void;
   },
   companyId: string,
   payload: XPostEventPayload,
@@ -33,6 +34,7 @@ export const handleXPostEvent = async (
       payload.inReplyToId !== undefined ? { inReplyToId: payload.inReplyToId } : {},
       deps.now,
     );
+    deps.onPosted?.(r.id, payload.text);
     deps.writeResult(payload.postId, { ok: true, id: r.id, url: r.url });
   } catch (e) {
     deps.writeResult(payload.postId, {
