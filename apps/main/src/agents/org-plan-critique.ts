@@ -1,16 +1,10 @@
-import type Database from "better-sqlite3";
 import type { ProposedRole } from "@prospero/shared";
-import type { RunDerivationResult } from "../derivation/runner.js";
-import { critiqueCharter } from "./charter-critic.js";
+import { critiqueCharter, type CritiqueDeps } from "./charter-critic.js";
 
-export type OrgPlanCritiqueDeps = {
-  db: Database.Database;
-  runDerivation: (input: {
-    prompt: string;
-    model: string;
-    env: Record<string, string>;
-  }) => Promise<RunDerivationResult>;
-};
+// Reuse the charter layer's deps alias rather than re-declaring the shape — the
+// charter critic aliases CritiqueDeps = GenerateCharterDeps for exactly this
+// anti-drift reason, and critiqueCharter (called below) expects this type.
+export type OrgPlanCritiqueDeps = CritiqueDeps;
 
 export type OrgPlanCritiqueInput = {
   roles: ProposedRole[];
