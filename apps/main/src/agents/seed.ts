@@ -43,7 +43,7 @@ export const createCEOAgent = (
     // 1 at the column level, so the CEO can hire and assign.
     // `web` lets the CEO research real competitors/market on the web during genesis
     // (WebFetch/WebSearch, read-only) so the business plan isn't generic.
-    capabilities: ["delegation", "issues", "inbox", "chat", "fs-read", "web"],
+    capabilities: ["delegation", "issues", "inbox", "chat", "fs-read", "web", "finance"],
     // The CEO runs the smartest available model — it interviews the owner during
     // onboarding and plans the whole company. Opus 4.8 (latest) per product call.
     model: "claude-opus-4-8",

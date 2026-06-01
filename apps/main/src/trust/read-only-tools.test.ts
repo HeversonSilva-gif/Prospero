@@ -52,6 +52,8 @@ describe("isReadOnlyTool", () => {
     expect(isReadOnlyTool("mcp__dashboard__send_email")).toBe(false));
   it("read_emails IS read-only (allowlisted)", () =>
     expect(isReadOnlyTool("mcp__dashboard__read_emails")).toBe(true));
+  it("finance_read IS read-only (allowlisted)", () =>
+    expect(isReadOnlyTool("mcp__dashboard__finance_read")).toBe(true));
 
   // Edge cases.
   it("unknown tool defaults to NOT read-only (conservative)", () =>

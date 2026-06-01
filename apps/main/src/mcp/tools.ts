@@ -13,6 +13,7 @@ import type { CloudflareDeployEventResult } from "../connections/cloudflare-depl
 import type { CloudflareD1EventResult } from "../connections/cloudflare-d1-event.js";
 import { createBusinessPlansRepository } from "../agents/business-plans-repository.js";
 import { createStripePaymentsRepository } from "../connections/stripe-payments-repository.js";
+import { createCostsRepository } from "../costs/repository.js";
 import { zoneOf, canAccess } from "../security/zones.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
@@ -1163,6 +1164,29 @@ export const toolDefinitions = [
     inputSchema: z.object({ limit: z.number().int().positive().max(50).optional() }),
     run: async (input: { limit?: number }, ctx: ToolContext): Promise<string> =>
       runEmailRead(ctx, input.limit),
+  },
+  {
+    name: "finance_read",
+    description:
+      "Read the company's finances over a window: Claude cost (USD) vs Stripe revenue (per currency) + total payment count. Read-only — use it to know whether the business is profitable before deciding to spend.",
+    inputSchema: z.object({ days: z.number().int().positive().max(365).optional() }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (input: { days?: number }, ctx: ToolContext): Promise<string> => {
+      const windowDays = input.days ?? 30;
+      const since = Date.now() - windowDays * 24 * 60 * 60_000;
+      const cost = createCostsRepository(ctx.db).getCompanyTotalSince(ctx.companyId, since);
+      const payments = createStripePaymentsRepository(ctx.db);
+      const revenueByCurrency: Record<string, number> = {};
+      for (const p of payments.listByCompany(ctx.companyId, since)) {
+        revenueByCurrency[p.currency] = (revenueByCurrency[p.currency] ?? 0) + p.amount;
+      }
+      return JSON.stringify({
+        windowDays,
+        costUsd: cost.cents / 100,
+        revenueByCurrency,
+        revenueCount: payments.totalsByCompany(ctx.companyId).count,
+      });
+    },
   },
   {
     name: "record_artifact",
