@@ -8,6 +8,17 @@ import { buildAuthorizeUrl, generatePkce, exchangeCode } from "../connections/x-
 import { getMe, type XHttp } from "../connections/x-client.js";
 import { getAccount, validateStripeKeyShape } from "../connections/stripe-client.js";
 import { getAccount as getCloudflareAccount } from "../connections/cloudflare-client.js";
+import {
+  verifyConnection as verifyEmail,
+  type EmailPayload,
+  type SmtpPayload,
+  type ResendPayload,
+} from "../connections/email-client.js";
+import {
+  defaultSmtpSend,
+  defaultSmtpVerify,
+  defaultImapFetch,
+} from "../connections/email-transports.js";
 
 // 0.2.X P1 — the "Connect X" flow lives ENTIRELY in the app (Settings). Nothing is
 // hardcoded: the user pastes their own X app Client ID, authorises in the browser,
@@ -44,6 +55,50 @@ type StripeConnectResult = {
 };
 
 type CloudflareConnectResult = { connected: boolean; account?: string; error?: string };
+
+type EmailConnectResult = { connected: boolean; mode?: string; from?: string; error?: string };
+
+// The email-client needs HTTP (for Resend verify) + the SMTP/IMAP transports.
+const emailDeps = {
+  http: httpFetch,
+  smtpSend: defaultSmtpSend,
+  smtpVerify: defaultSmtpVerify,
+  imapFetch: defaultImapFetch,
+};
+
+// Build a validated EmailPayload from the renderer's raw connect input, or null if invalid.
+const parseEmailPayload = (raw: unknown): EmailPayload | null => {
+  const p = raw as Record<string, unknown>;
+  if (p.mode === "resend") {
+    if (typeof p.from !== "string" || typeof p.apiKey !== "string" || p.apiKey.trim() === "") {
+      return null;
+    }
+    return { mode: "resend", from: p.from.trim(), apiKey: p.apiKey.trim() } satisfies ResendPayload;
+  }
+  if (p.mode === "smtp") {
+    if (
+      typeof p.from !== "string" ||
+      typeof p.smtpHost !== "string" ||
+      typeof p.smtpUser !== "string" ||
+      typeof p.smtpPass !== "string" ||
+      typeof p.imapHost !== "string"
+    ) {
+      return null;
+    }
+    return {
+      mode: "smtp",
+      from: p.from.trim(),
+      smtpHost: p.smtpHost.trim(),
+      smtpPort: typeof p.smtpPort === "number" ? p.smtpPort : 465,
+      smtpSecure: p.smtpSecure !== false,
+      smtpUser: p.smtpUser.trim(),
+      smtpPass: p.smtpPass,
+      imapHost: p.imapHost.trim(),
+      imapPort: typeof p.imapPort === "number" ? p.imapPort : 993,
+    } satisfies SmtpPayload;
+  }
+  return null;
+};
 
 // Runs the OAuth 2.0 PKCE loopback flow: opens the system browser to X's authorize
 // page, waits for the redirect to 127.0.0.1:8723, exchanges the code for tokens, and
@@ -245,6 +300,54 @@ export const registerConnectionsHandlers = (db: Database.Database): void => {
     IPC.CONNECTIONS_CLOUDFLARE_DISCONNECT,
     (_e, companyId: unknown): { connected: false } => {
       if (typeof companyId === "string") repo.clear(companyId, "cloudflare");
+      return { connected: false };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.CONNECTIONS_EMAIL_STATUS,
+    (_e, companyId: unknown): { connected: boolean; mode?: string; from?: string } => {
+      if (typeof companyId !== "string") return { connected: false };
+      const c = repo.listMetadata(companyId).find((m) => m.kind === "email");
+      if (c === undefined) return { connected: false };
+      const mode = typeof c.metadata.mode === "string" ? c.metadata.mode : undefined;
+      const from = typeof c.metadata.from === "string" ? c.metadata.from : undefined;
+      return {
+        connected: true,
+        ...(mode !== undefined ? { mode } : {}),
+        ...(from !== undefined ? { from } : {}),
+      };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.CONNECTIONS_EMAIL_CONNECT,
+    async (_e, payload: unknown): Promise<EmailConnectResult> => {
+      const p = payload as { companyId?: unknown; connection?: unknown };
+      if (typeof p.companyId !== "string") {
+        return { connected: false, error: "Empresa inválida." };
+      }
+      const email = parseEmailPayload(p.connection);
+      if (email === null) {
+        return { connected: false, error: "Preencha os campos do e-mail (modo SMTP ou Resend)." };
+      }
+      try {
+        await verifyEmail(emailDeps, email);
+        repo.save(p.companyId, "email", email, {
+          mode: email.mode,
+          from: email.from,
+        });
+        return { connected: true, mode: email.mode, from: email.from };
+      } catch (e) {
+        return { connected: false, error: e instanceof Error ? e.message : String(e) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    IPC.CONNECTIONS_EMAIL_DISCONNECT,
+    (_e, companyId: unknown): { connected: false } => {
+      if (typeof companyId === "string") repo.clear(companyId, "email");
       return { connected: false };
     },
   );
