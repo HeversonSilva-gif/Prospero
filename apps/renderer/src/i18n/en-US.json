@@ -1667,8 +1667,8 @@
       }
     },
     "seed": {
-      "help": "Hello! I'm going to help you find an online business that makes sense for you. I'll ask you a few questions about your interests, skills, and availability — and at the end I'll propose a concrete business plan. Let's start: what do you enjoy doing most in your free time?",
-      "idea": "Hello! Tell me about the business idea you have in mind. I want to understand what you want to sell, who you're selling to, and why you believe it will work — so I can shape a feasible business plan and present it to you for approval."
+      "help": "Hi! I just created my company and I don't have a business idea yet — I just know I want an online business you can run. Can you start by interviewing me about my interests, skills, and available time, then propose a concrete business plan?",
+      "idea": "Hi! I just created my company and I already have a business idea in mind. Can you ask me a few questions to understand what I want to sell, to whom, and why — then shape it into a feasible business plan for me to approve?"
     }
   },
   "businessPlan": {

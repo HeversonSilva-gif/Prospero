@@ -1667,8 +1667,8 @@
       }
     },
     "seed": {
-      "help": "Olá! Vou te ajudar a encontrar um negócio online que faz sentido pra você. Vou te fazer algumas perguntas sobre seus interesses, habilidades e disponibilidade — e no final proponho um plano de negócio concreto. Pode começar me contando: o que você mais gosta de fazer no seu tempo livre?",
-      "idea": "Olá! Me conte sobre a ideia de negócio que você tem em mente. Quero entender o que você quer vender, para quem e por que acredita que vai funcionar — assim posso moldar um plano de negócio viável e apresentar para você aprovar."
+      "help": "Oi! Acabei de criar minha empresa e ainda não tenho ideia do que vender — só sei que quero um negócio online que você consiga tocar. Pode começar me entrevistando sobre meus interesses, habilidades e tempo disponível e, no final, me propor um plano de negócio concreto?",
+      "idea": "Oi! Acabei de criar minha empresa e já tenho uma ideia de negócio em mente. Pode me fazer algumas perguntas pra entender o que eu quero vender, pra quem e por quê — e depois moldar isso num plano de negócio viável pra eu aprovar?"
     }
   },
   "businessPlan": {
