@@ -10,6 +10,7 @@ import type { XPostEventResult } from "../connections/x-post-event.js";
 import type { StripeSetupEventResult } from "../connections/stripe-setup-event.js";
 import type { StripeChargeItem } from "../connections/stripe-monetization-executor.js";
 import type { CloudflareDeployEventResult } from "../connections/cloudflare-deploy-event.js";
+import type { CloudflareD1EventResult } from "../connections/cloudflare-d1-event.js";
 import { createBusinessPlansRepository } from "../agents/business-plans-repository.js";
 import { createStripePaymentsRepository } from "../connections/stripe-payments-repository.js";
 import { zoneOf, canAccess } from "../security/zones.js";
@@ -317,6 +318,34 @@ const runCloudflareDeploy = async (
   });
   const result = await waitForDeployResult(ctx.permissionsDir, requestId, 5 * 60_000);
   return JSON.stringify(result);
+};
+
+// Same round-trip for D1 provisioning (create/migrate), keyed by `${requestId}.d1.json`.
+const runCloudflareD1 = async (
+  ctx: ToolContext,
+  input: { project_path: string; database_name: string; command: "create" | "migrate" },
+): Promise<string> => {
+  const requestId = randomUUID();
+  ctx.emit({
+    kind: "cloudflare.d1",
+    payload: {
+      requestId,
+      projectPath: input.project_path,
+      databaseName: input.database_name,
+      command: input.command,
+    },
+  });
+  const path = join(ctx.permissionsDir, `${requestId}.d1.json`);
+  const start = Date.now();
+  while (Date.now() - start < 3 * 60_000) {
+    if (existsSync(path)) {
+      const r = JSON.parse(readFileSync(path, "utf8")) as CloudflareD1EventResult;
+      safeUnlink(path);
+      return JSON.stringify(r);
+    }
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  return JSON.stringify({ ok: false, error: "Tempo esgotado aguardando o D1 no Cloudflare." });
 };
 
 export const toolDefinitions = [
@@ -1011,6 +1040,39 @@ export const toolDefinitions = [
           : {};
       const url = typeof meta.lastDeployUrl === "string" ? meta.lastDeployUrl : null;
       return JSON.stringify({ connected: true, productionUrl: url });
+    },
+  },
+  {
+    name: "provision_database",
+    description:
+      "Provision the app's Cloudflare D1 (SQLite) database. command 'create' creates the database and returns its id + the wrangler.toml [[d1_databases]] binding snippet to paste; command 'migrate' applies the project's migrations to the remote database. Gated for approval (infra setup). project_path = the app directory (absolute); database_name = a lowercase DNS-safe slug.",
+    inputSchema: z.object({
+      project_path: z.string().min(1),
+      database_name: z
+        .string()
+        .min(1)
+        .max(58)
+        .regex(/^[a-z0-9][a-z0-9-]*$/, "use a lowercase dns-safe slug"),
+      command: z.enum(["create", "migrate"]),
+    }),
+    run: async (
+      input: { project_path: string; database_name: string; command: "create" | "migrate" },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const zone = zoneOf(input.project_path, ctx.userDataDir);
+      if (zone !== null && !canAccess({ companyId: ctx.companyId, id: ctx.agentId }, zone)) {
+        return JSON.stringify({ ok: false, error: "Caminho fora da área permitida." });
+      }
+      const outcome = await gateAction(
+        ctx,
+        "provision_database",
+        { database_name: input.database_name, command: input.command },
+        randomUUID(),
+      );
+      if (outcome.decision !== "allow") {
+        return JSON.stringify({ ok: false, status: outcome.decision, message: outcome.message });
+      }
+      return runCloudflareD1(ctx, input);
     },
   },
   {

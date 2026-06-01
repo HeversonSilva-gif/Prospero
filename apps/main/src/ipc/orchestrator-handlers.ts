@@ -122,6 +122,7 @@ import { handleXPostEvent } from "../connections/x-post-event.js";
 import { handleStripeSetupEvent } from "../connections/stripe-setup-event.js";
 import type { StripeChargeItem } from "../connections/stripe-monetization-executor.js";
 import { handleCloudflareDeployEvent } from "../connections/cloudflare-deploy-event.js";
+import { handleCloudflareD1Event } from "../connections/cloudflare-d1-event.js";
 import { defaultWranglerRunner } from "../connections/wrangler-runner.js";
 import { safeStorageCipher, httpFetch } from "./connections-handlers.js";
 import { getUserMetrics, getTweetMetrics } from "../connections/x-client.js";
@@ -726,6 +727,27 @@ export const registerOrchestratorHandlers = (
               });
             }
           },
+        },
+        companyId,
+        p,
+      );
+    } else if (kind === "cloudflare.d1" && typeof payload === "object" && payload !== null) {
+      // provision_database self-gates in the MCP child, then emits this once approved.
+      // MAIN decrypts the token and runs the constrained `wrangler d1` command.
+      const p = payload as {
+        requestId: string;
+        projectPath: string;
+        databaseName: string;
+        command: "create" | "migrate";
+      };
+      const permDir = getPermissionsDir(app.getPath("userData"));
+      const repo = createConnectionsRepository(db, safeStorageCipher());
+      void handleCloudflareD1Event(
+        {
+          repo,
+          runWrangler: defaultWranglerRunner,
+          writeResult: (requestId, result) =>
+            writeFileSync(join(permDir, `${requestId}.d1.json`), JSON.stringify(result)),
         },
         companyId,
         p,

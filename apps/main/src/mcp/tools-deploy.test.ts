@@ -8,6 +8,7 @@ import { toolDefinitions, type ToolContext } from "./tools.js";
 
 const deployTool = toolDefinitions.find((t) => t.name === "deploy_app")!;
 const statusTool = toolDefinitions.find((t) => t.name === "deployment_status")!;
+const d1Tool = toolDefinitions.find((t) => t.name === "provision_database")!;
 
 function setup() {
   const db = new Database(":memory:");
@@ -148,5 +149,52 @@ describe("deployment_status", () => {
       connected: boolean;
     };
     expect(out.connected).toBe(false);
+  });
+});
+
+describe("provision_database", () => {
+  it("self-gates, then emits cloudflare.d1 with the command once approved", async () => {
+    const { db, dir } = setup();
+    const emit = vi.fn((ev: { kind: string; payload: unknown }) => {
+      if (ev.kind === "cloudflare.d1") {
+        const { requestId } = ev.payload as { requestId: string };
+        writeFileSync(
+          join(dir, `${requestId}.d1.json`),
+          JSON.stringify({ ok: true, output: "database_id = abc" }),
+        );
+      }
+    });
+    const runPromise = d1Tool.run(
+      { project_path: "/work/app", database_name: "my-db", command: "create" },
+      ctxFor(db, dir, emit),
+    );
+    const req = await waitForReq(dir);
+    expect(req.tool_name).toBe("provision_database");
+    writeFileSync(join(dir, `${req.tool_use_id}.res.json`), JSON.stringify({ behavior: "allow" }));
+    const out = JSON.parse(await runPromise) as { ok: boolean; output: string };
+    expect(out.ok).toBe(true);
+    expect(emit).toHaveBeenCalledWith({
+      kind: "cloudflare.d1",
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      payload: expect.objectContaining({ command: "create", databaseName: "my-db" }),
+    });
+  });
+
+  it("does NOT provision when the gate rejects", async () => {
+    const { db, dir } = setup();
+    const emit = vi.fn();
+    const runPromise = d1Tool.run(
+      { project_path: "/work/app", database_name: "my-db", command: "create" },
+      ctxFor(db, dir, emit),
+    );
+    const req = await waitForReq(dir);
+    writeFileSync(
+      join(dir, `${req.tool_use_id}.deny.json`),
+      JSON.stringify({ behavior: "deny", message: "no" }),
+    );
+    const out = JSON.parse(await runPromise) as { ok: boolean; status: string };
+    expect(out.ok).toBe(false);
+    expect(out.status).toBe("deny");
+    expect(emit).not.toHaveBeenCalled();
   });
 });

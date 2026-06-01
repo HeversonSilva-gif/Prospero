@@ -163,7 +163,11 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
       "Ship the product the team builds to the company's connected Cloudflare account: deploy a " +
       "web app (preview is automatic; production is gated for approval, graduating to automatic via " +
       "trust tiers) and read the live URL.",
-    tools: ["mcp__dashboard__deploy_app", "mcp__dashboard__deployment_status"],
+    tools: [
+      "mcp__dashboard__deploy_app",
+      "mcp__dashboard__deployment_status",
+      "mcp__dashboard__provision_database",
+    ],
   },
 };
 

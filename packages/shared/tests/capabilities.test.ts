@@ -40,6 +40,7 @@ describe("capability catalog", () => {
     expect(CAPABILITY_CATALOG.deploy.tools).toEqual([
       "mcp__dashboard__deploy_app",
       "mcp__dashboard__deployment_status",
+      "mcp__dashboard__provision_database",
     ]);
   });
 
