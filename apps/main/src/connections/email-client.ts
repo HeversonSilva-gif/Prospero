@@ -119,15 +119,13 @@ export const readRecentEmails = async (
 
 export const verifyConnection = async (deps: EmailDeps, payload: EmailPayload): Promise<void> => {
   if (payload.mode === "resend") {
-    const res = await deps.http("https://api.resend.com/domains", {
-      method: "GET",
-      headers: { Authorization: `Bearer ${payload.apiKey}` },
-    });
-    if (res.status >= 400) {
-      const d = (await res.json()) as { message?: string };
-      throw new EmailError(res.status, d.message ?? `Resend API error ${String(res.status)}`);
+    // Resend has no cheap validate endpoint that works for send-ONLY keys (a /domains
+    // probe 401/403s on correctly-scoped sending keys), so accept a well-formed `re_`
+    // key here; the first real send surfaces an auth error if it's wrong.
+    if (!payload.apiKey.startsWith("re_")) {
+      throw new EmailError(400, "Chave Resend inválida (deve começar com re_).");
     }
-    return;
+    return Promise.resolve();
   }
   await deps.smtpVerify(payload);
 };

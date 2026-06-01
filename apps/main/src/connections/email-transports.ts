@@ -42,7 +42,8 @@ export const defaultImapFetch: ImapFetchFn = async (p, limit) => {
   const client = new ImapFlow({
     host: p.imapHost,
     port: p.imapPort,
-    secure: true,
+    // 993 = implicit TLS; 143 = STARTTLS (imapflow upgrades). Respect the stored port.
+    secure: p.imapPort !== 143,
     auth: { user: p.smtpUser, pass: p.smtpPass },
     logger: false,
   });

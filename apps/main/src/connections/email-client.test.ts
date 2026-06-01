@@ -131,18 +131,23 @@ describe("readRecentEmails", () => {
 });
 
 describe("verifyConnection", () => {
-  it("resend: GET /domains with the bearer key", async () => {
-    let url: string | undefined;
+  it("resend: accepts a well-formed re_ key without a network call", async () => {
+    let called = false;
     await verifyConnection(
       deps({
-        http: (u) => {
-          url = u;
+        http: () => {
+          called = true;
           return Promise.resolve({ status: 200, json: () => Promise.resolve({}) });
         },
       }),
       resend,
     );
-    expect(url).toBe("https://api.resend.com/domains");
+    expect(called).toBe(false);
+  });
+  it("resend: rejects a key that is not shaped like re_", async () => {
+    await expect(
+      verifyConnection(deps({}), { mode: "resend", from: "a@b.com", apiKey: "nope" }),
+    ).rejects.toBeInstanceOf(EmailError);
   });
   it("smtp: calls smtpVerify", async () => {
     let called = false;
