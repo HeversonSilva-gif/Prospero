@@ -464,6 +464,7 @@ export const registerOrchestratorHandlers = (
         plan: {
           concept: plan.concept,
           monetization: plan.monetization,
+          ...(plan.pricing !== null ? { pricing: plan.pricing } : {}),
           marketing: plan.marketing,
           identity: plan.identity,
           dropped: plan.dropped,
