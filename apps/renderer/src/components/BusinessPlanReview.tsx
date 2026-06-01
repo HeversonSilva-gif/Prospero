@@ -133,6 +133,25 @@ export const BusinessPlanReview: FC<{ plan: BusinessPlan }> = ({ plan }) => {
             )}
           </section>
         ) : null,
+        plan.research !== null ? (
+          <section key="research">
+            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-ink mb-2 m-0">
+              {t("businessPlan.research.title")}
+            </h3>
+            <ul className="text-sm text-ink space-y-1">
+              {plan.research.competitors.map((c, i) => (
+                <li key={i}>
+                  <span className="font-semibold">{c.name}</span> — {c.what}
+                  {c.price !== undefined && c.price !== "" ? ` (${c.price})` : ""}
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-ink-soft mt-2">
+              <span className="font-semibold">{t("businessPlan.research.differentiation")}:</span>{" "}
+              {plan.research.differentiation}
+            </p>
+          </section>
+        ) : null,
         <section key="mkt">
           <h3 className="text-[13px] font-semibold uppercase tracking-wide text-ink mb-2 m-0">
             {t("businessPlan.sections.marketing")}

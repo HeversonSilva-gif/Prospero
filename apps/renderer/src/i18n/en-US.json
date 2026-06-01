@@ -1712,6 +1712,10 @@
       "perMonth": "/mo",
       "perYear": "/yr"
     },
+    "research": {
+      "title": "Competition & differentiation",
+      "differentiation": "How we stand out"
+    },
     "pageTitle": "Business plan",
     "none": "No business plan awaiting review."
   }
