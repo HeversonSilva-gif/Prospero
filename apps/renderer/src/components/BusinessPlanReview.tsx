@@ -152,6 +152,14 @@ export const BusinessPlanReview: FC<{ plan: BusinessPlan }> = ({ plan }) => {
             </p>
           </section>
         ) : null,
+        plan.ownerProfile !== null && plan.ownerProfile.trim() !== "" ? (
+          <section key="owner">
+            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-ink mb-2 m-0">
+              {t("businessPlan.owner.title")}
+            </h3>
+            <p className="text-sm text-ink whitespace-pre-wrap">{plan.ownerProfile}</p>
+          </section>
+        ) : null,
         <section key="mkt">
           <h3 className="text-[13px] font-semibold uppercase tracking-wide text-ink mb-2 m-0">
             {t("businessPlan.sections.marketing")}
