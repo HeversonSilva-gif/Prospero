@@ -3,6 +3,50 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.1 — 2026-06-01
+
+A virada que **fecha o loop do "One Person Business"**: o Prospero agora te ajuda
+a **criar o negócio do zero**, **cobrar de verdade**, **colocar o produto no ar** e
+**falar com os clientes por e-mail** — tudo ligado às _suas_ contas, com a sua
+aprovação no que importa. Cada conexão é opcional e fica criptografada na sua
+máquina (nada vai pro git).
+
+### Adicionado
+
+- **Gênese: o CEO cria o negócio junto com você.** Na primeira vez (ou em "Criar
+  um negócio" no seletor de empresas) o CEO te entrevista, **propõe um plano de
+  negócio** — o conceito, como ele dá dinheiro, o primeiro canal de marketing e
+  uma identidade (nome, voz, @handle) — e um revisor rejeita plano raso ou
+  inviável antes de te mostrar. Você revê numa tela dedicada e aprova; o plano
+  aprovado vira a missão (TELOS) da empresa e a identidade já entra aplicada.
+- **Cobrança de verdade (Stripe).** O CEO propõe um **modelo de cobrança concreto**
+  já na gênese (avulso, assinatura ou combinação), e um revisor cobra que os preços
+  sejam reais. Você conecta a sua conta em **Ajustes › Conta** (cola uma chave
+  restrita do Stripe) e o agente cria produtos e links de pagamento **com a sua
+  aprovação**. O app acompanha as vendas sozinho e te avisa na **primeira venda**.
+- **Pesquisa de concorrência.** Na gênese, o CEO **pesquisa os concorrentes na web**
+  e registra **como o seu negócio se diferencia** — o plano deixa de ser genérico.
+- **Colocar o produto no ar (Cloudflare).** O agente consegue **publicar o produto**
+  e **criar o banco de dados** (D1). Você conecta um token do Cloudflare em
+  **Ajustes › Conta**; pré-visualizações sobem sozinhas e a **publicação em produção
+  passa pela sua aprovação**.
+- **E-mail (transacional + respostas).** Os agentes podem **enviar e ler e-mails**
+  (confirmações, respostas a clientes). Funciona com **SMTP comum ou Resend** —
+  você escolhe e conecta em **Ajustes › Conta**.
+- **Aviso de finanças.** Uma vez por semana o app confere se você está **gastando
+  sem faturar** e te manda um aviso (sem travar nada) sugerindo rever a estratégia.
+- **Memória de personalidade.** O CEO captura **quem é você** na gênese (distinto da
+  voz da marca) e **lembra das suas decisões recentes** (o que você aprovou e
+  rejeitou) — então a equipe escreve e decide mais parecido com você.
+
+### Para começar a usar
+
+- **Criar um negócio:** seletor de empresas › **"Criar um negócio"** e converse com
+  o CEO.
+- **Cobrar:** Ajustes › Conta › conecte o **Stripe** (chave restrita).
+- **Publicar:** Ajustes › Conta › conecte o **Cloudflare** (API token).
+- **E-mail:** Ajustes › Conta › conecte **SMTP** ou **Resend**.
+
 ## v0.2.0 — 2026-05-31
 
 Primeira virada do **"One Person Business"**: seu negócio agora tem mãos e
