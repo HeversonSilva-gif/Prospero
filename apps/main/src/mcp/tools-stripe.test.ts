@@ -6,9 +6,11 @@ import Database from "better-sqlite3";
 import { applyMigrations } from "../db/migrations.js";
 import { toolDefinitions, type ToolContext } from "./tools.js";
 import { createBusinessPlansRepository } from "../agents/business-plans-repository.js";
+import { createStripePaymentsRepository } from "../connections/stripe-payments-repository.js";
 
 const setupTool = toolDefinitions.find((t) => t.name === "setup_monetization")!;
 const linkTool = toolDefinitions.find((t) => t.name === "create_payment_link")!;
+const salesTool = toolDefinitions.find((t) => t.name === "stripe_sales_read")!;
 
 function setup() {
   const db = new Database(":memory:");
@@ -124,6 +126,31 @@ describe("create_payment_link", () => {
     const out = JSON.parse(await runPromise) as { ok: boolean; status: string };
     expect(out.ok).toBe(false);
     expect(out.status).toBe("deny");
+    expect(emit).not.toHaveBeenCalled();
+  });
+});
+
+describe("stripe_sales_read", () => {
+  it("returns a digest of totals + recent payments from the local store (no gate)", async () => {
+    const { db, dir } = setup();
+    const repo = createStripePaymentsRepository(db);
+    repo.record({
+      id: "ch_1",
+      companyId: "c1",
+      amount: 900,
+      currency: "brl",
+      createdAt: Date.now() - 1000,
+      recordedAt: Date.now(),
+    });
+    const emit = vi.fn();
+    const out = JSON.parse(await salesTool.run({}, ctxFor(db, dir, emit))) as {
+      totalPayments: number;
+      totalByCurrency: Record<string, number>;
+      recent: Array<{ amount: number }>;
+    };
+    expect(out.totalPayments).toBe(1);
+    expect(out.totalByCurrency).toEqual({ brl: 900 });
+    expect(out.recent[0]?.amount).toBe(900);
     expect(emit).not.toHaveBeenCalled();
   });
 });

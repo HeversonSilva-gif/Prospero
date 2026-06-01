@@ -10,6 +10,7 @@ import type { XPostEventResult } from "../connections/x-post-event.js";
 import type { StripeSetupEventResult } from "../connections/stripe-setup-event.js";
 import type { StripeChargeItem } from "../connections/stripe-monetization-executor.js";
 import { createBusinessPlansRepository } from "../agents/business-plans-repository.js";
+import { createStripePaymentsRepository } from "../connections/stripe-payments-repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
@@ -884,6 +885,25 @@ export const toolDefinitions = [
         return JSON.stringify({ ok: false, status: outcome.decision, message: outcome.message });
       }
       return runStripeSetup(ctx, [item]);
+    },
+  },
+  {
+    name: "stripe_sales_read",
+    description:
+      "Read a digest of the company's Stripe sales — number of payments, total per currency, and recent payments — from the ingested data. Read-only; use it to know whether the business is actually selling.",
+    inputSchema: z.object({ days: z.number().int().positive().max(365).optional() }),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (input: { days?: number }, ctx: ToolContext): Promise<string> => {
+      const windowMs = (input.days ?? 30) * 24 * 60 * 60_000;
+      const since = Date.now() - windowMs;
+      const repo = createStripePaymentsRepository(ctx.db);
+      const totals = repo.totalsByCompany(ctx.companyId);
+      const recent = repo.listByCompany(ctx.companyId, since).slice(0, 20);
+      return JSON.stringify({
+        totalPayments: totals.count,
+        totalByCurrency: totals.amountByCurrency,
+        recent: recent.map((p) => ({ amount: p.amount, currency: p.currency, at: p.createdAt })),
+      });
     },
   },
   {

@@ -38,6 +38,8 @@ describe("isReadOnlyTool", () => {
     expect(isReadOnlyTool("mcp__dashboard__setup_monetization")).toBe(false));
   it("create_payment_link is NOT read-only", () =>
     expect(isReadOnlyTool("mcp__dashboard__create_payment_link")).toBe(false));
+  it("stripe_sales_read IS read-only (allowlisted)", () =>
+    expect(isReadOnlyTool("mcp__dashboard__stripe_sales_read")).toBe(true));
 
   // Edge cases.
   it("unknown tool defaults to NOT read-only (conservative)", () =>

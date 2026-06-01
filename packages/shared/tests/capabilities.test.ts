@@ -31,6 +31,7 @@ describe("capability catalog", () => {
       "mcp__dashboard__x_insights_read",
       "mcp__dashboard__setup_monetization",
       "mcp__dashboard__create_payment_link",
+      "mcp__dashboard__stripe_sales_read",
     ]);
   });
 
