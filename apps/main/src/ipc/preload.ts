@@ -108,6 +108,21 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.CONNECTIONS_STRIPE_DISCONNECT, companyId) as Promise<{
         connected: false;
       }>,
+    cloudflareStatus: (companyId: string) =>
+      ipcRenderer.invoke(IPC.CONNECTIONS_CLOUDFLARE_STATUS, companyId) as Promise<{
+        connected: boolean;
+        account?: string;
+      }>,
+    cloudflareConnect: (companyId: string, token: string) =>
+      ipcRenderer.invoke(IPC.CONNECTIONS_CLOUDFLARE_CONNECT, { companyId, token }) as Promise<{
+        connected: boolean;
+        account?: string;
+        error?: string;
+      }>,
+    cloudflareDisconnect: (companyId: string) =>
+      ipcRenderer.invoke(IPC.CONNECTIONS_CLOUDFLARE_DISCONNECT, companyId) as Promise<{
+        connected: false;
+      }>,
   },
   auth: {
     status: () => ipcRenderer.invoke(IPC.AUTH_TOKEN_STATUS) as Promise<TokenStatus>,

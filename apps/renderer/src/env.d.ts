@@ -90,6 +90,12 @@ declare global {
           key: string,
         ) => Promise<{ connected: boolean; account?: string; livemode?: boolean; error?: string }>;
         stripeDisconnect: (companyId: string) => Promise<{ connected: false }>;
+        cloudflareStatus: (companyId: string) => Promise<{ connected: boolean; account?: string }>;
+        cloudflareConnect: (
+          companyId: string,
+          token: string,
+        ) => Promise<{ connected: boolean; account?: string; error?: string }>;
+        cloudflareDisconnect: (companyId: string) => Promise<{ connected: false }>;
       };
       auth: {
         status: () => Promise<TokenStatus>;
