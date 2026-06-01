@@ -82,6 +82,14 @@ declare global {
           clientId: string,
         ) => Promise<{ connected: boolean; handle?: string; error?: string }>;
         xDisconnect: (companyId: string) => Promise<{ connected: false }>;
+        stripeStatus: (
+          companyId: string,
+        ) => Promise<{ connected: boolean; account?: string; livemode?: boolean }>;
+        stripeConnect: (
+          companyId: string,
+          key: string,
+        ) => Promise<{ connected: boolean; account?: string; livemode?: boolean; error?: string }>;
+        stripeDisconnect: (companyId: string) => Promise<{ connected: false }>;
       };
       auth: {
         status: () => Promise<TokenStatus>;

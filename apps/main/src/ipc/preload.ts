@@ -91,6 +91,23 @@ contextBridge.exposeInMainWorld("prospero", {
       }>,
     xDisconnect: (companyId: string) =>
       ipcRenderer.invoke(IPC.CONNECTIONS_X_DISCONNECT, companyId) as Promise<{ connected: false }>,
+    stripeStatus: (companyId: string) =>
+      ipcRenderer.invoke(IPC.CONNECTIONS_STRIPE_STATUS, companyId) as Promise<{
+        connected: boolean;
+        account?: string;
+        livemode?: boolean;
+      }>,
+    stripeConnect: (companyId: string, key: string) =>
+      ipcRenderer.invoke(IPC.CONNECTIONS_STRIPE_CONNECT, { companyId, key }) as Promise<{
+        connected: boolean;
+        account?: string;
+        livemode?: boolean;
+        error?: string;
+      }>,
+    stripeDisconnect: (companyId: string) =>
+      ipcRenderer.invoke(IPC.CONNECTIONS_STRIPE_DISCONNECT, companyId) as Promise<{
+        connected: false;
+      }>,
   },
   auth: {
     status: () => ipcRenderer.invoke(IPC.AUTH_TOKEN_STATUS) as Promise<TokenStatus>,
