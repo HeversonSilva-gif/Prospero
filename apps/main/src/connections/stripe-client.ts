@@ -145,3 +145,46 @@ export const createPaymentLink = async (
   }
   return { id, url: data.url };
 };
+
+// --- P5.3: read endpoints for sensing the sale (called from MAIN) ---
+
+export type StripeCharge = {
+  id: string;
+  amount: number;
+  currency: string;
+  created: number; // ms (Stripe returns seconds; we convert)
+  status: string;
+};
+
+export const listCharges = async (
+  http: StripeHttp,
+  key: string,
+  opts: { createdGte?: number; limit?: number } = {},
+): Promise<StripeCharge[]> => {
+  const params = [`limit=${String(opts.limit ?? 100)}`];
+  if (opts.createdGte !== undefined) {
+    // Stripe wants `created[gte]` in seconds; encode the brackets for the query.
+    params.push(`created%5Bgte%5D=${String(Math.floor(opts.createdGte / 1000))}`);
+  }
+  const res = await http(`https://api.stripe.com/v1/charges?${params.join("&")}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${key}` },
+  });
+  const data = (await res.json()) as {
+    data?: Array<{ id: string; amount: number; currency: string; created: number; status: string }>;
+    error?: { message?: string };
+  };
+  if (res.status >= 400) {
+    throw new StripeApiError(
+      res.status,
+      data.error?.message ?? `Stripe API error ${String(res.status)}`,
+    );
+  }
+  return (data.data ?? []).map((c) => ({
+    id: c.id,
+    amount: c.amount,
+    currency: c.currency,
+    created: c.created * 1000,
+    status: c.status,
+  }));
+};

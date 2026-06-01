@@ -5,6 +5,7 @@ import {
   createProduct,
   createPrice,
   createPaymentLink,
+  listCharges,
   StripeApiError,
   type StripeHttp,
 } from "./stripe-client.js";
@@ -138,5 +139,43 @@ describe("stripe-client createProduct / createPrice / createPaymentLink", () => 
     await expect(
       createPaymentLink(http, "rk_test_x", { lineItems: [{ price: "x", quantity: 1 }] }),
     ).rejects.toBeInstanceOf(StripeApiError);
+  });
+});
+
+describe("stripe-client listCharges", () => {
+  it("GETs charges with limit + created[gte] (seconds) and maps created to ms", async () => {
+    let captured: { url: string; init: Init } | undefined;
+    const http: StripeHttp = (url, init) => {
+      captured = { url, init };
+      return Promise.resolve({
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: [
+              { id: "ch_1", amount: 900, currency: "brl", created: 1000, status: "succeeded" },
+            ],
+          }),
+      });
+    };
+    const charges = await listCharges(http, "rk_test_x", { createdGte: 5_000_000, limit: 10 });
+    expect(captured?.url).toContain("https://api.stripe.com/v1/charges?");
+    expect(captured?.url).toContain("limit=10");
+    expect(captured?.url).toContain("created%5Bgte%5D=5000");
+    expect(charges[0]).toEqual({
+      id: "ch_1",
+      amount: 900,
+      currency: "brl",
+      created: 1_000_000,
+      status: "succeeded",
+    });
+  });
+
+  it("returns [] when there is no data and throws on error", async () => {
+    const empty: StripeHttp = () =>
+      Promise.resolve({ status: 200, json: () => Promise.resolve({}) });
+    expect(await listCharges(empty, "rk_test_x")).toEqual([]);
+    const err: StripeHttp = () =>
+      Promise.resolve({ status: 401, json: () => Promise.resolve({ error: { message: "bad" } }) });
+    await expect(listCharges(err, "bad")).rejects.toBeInstanceOf(StripeApiError);
   });
 });
