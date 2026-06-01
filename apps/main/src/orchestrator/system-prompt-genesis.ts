@@ -36,6 +36,10 @@ for the gap you can fill. Fill \`research.competitors\` (real names + what they 
 \`price\` when you find it) and a concrete \`research.differentiation\` (why this business
 wins). Do NOT invent competitors; cite what you actually found.
 
+**Know the owner.** From the interview, write a short \`ownerProfile\`: how the OWNER
+communicates, what they value, their risk appetite, and their interests — about the PERSON,
+distinct from the brand voice. The team uses it to keep its work personalized to them.
+
 **Pricing** decides how the business charges, right here at genesis. Set
 \`pricing.model\` to \`one_time\`, \`subscription\`, or \`combo\`, and list
 \`pricing.items\`, each with a \`name\`, \`description\`, \`amount\` (an integer in
