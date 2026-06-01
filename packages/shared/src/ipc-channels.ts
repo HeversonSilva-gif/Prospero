@@ -176,6 +176,9 @@ export const IPC = {
   CONNECTIONS_CLOUDFLARE_STATUS: "connections:cloudflare-status",
   CONNECTIONS_CLOUDFLARE_CONNECT: "connections:cloudflare-connect",
   CONNECTIONS_CLOUDFLARE_DISCONNECT: "connections:cloudflare-disconnect",
+  CONNECTIONS_EMAIL_STATUS: "connections:email-status",
+  CONNECTIONS_EMAIL_CONNECT: "connections:email-connect",
+  CONNECTIONS_EMAIL_DISCONNECT: "connections:email-disconnect",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
