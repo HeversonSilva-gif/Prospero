@@ -6,6 +6,7 @@ import { IPC } from "@prospero/shared";
 import { createConnectionsRepository, type Cipher } from "../connections/connections-repository.js";
 import { buildAuthorizeUrl, generatePkce, exchangeCode } from "../connections/x-oauth.js";
 import { getMe, type XHttp } from "../connections/x-client.js";
+import { getAccount, validateStripeKeyShape } from "../connections/stripe-client.js";
 
 // 0.2.X P1 — the "Connect X" flow lives ENTIRELY in the app (Settings). Nothing is
 // hardcoded: the user pastes their own X app Client ID, authorises in the browser,
@@ -33,6 +34,13 @@ export const httpFetch: XHttp = async (url, init) => {
 };
 
 type ConnectResult = { connected: boolean; handle?: string; error?: string };
+
+type StripeConnectResult = {
+  connected: boolean;
+  account?: string;
+  livemode?: boolean;
+  error?: string;
+};
 
 // Runs the OAuth 2.0 PKCE loopback flow: opens the system browser to X's authorize
 // page, waits for the redirect to 127.0.0.1:8723, exchanges the code for tokens, and
@@ -144,4 +152,54 @@ export const registerConnectionsHandlers = (db: Database.Database): void => {
     if (typeof companyId === "string") repo.clear(companyId, "x");
     return { connected: false };
   });
+
+  ipcMain.handle(
+    IPC.CONNECTIONS_STRIPE_STATUS,
+    (_e, companyId: unknown): { connected: boolean; account?: string; livemode?: boolean } => {
+      if (typeof companyId !== "string") return { connected: false };
+      const s = repo.listMetadata(companyId).find((c) => c.kind === "stripe");
+      if (s === undefined) return { connected: false };
+      const account =
+        typeof s.metadata.displayName === "string" ? s.metadata.displayName : undefined;
+      const livemode = typeof s.metadata.livemode === "boolean" ? s.metadata.livemode : undefined;
+      return {
+        connected: true,
+        ...(account !== undefined ? { account } : {}),
+        ...(livemode !== undefined ? { livemode } : {}),
+      };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.CONNECTIONS_STRIPE_CONNECT,
+    async (_e, payload: unknown): Promise<StripeConnectResult> => {
+      const p = payload as { companyId?: unknown; key?: unknown };
+      if (typeof p.companyId !== "string" || typeof p.key !== "string" || p.key.trim() === "") {
+        return { connected: false, error: "Cole a chave restrita do seu Stripe." };
+      }
+      const key = p.key.trim();
+      const check = validateStripeKeyShape(key);
+      if (!check.ok) return { connected: false, error: check.error };
+      try {
+        const account = await getAccount(httpFetch, key);
+        repo.save(
+          p.companyId,
+          "stripe",
+          { restrictedKey: key },
+          { accountId: account.id, displayName: account.displayName, livemode: check.livemode },
+        );
+        return { connected: true, account: account.displayName, livemode: check.livemode };
+      } catch (e) {
+        return { connected: false, error: e instanceof Error ? e.message : String(e) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    IPC.CONNECTIONS_STRIPE_DISCONNECT,
+    (_e, companyId: unknown): { connected: false } => {
+      if (typeof companyId === "string") repo.clear(companyId, "stripe");
+      return { connected: false };
+    },
+  );
 };
