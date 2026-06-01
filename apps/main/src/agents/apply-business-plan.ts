@@ -24,6 +24,7 @@ export const applyBusinessPlan = (
     voice: plan.identity.voice,
     proposedXHandle: plan.identity.proposedXHandle,
   });
+  if (plan.ownerProfile !== null) companies.setOwnerProfile(plan.companyId, plan.ownerProfile);
   plans.markApproved(businessPlanId);
   return {
     ok: true,
