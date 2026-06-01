@@ -9,6 +9,7 @@ import { AjustesPageHeader } from "../components/ajustes/AjustesPageHeader.js";
 import { ConfirmReconnectModal } from "../components/ConfirmReconnectModal.js";
 import { XConnectionPanel } from "../components/ajustes/XConnectionPanel.js";
 import { StripeConnectionPanel } from "../components/ajustes/StripeConnectionPanel.js";
+import { CloudflareConnectionPanel } from "../components/ajustes/CloudflareConnectionPanel.js";
 
 type StatusMessage = { tone: "success" | "warning"; text: string };
 
@@ -267,6 +268,7 @@ export const AjustesConta: FC = () => {
 
       <XConnectionPanel />
       <StripeConnectionPanel />
+      <CloudflareConnectionPanel />
 
       {confirming && (
         <ConfirmReconnectModal
