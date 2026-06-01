@@ -996,6 +996,10 @@ export const toolDefinitions = [
       input: { project_path: string; project_name: string; mode: "preview" | "production" },
       ctx: ToolContext,
     ): Promise<string> => {
+      // A leading '-' would let the path masquerade as a wrangler flag in argv — reject.
+      if (input.project_path.startsWith("-")) {
+        return JSON.stringify({ ok: false, error: "Caminho de projeto inválido." });
+      }
       // Don't let the agent deploy a system zone (its sandbox holds credentials) or
       // another company's/agent's dir. A null zone = a real user project dir the zone
       // system has no opinion on ⇒ allowed.
@@ -1059,6 +1063,9 @@ export const toolDefinitions = [
       input: { project_path: string; database_name: string; command: "create" | "migrate" },
       ctx: ToolContext,
     ): Promise<string> => {
+      if (input.project_path.startsWith("-")) {
+        return JSON.stringify({ ok: false, error: "Caminho de projeto inválido." });
+      }
       const zone = zoneOf(input.project_path, ctx.userDataDir);
       if (zone !== null && !canAccess({ companyId: ctx.companyId, id: ctx.agentId }, zone)) {
         return JSON.stringify({ ok: false, error: "Caminho fora da área permitida." });
