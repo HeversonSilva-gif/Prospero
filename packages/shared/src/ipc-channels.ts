@@ -170,6 +170,9 @@ export const IPC = {
   CONNECTIONS_X_STATUS: "connections:x-status",
   CONNECTIONS_X_CONNECT: "connections:x-connect",
   CONNECTIONS_X_DISCONNECT: "connections:x-disconnect",
+  CONNECTIONS_STRIPE_STATUS: "connections:stripe-status",
+  CONNECTIONS_STRIPE_CONNECT: "connections:stripe-connect",
+  CONNECTIONS_STRIPE_DISCONNECT: "connections:stripe-disconnect",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
