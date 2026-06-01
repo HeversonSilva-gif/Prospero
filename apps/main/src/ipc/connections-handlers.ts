@@ -7,6 +7,7 @@ import { createConnectionsRepository, type Cipher } from "../connections/connect
 import { buildAuthorizeUrl, generatePkce, exchangeCode } from "../connections/x-oauth.js";
 import { getMe, type XHttp } from "../connections/x-client.js";
 import { getAccount, validateStripeKeyShape } from "../connections/stripe-client.js";
+import { getAccount as getCloudflareAccount } from "../connections/cloudflare-client.js";
 
 // 0.2.X P1 — the "Connect X" flow lives ENTIRELY in the app (Settings). Nothing is
 // hardcoded: the user pastes their own X app Client ID, authorises in the browser,
@@ -41,6 +42,8 @@ type StripeConnectResult = {
   livemode?: boolean;
   error?: string;
 };
+
+type CloudflareConnectResult = { connected: boolean; account?: string; error?: string };
 
 // Runs the OAuth 2.0 PKCE loopback flow: opens the system browser to X's authorize
 // page, waits for the redirect to 127.0.0.1:8723, exchanges the code for tokens, and
@@ -199,6 +202,49 @@ export const registerConnectionsHandlers = (db: Database.Database): void => {
     IPC.CONNECTIONS_STRIPE_DISCONNECT,
     (_e, companyId: unknown): { connected: false } => {
       if (typeof companyId === "string") repo.clear(companyId, "stripe");
+      return { connected: false };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.CONNECTIONS_CLOUDFLARE_STATUS,
+    (_e, companyId: unknown): { connected: boolean; account?: string } => {
+      if (typeof companyId !== "string") return { connected: false };
+      const c = repo.listMetadata(companyId).find((m) => m.kind === "cloudflare");
+      if (c === undefined) return { connected: false };
+      const account =
+        typeof c.metadata.accountName === "string" ? c.metadata.accountName : undefined;
+      return { connected: true, ...(account !== undefined ? { account } : {}) };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.CONNECTIONS_CLOUDFLARE_CONNECT,
+    async (_e, payload: unknown): Promise<CloudflareConnectResult> => {
+      const p = payload as { companyId?: unknown; token?: unknown };
+      if (typeof p.companyId !== "string" || typeof p.token !== "string" || p.token.trim() === "") {
+        return { connected: false, error: "Cole o API token do seu Cloudflare." };
+      }
+      const token = p.token.trim();
+      try {
+        const account = await getCloudflareAccount(httpFetch, token);
+        repo.save(
+          p.companyId,
+          "cloudflare",
+          { apiToken: token, accountId: account.id },
+          { accountName: account.name },
+        );
+        return { connected: true, account: account.name };
+      } catch (e) {
+        return { connected: false, error: e instanceof Error ? e.message : String(e) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    IPC.CONNECTIONS_CLOUDFLARE_DISCONNECT,
+    (_e, companyId: unknown): { connected: false } => {
+      if (typeof companyId === "string") repo.clear(companyId, "cloudflare");
       return { connected: false };
     },
   );
