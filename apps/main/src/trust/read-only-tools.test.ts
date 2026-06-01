@@ -40,6 +40,11 @@ describe("isReadOnlyTool", () => {
     expect(isReadOnlyTool("mcp__dashboard__create_payment_link")).toBe(false));
   it("stripe_sales_read IS read-only (allowlisted)", () =>
     expect(isReadOnlyTool("mcp__dashboard__stripe_sales_read")).toBe(true));
+  // Deploy: publishing is a side effect (never trust-auto in the wrong direction); status is read.
+  it("deploy_app is NOT read-only", () =>
+    expect(isReadOnlyTool("mcp__dashboard__deploy_app")).toBe(false));
+  it("deployment_status IS read-only (allowlisted)", () =>
+    expect(isReadOnlyTool("mcp__dashboard__deployment_status")).toBe(true));
 
   // Edge cases.
   it("unknown tool defaults to NOT read-only (conservative)", () =>

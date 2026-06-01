@@ -121,6 +121,8 @@ import { createConnectionsRepository } from "../connections/connections-reposito
 import { handleXPostEvent } from "../connections/x-post-event.js";
 import { handleStripeSetupEvent } from "../connections/stripe-setup-event.js";
 import type { StripeChargeItem } from "../connections/stripe-monetization-executor.js";
+import { handleCloudflareDeployEvent } from "../connections/cloudflare-deploy-event.js";
+import { defaultWranglerRunner } from "../connections/wrangler-runner.js";
 import { safeStorageCipher, httpFetch } from "./connections-handlers.js";
 import { getUserMetrics, getTweetMetrics } from "../connections/x-client.js";
 import { listCharges } from "../connections/stripe-client.js";
@@ -693,6 +695,37 @@ export const registerOrchestratorHandlers = (
           http: httpFetch,
           writeResult: (requestId, result) =>
             writeFileSync(join(permDir, `${requestId}.stripe.json`), JSON.stringify(result)),
+        },
+        companyId,
+        p,
+      );
+    } else if (kind === "cloudflare.deploy" && typeof payload === "object" && payload !== null) {
+      // deploy_app (preview, or production after self-gate) emits this; only MAIN holds
+      // the cipher to decrypt the Cloudflare token, so Wrangler runs here. On a production
+      // deploy, persist the live URL into the connection metadata for deployment_status.
+      const p = payload as {
+        requestId: string;
+        projectPath: string;
+        projectName: string;
+        mode: "preview" | "production";
+      };
+      const permDir = getPermissionsDir(app.getPath("userData"));
+      const repo = createConnectionsRepository(db, safeStorageCipher());
+      void handleCloudflareDeployEvent(
+        {
+          repo,
+          runWrangler: defaultWranglerRunner,
+          writeResult: (requestId, result) =>
+            writeFileSync(join(permDir, `${requestId}.deploy.json`), JSON.stringify(result)),
+          onProductionUrl: (url) => {
+            const conn = repo.load(companyId, "cloudflare");
+            if (conn !== null) {
+              repo.save(companyId, "cloudflare", conn.payload, {
+                ...conn.metadata,
+                lastDeployUrl: url,
+              });
+            }
+          },
         },
         companyId,
         p,

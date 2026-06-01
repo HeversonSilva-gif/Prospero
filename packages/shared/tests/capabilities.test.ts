@@ -9,11 +9,12 @@ import {
 } from "../src/capabilities.js";
 
 describe("capability catalog", () => {
-  it("includes the 10 canonical capability ids", () => {
+  it("includes the 11 canonical capability ids", () => {
     expect(Object.keys(CAPABILITY_CATALOG).sort()).toEqual([
       "chat",
       "connectors",
       "delegation",
+      "deploy",
       "fs-read",
       "fs-write",
       "inbox",
@@ -32,6 +33,13 @@ describe("capability catalog", () => {
       "mcp__dashboard__setup_monetization",
       "mcp__dashboard__create_payment_link",
       "mcp__dashboard__stripe_sales_read",
+    ]);
+  });
+
+  it("includes the deploy capability with the Cloudflare deploy tools", () => {
+    expect(CAPABILITY_CATALOG.deploy.tools).toEqual([
+      "mcp__dashboard__deploy_app",
+      "mcp__dashboard__deployment_status",
     ]);
   });
 

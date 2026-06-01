@@ -9,8 +9,10 @@ import { randomUUID } from "node:crypto";
 import type { XPostEventResult } from "../connections/x-post-event.js";
 import type { StripeSetupEventResult } from "../connections/stripe-setup-event.js";
 import type { StripeChargeItem } from "../connections/stripe-monetization-executor.js";
+import type { CloudflareDeployEventResult } from "../connections/cloudflare-deploy-event.js";
 import { createBusinessPlansRepository } from "../agents/business-plans-repository.js";
 import { createStripePaymentsRepository } from "../connections/stripe-payments-repository.js";
+import { zoneOf, canAccess } from "../security/zones.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
@@ -272,6 +274,48 @@ const runStripeSetup = async (ctx: ToolContext, items: StripeChargeItem[]): Prom
   const requestId = randomUUID();
   ctx.emit({ kind: "stripe.setup", payload: { requestId, items } });
   const result = await waitForStripeResult(ctx.permissionsDir, requestId, 90_000);
+  return JSON.stringify(result);
+};
+
+// Polls for the result the MAIN-process `cloudflare.deploy` handler writes back (keyed by
+// requestId) so deploy_app returns the live URL — or a clear error. A deploy can take a
+// couple of minutes (build upload), so the timeout is generous. Mirrors waitForXResult.
+const waitForDeployResult = async (
+  dir: string,
+  requestId: string,
+  timeoutMs: number,
+): Promise<CloudflareDeployEventResult> => {
+  const path = join(dir, `${requestId}.deploy.json`);
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (existsSync(path)) {
+      const r = JSON.parse(readFileSync(path, "utf8")) as CloudflareDeployEventResult;
+      safeUnlink(path);
+      return r;
+    }
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  return { ok: false, error: "Tempo esgotado aguardando o deploy no Cloudflare." };
+};
+
+// Emits the `cloudflare.deploy` event MAIN reacts to (only MAIN holds the cipher to
+// decrypt the company's Cloudflare token), then waits for the result. Called after the
+// zone-check (always) and, for production, after gateAction approved.
+const runCloudflareDeploy = async (
+  ctx: ToolContext,
+  input: { project_path: string; project_name: string; mode: "preview" | "production" },
+): Promise<string> => {
+  const requestId = randomUUID();
+  ctx.emit({
+    kind: "cloudflare.deploy",
+    payload: {
+      requestId,
+      projectPath: input.project_path,
+      projectName: input.project_name,
+      mode: input.mode,
+    },
+  });
+  const result = await waitForDeployResult(ctx.permissionsDir, requestId, 5 * 60_000);
   return JSON.stringify(result);
 };
 
@@ -904,6 +948,69 @@ export const toolDefinitions = [
         totalByCurrency: totals.amountByCurrency,
         recent: recent.map((p) => ({ amount: p.amount, currency: p.currency, at: p.createdAt })),
       });
+    },
+  },
+  {
+    name: "deploy_app",
+    description:
+      "Deploy the web app the team built to the company's connected Cloudflare account (Pages). mode 'preview' publishes an unlisted URL to test on (automatic); mode 'production' publishes the business's public URL and is gated for approval first (auto once trusted). project_path = the built app directory (absolute); project_name = a lowercase DNS-safe slug. Returns the live URL, or a clear error if Cloudflare isn't connected / it was rejected.",
+    inputSchema: z.object({
+      project_path: z.string().min(1),
+      project_name: z
+        .string()
+        .min(1)
+        .max(58)
+        .regex(/^[a-z0-9][a-z0-9-]*$/, "use a lowercase dns-safe slug"),
+      mode: z.enum(["preview", "production"]),
+    }),
+    run: async (
+      input: { project_path: string; project_name: string; mode: "preview" | "production" },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      // Don't let the agent deploy a system zone (its sandbox holds credentials) or
+      // another company's/agent's dir. A null zone = a real user project dir the zone
+      // system has no opinion on ⇒ allowed.
+      const zone = zoneOf(input.project_path, ctx.userDataDir);
+      if (zone !== null && !canAccess({ companyId: ctx.companyId, id: ctx.agentId }, zone)) {
+        return JSON.stringify({ ok: false, error: "Caminho fora da área permitida para deploy." });
+      }
+      if (input.mode === "production") {
+        const outcome = await gateAction(
+          ctx,
+          "deploy_app",
+          {
+            project_path: input.project_path,
+            project_name: input.project_name,
+            mode: "production",
+          },
+          randomUUID(),
+        );
+        if (outcome.decision !== "allow") {
+          return JSON.stringify({ ok: false, status: outcome.decision, message: outcome.message });
+        }
+      }
+      return runCloudflareDeploy(ctx, input);
+    },
+  },
+  {
+    name: "deployment_status",
+    description:
+      "Read the company's last published production URL and whether Cloudflare is connected. Read-only.",
+    inputSchema: z.object({}),
+    // eslint-disable-next-line @typescript-eslint/require-await
+    run: async (_input: unknown, ctx: ToolContext): Promise<string> => {
+      const row = ctx.db
+        .prepare(
+          "SELECT metadata_json FROM connections WHERE company_id = ? AND kind = 'cloudflare'",
+        )
+        .get(ctx.companyId) as { metadata_json: string | null } | undefined;
+      if (row === undefined) return JSON.stringify({ connected: false });
+      const meta =
+        row.metadata_json !== null
+          ? (JSON.parse(row.metadata_json) as Record<string, unknown>)
+          : {};
+      const url = typeof meta.lastDeployUrl === "string" ? meta.lastDeployUrl : null;
+      return JSON.stringify({ connected: true, productionUrl: url });
     },
   },
   {
