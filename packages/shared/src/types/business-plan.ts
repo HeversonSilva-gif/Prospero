@@ -38,6 +38,12 @@ export type ChargeModel = {
   rationale: string; // why this model fits THIS business
 };
 
+// "Steal from Polsia" #2 — competitor research the CEO does on the web before proposing,
+// so the plan is grounded in real rivals (not generic). `price` mirrors Zod .optional()
+// (| undefined) for exactOptionalPropertyTypes.
+export type Competitor = { name: string; what: string; price?: string | undefined };
+export type BusinessResearch = { competitors: Competitor[]; differentiation: string };
+
 export type BusinessPlan = {
   id: string;
   companyId: string;
@@ -45,6 +51,7 @@ export type BusinessPlan = {
   concept: string;
   monetization: string[];
   pricing: ChargeModel | null;
+  research: BusinessResearch | null;
   marketing: BusinessPlanMarketing;
   identity: BusinessPlanIdentity;
   dropped: DroppedIdea[];

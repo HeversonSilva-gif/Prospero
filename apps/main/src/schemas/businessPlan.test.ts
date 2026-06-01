@@ -57,6 +57,30 @@ describe("BusinessPlanPayloadSchema", () => {
     };
     expect(BusinessPlanPayloadSchema.safeParse(withPricing).success).toBe(true);
   });
+  it("accepts an optional research block with real competitors", () => {
+    const withResearch = {
+      ...valid,
+      research: {
+        competitors: [{ name: "Yummly", what: "recipe app", price: "free + premium" }],
+        differentiation: "Foco em quem trabalha o dia todo e cozinha em 15 min.",
+      },
+    };
+    expect(BusinessPlanPayloadSchema.safeParse(withResearch).success).toBe(true);
+  });
+  it("rejects research with no competitors or empty differentiation", () => {
+    expect(
+      BusinessPlanPayloadSchema.safeParse({
+        ...valid,
+        research: { competitors: [], differentiation: "x" },
+      }).success,
+    ).toBe(false);
+    expect(
+      BusinessPlanPayloadSchema.safeParse({
+        ...valid,
+        research: { competitors: [{ name: "A", what: "b" }], differentiation: "" },
+      }).success,
+    ).toBe(false);
+  });
   it("rejects pricing with a non-3-letter currency or non-positive amount", () => {
     const base = {
       name: "X",
