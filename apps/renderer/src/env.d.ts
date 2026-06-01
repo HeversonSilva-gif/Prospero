@@ -96,6 +96,14 @@ declare global {
           token: string,
         ) => Promise<{ connected: boolean; account?: string; error?: string }>;
         cloudflareDisconnect: (companyId: string) => Promise<{ connected: false }>;
+        emailStatus: (
+          companyId: string,
+        ) => Promise<{ connected: boolean; mode?: string; from?: string }>;
+        emailConnect: (
+          companyId: string,
+          connection: Record<string, unknown>,
+        ) => Promise<{ connected: boolean; mode?: string; from?: string; error?: string }>;
+        emailDisconnect: (companyId: string) => Promise<{ connected: false }>;
       };
       auth: {
         status: () => Promise<TokenStatus>;

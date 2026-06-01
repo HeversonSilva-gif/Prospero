@@ -123,6 +123,23 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.CONNECTIONS_CLOUDFLARE_DISCONNECT, companyId) as Promise<{
         connected: false;
       }>,
+    emailStatus: (companyId: string) =>
+      ipcRenderer.invoke(IPC.CONNECTIONS_EMAIL_STATUS, companyId) as Promise<{
+        connected: boolean;
+        mode?: string;
+        from?: string;
+      }>,
+    emailConnect: (companyId: string, connection: Record<string, unknown>) =>
+      ipcRenderer.invoke(IPC.CONNECTIONS_EMAIL_CONNECT, { companyId, connection }) as Promise<{
+        connected: boolean;
+        mode?: string;
+        from?: string;
+        error?: string;
+      }>,
+    emailDisconnect: (companyId: string) =>
+      ipcRenderer.invoke(IPC.CONNECTIONS_EMAIL_DISCONNECT, companyId) as Promise<{
+        connected: false;
+      }>,
   },
   auth: {
     status: () => ipcRenderer.invoke(IPC.AUTH_TOKEN_STATUS) as Promise<TokenStatus>,
