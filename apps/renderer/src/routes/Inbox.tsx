@@ -71,6 +71,7 @@ const KIND_BORDER: Record<InboxKind, string> = {
   ceo_decision: "border-l-4 border-l-semantic-success",
   skill_consolidation_proposed: "border-l-4 border-l-brand",
   business_proposed: "border-l-4 border-l-brand",
+  sale: "border-l-4 border-l-semantic-success",
 };
 
 type FilterKey = "all" | InboxKind;

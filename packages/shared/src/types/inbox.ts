@@ -22,7 +22,8 @@ export type InboxKind =
   | "manager_request"
   | "ceo_decision"
   | "skill_consolidation_proposed"
-  | "business_proposed";
+  | "business_proposed"
+  | "sale";
 
 export type InboxItem = {
   id: string;
