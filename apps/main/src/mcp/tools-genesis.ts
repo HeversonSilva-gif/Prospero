@@ -46,6 +46,7 @@ const submitBusinessPlan: Tool = {
       concept: payload.concept,
       monetization: payload.monetization,
       ...(payload.pricing !== undefined ? { pricing: payload.pricing } : {}),
+      ...(payload.research !== undefined ? { research: payload.research } : {}),
       marketing: payload.marketing,
       identity: payload.identity,
       dropped: payload.dropped,
