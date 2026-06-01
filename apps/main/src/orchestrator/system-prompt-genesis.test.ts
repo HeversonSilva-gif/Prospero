@@ -21,6 +21,13 @@ describe("buildGenesisSystemPromptBlock", () => {
     expect(block).toContain("pricing");
     expect(block.toLowerCase()).toContain("subscription");
   });
+  it("instructs web competitor research (P-steal #2)", () => {
+    expect(block.toLowerCase()).toContain("competitor");
+    expect(block).toContain("research");
+  });
+  it("instructs an owner profile (P-steal #4)", () => {
+    expect(block).toContain("ownerProfile");
+  });
   it("embeds the capability boundary so its limit reaches the CEO (INV-2)", () => {
     // The boundary prose ("cannot" do design, etc.) must be present in the block,
     // not just referenced — otherwise "the capability section above" is dangling.

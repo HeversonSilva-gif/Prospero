@@ -5,6 +5,7 @@ import { periodKey } from "../src/costs/period.js";
 
 const makeDeps = (overrides: Partial<EnforceBudgetDeps> = {}): EnforceBudgetDeps => ({
   costsRepo: {
+    getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
     insert: vi.fn(),
     getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
     getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
@@ -37,6 +38,7 @@ describe("checkAndPause — global M8 caps (unchanged)", () => {
   it("no-ops when daily and per-issue are under limits", () => {
     const deps = makeDeps({
       costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
         insert: vi.fn(),
         getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 500, billableTokens: 500, cents: 0 }),
         getIssueTotal: vi.fn().mockReturnValue({ tokens: 100, billableTokens: 100, cents: 0 }),
@@ -53,6 +55,7 @@ describe("checkAndPause — global M8 caps (unchanged)", () => {
   it("pauses + alerts when daily exceeds cap", () => {
     const deps = makeDeps({
       costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
         insert: vi.fn(),
         getAgentDailyTotal: vi
           .fn()
@@ -72,6 +75,7 @@ describe("checkAndPause — global M8 caps (unchanged)", () => {
   it("pauses when per-issue exceeds cap (daily fine)", () => {
     const deps = makeDeps({
       costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
         insert: vi.fn(),
         getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 100, billableTokens: 100, cents: 0 }),
         getIssueTotal: vi.fn().mockReturnValue({ tokens: 600, billableTokens: 600, cents: 1 }),
@@ -113,6 +117,7 @@ describe("checkAndPause — per-agent budget", () => {
         adapterName: "claude-oauth-local",
       }),
       costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
         insert: vi.fn(),
         getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
@@ -140,6 +145,7 @@ describe("checkAndPause — per-agent budget", () => {
         adapterName: "claude-oauth-local",
       }),
       costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
         insert: vi.fn(),
         getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
@@ -166,6 +172,7 @@ describe("checkAndPause — per-agent budget", () => {
         adapterName: "claude-oauth-local",
       }),
       costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
         insert: vi.fn(),
         getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
@@ -190,6 +197,7 @@ describe("checkAndPause — per-agent budget", () => {
         adapterName: "claude-oauth-local",
       }),
       costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
         insert: vi.fn(),
         getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
@@ -214,6 +222,7 @@ describe("checkAndPause — per-agent budget", () => {
         adapterName: "claude-oauth-local",
       }),
       costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
         insert: vi.fn(),
         getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
@@ -237,6 +246,7 @@ describe("checkAndPause — per-agent budget", () => {
         adapterName: "claude-api-key-local",
       }),
       costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
         insert: vi.fn(),
         getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
@@ -260,6 +270,7 @@ describe("checkAndPause — per-agent budget", () => {
         adapterName: "claude-api-key-local",
       }),
       costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
         insert: vi.fn(),
         getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
         getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
@@ -292,6 +303,7 @@ describe("checkAndPause — cache_read regression (CEO false-pause)", () => {
     // Test budget cap is 1000 (from makeDeps default).
     const deps = makeDeps({
       costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
         insert: vi.fn(),
         getAgentDailyTotal: vi.fn().mockReturnValue({
           tokens: 11_600_000, // includes ~11M cache_read — would have false-tripped old cap
@@ -313,6 +325,7 @@ describe("checkAndPause — cache_read regression (CEO false-pause)", () => {
     // Simulate: billableTokens genuinely over the 2M cap, cache_read irrelevant
     const deps = makeDeps({
       costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
         insert: vi.fn(),
         getAgentDailyTotal: vi.fn().mockReturnValue({
           tokens: 13_000_000,

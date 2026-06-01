@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import { readTelos } from "../companies/telos-store.js";
+import { recentOwnerDecisions } from "./owner-decisions.js";
 
 // Assembles the real business context fed into charter authoring so charters are
 // concrete to THIS company instead of generic archetypes. Pure builder (parts
@@ -8,11 +9,20 @@ import { readTelos } from "../companies/telos-store.js";
 /** Max chars of the TELOS body included in the context block. */
 export const BUSINESS_CONTEXT_CAP = 4000;
 
+export type OwnerDecisionLine = {
+  tool: string;
+  status: "approved" | "rejected";
+  note: string | null;
+};
+
 export type BusinessContextParts = {
   companyName: string | null;
   xHandle: string | null;
   voice: string | null;
   telos: string | null;
+  // Personality memory (optional — older callers omit them).
+  ownerProfile?: string | null;
+  ownerDecisions?: OwnerDecisionLine[];
 };
 
 export const buildBusinessContext = (parts: BusinessContextParts): string => {
@@ -31,6 +41,23 @@ export const buildBusinessContext = (parts: BusinessContextParts): string => {
       (block !== "" ? "\n\n" : "") +
       `## TELOS — what this company exists for\n\n${telos.slice(0, BUSINESS_CONTEXT_CAP)}`;
   }
+  const owner = parts.ownerProfile?.trim() ?? "";
+  if (owner !== "") {
+    block += (block !== "" ? "\n\n" : "") + `## Sobre o dono\n\n${owner.slice(0, 1500)}`;
+  }
+  const decisions = parts.ownerDecisions ?? [];
+  if (decisions.length > 0) {
+    const lines = decisions
+      .slice(0, 8)
+      .map((d) => {
+        const verb = d.status === "approved" ? "aprovou" : "rejeitou";
+        const why = d.note !== null && d.note.trim() !== "" ? ` — "${d.note.trim()}"` : "";
+        return `- ${verb} ${d.tool}${why}`;
+      })
+      .join("\n");
+    block += (block !== "" ? "\n\n" : "") + `## Decisões recentes do dono\n\n${lines}`;
+  }
+
   if (block === "") return "";
   return `# This business\n\n${block}\n`;
 };
@@ -46,9 +73,16 @@ export const gatherBusinessContext = (
 ): string => {
   if (companyId === null) return "";
   const company = db
-    .prepare("SELECT name, brand_voice, proposed_x_handle FROM companies WHERE id = ?")
+    .prepare(
+      "SELECT name, brand_voice, proposed_x_handle, owner_profile FROM companies WHERE id = ?",
+    )
     .get(companyId) as
-    | { name: string; brand_voice: string | null; proposed_x_handle: string | null }
+    | {
+        name: string;
+        brand_voice: string | null;
+        proposed_x_handle: string | null;
+        owner_profile: string | null;
+      }
     | undefined;
   const conn = db
     .prepare("SELECT metadata_json FROM connections WHERE company_id = ? AND kind = 'x'")
@@ -63,5 +97,11 @@ export const gatherBusinessContext = (
     xHandle: connHandle ?? company?.proposed_x_handle ?? null,
     voice: company?.brand_voice ?? null,
     telos: readTelos(userDataDir, companyId),
+    ownerProfile: company?.owner_profile ?? null,
+    ownerDecisions: recentOwnerDecisions(db, companyId, 8).map((d) => ({
+      tool: d.tool,
+      status: d.status,
+      note: d.note,
+    })),
   });
 };

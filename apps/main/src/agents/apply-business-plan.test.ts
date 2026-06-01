@@ -47,6 +47,26 @@ describe("applyBusinessPlan", () => {
     expect(createBusinessPlansRepository(db).getById(p.id)?.status).toBe("approved");
   });
 
+  it("persists the owner_profile to the company when present", () => {
+    const repo = createBusinessPlansRepository(db);
+    const p = repo.insert({
+      companyId: "c1",
+      proposedByAgentId: "a1",
+      concept: "A SaaS recipe assistant.",
+      monetization: ["R$9/mo"],
+      ownerProfile: "Pragmático, valoriza simplicidade.",
+      marketing: { initialChannel: "x", tactics: ["threads"], laterChannels: "later" },
+      identity: { name: "Cozinha de 15", voice: "friendly", proposedXHandle: "@c15" },
+      dropped: [],
+    });
+    repo.markProposed(p.id);
+    applyBusinessPlan(db, p.id);
+    const row = db.prepare("SELECT owner_profile AS o FROM companies WHERE id = 'c1'").get() as {
+      o: string;
+    };
+    expect(row.o).toBe("Pragmático, valoriza simplicidade.");
+  });
+
   it("returns ok:false for a missing or non-proposed plan", () => {
     expect(applyBusinessPlan(db, "nope").ok).toBe(false);
   });

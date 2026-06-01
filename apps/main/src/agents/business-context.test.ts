@@ -31,6 +31,29 @@ describe("buildBusinessContext", () => {
     ).toBe("");
   });
 
+  it("includes the owner profile + recent decisions when present, omits when absent", () => {
+    const out = buildBusinessContext({
+      companyName: "BeanBox",
+      xHandle: null,
+      voice: null,
+      telos: null,
+      ownerProfile: "Direto, valoriza dados.",
+      ownerDecisions: [{ tool: "post_to_x", status: "rejected", note: "muito salesy" }],
+    });
+    expect(out).toContain("Sobre o dono");
+    expect(out).toContain("Direto, valoriza dados.");
+    expect(out).toContain("Decisões recentes do dono");
+    expect(out).toContain('rejeitou post_to_x — "muito salesy"');
+    const bare = buildBusinessContext({
+      companyName: "BeanBox",
+      xHandle: null,
+      voice: null,
+      telos: null,
+    });
+    expect(bare).not.toContain("Sobre o dono");
+    expect(bare).not.toContain("Decisões recentes");
+  });
+
   it("degrades gracefully when only the TELOS is missing", () => {
     const out = buildBusinessContext({
       companyName: "BeanBox",

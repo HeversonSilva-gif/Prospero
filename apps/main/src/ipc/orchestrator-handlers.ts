@@ -136,6 +136,7 @@ import { listCharges } from "../connections/stripe-client.js";
 import { createXPostsRepository } from "../connections/x-posts-repository.js";
 import { createXMetricsRepository } from "../connections/x-metrics-repository.js";
 import { createStripePaymentsRepository } from "../connections/stripe-payments-repository.js";
+import { reviewFinance } from "../connections/finance-review.js";
 import { collectXMetrics } from "../connections/collect-x-metrics.js";
 import { collectStripeSales } from "../connections/collect-stripe-sales.js";
 import { startXMetricsPoller } from "../connections/x-metrics-poller.js";
@@ -964,6 +965,64 @@ export const registerOrchestratorHandlers = (
     },
   });
   void stopStripeSalesPoller; // process-lifetime poller
+
+  // "Steal" #3: weekly finance review. When the business spends without earning, nudge the
+  // CEO (inform only — no pause; hard budget caps live in enforce-budget). De-dup weekly.
+  const FINANCE_INTERVAL_MS = 7 * 24 * 60 * 60_000;
+  const financeLastNudged = new Map<string, number>();
+  const stopFinanceReview = startXMetricsPoller({
+    intervalMs: FINANCE_INTERVAL_MS,
+    run: () => {
+      const costs = createCostsRepository(db);
+      const payments = createStripePaymentsRepository(db);
+      reviewFinance({
+        listCompanies: () =>
+          (
+            db.prepare("SELECT DISTINCT company_id FROM cost_events").all() as Array<{
+              company_id: string;
+            }>
+          ).map((r) => r.company_id),
+        windowCostCents: (companyId, sinceMs) =>
+          costs.getCompanyTotalSince(companyId, sinceMs).cents,
+        windowRevenue: (companyId, sinceMs) => {
+          const byCurrency: Record<string, number> = {};
+          let totalCents = 0;
+          for (const p of payments.listByCompany(companyId, sinceMs)) {
+            byCurrency[p.currency] = (byCurrency[p.currency] ?? 0) + p.amount;
+            totalCents += p.amount;
+          }
+          return { totalCents, byCurrency };
+        },
+        windowMs: FINANCE_INTERVAL_MS,
+        thresholdCents: 100,
+        now: () => Date.now(),
+        shouldNudge: (companyId) =>
+          Date.now() - (financeLastNudged.get(companyId) ?? 0) >= FINANCE_INTERVAL_MS,
+        onLoss: (companyId, summary) => {
+          const ceo = findActiveCeo(agents.listByCompany(companyId));
+          if (ceo === null) return;
+          deliverSystemMessage(
+            ceo.id,
+            `[FINANCE] Atenção às finanças: ${summary}. Foque em receita — proponha/ajuste a ` +
+              `monetização e o que vai ao ar. (Aviso, não bloqueio.)`,
+          );
+          inbox.create({
+            companyId,
+            kind: "suggestion",
+            actorId: ceo.id,
+            title: "Gastando sem faturar",
+            preview: summary,
+            requiresAction: false,
+            payloadJson: JSON.stringify({ kind: "finance_loss", summary }),
+          });
+          broadcastInboxUpdate(companyId);
+          financeLastNudged.set(companyId, Date.now());
+        },
+      });
+      return Promise.resolve();
+    },
+  });
+  void stopFinanceReview; // process-lifetime poller
 
   // Serializes compaction per project (same-agent overlap AND two agents on one
   // project): the digest write is a non-atomic read-modify-write and a redundant

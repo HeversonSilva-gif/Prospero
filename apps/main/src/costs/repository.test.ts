@@ -205,3 +205,20 @@ describe("getAgentDailyTotal / getIssueTotal — billableTokens excludes cache_r
     expect(issueTotal.billableTokens).toBe(500 + 200 + 1_000);
   });
 });
+
+describe("getCompanyTotalSince", () => {
+  it("sums the company's cost_cents over the window, excluding others/older", () => {
+    const db = setupDb();
+    const c1 = createCompaniesRepository(db).create({ name: "A" }).id;
+    const c2 = createCompaniesRepository(db).create({ name: "B" }).id;
+    const a1 = makeAgent(db, c1, "Alice");
+    const a2 = makeAgent(db, c2, "Bob");
+    const repo = createCostsRepository(db);
+    repo.insert(turn({ companyId: c1, agentId: a1, costCentsEstimate: 120, occurredAt: 10_000 }));
+    repo.insert(turn({ companyId: c1, agentId: a1, costCentsEstimate: 80, occurredAt: 5_000 }));
+    repo.insert(turn({ companyId: c1, agentId: a1, costCentsEstimate: 999, occurredAt: 1_000 })); // before window
+    repo.insert(turn({ companyId: c2, agentId: a2, costCentsEstimate: 500, occurredAt: 10_000 })); // other company
+    expect(repo.getCompanyTotalSince(c1, 4_000).cents).toBe(200);
+    expect(repo.getCompanyTotalSince("nope", 0).cents).toBe(0);
+  });
+});

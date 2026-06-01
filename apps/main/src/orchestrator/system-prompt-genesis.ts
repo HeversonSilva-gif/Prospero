@@ -27,8 +27,18 @@ Flow:
    Be opinionated. The payload has: \`concept\`, \`monetization\` (how it makes
    money, phased — prose), \`pricing\` (the CONCRETE charge model, below),
    \`marketing\` (\`initialChannel: "x"\`, \`tactics\`, \`laterChannels\`),
-   \`identity\` (\`name\`, \`voice\`, \`proposedXHandle\`), and \`dropped\` (ideas
-   you rejected and why).
+   \`identity\` (\`name\`, \`voice\`, \`proposedXHandle\`), \`research\` (real
+   competitors + differentiation, below), and \`dropped\` (ideas you rejected and why).
+
+**Research first.** Before you propose, SEARCH THE WEB (WebSearch/WebFetch) for real
+competitors serving this audience — who they are, what they do, what they charge — and
+for the gap you can fill. Fill \`research.competitors\` (real names + what they do +
+\`price\` when you find it) and a concrete \`research.differentiation\` (why this business
+wins). Do NOT invent competitors; cite what you actually found.
+
+**Know the owner.** From the interview, write a short \`ownerProfile\`: how the OWNER
+communicates, what they value, their risk appetite, and their interests — about the PERSON,
+distinct from the brand voice. The team uses it to keep its work personalized to them.
 
 **Pricing** decides how the business charges, right here at genesis. Set
 \`pricing.model\` to \`one_time\`, \`subscription\`, or \`combo\`, and list

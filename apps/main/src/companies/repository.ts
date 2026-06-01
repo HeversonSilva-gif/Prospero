@@ -13,6 +13,7 @@ export type CompaniesRepository = {
   getBriefingHeadlineRaw(id: string): string | null;
   rename(id: string, name: string): void;
   setBrandIdentity(id: string, identity: { voice: string; proposedXHandle: string }): void;
+  setOwnerProfile(id: string, profile: string): void;
 };
 
 type CompanyRow = {
@@ -54,6 +55,7 @@ export const createCompaniesRepository = (db: Database.Database): CompaniesRepos
   const setBrandIdentityStmt = db.prepare(
     "UPDATE companies SET brand_voice = ?, proposed_x_handle = ? WHERE id = ?",
   );
+  const setOwnerProfileStmt = db.prepare("UPDATE companies SET owner_profile = ? WHERE id = ?");
 
   return {
     create(input) {
@@ -91,6 +93,9 @@ export const createCompaniesRepository = (db: Database.Database): CompaniesRepos
     },
     setBrandIdentity(id, identity) {
       setBrandIdentityStmt.run(identity.voice, identity.proposedXHandle, id);
+    },
+    setOwnerProfile(id, profile) {
+      setOwnerProfileStmt.run(profile, id);
     },
   };
 };

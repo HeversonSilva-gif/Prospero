@@ -41,6 +41,8 @@ export type CostsRepository = {
   hasAgentRowsForDay(agentId: string, day: Date): boolean;
   listRunsByAgent(agentId: string, limit?: number): AgentRunRow[];
   getAgentPeriodTotal(agentId: string, period: BudgetPeriod, now: Date): CostTotal;
+  /** Total cost (cents) for a company since `sinceMs` — for the finance loop. */
+  getCompanyTotalSince(companyId: string, sinceMs: number): { cents: number };
 };
 
 const utcDayBounds = (day: Date): { start: number; end: number } => {
@@ -208,6 +210,15 @@ export const createCostsRepository = (db: Database.Database): CostsRepository =>
     };
   };
 
+  const companyTotalSinceStmt = db.prepare(
+    `SELECT COALESCE(SUM(cost_cents_estimate), 0) AS cents FROM cost_events
+     WHERE company_id = ? AND occurred_at >= ?`,
+  );
+  const getCompanyTotalSince = (companyId: string, sinceMs: number): { cents: number } => {
+    const r = companyTotalSinceStmt.get(companyId, sinceMs) as { cents: number };
+    return { cents: r.cents };
+  };
+
   return {
     insert,
     getAgentDailyTotal,
@@ -215,5 +226,6 @@ export const createCostsRepository = (db: Database.Database): CostsRepository =>
     hasAgentRowsForDay,
     listRunsByAgent,
     getAgentPeriodTotal,
+    getCompanyTotalSince,
   };
 };
