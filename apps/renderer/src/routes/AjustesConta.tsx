@@ -8,6 +8,7 @@ import { useSettingsStore } from "../stores/settings.js";
 import { AjustesPageHeader } from "../components/ajustes/AjustesPageHeader.js";
 import { ConfirmReconnectModal } from "../components/ConfirmReconnectModal.js";
 import { XConnectionPanel } from "../components/ajustes/XConnectionPanel.js";
+import { StripeConnectionPanel } from "../components/ajustes/StripeConnectionPanel.js";
 
 type StatusMessage = { tone: "success" | "warning"; text: string };
 
@@ -265,6 +266,7 @@ export const AjustesConta: FC = () => {
       </section>
 
       <XConnectionPanel />
+      <StripeConnectionPanel />
 
       {confirming && (
         <ConfirmReconnectModal
