@@ -5,6 +5,7 @@ import type {
   BusinessPlanStatus,
   BusinessPlanIdentity,
   BusinessPlanMarketing,
+  ChargeModel,
   DroppedIdea,
 } from "@prospero/shared";
 
@@ -13,6 +14,7 @@ export type BusinessPlanInsert = {
   proposedByAgentId: string;
   concept: string;
   monetization: string[];
+  pricing?: ChargeModel;
   marketing: BusinessPlanMarketing;
   identity: BusinessPlanIdentity;
   dropped: DroppedIdea[];
@@ -35,6 +37,7 @@ type Row = {
   proposed_by_agent_id: string;
   concept: string;
   monetization_json: string;
+  pricing_json: string | null;
   marketing_json: string;
   identity_json: string;
   dropped_json: string;
@@ -50,6 +53,7 @@ const rowToPlan = (r: Row): BusinessPlan => ({
   proposedByAgentId: r.proposed_by_agent_id,
   concept: r.concept,
   monetization: JSON.parse(r.monetization_json) as string[],
+  pricing: r.pricing_json !== null ? (JSON.parse(r.pricing_json) as ChargeModel) : null,
   marketing: JSON.parse(r.marketing_json) as BusinessPlanMarketing,
   identity: JSON.parse(r.identity_json) as BusinessPlanIdentity,
   dropped: JSON.parse(r.dropped_json) as DroppedIdea[],
@@ -63,12 +67,12 @@ export const createBusinessPlansRepository = (db: Database.Database): BusinessPl
   const insertStmt = db.prepare(`
     INSERT INTO business_plans
       (id, company_id, proposed_by_agent_id, concept, monetization_json,
-       marketing_json, identity_json, dropped_json, status, user_feedback,
-       proposed_at, decided_at)
+       pricing_json, marketing_json, identity_json, dropped_json, status,
+       user_feedback, proposed_at, decided_at)
     VALUES
       (@id, @companyId, @proposedByAgentId, @concept, @monetizationJson,
-       @marketingJson, @identityJson, @droppedJson, 'critiquing', NULL,
-       @proposedAt, NULL)
+       @pricingJson, @marketingJson, @identityJson, @droppedJson, 'critiquing',
+       NULL, @proposedAt, NULL)
   `);
   const byIdStmt = db.prepare("SELECT * FROM business_plans WHERE id = ?");
   const currentStmt = db.prepare(
@@ -101,6 +105,7 @@ export const createBusinessPlansRepository = (db: Database.Database): BusinessPl
         proposedByAgentId: input.proposedByAgentId,
         concept: input.concept,
         monetizationJson: JSON.stringify(input.monetization),
+        pricingJson: input.pricing !== undefined ? JSON.stringify(input.pricing) : null,
         marketingJson: JSON.stringify(input.marketing),
         identityJson: JSON.stringify(input.identity),
         droppedJson: JSON.stringify(input.dropped),

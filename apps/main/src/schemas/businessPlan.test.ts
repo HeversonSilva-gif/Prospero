@@ -38,4 +38,41 @@ describe("BusinessPlanPayloadSchema", () => {
     const bad = { ...valid, identity: { ...valid.identity, name: "" } };
     expect(BusinessPlanPayloadSchema.safeParse(bad).success).toBe(false);
   });
+  it("accepts an optional structured pricing model", () => {
+    const withPricing = {
+      ...valid,
+      pricing: {
+        model: "subscription",
+        items: [
+          {
+            name: "Plano mensal",
+            description: "Acesso completo ao assistente",
+            amount: 900,
+            currency: "brl",
+            interval: "month",
+          },
+        ],
+        rationale: "Receita recorrente previsível para um SaaS.",
+      },
+    };
+    expect(BusinessPlanPayloadSchema.safeParse(withPricing).success).toBe(true);
+  });
+  it("rejects pricing with a non-3-letter currency or non-positive amount", () => {
+    const base = {
+      name: "X",
+      description: "Y",
+      currency: "brl",
+      amount: 900,
+    };
+    const bad1 = {
+      ...valid,
+      pricing: { model: "one_time", items: [{ ...base, currency: "reais" }], rationale: "r" },
+    };
+    const bad2 = {
+      ...valid,
+      pricing: { model: "one_time", items: [{ ...base, amount: 0 }], rationale: "r" },
+    };
+    expect(BusinessPlanPayloadSchema.safeParse(bad1).success).toBe(false);
+    expect(BusinessPlanPayloadSchema.safeParse(bad2).success).toBe(false);
+  });
 });

@@ -39,6 +39,26 @@ describe("business-plans-repository", () => {
     expect(p.marketing.initialChannel).toBe("x");
   });
 
+  it("round-trips pricing (null when absent, object when present)", () => {
+    const repo = createBusinessPlansRepository(db);
+    expect(repo.insert(insert).pricing).toBeNull();
+    const pricing = {
+      model: "subscription" as const,
+      items: [
+        {
+          name: "Mensal",
+          description: "acesso",
+          amount: 900,
+          currency: "brl",
+          interval: "month" as const,
+        },
+      ],
+      rationale: "recorrente",
+    };
+    const withPricing = repo.insert({ ...insert, pricing });
+    expect(repo.getById(withPricing.id)?.pricing).toEqual(pricing);
+  });
+
   it("getCurrentForCompany hides critiquing, shows proposed", () => {
     const repo = createBusinessPlansRepository(db);
     const p = repo.insert(insert);

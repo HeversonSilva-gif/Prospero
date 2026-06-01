@@ -18,12 +18,31 @@ export type BusinessPlanMarketing = {
   laterChannels: string; // note about future channels
 };
 
+// P5.2 — the structured charge model decided já na gênese. The CEO proposes it
+// inside the business plan; on approval the agents enact it in Stripe (one product
+// + price per item, one payment link). `amount` is the smallest currency unit
+// (cents); `interval` is present iff the item is recurring (a subscription).
+export type ChargeItem = {
+  name: string;
+  description: string;
+  amount: number;
+  currency: string;
+  interval?: "month" | "year";
+};
+
+export type ChargeModel = {
+  model: "one_time" | "subscription" | "combo";
+  items: ChargeItem[];
+  rationale: string; // why this model fits THIS business
+};
+
 export type BusinessPlan = {
   id: string;
   companyId: string;
   proposedByAgentId: string;
   concept: string;
   monetization: string[];
+  pricing: ChargeModel | null;
   marketing: BusinessPlanMarketing;
   identity: BusinessPlanIdentity;
   dropped: DroppedIdea[];
