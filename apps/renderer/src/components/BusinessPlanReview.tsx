@@ -108,6 +108,31 @@ export const BusinessPlanReview: FC<{ plan: BusinessPlan }> = ({ plan }) => {
             ))}
           </ul>
         </section>,
+        plan.pricing !== null ? (
+          <section key="charge" className="rounded-md border border-brand/40 bg-brand/5 px-4 py-3">
+            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-ink mb-2 m-0">
+              {t("businessPlan.charge.title")}
+            </h3>
+            <ul className="text-sm text-ink space-y-1">
+              {plan.pricing.items.map((it, i) => (
+                <li key={i} className="flex justify-between gap-3">
+                  <span>{it.name}</span>
+                  <span className="font-semibold whitespace-nowrap">
+                    {it.currency.toUpperCase()} {(it.amount / 100).toFixed(2)}
+                    {it.interval === "month"
+                      ? ` ${t("businessPlan.charge.perMonth")}`
+                      : it.interval === "year"
+                        ? ` ${t("businessPlan.charge.perYear")}`
+                        : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {plan.pricing.rationale.trim() !== "" && (
+              <p className="text-xs text-ink-soft mt-2">{plan.pricing.rationale}</p>
+            )}
+          </section>
+        ) : null,
         <section key="mkt">
           <h3 className="text-[13px] font-semibold uppercase tracking-wide text-ink mb-2 m-0">
             {t("businessPlan.sections.marketing")}

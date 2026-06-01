@@ -1707,6 +1707,11 @@
     },
     "proposedBanner": "O CEO propôs seu negócio.",
     "reviewCta": "Revisar",
+    "charge": {
+      "title": "Cobrança",
+      "perMonth": "/mês",
+      "perYear": "/ano"
+    },
     "pageTitle": "Plano de negócio",
     "none": "Nenhum plano de negócio aguardando revisão."
   }
