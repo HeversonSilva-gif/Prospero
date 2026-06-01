@@ -27,7 +27,9 @@ export type ChargeItem = {
   description: string;
   amount: number;
   currency: string;
-  interval?: "month" | "year";
+  // `| undefined` mirrors the Zod `.optional()` inference so the validated payload
+  // is assignable to this type under exactOptionalPropertyTypes. Present iff recurring.
+  interval?: "month" | "year" | undefined;
 };
 
 export type ChargeModel = {

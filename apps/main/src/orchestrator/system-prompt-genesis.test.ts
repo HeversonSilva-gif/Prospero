@@ -17,6 +17,10 @@ describe("buildGenesisSystemPromptBlock", () => {
   it("states the feasibility constraint (INV-2)", () => {
     expect(block.toLowerCase()).toContain("build, run, and maintain");
   });
+  it("instructs a concrete pricing model (P5.2)", () => {
+    expect(block).toContain("pricing");
+    expect(block.toLowerCase()).toContain("subscription");
+  });
   it("embeds the capability boundary so its limit reaches the CEO (INV-2)", () => {
     // The boundary prose ("cannot" do design, etc.) must be present in the block,
     // not just referenced — otherwise "the capability section above" is dangling.

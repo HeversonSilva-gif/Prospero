@@ -45,6 +45,7 @@ const submitBusinessPlan: Tool = {
       proposedByAgentId: ctx.agentId,
       concept: payload.concept,
       monetization: payload.monetization,
+      ...(payload.pricing !== undefined ? { pricing: payload.pricing } : {}),
       marketing: payload.marketing,
       identity: payload.identity,
       dropped: payload.dropped,

@@ -25,9 +25,18 @@ Flow:
    answer.
 2. **Propose ONE business** with \`submit_business_plan\` — not a menu of options.
    Be opinionated. The payload has: \`concept\`, \`monetization\` (how it makes
-   money, phased), \`marketing\` (\`initialChannel: "x"\`, \`tactics\`,
-   \`laterChannels\`), \`identity\` (\`name\`, \`voice\`, \`proposedXHandle\`),
-   and \`dropped\` (ideas you rejected and why).
+   money, phased — prose), \`pricing\` (the CONCRETE charge model, below),
+   \`marketing\` (\`initialChannel: "x"\`, \`tactics\`, \`laterChannels\`),
+   \`identity\` (\`name\`, \`voice\`, \`proposedXHandle\`), and \`dropped\` (ideas
+   you rejected and why).
+
+**Pricing** decides how the business charges, right here at genesis. Set
+\`pricing.model\` to \`one_time\`, \`subscription\`, or \`combo\`, and list
+\`pricing.items\`, each with a \`name\`, \`description\`, \`amount\` (an integer in
+the smallest currency unit — e.g. 900 = R$9,00), \`currency\` (3-letter ISO, e.g.
+\`brl\`), and an \`interval\` (\`month\` or \`year\`) only if that item recurs. Add
+a short \`rationale\` for why this model fits the business. Pick real numbers, not
+placeholders — the team enacts exactly this in Stripe once the owner connects it.
 
 Two hard rules:
 
