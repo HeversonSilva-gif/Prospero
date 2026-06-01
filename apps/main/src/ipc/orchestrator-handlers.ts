@@ -123,9 +123,12 @@ import { handleStripeSetupEvent } from "../connections/stripe-setup-event.js";
 import type { StripeChargeItem } from "../connections/stripe-monetization-executor.js";
 import { safeStorageCipher, httpFetch } from "./connections-handlers.js";
 import { getUserMetrics, getTweetMetrics } from "../connections/x-client.js";
+import { listCharges } from "../connections/stripe-client.js";
 import { createXPostsRepository } from "../connections/x-posts-repository.js";
 import { createXMetricsRepository } from "../connections/x-metrics-repository.js";
+import { createStripePaymentsRepository } from "../connections/stripe-payments-repository.js";
 import { collectXMetrics } from "../connections/collect-x-metrics.js";
+import { collectStripeSales } from "../connections/collect-stripe-sales.js";
 import { startXMetricsPoller } from "../connections/x-metrics-poller.js";
 import { getValidXAccessToken } from "../connections/x-token-manager.js";
 import { reviewXGrowth } from "../connections/x-growth-review.js";
@@ -794,6 +797,65 @@ export const registerOrchestratorHandlers = (
     },
   });
   void stopXGrowthReview; // process-lifetime poller (mirrors the metrics poller)
+
+  // P5.3 Senses (money): daily Stripe sales ingestion. System-side (no agent turn),
+  // fail-soft per company. The FIRST real payment surfaces as a celebratory inbox
+  // card (the R$10 proof made visible) + a nudge to the CEO. No webhook — a desktop
+  // app can't receive Stripe webhooks reliably, so this polls (the P3 senses pattern).
+  const STRIPE_SALES_INTERVAL_MS = 24 * 60 * 60_000;
+  const STRIPE_SALES_WINDOW_MS = 90 * 24 * 60 * 60_000;
+  const stopStripeSalesPoller = startXMetricsPoller({
+    intervalMs: STRIPE_SALES_INTERVAL_MS,
+    run: () => {
+      const connections = createConnectionsRepository(db, safeStorageCipher());
+      const payments = createStripePaymentsRepository(db);
+      return collectStripeSales({
+        listCompaniesWithStripe: () =>
+          (
+            db
+              .prepare("SELECT DISTINCT company_id FROM connections WHERE kind = 'stripe'")
+              .all() as Array<{ company_id: string }>
+          ).map((r) => r.company_id),
+        getKey: (companyId) => {
+          const conn = connections.load(companyId, "stripe");
+          return conn !== null && typeof conn.payload.restrictedKey === "string"
+            ? conn.payload.restrictedKey
+            : null;
+        },
+        listCharges: (key, sinceMs) => listCharges(httpFetch, key, { createdGte: sinceMs }),
+        countExisting: (companyId) => payments.countByCompany(companyId),
+        record: (i) => payments.record(i),
+        onFirstSale: (companyId, charge) => {
+          const label = `${charge.currency.toUpperCase()} ${(charge.amount / 100).toFixed(2)}`;
+          const ceo = findActiveCeo(agents.listByCompany(companyId));
+          inbox.create({
+            companyId,
+            kind: "sale",
+            actorId: ceo?.id ?? null,
+            title: "Primeira venda!",
+            preview: `Seu negócio recebeu o primeiro pagamento (${label}). O loop fechou.`,
+            requiresAction: false,
+            payloadJson: JSON.stringify({
+              kind: "first_sale",
+              amount: charge.amount,
+              currency: charge.currency,
+            }),
+          });
+          broadcastInboxUpdate(companyId);
+          if (ceo !== null) {
+            deliverSystemMessage(
+              ceo.id,
+              `[VENDA] O negócio recebeu a primeira venda real (${label}). ` +
+                `Continue o trabalho de crescimento — novas cobranças seguem passando pela aprovação.`,
+            );
+          }
+        },
+        windowMs: STRIPE_SALES_WINDOW_MS,
+        now: () => Date.now(),
+      });
+    },
+  });
+  void stopStripeSalesPoller; // process-lifetime poller
 
   // Serializes compaction per project (same-agent overlap AND two agents on one
   // project): the digest write is a non-atomic read-modify-write and a redundant
