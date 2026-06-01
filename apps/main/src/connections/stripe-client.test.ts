@@ -2,6 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   getAccount,
   validateStripeKeyShape,
+  createProduct,
+  createPrice,
+  createPaymentLink,
   StripeApiError,
   type StripeHttp,
 } from "./stripe-client.js";
@@ -66,5 +69,74 @@ describe("stripe-client getAccount", () => {
         json: () => Promise.resolve({ error: { message: "Invalid API Key provided" } }),
       });
     await expect(getAccount(http, "bad")).rejects.toBeInstanceOf(StripeApiError);
+  });
+});
+
+describe("stripe-client createProduct / createPrice / createPaymentLink", () => {
+  it("POSTs a form-encoded product and returns its id", async () => {
+    let captured: { url: string; init: Init } | undefined;
+    const http: StripeHttp = (url, init) => {
+      captured = { url, init };
+      return Promise.resolve({ status: 200, json: () => Promise.resolve({ id: "prod_1" }) });
+    };
+    const r = await createProduct(http, "rk_test_x", { name: "Plano", description: "acesso" });
+    expect(captured?.url).toBe("https://api.stripe.com/v1/products");
+    expect(captured?.init.method).toBe("POST");
+    expect(captured?.init.headers["Content-Type"]).toBe("application/x-www-form-urlencoded");
+    expect(captured?.init.body).toBe("name=Plano&description=acesso");
+    expect(r).toEqual({ id: "prod_1" });
+  });
+
+  it("POSTs a one-time price (no recurring) ", async () => {
+    let body: string | undefined;
+    const http: StripeHttp = (_url, init) => {
+      body = init.body;
+      return Promise.resolve({ status: 200, json: () => Promise.resolve({ id: "price_1" }) });
+    };
+    await createPrice(http, "rk_test_x", { product: "prod_1", unitAmount: 900, currency: "brl" });
+    expect(body).toBe("product=prod_1&unit_amount=900&currency=brl");
+  });
+
+  it("POSTs a recurring price with the interval bracket param", async () => {
+    let body: string | undefined;
+    const http: StripeHttp = (_url, init) => {
+      body = init.body;
+      return Promise.resolve({ status: 200, json: () => Promise.resolve({ id: "price_2" }) });
+    };
+    await createPrice(http, "rk_test_x", {
+      product: "prod_1",
+      unitAmount: 900,
+      currency: "brl",
+      interval: "month",
+    });
+    expect(body).toContain("recurring%5Binterval%5D=month");
+  });
+
+  it("POSTs a payment link with bracketed line items and returns the url", async () => {
+    let body: string | undefined;
+    const http: StripeHttp = (_url, init) => {
+      body = init.body;
+      return Promise.resolve({
+        status: 200,
+        json: () => Promise.resolve({ id: "plink_1", url: "https://buy.stripe.com/x" }),
+      });
+    };
+    const r = await createPaymentLink(http, "rk_test_x", {
+      lineItems: [{ price: "price_1", quantity: 1 }],
+    });
+    expect(body).toContain("line_items%5B0%5D%5Bprice%5D=price_1");
+    expect(body).toContain("line_items%5B0%5D%5Bquantity%5D=1");
+    expect(r).toEqual({ id: "plink_1", url: "https://buy.stripe.com/x" });
+  });
+
+  it("throws StripeApiError when payment link creation fails", async () => {
+    const http: StripeHttp = () =>
+      Promise.resolve({
+        status: 402,
+        json: () => Promise.resolve({ error: { message: "no such price" } }),
+      });
+    await expect(
+      createPaymentLink(http, "rk_test_x", { lineItems: [{ price: "x", quantity: 1 }] }),
+    ).rejects.toBeInstanceOf(StripeApiError);
   });
 });

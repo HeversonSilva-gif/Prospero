@@ -67,3 +67,81 @@ export const getAccount = async (http: StripeHttp, key: string): Promise<StripeA
     ...(data.country !== undefined ? { country: data.country } : {}),
   };
 };
+
+// --- P5.2: money-setup endpoints (called from MAIN, behind the approval gate) ---
+
+const FORM_CT = "application/x-www-form-urlencoded";
+
+const postHeaders = (key: string): Record<string, string> => ({
+  Authorization: `Bearer ${key}`,
+  "Content-Type": FORM_CT,
+});
+
+const encodeForm = (params: Record<string, string | number>): string =>
+  Object.entries(params)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join("&");
+
+const expectId = (data: { id?: string; error?: { message?: string } }, status: number): string => {
+  if (status >= 400 || data.id === undefined) {
+    throw new StripeApiError(status, data.error?.message ?? `Stripe API error ${String(status)}`);
+  }
+  return data.id;
+};
+
+export const createProduct = async (
+  http: StripeHttp,
+  key: string,
+  input: { name: string; description: string },
+): Promise<{ id: string }> => {
+  const res = await http("https://api.stripe.com/v1/products", {
+    method: "POST",
+    headers: postHeaders(key),
+    body: encodeForm({ name: input.name, description: input.description }),
+  });
+  const data = (await res.json()) as { id?: string; error?: { message?: string } };
+  return { id: expectId(data, res.status) };
+};
+
+export const createPrice = async (
+  http: StripeHttp,
+  key: string,
+  input: { product: string; unitAmount: number; currency: string; interval?: "month" | "year" },
+): Promise<{ id: string }> => {
+  const params: Record<string, string | number> = {
+    product: input.product,
+    unit_amount: input.unitAmount,
+    currency: input.currency,
+  };
+  if (input.interval !== undefined) params["recurring[interval]"] = input.interval;
+  const res = await http("https://api.stripe.com/v1/prices", {
+    method: "POST",
+    headers: postHeaders(key),
+    body: encodeForm(params),
+  });
+  const data = (await res.json()) as { id?: string; error?: { message?: string } };
+  return { id: expectId(data, res.status) };
+};
+
+export const createPaymentLink = async (
+  http: StripeHttp,
+  key: string,
+  input: { lineItems: { price: string; quantity: number }[] },
+): Promise<{ id: string; url: string }> => {
+  const params: Record<string, string | number> = {};
+  input.lineItems.forEach((li, i) => {
+    params[`line_items[${i}][price]`] = li.price;
+    params[`line_items[${i}][quantity]`] = li.quantity;
+  });
+  const res = await http("https://api.stripe.com/v1/payment_links", {
+    method: "POST",
+    headers: postHeaders(key),
+    body: encodeForm(params),
+  });
+  const data = (await res.json()) as { id?: string; url?: string; error?: { message?: string } };
+  const id = expectId(data, res.status);
+  if (data.url === undefined) {
+    throw new StripeApiError(res.status, "Stripe payment link missing url");
+  }
+  return { id, url: data.url };
+};
