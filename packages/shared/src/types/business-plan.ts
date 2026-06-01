@@ -52,6 +52,7 @@ export type BusinessPlan = {
   monetization: string[];
   pricing: ChargeModel | null;
   research: BusinessResearch | null;
+  ownerProfile: string | null;
   marketing: BusinessPlanMarketing;
   identity: BusinessPlanIdentity;
   dropped: DroppedIdea[];

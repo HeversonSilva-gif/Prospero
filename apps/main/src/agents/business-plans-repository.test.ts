@@ -59,6 +59,13 @@ describe("business-plans-repository", () => {
     expect(repo.getById(withPricing.id)?.pricing).toEqual(pricing);
   });
 
+  it("round-trips ownerProfile (null when absent)", () => {
+    const repo = createBusinessPlansRepository(db);
+    expect(repo.insert(insert).ownerProfile).toBeNull();
+    const p = repo.insert({ ...insert, ownerProfile: "Pragmático, gosta de dados." });
+    expect(repo.getById(p.id)?.ownerProfile).toBe("Pragmático, gosta de dados.");
+  });
+
   it("round-trips research (null when absent, object when present)", () => {
     const repo = createBusinessPlansRepository(db);
     expect(repo.insert(insert).research).toBeNull();

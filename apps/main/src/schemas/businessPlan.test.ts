@@ -57,6 +57,14 @@ describe("BusinessPlanPayloadSchema", () => {
     };
     expect(BusinessPlanPayloadSchema.safeParse(withPricing).success).toBe(true);
   });
+  it("accepts an optional ownerProfile string", () => {
+    expect(
+      BusinessPlanPayloadSchema.safeParse({
+        ...valid,
+        ownerProfile: "Direto, valoriza simplicidade.",
+      }).success,
+    ).toBe(true);
+  });
   it("accepts an optional research block with real competitors", () => {
     const withResearch = {
       ...valid,

@@ -37,6 +37,7 @@ export const BusinessPlanPayloadSchema = z.object({
   monetization: z.array(z.string().min(1).max(500)).min(1).max(8),
   pricing: ChargeModelSchema.optional(),
   research: ResearchSchema.optional(),
+  ownerProfile: z.string().min(1).max(1500).optional(),
   marketing: z.object({
     initialChannel: z.literal("x"),
     tactics: z.array(z.string().min(1).max(300)).min(1).max(10),
