@@ -9,12 +9,13 @@ import {
 } from "../src/capabilities.js";
 
 describe("capability catalog", () => {
-  it("includes the 11 canonical capability ids", () => {
+  it("includes the 12 canonical capability ids", () => {
     expect(Object.keys(CAPABILITY_CATALOG).sort()).toEqual([
       "chat",
       "connectors",
       "delegation",
       "deploy",
+      "email",
       "fs-read",
       "fs-write",
       "inbox",
@@ -22,6 +23,13 @@ describe("capability catalog", () => {
       "memory",
       "shell",
       "web",
+    ]);
+  });
+
+  it("includes the email capability with the send/read tools", () => {
+    expect(CAPABILITY_CATALOG.email.tools).toEqual([
+      "mcp__dashboard__send_email",
+      "mcp__dashboard__read_emails",
     ]);
   });
 

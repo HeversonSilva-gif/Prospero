@@ -22,6 +22,7 @@ const MCP_ALLOWLIST = new Set([
   "x_insights_read",
   "stripe_sales_read",
   "deployment_status",
+  "read_emails",
 ]);
 
 // MCP tools come through with the `mcp__<server>__` prefix (e.g.

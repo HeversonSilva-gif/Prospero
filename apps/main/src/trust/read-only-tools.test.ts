@@ -47,6 +47,11 @@ describe("isReadOnlyTool", () => {
     expect(isReadOnlyTool("mcp__dashboard__deployment_status")).toBe(true));
   it("provision_database is NOT read-only", () =>
     expect(isReadOnlyTool("mcp__dashboard__provision_database")).toBe(false));
+  // Email: sending is a side effect; reading inbound is read-only.
+  it("send_email is NOT read-only", () =>
+    expect(isReadOnlyTool("mcp__dashboard__send_email")).toBe(false));
+  it("read_emails IS read-only (allowlisted)", () =>
+    expect(isReadOnlyTool("mcp__dashboard__read_emails")).toBe(true));
 
   // Edge cases.
   it("unknown tool defaults to NOT read-only (conservative)", () =>

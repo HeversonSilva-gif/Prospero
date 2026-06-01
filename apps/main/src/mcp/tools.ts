@@ -348,6 +348,53 @@ const runCloudflareD1 = async (
   return JSON.stringify({ ok: false, error: "Tempo esgotado aguardando o D1 no Cloudflare." });
 };
 
+// Polls for the result MAIN's email.send/email.read handler writes back (keyed by
+// requestId). The result is opaque JSON the tool passes straight through to the agent.
+const waitForEmailResult = async (
+  dir: string,
+  requestId: string,
+  timeoutMs: number,
+): Promise<string> => {
+  const path = join(dir, `${requestId}.email.json`);
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (existsSync(path)) {
+      const raw = readFileSync(path, "utf8");
+      safeUnlink(path);
+      return raw;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return JSON.stringify({ ok: false, error: "Tempo esgotado aguardando o e-mail." });
+};
+
+const runEmailSend = async (
+  ctx: ToolContext,
+  input: { to: string | string[]; subject: string; body: string; in_reply_to?: string },
+): Promise<string> => {
+  const requestId = randomUUID();
+  ctx.emit({
+    kind: "email.send",
+    payload: {
+      requestId,
+      to: input.to,
+      subject: input.subject,
+      body: input.body,
+      ...(input.in_reply_to !== undefined ? { inReplyTo: input.in_reply_to } : {}),
+    },
+  });
+  return waitForEmailResult(ctx.permissionsDir, requestId, 60_000);
+};
+
+const runEmailRead = async (ctx: ToolContext, limit: number | undefined): Promise<string> => {
+  const requestId = randomUUID();
+  ctx.emit({
+    kind: "email.read",
+    payload: { requestId, ...(limit !== undefined ? { limit } : {}) },
+  });
+  return waitForEmailResult(ctx.permissionsDir, requestId, 30_000);
+};
+
 export const toolDefinitions = [
   {
     name: "list_agents",
@@ -1081,6 +1128,41 @@ export const toolDefinitions = [
       }
       return runCloudflareD1(ctx, input);
     },
+  },
+  {
+    name: "send_email",
+    description:
+      "Send an email from the company's connected mailbox: deliver a product/access to a buyer after a sale, reply to a customer, or follow up an opted-in lead. Gated for approval first (auto once trusted). `to` is one or a few recipients — there is NO bulk/cold campaign. Pass in_reply_to (a Message-Id) to thread a reply. Returns the message id, or a clear error if email isn't connected / was rejected.",
+    inputSchema: z.object({
+      to: z.union([z.string().min(3).max(320), z.array(z.string().min(3).max(320)).min(1).max(20)]),
+      subject: z.string().min(1).max(300),
+      body: z.string().min(1).max(20000),
+      in_reply_to: z.string().max(998).optional(),
+    }),
+    run: async (
+      input: { to: string | string[]; subject: string; body: string; in_reply_to?: string },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const toolInput: Record<string, unknown> = {
+        to: input.to,
+        subject: input.subject,
+        body: input.body,
+        ...(input.in_reply_to !== undefined ? { in_reply_to: input.in_reply_to } : {}),
+      };
+      const outcome = await gateAction(ctx, "send_email", toolInput, randomUUID());
+      if (outcome.decision !== "allow") {
+        return JSON.stringify({ ok: false, status: outcome.decision, message: outcome.message });
+      }
+      return runEmailSend(ctx, input);
+    },
+  },
+  {
+    name: "read_emails",
+    description:
+      "Read recent emails received in the company's connected mailbox, so you can see customer messages and reply. Read-only. Available only when email is connected in SMTP/IMAP mode (not Resend).",
+    inputSchema: z.object({ limit: z.number().int().positive().max(50).optional() }),
+    run: async (input: { limit?: number }, ctx: ToolContext): Promise<string> =>
+      runEmailRead(ctx, input.limit),
   },
   {
     name: "record_artifact",

@@ -25,6 +25,7 @@ export type CapabilityId =
   | "connectors"
   | "delegation"
   | "deploy"
+  | "email"
   | "fs-read"
   | "fs-write"
   | "inbox"
@@ -168,6 +169,14 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
       "mcp__dashboard__deployment_status",
       "mcp__dashboard__provision_database",
     ],
+  },
+  email: {
+    id: "email",
+    description:
+      "Send email from the company's connected mailbox — deliver a product/access to a buyer, " +
+      "reply to a customer, follow up an opted-in lead (each send is gated for approval; auto via " +
+      "trust tiers) — and read recent inbound to answer customers. No bulk/cold campaigns.",
+    tools: ["mcp__dashboard__send_email", "mcp__dashboard__read_emails"],
   },
 };
 

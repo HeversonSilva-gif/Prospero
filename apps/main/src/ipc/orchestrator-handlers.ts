@@ -124,6 +124,12 @@ import type { StripeChargeItem } from "../connections/stripe-monetization-execut
 import { handleCloudflareDeployEvent } from "../connections/cloudflare-deploy-event.js";
 import { handleCloudflareD1Event } from "../connections/cloudflare-d1-event.js";
 import { defaultWranglerRunner } from "../connections/wrangler-runner.js";
+import { handleEmailSendEvent, handleEmailReadEvent } from "../connections/email-event.js";
+import {
+  defaultSmtpSend,
+  defaultSmtpVerify,
+  defaultImapFetch,
+} from "../connections/email-transports.js";
 import { safeStorageCipher, httpFetch } from "./connections-handlers.js";
 import { getUserMetrics, getTweetMetrics } from "../connections/x-client.js";
 import { listCharges } from "../connections/stripe-client.js";
@@ -748,6 +754,52 @@ export const registerOrchestratorHandlers = (
           runWrangler: defaultWranglerRunner,
           writeResult: (requestId, result) =>
             writeFileSync(join(permDir, `${requestId}.d1.json`), JSON.stringify(result)),
+        },
+        companyId,
+        p,
+      );
+    } else if (kind === "email.send" && typeof payload === "object" && payload !== null) {
+      // send_email self-gates in the MCP child, then emits this once approved. Only MAIN
+      // holds the cipher to decrypt the mailbox credentials, so the SMTP/Resend send runs here.
+      const p = payload as {
+        requestId: string;
+        to: string | string[];
+        subject: string;
+        body: string;
+        inReplyTo?: string;
+      };
+      const permDir = getPermissionsDir(app.getPath("userData"));
+      const repo = createConnectionsRepository(db, safeStorageCipher());
+      void handleEmailSendEvent(
+        {
+          repo,
+          emailDeps: {
+            http: httpFetch,
+            smtpSend: defaultSmtpSend,
+            smtpVerify: defaultSmtpVerify,
+            imapFetch: defaultImapFetch,
+          },
+          writeResult: (requestId, result) =>
+            writeFileSync(join(permDir, `${requestId}.email.json`), JSON.stringify(result)),
+        },
+        companyId,
+        p,
+      );
+    } else if (kind === "email.read" && typeof payload === "object" && payload !== null) {
+      const p = payload as { requestId: string; limit?: number };
+      const permDir = getPermissionsDir(app.getPath("userData"));
+      const repo = createConnectionsRepository(db, safeStorageCipher());
+      void handleEmailReadEvent(
+        {
+          repo,
+          emailDeps: {
+            http: httpFetch,
+            smtpSend: defaultSmtpSend,
+            smtpVerify: defaultSmtpVerify,
+            imapFetch: defaultImapFetch,
+          },
+          writeResult: (requestId, result) =>
+            writeFileSync(join(permDir, `${requestId}.email.json`), JSON.stringify(result)),
         },
         companyId,
         p,

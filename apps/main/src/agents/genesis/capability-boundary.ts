@@ -13,6 +13,8 @@ export const buildCapabilityBoundary = (availableChannels: string[]): string => 
     "- Software / SaaS: writing, shipping, and maintaining web apps and automations.",
     "- Hosting: deploy and run a full-stack web app (front-end + serverless functions +",
     "  a database) on Cloudflare on a free tier — the owner connects Cloudflare in Ajustes.",
+    "- Email: deliver the product/access to a buyer after a sale, reply to customers, and",
+    "  follow up opted-in leads — the owner connects their mailbox in Ajustes.",
     "- Writing: posts, copy, articles, scripts, structured text.",
     "- Organization & automation: workflows, scheduling, data wrangling, ops.",
     "",
