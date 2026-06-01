@@ -3,9 +3,16 @@ import { useTranslation } from "react-i18next";
 import { useCompaniesStore } from "../stores/companies.js";
 
 export type GenesisDoor = "ajuda" | "ideia";
-type Props = { onClose: () => void; onCreated?: (companyId: string, door: GenesisDoor) => void };
+type Props = {
+  onClose?: () => void;
+  onCreated?: (companyId: string, door: GenesisDoor) => void;
+  // "modal" (default) renders the full overlay + title (CompanySwitcher).
+  // "inline" renders just the two doors, to drop inside another card's body
+  // (the first-run SetupWizard, which supplies its own header).
+  variant?: "modal" | "inline";
+};
 
-export const GenesisEntry = ({ onClose, onCreated }: Props) => {
+export const GenesisEntry = ({ onClose, onCreated, variant = "modal" }: Props) => {
   const { t } = useTranslation();
   const createOnboarding = useCompaniesStore((s) => s.createOnboarding);
   const [busy, setBusy] = useState(false);
@@ -16,13 +23,41 @@ export const GenesisEntry = ({ onClose, onCreated }: Props) => {
     setError(null);
     try {
       const created = await createOnboarding(t("genesis.placeholderName"));
-      onClose();
+      onClose?.();
       onCreated?.(created.id, door);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setBusy(false);
     }
   };
+
+  const doors = (
+    <div className="space-y-3">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void pick("ajuda")}
+        className="w-full text-left p-4 border border-surface-border rounded hover:border-brand disabled:opacity-50"
+      >
+        <div className="text-sm font-semibold text-ink">{t("genesis.entry.help.title")}</div>
+        <div className="text-xs text-ink-muted mt-1">{t("genesis.entry.help.desc")}</div>
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void pick("ideia")}
+        className="w-full text-left p-4 border border-surface-border rounded hover:border-brand disabled:opacity-50"
+      >
+        <div className="text-sm font-semibold text-ink">{t("genesis.entry.idea.title")}</div>
+        <div className="text-xs text-ink-muted mt-1">{t("genesis.entry.idea.desc")}</div>
+      </button>
+      {error !== null && <p className="text-xs text-semantic-danger">{error}</p>}
+    </div>
+  );
+
+  if (variant === "inline") {
+    return doors;
+  }
 
   return (
     <div
@@ -35,25 +70,7 @@ export const GenesisEntry = ({ onClose, onCreated }: Props) => {
       >
         <h2 className="text-lg font-semibold mb-1">{t("genesis.entry.title")}</h2>
         <p className="text-xs text-ink-muted mb-4">{t("genesis.entry.subtitle")}</p>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void pick("ajuda")}
-          className="w-full text-left p-4 mb-3 border border-surface-border rounded hover:border-brand disabled:opacity-50"
-        >
-          <div className="text-sm font-semibold text-ink">{t("genesis.entry.help.title")}</div>
-          <div className="text-xs text-ink-muted mt-1">{t("genesis.entry.help.desc")}</div>
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void pick("ideia")}
-          className="w-full text-left p-4 border border-surface-border rounded hover:border-brand disabled:opacity-50"
-        >
-          <div className="text-sm font-semibold text-ink">{t("genesis.entry.idea.title")}</div>
-          <div className="text-xs text-ink-muted mt-1">{t("genesis.entry.idea.desc")}</div>
-        </button>
-        {error !== null && <p className="mt-2 text-xs text-semantic-danger">{error}</p>}
+        {doors}
       </div>
     </div>
   );

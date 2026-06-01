@@ -1046,23 +1046,7 @@
   "boasVindas": {
     "title": "Welcome",
     "subtitle": "Let's connect your account and get your company started.",
-    "stepLabel": "Step {{n}} of 3",
-    "company": {
-      "title": "Tell us about your business",
-      "subtitle": "Your manager will use this to build the right team for you.",
-      "nameLabel": "Company name",
-      "namePlaceholder": "e.g. Aurora Candles",
-      "descLabel": "What does your company do?",
-      "descPlaceholder": "e.g. I want to open an online store for handmade candles and start selling this month…",
-      "continue": "Continue",
-      "errorEmpty": "Give your company a name.",
-      "create": "Create my company",
-      "creating": "Creating…"
-    },
-    "confirm": {
-      "title": "Ready to create your company",
-      "subtitle": "Review the details. Creating also sets up your manager (the CEO)."
-    }
+    "stepLabel": "Step {{n}} of 2"
   },
   "auth": {
     "reconnect": {

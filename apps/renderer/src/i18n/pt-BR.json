@@ -1046,23 +1046,7 @@
   "boasVindas": {
     "title": "Boas-vindas",
     "subtitle": "Vamos conectar sua conta e começar sua empresa.",
-    "stepLabel": "Passo {{n}} de 3",
-    "company": {
-      "title": "Conte sobre o seu negócio",
-      "subtitle": "Seu gerente vai usar isto para montar a equipe certa para você.",
-      "nameLabel": "Nome da empresa",
-      "namePlaceholder": "Ex.: Velas Aurora",
-      "descLabel": "O que a sua empresa faz?",
-      "descPlaceholder": "Ex.: quero abrir uma loja online de velas artesanais e começar a vender ainda este mês…",
-      "continue": "Continuar",
-      "errorEmpty": "Dê um nome à sua empresa.",
-      "create": "Criar minha empresa",
-      "creating": "Criando…"
-    },
-    "confirm": {
-      "title": "Pronto para criar sua empresa",
-      "subtitle": "Confira os dados. Ao criar, seu gerente (CEO) é montado junto."
-    }
+    "stepLabel": "Passo {{n}} de 2"
   },
   "auth": {
     "reconnect": {

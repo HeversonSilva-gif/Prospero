@@ -3,9 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.js";
 import { useSettingsStore } from "../stores/settings.js";
-import { useCompaniesStore } from "../stores/companies.js";
+import { GenesisEntry } from "../components/GenesisEntry.js";
 
-type Step = "authSource" | "choose" | "manual" | "auto" | "apiKey" | "company" | "confirm";
+type Step = "authSource" | "choose" | "manual" | "auto" | "apiKey" | "genesis";
 
 export const SetupWizard = () => {
   const { t } = useTranslation();
@@ -15,15 +15,11 @@ export const SetupWizard = () => {
   const importDetected = useAuthStore((s) => s.importDetected);
   const hasToken = useAuthStore((s) => s.status.hasToken);
   const setAuthMode = useSettingsStore((s) => s.setAuthMode);
-  const createCompany = useCompaniesStore((s) => s.createOnboarding);
   // If the user is already authenticated (e.g. relaunch with no company yet),
-  // skip straight to creating their company.
-  const [step, setStep] = useState<Step>(hasToken ? "company" : "authSource");
+  // skip straight to genesis (the two-door start).
+  const [step, setStep] = useState<Step>(hasToken ? "genesis" : "authSource");
   const [tokenInput, setTokenInput] = useState("");
   const [apiKeyInput, setApiKeyInput] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [companyDesc, setCompanyDesc] = useState("");
-  const [creating, setCreating] = useState(false);
   // We only ever hold the masked prefix in renderer state — never the raw token.
   // The actual import is done main-side via importDetected (re-runs detection + saves).
   const [autoPrefix, setAutoPrefix] = useState<string | null>(null);
@@ -42,7 +38,7 @@ export const SetupWizard = () => {
     if (autoPrefix === null) return;
     try {
       await importDetected();
-      setStep("company");
+      setStep("genesis");
     } catch {
       setError(t("settings.auth.tokenInvalid"));
     }
@@ -52,36 +48,25 @@ export const SetupWizard = () => {
     setError(null);
     try {
       await setToken(tokenInput, "manual");
-      setStep("company");
+      setStep("genesis");
     } catch {
       setError(t("settings.auth.tokenInvalid"));
     }
   };
 
-  const createCompanyAndFinish = async () => {
-    const name = companyName.trim();
-    if (name.length === 0) return;
-    setError(null);
-    setCreating(true);
-    try {
-      await createCompany(name, companyDesc.trim() === "" ? undefined : companyDesc.trim());
-      navigate("/briefing");
-    } catch (err) {
-      setCreating(false);
-      setError(err instanceof Error ? err.message : String(err));
-    }
-  };
-
-  // 3-step wizard (mockup A): 1 connect account · 2 about the business ·
-  // 3 review & create. The auth sub-steps (choose/manual/auto/apiKey) are step 1.
-  const wizardStep = step === "confirm" || creating ? 3 : step === "company" ? 2 : 1;
+  // 2-step wizard: 1 connect account · 2 start your business (genesis two-door).
+  // The auth sub-steps (choose/manual/auto/apiKey) are step 1; choosing a door
+  // creates the company + CEO and hands off to the genesis wizard, which carries
+  // its own phase stepper from there.
+  const isGenesis = step === "genesis";
+  const wizardStep = isGenesis ? 2 : 1;
 
   return (
     // flex-1 fills the Shell content row; without a width the card hugged the
     // left instead of centering. flex-col stacks the progress bar over the card.
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface-soft overflow-auto">
       <div className="flex gap-2 mb-5">
-        {[1, 2, 3].map((n) => (
+        {[1, 2].map((n) => (
           <span
             key={n}
             className={`w-7 h-1.5 rounded-full ${n <= wizardStep ? "bg-brand" : "bg-surface-border"}`}
@@ -92,8 +77,12 @@ export const SetupWizard = () => {
         <p className="text-[11px] font-bold uppercase tracking-wide text-brand mb-1">
           {t("boasVindas.stepLabel", { n: wizardStep })}
         </p>
-        <h1 className="text-2xl font-bold text-ink mb-2">{t("boasVindas.title")}</h1>
-        <p className="text-sm text-ink-soft mb-6">{t("boasVindas.subtitle")}</p>
+        <h1 className="text-2xl font-bold text-ink mb-2">
+          {isGenesis ? t("genesis.entry.title") : t("boasVindas.title")}
+        </h1>
+        <p className="text-sm text-ink-soft mb-6">
+          {isGenesis ? t("genesis.entry.subtitle") : t("boasVindas.subtitle")}
+        </p>
 
         {step === "authSource" && (
           <div className="space-y-3">
@@ -261,7 +250,7 @@ export const SetupWizard = () => {
                   setError(null);
                   try {
                     await setApiKey(apiKeyInput);
-                    setStep("company");
+                    setStep("genesis");
                   } catch (err) {
                     setError(err instanceof Error ? err.message : t("settings.auth.tokenInvalid"));
                   }
@@ -276,100 +265,11 @@ export const SetupWizard = () => {
           </div>
         )}
 
-        {step === "company" && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-brand-dark">
-              {t("boasVindas.company.title")}
-            </h3>
-            <p className="text-xs text-ink-muted">{t("boasVindas.company.subtitle")}</p>
-            <label className="block text-xs font-medium text-ink mt-2">
-              {t("boasVindas.company.nameLabel")}
-            </label>
-            <input
-              type="text"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder={t("boasVindas.company.namePlaceholder")}
-              disabled={creating}
-              className="w-full px-3 py-2 bg-surface-soft border border-surface-border rounded text-sm"
-            />
-            <label className="block text-xs font-medium text-ink mt-2">
-              {t("boasVindas.company.descLabel")}
-            </label>
-            <textarea
-              value={companyDesc}
-              onChange={(e) => setCompanyDesc(e.target.value)}
-              placeholder={t("boasVindas.company.descPlaceholder")}
-              disabled={creating}
-              rows={4}
-              className="w-full px-3 py-2 bg-surface-soft border border-surface-border rounded text-sm resize-none"
-            />
-            {error !== null && <p className="text-xs text-semantic-danger">{error}</p>}
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => {
-                  if (companyName.trim().length === 0) {
-                    setError(t("boasVindas.company.errorEmpty"));
-                    return;
-                  }
-                  setError(null);
-                  setStep("confirm");
-                }}
-                disabled={companyName.trim().length === 0}
-                className="px-4 py-2 bg-brand text-brand-fg text-sm font-semibold rounded disabled:opacity-50"
-                type="button"
-              >
-                {t("boasVindas.company.continue")}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === "confirm" && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-brand-dark">
-              {t("boasVindas.confirm.title")}
-            </h3>
-            <p className="text-xs text-ink-muted">{t("boasVindas.confirm.subtitle")}</p>
-            <dl className="mt-2 rounded-lg border border-surface-border bg-surface-soft p-3 text-sm space-y-2">
-              <div>
-                <dt className="text-[10px] uppercase tracking-wide text-ink-soft font-semibold">
-                  {t("boasVindas.company.nameLabel")}
-                </dt>
-                <dd className="text-ink">{companyName.trim()}</dd>
-              </div>
-              <div>
-                <dt className="text-[10px] uppercase tracking-wide text-ink-soft font-semibold">
-                  {t("boasVindas.company.descLabel")}
-                </dt>
-                <dd className="text-ink whitespace-pre-wrap">
-                  {companyDesc.trim() === "" ? "—" : companyDesc.trim()}
-                </dd>
-              </div>
-            </dl>
-            {error !== null && <p className="text-xs text-semantic-danger">{error}</p>}
-            <div className="flex items-center justify-between pt-2">
-              <button
-                onClick={() => {
-                  setError(null);
-                  setStep("company");
-                }}
-                disabled={creating}
-                className="px-4 py-2 text-sm text-ink hover:bg-surface-soft rounded disabled:opacity-50"
-                type="button"
-              >
-                {t("wizard.back")}
-              </button>
-              <button
-                onClick={() => void createCompanyAndFinish()}
-                disabled={creating}
-                className="px-4 py-2 bg-brand text-brand-fg text-sm font-semibold rounded disabled:opacity-50"
-                type="button"
-              >
-                {creating ? t("boasVindas.company.creating") : t("boasVindas.company.create")}
-              </button>
-            </div>
-          </div>
+        {step === "genesis" && (
+          <GenesisEntry
+            variant="inline"
+            onCreated={(companyId, door) => navigate(`/empresa/nova/${companyId}?porta=${door}`)}
+          />
         )}
       </div>
     </div>
