@@ -25,6 +25,9 @@ export type BusinessPlansRepository = {
   getById(id: string): BusinessPlan | null;
   // The current 'proposed' plan for a company, or null. 'critiquing' is excluded.
   getCurrentForCompany(companyId: string): BusinessPlan | null;
+  // The most recently approved plan for a company, or null. Used by the
+  // setup_monetization tool to enact the owner-approved charge model.
+  getLatestApprovedForCompany(companyId: string): BusinessPlan | null;
   markApproved(id: string): void;
   markRejected(id: string, userFeedback: string | null): void;
   markProposed(id: string): void;
@@ -78,6 +81,9 @@ export const createBusinessPlansRepository = (db: Database.Database): BusinessPl
   const currentStmt = db.prepare(
     "SELECT * FROM business_plans WHERE company_id = ? AND status = 'proposed' ORDER BY proposed_at DESC LIMIT 1",
   );
+  const latestApprovedStmt = db.prepare(
+    "SELECT * FROM business_plans WHERE company_id = ? AND status = 'approved' ORDER BY decided_at DESC LIMIT 1",
+  );
   const approveStmt = db.prepare(
     "UPDATE business_plans SET status = 'approved', decided_at = ? WHERE id = ?",
   );
@@ -116,6 +122,10 @@ export const createBusinessPlansRepository = (db: Database.Database): BusinessPl
     getById,
     getCurrentForCompany(companyId) {
       const row = currentStmt.get(companyId) as Row | undefined;
+      return row ? rowToPlan(row) : null;
+    },
+    getLatestApprovedForCompany(companyId) {
+      const row = latestApprovedStmt.get(companyId) as Row | undefined;
       return row ? rowToPlan(row) : null;
     },
     markApproved(id) {

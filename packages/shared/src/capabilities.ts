@@ -144,12 +144,15 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
   connectors: {
     id: "connectors",
     description:
-      "Publish on the company's connected external accounts (X): post a tweet, reply to a tweet. " +
-      "Each publish is gated for approval first (graduates to automatic via trust tiers).",
+      "Act on the company's connected external accounts. X: post a tweet, reply, read insights. " +
+      "Stripe: set up the approved charge model or an ad-hoc payment link, read sales. Each " +
+      "publish or money-moving action is gated for approval first (graduates to automatic via trust tiers).",
     tools: [
       "mcp__dashboard__post_to_x",
       "mcp__dashboard__reply_on_x",
       "mcp__dashboard__x_insights_read",
+      "mcp__dashboard__setup_monetization",
+      "mcp__dashboard__create_payment_link",
     ],
   },
 };

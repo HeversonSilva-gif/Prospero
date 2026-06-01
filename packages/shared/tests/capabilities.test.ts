@@ -24,11 +24,13 @@ describe("capability catalog", () => {
     ]);
   });
 
-  it("includes the connectors capability with the X publish tools", () => {
+  it("includes the connectors capability with the X + Stripe tools", () => {
     expect(CAPABILITY_CATALOG.connectors.tools).toEqual([
       "mcp__dashboard__post_to_x",
       "mcp__dashboard__reply_on_x",
       "mcp__dashboard__x_insights_read",
+      "mcp__dashboard__setup_monetization",
+      "mcp__dashboard__create_payment_link",
     ]);
   });
 

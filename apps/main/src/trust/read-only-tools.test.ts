@@ -33,6 +33,11 @@ describe("isReadOnlyTool", () => {
     expect(isReadOnlyTool("criterion_judge")).toBe(false));
   it("submit_goal_plan is NOT read-only", () =>
     expect(isReadOnlyTool("submit_goal_plan")).toBe(false));
+  // Money-moving Stripe tools must NEVER be trust-auto-approved (P5.2).
+  it("setup_monetization is NOT read-only", () =>
+    expect(isReadOnlyTool("mcp__dashboard__setup_monetization")).toBe(false));
+  it("create_payment_link is NOT read-only", () =>
+    expect(isReadOnlyTool("mcp__dashboard__create_payment_link")).toBe(false));
 
   // Edge cases.
   it("unknown tool defaults to NOT read-only (conservative)", () =>

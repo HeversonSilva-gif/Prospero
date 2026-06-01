@@ -7,6 +7,9 @@ import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { XPostEventResult } from "../connections/x-post-event.js";
+import type { StripeSetupEventResult } from "../connections/stripe-setup-event.js";
+import type { StripeChargeItem } from "../connections/stripe-monetization-executor.js";
+import { createBusinessPlansRepository } from "../agents/business-plans-repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
@@ -237,6 +240,37 @@ const runXPost = async (
         : { postId, text: args.text },
   });
   const result = await waitForXResult(ctx.permissionsDir, postId, 90_000);
+  return JSON.stringify(result);
+};
+
+// Polls for the result the MAIN-process `stripe.setup` handler writes back (keyed by
+// requestId) so setup_monetization / create_payment_link return the payment link — or
+// a clear error — to the agent in the same turn. Mirrors waitForXResult.
+const waitForStripeResult = async (
+  dir: string,
+  requestId: string,
+  timeoutMs: number,
+): Promise<StripeSetupEventResult> => {
+  const path = join(dir, `${requestId}.stripe.json`);
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (existsSync(path)) {
+      const r = JSON.parse(readFileSync(path, "utf8")) as StripeSetupEventResult;
+      safeUnlink(path);
+      return r;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return { ok: false, error: "Tempo esgotado aguardando a configuração no Stripe." };
+};
+
+// Emits the `stripe.setup` event MAIN reacts to (only MAIN holds the safeStorage
+// cipher to decrypt the company's restricted key), then waits for the result. Called
+// ONLY after gateAction has approved the money-moving tool call.
+const runStripeSetup = async (ctx: ToolContext, items: StripeChargeItem[]): Promise<string> => {
+  const requestId = randomUUID();
+  ctx.emit({ kind: "stripe.setup", payload: { requestId, items } });
+  const result = await waitForStripeResult(ctx.permissionsDir, requestId, 90_000);
   return JSON.stringify(result);
 };
 
@@ -786,6 +820,70 @@ export const toolDefinitions = [
           metric: metricById.get(p.tweetId) ?? null,
         })),
       });
+    },
+  },
+  {
+    name: "setup_monetization",
+    description:
+      "Set up the company's APPROVED charge model in Stripe: creates the product(s), price(s), and a hosted payment link from the pricing the owner approved in the business plan. Gated for approval first (auto once trusted). Returns the payment link URL, or a clear error if Stripe isn't connected / there is no approved pricing / it was rejected.",
+    inputSchema: z.object({}),
+    run: async (_input: unknown, ctx: ToolContext): Promise<string> => {
+      const plan = createBusinessPlansRepository(ctx.db).getLatestApprovedForCompany(ctx.companyId);
+      const pricing = plan?.pricing ?? null;
+      if (pricing === null || pricing.items.length === 0) {
+        return JSON.stringify({
+          ok: false,
+          error:
+            "Nenhum modelo de cobrança aprovado. Defina a cobrança no plano de negócio e aprove primeiro.",
+        });
+      }
+      const items: StripeChargeItem[] = pricing.items.map((it) => ({
+        name: it.name,
+        description: it.description,
+        amount: it.amount,
+        currency: it.currency,
+        ...(it.interval !== undefined ? { interval: it.interval } : {}),
+      }));
+      const outcome = await gateAction(ctx, "setup_monetization", { items }, randomUUID());
+      if (outcome.decision !== "allow") {
+        return JSON.stringify({ ok: false, status: outcome.decision, message: outcome.message });
+      }
+      return runStripeSetup(ctx, items);
+    },
+  },
+  {
+    name: "create_payment_link",
+    description:
+      "Create a single ad-hoc Stripe payment link for one offering (name, amount in the smallest currency unit e.g. 900 = R$9,00, 3-letter currency; pass interval only for a recurring subscription). Gated for approval first (auto once trusted). Returns the payment link URL, or a clear error if Stripe isn't connected / was rejected.",
+    inputSchema: z.object({
+      name: z.string().min(1).max(120),
+      description: z.string().min(1).max(500).optional(),
+      amount: z.number().int().positive().max(99_999_999),
+      currency: z.string().length(3),
+      interval: z.enum(["month", "year"]).optional(),
+    }),
+    run: async (
+      input: {
+        name: string;
+        description?: string;
+        amount: number;
+        currency: string;
+        interval?: "month" | "year";
+      },
+      ctx: ToolContext,
+    ): Promise<string> => {
+      const item: StripeChargeItem = {
+        name: input.name,
+        description: input.description ?? input.name,
+        amount: input.amount,
+        currency: input.currency,
+        ...(input.interval !== undefined ? { interval: input.interval } : {}),
+      };
+      const outcome = await gateAction(ctx, "create_payment_link", { item }, randomUUID());
+      if (outcome.decision !== "allow") {
+        return JSON.stringify({ ok: false, status: outcome.decision, message: outcome.message });
+      }
+      return runStripeSetup(ctx, [item]);
     },
   },
   {

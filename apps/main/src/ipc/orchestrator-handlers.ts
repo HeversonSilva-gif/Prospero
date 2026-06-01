@@ -119,6 +119,8 @@ import { preapprovalKey, preapprovalPath } from "../approvals/deferred-approval.
 import { getPermissionsDir } from "../security/permissions-dir.js";
 import { createConnectionsRepository } from "../connections/connections-repository.js";
 import { handleXPostEvent } from "../connections/x-post-event.js";
+import { handleStripeSetupEvent } from "../connections/stripe-setup-event.js";
+import type { StripeChargeItem } from "../connections/stripe-monetization-executor.js";
 import { safeStorageCipher, httpFetch } from "./connections-handlers.js";
 import { getUserMetrics, getTweetMetrics } from "../connections/x-client.js";
 import { createXPostsRepository } from "../connections/x-posts-repository.js";
@@ -669,6 +671,24 @@ export const registerOrchestratorHandlers = (
               text,
               postedAt: Date.now(),
             }),
+        },
+        companyId,
+        p,
+      );
+    } else if (kind === "stripe.setup" && typeof payload === "object" && payload !== null) {
+      // setup_monetization / create_payment_link self-gate in the MCP child, then emit
+      // this once approved. Only MAIN holds the safeStorage cipher to decrypt the
+      // company's Stripe key, so the product/price/payment-link creation happens here;
+      // the result is written back (keyed by requestId) for the waiting tool to return.
+      const p = payload as { requestId: string; items: StripeChargeItem[] };
+      const permDir = getPermissionsDir(app.getPath("userData"));
+      const repo = createConnectionsRepository(db, safeStorageCipher());
+      void handleStripeSetupEvent(
+        {
+          repo,
+          http: httpFetch,
+          writeResult: (requestId, result) =>
+            writeFileSync(join(permDir, `${requestId}.stripe.json`), JSON.stringify(result)),
         },
         companyId,
         p,
