@@ -1041,7 +1041,9 @@
       "confirmation": "Confirmado",
       "observation": "Nota"
     },
-    "loadOlder": "Carregar {{count}} mensagens antigas"
+    "loadOlder": "Carregar {{count}} mensagens antigas",
+    "toolActions_one": "{{count}} ação",
+    "toolActions_other": "{{count}} ações"
   },
   "common": {
     "save": "Salvar",

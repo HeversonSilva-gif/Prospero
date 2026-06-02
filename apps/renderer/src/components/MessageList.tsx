@@ -1,7 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { Agent, Attachment, Message, MessageKind, ToolCallView } from "@prospero/shared";
-import { ToolCallCard } from "./ToolCallCard.js";
+import type { Agent, Attachment, Message, MessageKind } from "@prospero/shared";
+import { FoldedActivity } from "./FoldedActivity.js";
 import { AgentActivityIndicator } from "./AgentActivityIndicator.js";
 import { MarkdownContent } from "./MarkdownContent.js";
 import { AttachmentChip } from "./AttachmentChip.js";
@@ -97,9 +97,7 @@ const MessageRow = memo(({ message, senderName, senderInitials }: RowProps) => {
             ))}
           </div>
         )}
-        {m.toolCalls?.map((tc: ToolCallView) => (
-          <ToolCallCard key={tc.id} tool={tc} />
-        ))}
+        {m.toolCalls !== null && m.toolCalls.length > 0 && <FoldedActivity tools={m.toolCalls} />}
       </div>
     </div>
   );

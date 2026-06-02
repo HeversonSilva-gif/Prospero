@@ -1041,7 +1041,9 @@
       "confirmation": "Confirmed",
       "observation": "Note"
     },
-    "loadOlder": "Load {{count}} older messages"
+    "loadOlder": "Load {{count}} older messages",
+    "toolActions_one": "{{count}} action",
+    "toolActions_other": "{{count}} actions"
   },
   "common": {
     "save": "Save",
