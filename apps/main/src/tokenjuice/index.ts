@@ -25,24 +25,24 @@ export interface CompressInput {
 
 export const compressToolResult = (input: CompressInput): CompressOutput => {
   const { toolName, result } = input;
-  const rawChars = countChars(result);
-
-  const mk = (text: string, mode: CompressStats["mode"], clamped: boolean): CompressOutput => {
-    const reducedChars = countChars(text);
-    return {
-      text,
-      stats: {
-        toolName,
-        rawChars,
-        reducedChars,
-        estTokensSaved: Math.max(0, estimateTokens(rawChars) - estimateTokens(reducedChars)),
-        mode,
-        clamped,
-      },
-    };
-  };
-
   try {
+    const rawChars = countChars(result);
+
+    const mk = (text: string, mode: CompressStats["mode"], clamped: boolean): CompressOutput => {
+      const reducedChars = countChars(text);
+      return {
+        text,
+        stats: {
+          toolName,
+          rawChars,
+          reducedChars,
+          estTokensSaved: Math.max(0, estimateTokens(rawChars) - estimateTokens(reducedChars)),
+          mode,
+          clamped,
+        },
+      };
+    };
+
     if (!tokenjuiceConfig.enabled || result.length < tokenjuiceConfig.minSize) {
       return mk(result, "passthrough", false);
     }
@@ -82,12 +82,29 @@ export const compressToolResult = (input: CompressInput): CompressOutput => {
     return mk(clamped.text, clamped.mode, true);
   } catch (err) {
     console.warn("[tokenjuice] compress failed", err);
-    return mk(result, "passthrough", false);
+    // Fallback must not call countChars (it might be what threw). Use .length.
+    const chars = result.length;
+    return {
+      text: result,
+      stats: {
+        toolName,
+        rawChars: chars,
+        reducedChars: chars,
+        estTokensSaved: 0,
+        mode: "passthrough",
+        clamped: false,
+      },
+    };
   }
 };
 
 export const processToolResult = (input: CompressInput & { ctx: MetricsContext }): string => {
-  const { text, stats } = compressToolResult({ toolName: input.toolName, result: input.result });
-  recordToolOutputMetrics(input.ctx, stats);
-  return text;
+  try {
+    const { text, stats } = compressToolResult({ toolName: input.toolName, result: input.result });
+    recordToolOutputMetrics(input.ctx, stats);
+    return text;
+  } catch (err) {
+    console.warn("[tokenjuice] processToolResult failed", err);
+    return input.result;
+  }
 };
