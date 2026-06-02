@@ -157,7 +157,7 @@ const gateAction = async (
       companyId: ctx.companyId,
       actorId: ctx.agentId,
       title: "Limite de ações por hora atingido",
-      preview: `${toolName} (${cap.scope === "company" ? "teto da empresa" : "limite do agente"}: ${cap.limit}/h)`,
+      preview: `${toolName}: ${cap.count}/${cap.limit} por hora (${cap.scope === "company" ? "teto da empresa" : "limite do agente"})`,
     });
     tryGetRecorder()?.recordActivity({
       companyId: ctx.companyId,
