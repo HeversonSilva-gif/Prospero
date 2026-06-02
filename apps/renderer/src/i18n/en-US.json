@@ -1721,5 +1721,12 @@
     },
     "pageTitle": "Business plan",
     "none": "No business plan awaiting review."
+  },
+  "decisoes": {
+    "risk": {
+      "money": "charges real money",
+      "publish": "goes public",
+      "safe": "safe"
+    }
   }
 }

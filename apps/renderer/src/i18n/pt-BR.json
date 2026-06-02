@@ -1721,5 +1721,12 @@
     },
     "pageTitle": "Plano de negócio",
     "none": "Nenhum plano de negócio aguardando revisão."
+  },
+  "decisoes": {
+    "risk": {
+      "money": "cobra de verdade",
+      "publish": "fica público",
+      "safe": "seguro"
+    }
   }
 }
