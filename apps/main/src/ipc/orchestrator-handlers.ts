@@ -801,6 +801,7 @@ export const registerOrchestratorHandlers = (
           },
           writeResult: (requestId, result) =>
             writeFileSync(join(permDir, `${requestId}.email.json`), JSON.stringify(result)),
+          db,
         },
         companyId,
         p,
