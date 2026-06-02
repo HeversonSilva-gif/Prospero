@@ -6,7 +6,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Poppins", "system-ui", "sans-serif"],
+        sans: ["'IBM Plex Sans'", "system-ui", "sans-serif"],
+        mono: ["'IBM Plex Mono'", "ui-monospace", "monospace"],
       },
       colors: {
         brand: {
@@ -40,6 +41,17 @@ export default {
           "purple-bg": "#ede9fe",
           info: "#2563eb",
           "info-bg": "#dbeafe",
+        },
+        status: {
+          active: "var(--c-status-active)",
+          wait: "var(--c-status-wait)",
+          idle: "var(--c-status-idle)",
+        },
+        risk: {
+          "warn-fg": "var(--c-warn-fg)",
+          "warn-bg": "var(--c-warn-bg)",
+          "money-fg": "var(--c-money-fg)",
+          "money-bg": "var(--c-money-bg)",
         },
       },
     },
