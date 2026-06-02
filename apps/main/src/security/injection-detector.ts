@@ -5,6 +5,7 @@
 
 export interface InjectionVerdict {
   verdict: "allow" | "flag" | "block";
+  /** Additive, NOT normalized (max ~2.4). Thresholds: flag ≥ 0.4, block ≥ 0.8. */
   score: number;
   reasons: string[];
 }
@@ -61,12 +62,12 @@ const RULES: Rule[] = [
   {
     code: "exfiltrate.secrets",
     weight: 0.5,
-    re: /(reveal|print|dump|send|leak|exfiltrate)\s+.{0,30}(api[\s_-]?key|secret|token|password|credential|private\s+key)/,
+    re: /(reveal|print|dump|leak|exfiltrate)\s+.{0,30}(api[\s_-]?key|secret|token|password|credential|private\s+key)/,
   },
   {
     code: "role.hijack",
     weight: 0.35,
-    re: /(you\s+are\s+now|act\s+as|developer\s+mode|jailbreak|\bdan\b)/,
+    re: /(you\s+are\s+now|act\s+as|developer\s+mode|jailbreak|do\s+anything\s+now)/,
   },
   {
     code: "tool.abuse",
@@ -83,6 +84,7 @@ export const detectInjection = (text: string): InjectionVerdict => {
   // Use match() (not test()) so /g regex statefulness does not cause flakiness.
   const hadZeroWidth = (lowered.match(ZERO_WIDTH) ?? []).length > 0;
   const collapsed = mapChars(mapChars(lowered.replace(ZERO_WIDTH, ""), LEET), HOMOGLYPH);
+  // "compact" defeats spaced-out single keywords (e.g. "j a i l b r e a k"); multi-word rules still need \s+.
   const compact = collapsed.replace(/\s+/g, "");
   const variants = [lowered, collapsed, compact];
 
