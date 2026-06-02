@@ -30,7 +30,7 @@ const toneOf = (status: string): StatusTone => {
   }
 };
 
-const KNOWN = new Set(["working", "thinking", "idle", "waiting", "paused", "error", "terminated"]);
+const KNOWN = new Set(["working", "thinking", "idle", "waiting", "paused", "error"]);
 
 const BY_TONE: Record<StatusTone, Omit<StatusInfo, "tone" | "labelKey">> = {
   active: {

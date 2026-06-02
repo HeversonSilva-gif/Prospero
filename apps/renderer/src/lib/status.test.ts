@@ -16,6 +16,10 @@ describe("agentStatusInfo", () => {
   });
   it("error is the error tone (danger)", () => {
     expect(agentStatusInfo("error").tone).toBe("error");
+    expect(agentStatusInfo("error").textClass).toBe("text-semantic-danger");
+  });
+  it("terminated falls back to the idle label (no agentStatus.terminated key)", () => {
+    expect(agentStatusInfo("terminated").labelKey).toBe("agentStatus.idle");
   });
   it("exposes the i18n labelKey for the status", () => {
     expect(agentStatusInfo("working").labelKey).toBe("agentStatus.working");
