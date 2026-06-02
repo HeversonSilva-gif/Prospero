@@ -15,11 +15,7 @@ export interface ClampResult {
   mode: "json" | "text";
 }
 
-interface TrimOpts {
-  maxFieldChars: number;
-  maxArrayItems: number;
-  toolName: string;
-}
+type TrimOpts = Pick<ClampOpts, "maxFieldChars" | "maxArrayItems" | "toolName">;
 
 const truncString = (s: string, maxFieldChars: number): string => {
   if (s.length <= maxFieldChars) return s;
@@ -70,6 +66,8 @@ export const clamp = (result: string, opts: ClampOpts): ClampResult => {
   let maxFieldChars = opts.maxFieldChars;
   const maxArrayItems = opts.maxArrayItems;
   let firstPassText: string | null = null;
+  // Up to 4 escalation passes halve maxFieldChars (800→400→200→100, floored at 80);
+  // the array cap is structural and held constant so a capped list keeps its head + sentinel.
   for (let pass = 0; pass < 4; pass += 1) {
     const trimmed = trimValue(parsed, { maxFieldChars, maxArrayItems, toolName: opts.toolName });
     const text = JSON.stringify(trimmed);
