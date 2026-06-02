@@ -955,7 +955,8 @@
     "hojeEmpty": "Nothing here yet today.",
     "verTudo": "See all",
     "verEquipe": "See team",
-    "maisDecisoes": "+{{count}} more decision waiting",
+    "maisDecisoes_one": "+{{count}} more decision waiting",
+    "maisDecisoes_other": "+{{count}} more decisions waiting",
     "suaEquipeAgora": "Your team right now",
     "suaEquipeAgoraEmpty": "You don't have any team members yet. Hire someone in \"My team\"."
   },

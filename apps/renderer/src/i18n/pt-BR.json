@@ -955,7 +955,8 @@
     "hojeEmpty": "Nada por aqui ainda hoje.",
     "verTudo": "Ver tudo",
     "verEquipe": "Ver equipe",
-    "maisDecisoes": "+{{count}} outra decisão esperando",
+    "maisDecisoes_one": "+{{count}} outra decisão esperando",
+    "maisDecisoes_other": "+{{count}} outras decisões esperando",
     "suaEquipeAgora": "Sua equipe agora",
     "suaEquipeAgoraEmpty": "Você ainda não tem funcionários. Contrate alguém em \"Minha equipe\"."
   },

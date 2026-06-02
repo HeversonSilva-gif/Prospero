@@ -19,7 +19,11 @@ export const HojeTimeline: FC<Props> = ({ items }) => {
           to={item.route}
           className="flex items-start gap-3 py-2 px-1 rounded-lg hover:bg-surface-soft"
         >
-          <CheckCircle size={16} className="text-brand mt-0.5 flex-shrink-0 opacity-70" />
+          <CheckCircle
+            size={16}
+            className="text-brand mt-0.5 flex-shrink-0 opacity-70"
+            aria-hidden={true}
+          />
           <span className="text-[13px] text-ink min-w-0">
             <span className="font-medium">{item.label}</span>
             {item.detail !== "" && <span className="text-ink-muted"> · {item.detail}</span>}
