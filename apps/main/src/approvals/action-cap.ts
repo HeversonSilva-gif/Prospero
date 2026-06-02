@@ -1,10 +1,5 @@
 import type Database from "better-sqlite3";
 
-// Sliding-window runaway circuit-breaker. Counts side-effecting tool-call attempts
-// that PASSED the cap (each inserts an `approvals` row) in the trailing hour, per
-// agent+tool, plus a per-company aggregate ceiling. Read/unknown tools are never
-// capped. Pre-checked inside gateAction BEFORE the approval row is created.
-
 export const WINDOW_MS = 60 * 60 * 1000;
 
 // Per-agent, per-tool hourly limits. Tools absent here are not side-effecting → uncapped.
@@ -17,8 +12,12 @@ export const SIDE_EFFECTING_LIMITS: Record<string, number> = {
   deploy_app: 1,
 };
 
-// Aggregate ceiling: total side-effecting actions across all of a company's agents/hour.
+// Hard ceiling on TOTAL side-effecting actions across all of a company's agents per
+// hour — a backstop above the per-agent caps (many agents each just under their own
+// limit could still flood). ~one side-effecting action every 2 minutes company-wide.
 export const COMPANY_HOURLY_CEILING = 30;
+
+const SIDE_EFFECTING_TOOLS = Object.keys(SIDE_EFFECTING_LIMITS);
 
 export interface ActionCapInput {
   companyId: string;
@@ -34,34 +33,48 @@ export interface ActionCapResult {
   scope: "tool" | "company" | "none";
 }
 
-const likeFor = (toolName: string): string => `%"tool_name":"${toolName}"%`;
+type Stmt = Database.Statement;
+interface CapStatements {
+  tool: Stmt;
+  company: Stmt;
+}
+
+// gateAction pre-checks this on EVERY side-effecting call — cache the prepared
+// statements per db (both SQL strings are static) instead of re-compiling each call.
+const cache = new WeakMap<Database.Database, CapStatements>();
+const stmtsFor = (db: Database.Database): CapStatements => {
+  let s = cache.get(db);
+  if (s === undefined) {
+    const placeholders = SIDE_EFFECTING_TOOLS.map(() => "?").join(", ");
+    s = {
+      tool: db.prepare(
+        `SELECT COUNT(*) AS cnt FROM approvals
+         WHERE agent_id = ? AND kind = 'tool_call' AND created_at > ?
+           AND json_extract(payload_json, '$.tool_name') = ?`,
+      ),
+      company: db.prepare(
+        `SELECT COUNT(*) AS cnt FROM approvals ap
+           JOIN agents ag ON ag.id = ap.agent_id
+          WHERE ag.company_id = ? AND ap.kind = 'tool_call' AND ap.created_at > ?
+            AND json_extract(ap.payload_json, '$.tool_name') IN (${placeholders})`,
+      ),
+    };
+    cache.set(db, s);
+  }
+  return s;
+};
 
 export const checkActionCap = (db: Database.Database, input: ActionCapInput): ActionCapResult => {
   try {
     const limit = SIDE_EFFECTING_LIMITS[input.toolName];
     if (limit === undefined) return { exceeded: false, limit: 0, count: 0, scope: "none" };
     const cutoff = input.now - WINDOW_MS;
+    const stmts = stmtsFor(db);
 
-    const toolRow = db
-      .prepare(
-        `SELECT COUNT(*) AS cnt FROM approvals
-         WHERE agent_id = ? AND kind = 'tool_call' AND created_at > ? AND payload_json LIKE ?`,
-      )
-      .get(input.agentId, cutoff, likeFor(input.toolName)) as { cnt: number };
-    if (toolRow.cnt >= limit) {
-      return { exceeded: true, limit, count: toolRow.cnt, scope: "tool" };
-    }
+    const toolRow = stmts.tool.get(input.agentId, cutoff, input.toolName) as { cnt: number };
+    if (toolRow.cnt >= limit) return { exceeded: true, limit, count: toolRow.cnt, scope: "tool" };
 
-    // Company-wide ceiling across all side-effecting tools.
-    const likeClauses = Object.keys(SIDE_EFFECTING_LIMITS).map(() => "ap.payload_json LIKE ?");
-    const companyRow = db
-      .prepare(
-        `SELECT COUNT(*) AS cnt FROM approvals ap
-           JOIN agents ag ON ag.id = ap.agent_id
-          WHERE ag.company_id = ? AND ap.kind = 'tool_call' AND ap.created_at > ?
-            AND (${likeClauses.join(" OR ")})`,
-      )
-      .get(input.companyId, cutoff, ...Object.keys(SIDE_EFFECTING_LIMITS).map(likeFor)) as {
+    const companyRow = stmts.company.get(input.companyId, cutoff, ...SIDE_EFFECTING_TOOLS) as {
       cnt: number;
     };
     if (companyRow.cnt >= COMPANY_HOURLY_CEILING) {

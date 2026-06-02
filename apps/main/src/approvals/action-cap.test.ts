@@ -10,7 +10,7 @@ const seed = (db: Database.Database, agentId: string, toolName: string, createdA
   ).run(
     `apv_${createdAt}_${Math.floor(createdAt % 100000)}`,
     agentId,
-    JSON.stringify({ tool_name: toolName }),
+    JSON.stringify({ tool_name: toolName, tool_use_id: "tu_x" }),
     createdAt,
   );
 };
@@ -68,5 +68,30 @@ describe("checkActionCap", () => {
     });
     expect(r.count).toBe(0);
     expect(r.exceeded).toBe(false);
+  });
+
+  it("fires the company ceiling across agents even when the per-tool cap is not hit", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    db.prepare(`INSERT INTO companies (id, name, created_at) VALUES ('co_1','C',1)`).run();
+    db.prepare(
+      `INSERT INTO agents (id, company_id, name, role, system_prompt, created_at, updated_at) VALUES ('ag_1','co_1','A','worker','',1,1)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO agents (id, company_id, name, role, system_prompt, created_at, updated_at) VALUES ('ag_2','co_1','B','worker','',1,1)`,
+    ).run();
+    const now = 10_000_000;
+    // 30 side-effecting rows on ag_2 → company total hits the ceiling…
+    for (let i = 0; i < 30; i += 1) seed(db, "ag_2", "send_email", now - i * 1000);
+    // …while ag_1 has zero post_to_x (under its per-tool limit) → falls through to company check.
+    const r = checkActionCap(db, {
+      companyId: "co_1",
+      agentId: "ag_1",
+      toolName: "post_to_x",
+      now,
+    });
+    expect(r.scope).toBe("company");
+    expect(r.exceeded).toBe(true);
+    expect(r.count).toBe(30);
   });
 });
