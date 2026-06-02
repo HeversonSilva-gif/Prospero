@@ -83,7 +83,7 @@ describe("handleEmailReadEvent", () => {
         },
         db,
       },
-      "c1",
+      "co_1",
       { requestId: "r1", limit: 5 },
     );
     expect(result?.ok).toBe(true);
@@ -117,7 +117,7 @@ describe("handleEmailReadEvent", () => {
       { requestId: "req_benign", limit: 5 },
     );
     expect(result?.ok).toBe(true);
-     
+
     expect(result!.emails![0]!.snippet).toBe("Just checking in, hope you are well.");
   });
 
@@ -149,7 +149,7 @@ describe("handleEmailReadEvent", () => {
       { requestId: "req_flag", limit: 5 },
     );
     expect(result?.ok).toBe(true);
-     
+
     expect(result!.emails![0]!.snippet).toContain("conteúdo externo");
   });
 
@@ -181,7 +181,7 @@ describe("handleEmailReadEvent", () => {
       { requestId: "req_block", limit: 5 },
     );
     expect(result?.ok).toBe(true);
-     
+
     expect(result!.emails![0]!.snippet).toContain("BLOQUEADO");
 
     const alertItems = createInboxRepository(db)

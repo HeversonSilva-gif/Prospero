@@ -136,9 +136,9 @@ export const handleEmailReadEvent = async (
           companyId,
           actor: { kind: "system" },
           action: "security.injection_blocked",
-          // EntityKind has no "email" member; the read request id identifies the event.
+          // EntityKind has no "email" member; tie the event to the company.
           entityKind: "company",
-          entityId: payload.requestId,
+          entityId: companyId,
           payload: { blocked: guard.blocked },
         });
       } catch (err) {
