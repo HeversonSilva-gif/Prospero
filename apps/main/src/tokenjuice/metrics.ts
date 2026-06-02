@@ -51,9 +51,23 @@ export const createToolOutputMetricsRepository = (db: Database.Database) => {
   return { insert };
 };
 
+const repoCache = new WeakMap<
+  Database.Database,
+  ReturnType<typeof createToolOutputMetricsRepository>
+>();
+
+const repoFor = (db: Database.Database): ReturnType<typeof createToolOutputMetricsRepository> => {
+  let repo = repoCache.get(db);
+  if (repo === undefined) {
+    repo = createToolOutputMetricsRepository(db);
+    repoCache.set(db, repo);
+  }
+  return repo;
+};
+
 export const recordToolOutputMetrics = (ctx: MetricsContext, stats: CompressStats): void => {
   try {
-    createToolOutputMetricsRepository(ctx.db).insert({
+    repoFor(ctx.db).insert({
       companyId: ctx.companyId,
       agentId: ctx.agentId,
       toolName: stats.toolName,
