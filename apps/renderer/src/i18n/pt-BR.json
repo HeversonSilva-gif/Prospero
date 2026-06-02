@@ -962,7 +962,14 @@
   },
   "inbox": {
     "title": "Inbox",
+    "subtitle": "Você decide o que precisa de gente; o resto a equipe faz sozinha.",
     "empty": "Inbox vazia.",
+    "pendentesEmpty": "Nada pra decidir agora.",
+    "historicoEmpty": "Nada no histórico ainda.",
+    "tabs": {
+      "pendentes": "Pendentes",
+      "historico": "Histórico"
+    },
     "approve": "Aprovar",
     "reject": "Rejeitar",
     "decide": "Decidir",

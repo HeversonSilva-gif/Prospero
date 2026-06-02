@@ -962,7 +962,14 @@
   },
   "inbox": {
     "title": "Inbox",
+    "subtitle": "You decide what needs a human; the team does the rest.",
     "empty": "Inbox is empty.",
+    "pendentesEmpty": "Nothing to decide right now.",
+    "historicoEmpty": "Nothing in history yet.",
+    "tabs": {
+      "pendentes": "Pending",
+      "historico": "History"
+    },
     "approve": "Approve",
     "reject": "Reject",
     "decide": "Decide",
