@@ -31,7 +31,23 @@ const agent = (mode: "supervised" | "auto"): Agent => ({
   autoModeSetAt: null,
 });
 
-const WS = "C:\\Workspace";
+// Absolute paths must use the HOST platform's semantics: node:path (and thus the
+// gate's resolve()/isAbsolute() checks) treats "C:\..." as absolute only on Windows
+// and "/..." as absolute only on POSIX. Hardcoding Windows paths made these tests pass
+// on Windows but invert on the Linux/macOS CI runners. Build paths per-platform so the
+// gate logic is exercised identically everywhere.
+const WIN = process.platform === "win32";
+const WS = WIN ? "C:\\Workspace" : "/workspace";
+const USER_DATA = WIN ? "C:\\UserData" : "/userdata";
+const INSIDE_FILE = WIN ? "C:\\Workspace\\src\\index.ts" : "/workspace/src/index.ts";
+const ESCAPE_REL = WIN ? "C:\\Workspace\\..\\..\\escape.txt" : "/workspace/../../escape.txt";
+const OUTSIDE_ABS_CMD = WIN ? "ls C:\\Users\\Other\\file.txt" : "ls /srv/other/file.txt";
+const OUTSIDE_QUOTED_CMD = WIN
+  ? 'ls "D:\\Projetos pessoais\\MTT"'
+  : 'ls "/srv/projetos pessoais/MTT"';
+const INSIDE_QUOTED_CMD = WIN
+  ? 'ls "C:\\Workspace\\sub dir\\file.ts"'
+  : 'ls "/workspace/sub dir/file.ts"';
 
 describe("evaluatePermission §1 always-blocked patterns", () => {
   it("Bash credential read → request_user even in auto mode", () => {
@@ -41,7 +57,7 @@ describe("evaluatePermission §1 always-blocked patterns", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("request_user");
     expect(r.reason).toMatch(/always-blocked/i);
@@ -54,7 +70,7 @@ describe("evaluatePermission §1 always-blocked patterns", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("request_user");
   });
@@ -68,7 +84,7 @@ describe("evaluatePermission §2 path-tool outside workspace", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("deny");
     expect(r.reason).toMatch(/outside allowed projects/i);
@@ -77,11 +93,11 @@ describe("evaluatePermission §2 path-tool outside workspace", () => {
   it("Write to ../../escape.txt → deny", () => {
     const r = evaluatePermission({
       toolName: "Write",
-      toolInput: { file_path: "C:\\Workspace\\..\\..\\escape.txt" },
+      toolInput: { file_path: ESCAPE_REL },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("deny");
   });
@@ -89,11 +105,11 @@ describe("evaluatePermission §2 path-tool outside workspace", () => {
   it("Edit inside workspace → allow (auto mode)", () => {
     const r = evaluatePermission({
       toolName: "Edit",
-      toolInput: { file_path: "C:\\Workspace\\src\\index.ts" },
+      toolInput: { file_path: INSIDE_FILE },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("allow");
   });
@@ -101,11 +117,11 @@ describe("evaluatePermission §2 path-tool outside workspace", () => {
   it("Edit inside workspace → request_user (supervised)", () => {
     const r = evaluatePermission({
       toolName: "Edit",
-      toolInput: { file_path: "C:\\Workspace\\src\\index.ts" },
+      toolInput: { file_path: INSIDE_FILE },
       agent: agent("supervised"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("request_user");
   });
@@ -119,7 +135,7 @@ describe("evaluatePermission §3 Bash path extraction", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("request_user");
   });
@@ -127,11 +143,11 @@ describe("evaluatePermission §3 Bash path extraction", () => {
   it("Bash with absolute path outside workspace → deny (strict isolation)", () => {
     const r = evaluatePermission({
       toolName: "Bash",
-      toolInput: { command: "ls C:\\Users\\Other\\file.txt" },
+      toolInput: { command: OUTSIDE_ABS_CMD },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("deny");
   });
@@ -143,7 +159,7 @@ describe("evaluatePermission §3 Bash path extraction", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("allow");
   });
@@ -151,11 +167,11 @@ describe("evaluatePermission §3 Bash path extraction", () => {
   it("Bash with double-quoted path outside workspace → deny (regression: quoted paths used to bypass gate)", () => {
     const r = evaluatePermission({
       toolName: "Bash",
-      toolInput: { command: 'ls "D:\\Projetos pessoais\\MTT"' },
+      toolInput: { command: OUTSIDE_QUOTED_CMD },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("deny");
   });
@@ -167,7 +183,7 @@ describe("evaluatePermission §3 Bash path extraction", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("deny");
   });
@@ -175,11 +191,11 @@ describe("evaluatePermission §3 Bash path extraction", () => {
   it("Bash with quoted path INSIDE workspace → allow in auto", () => {
     const r = evaluatePermission({
       toolName: "Bash",
-      toolInput: { command: 'ls "C:\\Workspace\\sub dir\\file.ts"' },
+      toolInput: { command: INSIDE_QUOTED_CMD },
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("allow");
   });
@@ -193,7 +209,7 @@ describe("evaluatePermission §4 non-fs tools (orchestrator MCP)", () => {
       agent: agent("auto"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("allow");
   });
@@ -205,7 +221,7 @@ describe("evaluatePermission §4 non-fs tools (orchestrator MCP)", () => {
       agent: agent("supervised"),
       allowedProjectPaths: [WS],
       agentCwd: WS,
-      userDataDir: "C:\\UserData",
+      userDataDir: USER_DATA,
     });
     expect(r.action).toBe("request_user");
   });

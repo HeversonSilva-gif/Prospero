@@ -31,15 +31,27 @@ const fakeAgent = (mode: "supervised" | "auto" = "auto"): Agent => ({
   autoModeSetAt: null,
 });
 
+// Platform-aware absolute paths: node:path treats "C:/..." as absolute only on
+// Windows. Hardcoding them made these tests invert on the Linux/macOS CI runners.
+const WIN = process.platform === "win32";
+const SANDBOX = WIN ? "C:\\sandbox" : "/sandbox";
+const USER_DATA = WIN ? "C:\\UserData" : "/userdata";
+const PROJ_A = WIN ? "C:\\proj-a" : "/proj-a";
+const PROJ_B = WIN ? "C:\\proj-b" : "/proj-b";
+const EMPTY_FILE = WIN ? "C:\\foo\\bar.txt" : "/foo/bar.txt";
+const INSIDE_A = WIN ? "C:\\proj-a\\sub\\file.ts" : "/proj-a/sub/file.ts";
+const OUTSIDE_C = WIN ? "C:\\proj-c\\file.ts" : "/proj-c/file.ts";
+const OUTSIDE_CMD = WIN ? "ls C:\\elsewhere" : "ls /elsewhere";
+
 describe("evaluatePermission with project allowlist", () => {
   it("denies FS write when allowedProjectPaths is empty", () => {
     const decision = evaluatePermission({
       toolName: "Write",
-      toolInput: { file_path: "C:/foo/bar.txt" },
+      toolInput: { file_path: EMPTY_FILE },
       agent: fakeAgent(),
       allowedProjectPaths: [],
-      agentCwd: "C:/sandbox",
-      userDataDir: "C:/UserData",
+      agentCwd: SANDBOX,
+      userDataDir: USER_DATA,
     });
     expect(decision.action).toBe("deny");
   });
@@ -47,11 +59,11 @@ describe("evaluatePermission with project allowlist", () => {
   it("allows FS write inside any allowed project (auto mode)", () => {
     const decision = evaluatePermission({
       toolName: "Write",
-      toolInput: { file_path: "C:/proj-a/sub/file.ts" },
+      toolInput: { file_path: INSIDE_A },
       agent: fakeAgent(),
-      allowedProjectPaths: ["C:/proj-a", "C:/proj-b"],
-      agentCwd: "C:/sandbox",
-      userDataDir: "C:/UserData",
+      allowedProjectPaths: [PROJ_A, PROJ_B],
+      agentCwd: SANDBOX,
+      userDataDir: USER_DATA,
     });
     expect(decision.action).toBe("allow");
   });
@@ -59,11 +71,11 @@ describe("evaluatePermission with project allowlist", () => {
   it("denies FS write outside all allowed projects", () => {
     const decision = evaluatePermission({
       toolName: "Edit",
-      toolInput: { file_path: "C:/proj-c/file.ts" },
+      toolInput: { file_path: OUTSIDE_C },
       agent: fakeAgent(),
-      allowedProjectPaths: ["C:/proj-a", "C:/proj-b"],
-      agentCwd: "C:/sandbox",
-      userDataDir: "C:/UserData",
+      allowedProjectPaths: [PROJ_A, PROJ_B],
+      agentCwd: SANDBOX,
+      userDataDir: USER_DATA,
     });
     expect(decision.action).toBe("deny");
   });
@@ -71,11 +83,11 @@ describe("evaluatePermission with project allowlist", () => {
   it("Bash with absolute path outside any allowed project → deny", () => {
     const decision = evaluatePermission({
       toolName: "Bash",
-      toolInput: { command: "ls C:/elsewhere" },
+      toolInput: { command: OUTSIDE_CMD },
       agent: fakeAgent(),
-      allowedProjectPaths: ["C:/proj-a"],
-      agentCwd: "C:/sandbox",
-      userDataDir: "C:/UserData",
+      allowedProjectPaths: [PROJ_A],
+      agentCwd: SANDBOX,
+      userDataDir: USER_DATA,
     });
     expect(decision.action).toBe("deny");
   });
