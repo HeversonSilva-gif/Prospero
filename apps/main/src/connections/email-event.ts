@@ -135,14 +135,11 @@ export const handleEmailReadEvent = async (
         tryGetRecorder()?.recordActivity({
           companyId,
           actor: { kind: "system" },
-          action: "security.zone_blocked",
+          action: "security.injection_blocked",
+          // EntityKind has no "email" member; the read request id identifies the event.
           entityKind: "company",
-          entityId: companyId,
-          payload: {
-            attemptedPath: "email.read",
-            zoneKind: "shared",
-            reason: `${guard.blocked} email(s) neutralized — prompt injection detected`,
-          },
+          entityId: payload.requestId,
+          payload: { blocked: guard.blocked },
         });
       } catch (err) {
         console.warn("[guardrails] recordActivity failed", err);

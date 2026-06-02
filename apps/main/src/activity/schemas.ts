@@ -158,11 +158,18 @@ export const ActivityPayloads = {
     failedCriteria: z.array(stringId),
   }),
 
-  // Security (1) — M13 PR-E containment zone blocked
+  // Security (3) — M13 PR-E containment zone + guardrails (injection / action cap)
   "security.zone_blocked": z.object({
     attemptedPath: z.string(),
     zoneKind: z.enum(["company", "agent", "shared", "system"]),
     reason: z.string(),
+  }),
+  "security.injection_blocked": z.object({ blocked: z.number() }),
+  "security.action_cap_exceeded": z.object({
+    toolName: z.string(),
+    limit: z.number(),
+    count: z.number(),
+    scope: z.string(),
   }),
 
   // Trust (4) — M14 PR-A trust ladder

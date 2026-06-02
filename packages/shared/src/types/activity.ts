@@ -61,8 +61,10 @@ export const ACTIVITY_ACTIONS = [
   "goal.narrated_step",
   // Verification (1) — M13 PR-D; dispatcher trigger
   "verification.failed",
-  // Security (1) — M13 PR-E; containment zone blocked
+  // Security (3) — M13 PR-E containment zone + guardrails (injection / action cap)
   "security.zone_blocked",
+  "security.injection_blocked",
+  "security.action_cap_exceeded",
   // Trust (4) — M14 PR-A trust ladder
   "trust.promoted",
   "trust.demoted",
