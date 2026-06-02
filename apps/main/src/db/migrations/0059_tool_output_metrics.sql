@@ -13,4 +13,4 @@ CREATE TABLE tool_output_metrics (
   clamped          INTEGER NOT NULL,
   created_at       INTEGER NOT NULL
 );
-CREATE INDEX idx_tool_output_metrics_tool ON tool_output_metrics (tool_name, created_at);
+CREATE INDEX idx_tool_output_metrics_tool_created ON tool_output_metrics (tool_name, created_at);
