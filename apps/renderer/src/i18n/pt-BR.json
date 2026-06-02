@@ -1134,6 +1134,22 @@
   },
   "ajustes": {
     "title": "Ajustes",
+    "subtitle": "Conecte os serviços e ajuste como o Prospero trabalha.",
+    "gerais": "Ajustes gerais",
+    "conexoes": {
+      "title": "Conexões",
+      "progress": "{{n}} de 4 conectadas",
+      "connected": "conectado",
+      "connect": "conectar",
+      "manage": "Gerenciar",
+      "connectBtn": "Conectar",
+      "unlocks": {
+        "x": "Publicar e responder",
+        "stripe": "Receber pagamentos",
+        "cloudflare": "Hospedar o site",
+        "email": "Enviar e responder"
+      }
+    },
     "backToAjustes": "Ajustes",
     "conta": {
       "title": "Conta",
