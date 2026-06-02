@@ -5,6 +5,7 @@
   "nav": {
     "inicio": "Home",
     "pedirAlgo": "Ask for something",
+    "decisoes": "Decisions",
     "projetos": "Projects",
     "equipe": "My team",
     "ajustes": "Settings"
@@ -949,19 +950,26 @@
     "loading": "Loading…",
     "precisaDeVoce": "Needs you",
     "precisaDeVoceEmpty": "All clear. Nothing waiting on you right now.",
-    "precisaDeVoceCount": "{{count}} waiting on your decision",
     "verButton": "See",
-    "markReviewed": "Mark as reviewed",
-    "oQueAconteceu": "What happened overnight",
-    "tarefasConcluidas": "tasks done",
-    "emAndamento": "in progress",
-    "gastosHoje": "spent today",
+    "hoje": "Today",
+    "hojeEmpty": "Nothing here yet today.",
+    "verTudo": "See all",
+    "verEquipe": "See team",
+    "maisDecisoes_one": "+{{count}} more decision waiting",
+    "maisDecisoes_other": "+{{count}} more decisions waiting",
     "suaEquipeAgora": "Your team right now",
     "suaEquipeAgoraEmpty": "You don't have any team members yet. Hire someone in \"My team\"."
   },
   "inbox": {
     "title": "Inbox",
+    "subtitle": "You decide what needs a human; the team does the rest.",
     "empty": "Inbox is empty.",
+    "pendentesEmpty": "Nothing to decide right now.",
+    "historicoEmpty": "Nothing in history yet.",
+    "tabs": {
+      "pendentes": "Pending",
+      "historico": "History"
+    },
     "approve": "Approve",
     "reject": "Reject",
     "decide": "Decide",
@@ -1033,7 +1041,9 @@
       "confirmation": "Confirmed",
       "observation": "Note"
     },
-    "loadOlder": "Load {{count}} older messages"
+    "loadOlder": "Load {{count}} older messages",
+    "toolActions_one": "{{count}} action",
+    "toolActions_other": "{{count}} actions"
   },
   "common": {
     "save": "Save",
@@ -1124,6 +1134,22 @@
   },
   "ajustes": {
     "title": "Settings",
+    "subtitle": "Connect services and tune how Prospero works.",
+    "gerais": "General settings",
+    "conexoes": {
+      "title": "Connections",
+      "progress": "{{n}} of 4 connected",
+      "connected": "connected",
+      "connect": "connect",
+      "manage": "Manage",
+      "connectBtn": "Connect",
+      "unlocks": {
+        "x": "Publish & reply",
+        "stripe": "Receive payments",
+        "cloudflare": "Host the site",
+        "email": "Send & reply"
+      }
+    },
     "backToAjustes": "Settings",
     "conta": {
       "title": "Account",
@@ -1502,6 +1528,14 @@
     "empty": {
       "title": "Your team is empty",
       "description": "Hire someone to get started."
+    },
+    "card": {
+      "leadsTeam": "Leads the team",
+      "menu": "Options"
+    },
+    "reassign": {
+      "pickTitle": "Reassign {{name}}'s manager",
+      "pickHint": "Choose the new manager"
     }
   },
   "funcionario": {
@@ -1659,16 +1693,19 @@
       "subtitle": "Choose how you want to start. The CEO will chat with you and build the plan.",
       "help": {
         "title": "I have no idea — help me decide",
-        "desc": "The CEO interviews you, discovers niches that fit your profile, and proposes the plan."
+        "desc": "The CEO interviews you, discovers niches that fit your profile, and proposes the plan.",
+        "go": "Help me decide"
       },
       "idea": {
         "title": "I already know what I want",
-        "desc": "Describe your idea to the CEO, who shapes it into a feasible plan for you to approve."
-      }
+        "desc": "Describe your idea to the CEO, who shapes it into a feasible plan for you to approve.",
+        "go": "I have an idea"
+      },
+      "trust": "You approve everything. Nothing goes live or charges anyone without your OK."
     },
     "seed": {
-      "help": "Hello! I'm going to help you find an online business that makes sense for you. I'll ask you a few questions about your interests, skills, and availability — and at the end I'll propose a concrete business plan. Let's start: what do you enjoy doing most in your free time?",
-      "idea": "Hello! Tell me about the business idea you have in mind. I want to understand what you want to sell, who you're selling to, and why you believe it will work — so I can shape a feasible business plan and present it to you for approval."
+      "help": "Hi! I just created my company and I don't have a business idea yet — I just know I want an online business you can run. Can you start by interviewing me about my interests, skills, and available time, then propose a concrete business plan?",
+      "idea": "Hi! I just created my company and I already have a business idea in mind. Can you ask me a few questions to understand what I want to sell, to whom, and why — then shape it into a feasible business plan for me to approve?"
     }
   },
   "businessPlan": {
@@ -1721,5 +1758,12 @@
     },
     "pageTitle": "Business plan",
     "none": "No business plan awaiting review."
+  },
+  "decisoes": {
+    "risk": {
+      "money": "charges real money",
+      "publish": "goes public",
+      "safe": "safe"
+    }
   }
 }

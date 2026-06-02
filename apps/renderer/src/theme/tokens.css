@@ -1,18 +1,30 @@
 :root {
-  --c-bg: #ffffff;
-  --c-bg-soft: #f5f5fa;
-  --c-bg-card: #ffffff;
-  --c-border: #e8e8e8;
-  --c-border-strong: #d4d4da;
-  --c-text: #070c27;
-  --c-text-muted: #48484a;
-  --c-text-soft: #969696;
-  --c-primary: #1d5dd7;
-  --c-primary-dark: #001d5a;
-  --c-primary-soft: #bee0fe;
-  --c-primary-bg: #eaf2fe;
+  /* Estúdio — jade (light). Canvas off-white, white cards, jade accent. */
+  --c-bg: #f5f8f7; /* app canvas */
+  --c-bg-soft: #f1f6f4; /* soft jade-tinted surface (chips, switcher, usage) */
+  --c-bg-card: #ffffff; /* cards, sidebar */
+  --c-border: #e2ece8;
+  --c-border-strong: #cfe6dd;
+  --c-text: #16201d;
+  --c-text-muted: #65766f;
+  --c-text-soft: #9bb0a7;
+  --c-primary: #0f766e; /* jade */
+  --c-primary-dark: #0b5a53;
+  --c-primary-soft: #cfe6dd;
+  --c-primary-bg: #e6f3ee; /* active nav / accent-soft */
   --c-primary-fg: #ffffff;
-  --c-accent: #5bc4e7;
+  --c-accent: #0f766e;
+
+  /* status (consistent across screens) */
+  --c-status-active: #0f766e;
+  --c-status-wait: #d9a21b;
+  --c-status-idle: #9bb0a7;
+
+  /* risk pills */
+  --c-warn-fg: #9a6b12;
+  --c-warn-bg: #fbf2dd; /* "público" / "vai ao ar" */
+  --c-money-fg: #9a4a12;
+  --c-money-bg: #fbe9dd; /* "cobra de verdade" */
 }
 
 /* Dark theme — pure monochrome. No blues, no cyans. Pure black/white/gray.

@@ -1,53 +1,29 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type FC,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { isCeoAgent } from "@prospero/shared";
 import { useAgentsStore } from "../stores/agents.js";
 import { RoleTemplateGalleryModal } from "../components/RoleTemplateGalleryModal.js";
-import { layoutTree, NODE_DIMENSIONS } from "../components/org/layoutTree.js";
-import { OrgNode } from "../components/org/OrgNode.js";
 import { ReassignConfirmModal } from "../components/org/ReassignConfirmModal.js";
+import { AgentCard } from "../components/equipe/AgentCard.js";
 
-// M16 PR-C1 — "Minha equipe" — substitui o grid de agentes pelo organograma.
-// Migra o conteúdo de Org.tsx menos o side drawer (clicar num nó navega pra
-// /agents/:id). Mantém drag-to-reparent (M9 power feature) + ReassignConfirmModal.
+// Estúdio redesign — "Cards de papel" layout:
+// CEO hero card + 2-col grid of agent cards.
+// Reparent via ⋯ menu → parent picker modal → ReassignConfirmModal (cycle-error toast preserved).
 
 export const Agents: FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const agents = useAgentsStore((s) => s.agents);
   const setReportsTo = useAgentsStore((s) => s.setReportsTo);
+
   const [showGallery, setShowGallery] = useState(false);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [hoverTargetId, setHoverTargetId] = useState<string | null>(null);
+  const [reassignChildId, setReassignChildId] = useState<string | null>(null);
   const [pendingReassign, setPendingReassign] = useState<{
     childId: string;
     parentId: string;
   } | null>(null);
   const [reassignError, setReassignError] = useState<string | null>(null);
-
-  const layout = useMemo(() => layoutTree(agents), [agents]);
-
-  const positions = useMemo(() => {
-    const m = new Map<string, { x: number; y: number }>();
-    for (const n of layout.nodes) m.set(n.id, { x: n.x, y: n.y });
-    return m;
-  }, [layout]);
-
-  const edges = useMemo(() => {
-    return layout.nodes
-      .filter((n) => n.reportsTo !== null && positions.has(n.reportsTo))
-      .map((n) => ({
-        from: positions.get(n.reportsTo!)!,
-        to: { x: n.x, y: n.y },
-        childId: n.id,
-      }));
-  }, [layout, positions]);
 
   // Auto-dismiss the cycle error toast after 4s.
   useEffect(() => {
@@ -57,48 +33,9 @@ export const Agents: FC = () => {
   }, [reassignError]);
 
   const live = agents.filter((a) => a.status !== "terminated");
+  const ceo = live.find(isCeoAgent) ?? null;
+  const team = live.filter((a) => a.id !== ceo?.id);
   const isEmpty = live.length === 0;
-
-  const onNodePointerDown = (id: string, e: ReactPointerEvent<SVGGElement>): void => {
-    setDraggingId(id);
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-
-  const onSvgPointerMove = (e: ReactPointerEvent<SVGSVGElement>): void => {
-    if (draggingId === null) return;
-    const svgEl = e.currentTarget;
-    const pt = svgEl.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
-    const ctm = svgEl.getScreenCTM();
-    if (ctm === null) return;
-    const local = pt.matrixTransform(ctm.inverse());
-    // Outer <g> is translated by (24, 24); adjust for hit-test in local coords.
-    const lx = local.x - 24;
-    const ly = local.y - 24;
-    let foundId: string | null = null;
-    for (const n of layout.nodes) {
-      if (n.id === draggingId) continue;
-      if (
-        lx >= n.x &&
-        lx <= n.x + NODE_DIMENSIONS.width &&
-        ly >= n.y &&
-        ly <= n.y + NODE_DIMENSIONS.height
-      ) {
-        foundId = n.id;
-        break;
-      }
-    }
-    setHoverTargetId(foundId);
-  };
-
-  const onSvgPointerUp = (): void => {
-    if (draggingId !== null && hoverTargetId !== null) {
-      setPendingReassign({ childId: draggingId, parentId: hoverTargetId });
-    }
-    setDraggingId(null);
-    setHoverTargetId(null);
-  };
 
   const childName =
     pendingReassign !== null
@@ -109,21 +46,24 @@ export const Agents: FC = () => {
       ? (agents.find((a) => a.id === pendingReassign.parentId)?.name ?? "?")
       : "";
 
-  const svgWidth = layout.width + 48;
-  const svgHeight = layout.height + 48;
+  // The agent whose manager we're picking (for the picker modal title).
+  const reassignChildName =
+    reassignChildId !== null ? (agents.find((a) => a.id === reassignChildId)?.name ?? "?") : "";
 
   return (
     <div className="h-full flex flex-col">
-      <header className="px-8 py-6 border-b border-surface-border bg-surface">
+      <header className="bg-surface border-b border-surface-border px-8 py-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-ink">{t("equipe.title")}</h1>
-            <p className="mt-1 text-sm text-ink-soft">{t("equipe.subtitle")}</p>
+            <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-ink">
+              {t("equipe.title")}
+            </h1>
+            <p className="mt-1 text-[13px] text-ink-muted">{t("equipe.subtitle")}</p>
           </div>
           <button
             type="button"
             onClick={() => setShowGallery(true)}
-            className="px-3 py-1.5 text-sm font-semibold bg-brand text-brand-fg rounded hover:opacity-90 whitespace-nowrap"
+            className="bg-brand text-brand-fg rounded-lg px-4 py-2 text-sm font-semibold hover:opacity-90 whitespace-nowrap"
           >
             {t("equipe.contratar")}
           </button>
@@ -136,52 +76,63 @@ export const Agents: FC = () => {
           <p className="text-sm text-ink-muted">{t("equipe.empty.description")}</p>
         </div>
       ) : (
-        <div className="flex-1 overflow-auto bg-surface-soft p-6">
-          <svg
-            width={svgWidth}
-            height={svgHeight}
-            className="mx-auto block select-none"
-            onPointerMove={onSvgPointerMove}
-            onPointerUp={onSvgPointerUp}
-          >
-            <defs>
-              <linearGradient id="avatar-grad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#5a8fff" />
-                <stop offset="100%" stopColor="#3850b0" />
-              </linearGradient>
-            </defs>
-            <g transform="translate(24, 24)">
-              {edges.map((e, i) => {
-                const startX = e.from.x + NODE_DIMENSIONS.width / 2;
-                const startY = e.from.y + NODE_DIMENSIONS.height;
-                const endX = e.to.x + NODE_DIMENSIONS.width / 2;
-                const endY = e.to.y;
-                const midY = (startY + endY) / 2;
-                return (
-                  <path
-                    key={`edge-${e.childId}-${String(i)}`}
-                    d={`M${String(startX)},${String(startY)} L${String(startX)},${String(midY)} L${String(endX)},${String(midY)} L${String(endX)},${String(endY)}`}
-                    fill="none"
-                    stroke="#d0d4dc"
-                    strokeWidth={1.5}
-                  />
-                );
-              })}
-              {layout.nodes.map((n) => (
-                <OrgNode
-                  key={n.id}
-                  node={n}
-                  selected={false}
-                  dragging={n.id === draggingId}
-                  dropTarget={n.id === hoverTargetId}
-                  onPointerDown={(e) => onNodePointerDown(n.id, e)}
-                  onClick={() => {
-                    if (draggingId === null) navigate(`/agents/${n.id}`);
-                  }}
+        <div className="flex-1 overflow-auto px-8 py-7">
+          <div className="mx-auto max-w-3xl flex flex-col gap-5">
+            {ceo !== null && (
+              <AgentCard agent={ceo} hero onOpen={() => navigate(`/agents/${ceo.id}`)} />
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              {team.map((a) => (
+                <AgentCard
+                  key={a.id}
+                  agent={a}
+                  onOpen={() => navigate(`/agents/${a.id}`)}
+                  onReassign={() => setReassignChildId(a.id)}
                 />
               ))}
-            </g>
-          </svg>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Parent picker modal */}
+      {reassignChildId !== null && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("equipe.reassign.pickTitle", { name: reassignChildName })}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => setReassignChildId(null)}
+        >
+          <div
+            className="bg-surface-card border border-surface-border rounded-2xl p-6 w-80 max-h-[70vh] flex flex-col gap-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-sm font-semibold text-ink">
+              {t("equipe.reassign.pickTitle", { name: reassignChildName })}
+            </h2>
+            <p className="text-xs text-ink-muted">{t("equipe.reassign.pickHint")}</p>
+            <ul className="overflow-auto flex flex-col gap-1.5" role="listbox">
+              {live
+                .filter((a) => a.id !== reassignChildId)
+                .map((a) => (
+                  <li key={a.id}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={false}
+                      className="w-full text-left px-3 py-2 rounded-lg text-sm text-ink hover:bg-surface-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                      onClick={() => {
+                        setPendingReassign({ childId: reassignChildId, parentId: a.id });
+                        setReassignChildId(null);
+                      }}
+                    >
+                      {a.name}
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          </div>
         </div>
       )}
 

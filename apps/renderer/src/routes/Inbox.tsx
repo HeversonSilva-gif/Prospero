@@ -8,6 +8,9 @@ import { SkillPromotionModal } from "../components/inbox/SkillPromotionModal.js"
 import { SkillConsolidationModal } from "../components/inbox/SkillConsolidationModal.js";
 import { TrustPromotionCard } from "../components/inbox/TrustPromotionCard.js";
 import { ApprovalDecisionModal } from "../components/inbox/ApprovalDecisionModal.js";
+import { InboxKindIcon } from "../components/inbox/inbox-kind-icon.js";
+import { RiskPill } from "../components/ui/RiskPill.js";
+import { inboxRisk } from "../lib/inbox-risk.js";
 
 const GOAL_KINDS: InboxKind[] = [
   "goal_proposed",
@@ -74,224 +77,228 @@ const KIND_BORDER: Record<InboxKind, string> = {
   sale: "border-l-4 border-l-semantic-success",
 };
 
-type FilterKey = "all" | InboxKind;
-
-const FILTERS: FilterKey[] = [
-  "all",
-  "approval",
-  "completed",
-  "suggestion",
-  "error",
-  "security_alert",
-  "security_zone_blocked",
-  "goal_proposed",
-  "goal_executing",
-  "goal_error",
-  "manager_request",
-  "ceo_decision",
-];
-
 export const Inbox: FC = () => {
   const { t } = useTranslation();
   const items = useInboxStore((s) => s.items);
   const markRead = useInboxStore((s) => s.markRead);
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [tab, setTab] = useState<"pendentes" | "historico">("pendentes");
   const [promotionSkillId, setPromotionSkillId] = useState<string | null>(null);
   const [consolidationProposalId, setConsolidationProposalId] = useState<string | null>(null);
   const [approvalModalItem, setApprovalModalItem] = useState<InboxItem | null>(null);
 
-  const filtered = filter === "all" ? items : items.filter((i) => i.kind === filter);
+  const pending = items.filter((i) => i.readAt === null);
+  const history = items.filter((i) => i.readAt !== null);
+  const shown = tab === "pendentes" ? pending : history;
 
   return (
-    <div className="p-8 max-w-3xl">
-      <h1 className="text-2xl font-bold text-brand-dark mb-4">{t("inbox.title")}</h1>
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {FILTERS.map((f) => (
+    <div className="px-8 py-7 mx-auto max-w-2xl">
+      <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-ink mb-1">
+        {t("inbox.title")}
+      </h1>
+      <p className="text-[13px] text-ink-muted mb-5">{t("inbox.subtitle")}</p>
+      <div className="flex gap-5 border-b border-surface-border mb-4">
+        {(["pendentes", "historico"] as const).map((tb) => (
           <button
-            key={f}
-            onClick={() => setFilter(f)}
+            key={tb}
             type="button"
-            className={`text-xs px-2 py-1 rounded ${filter === f ? "bg-brand text-brand-fg" : "bg-surface-soft text-ink-muted"}`}
+            onClick={() => setTab(tb)}
+            className={`text-[13px] pb-2.5 ${tab === tb ? "text-brand font-semibold shadow-[inset_0_-2px_0_var(--c-primary)]" : "text-ink-muted"}`}
           >
-            {t(`inbox.filter.${f}`)}
+            {t(`inbox.tabs.${tb}`)}
+            {tb === "pendentes" && pending.length > 0 ? ` · ${pending.length}` : ""}
           </button>
         ))}
       </div>
-      {filtered.length === 0 ? (
-        <p className="text-ink-muted text-sm">{t("inbox.empty")}</p>
+      {shown.length === 0 ? (
+        <p className="text-sm text-ink-muted">
+          {t(tab === "pendentes" ? "inbox.pendentesEmpty" : "inbox.historicoEmpty")}
+        </p>
       ) : (
-        <ul className="space-y-2">
-          {filtered.map((item) => (
-            <li
-              key={item.id}
-              className={`bg-surface-card rounded p-3 ${KIND_BORDER[item.kind]} ${item.readAt === null ? "" : "opacity-60"}`}
-            >
-              <div className="flex justify-between gap-3">
-                <h3 className="text-sm font-semibold text-brand-dark">{item.title}</h3>
-                <span className="text-[10px] text-ink-soft">
-                  {new Date(item.createdAt).toLocaleString()}
-                </span>
-              </div>
-              {item.preview !== null && (
-                <p className="text-xs text-ink-muted mt-1 break-words">{item.preview}</p>
-              )}
-              {item.kind === "trust_promotion_suggested" && (
-                <TrustPromotionCard item={item} markRead={(id) => void markRead(id)} />
-              )}
-              {(item.kind === "approval" || item.kind === "manager_request") &&
-                item.requiresAction &&
-                item.readAt === null && (
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={() => setApprovalModalItem(item)}
-                      className="text-xs px-3 py-1 bg-brand text-brand-fg rounded font-semibold"
-                    >
-                      {t("inbox.decide")}
-                    </button>
-                  </div>
-                )}
-              {GOAL_KINDS.includes(item.kind) &&
-                (() => {
-                  const goalId = extractGoalId(item.payloadJson);
-                  if (goalId === null) return null;
-                  return (
-                    <Link
-                      to={`/goals/${goalId}`}
-                      onClick={() => {
-                        if (item.readAt === null) void markRead(item.id);
-                      }}
-                      className="text-xs text-brand hover:underline font-semibold mt-2 inline-block"
-                    >
-                      {t("inbox.openGoal")} →
-                    </Link>
-                  );
-                })()}
-              {item.kind === "org_proposed" && (
-                <Link
-                  to="/org-plan"
-                  onClick={() => {
-                    if (item.readAt === null) void markRead(item.id);
-                  }}
-                  className="text-xs text-brand hover:underline font-semibold mt-2 inline-block"
-                >
-                  {t("inbox.openOrgPlan")} →
-                </Link>
-              )}
-              {item.kind === "goal_error" &&
-                (() => {
-                  const goalId = extractGoalId(item.payloadJson);
-                  if (goalId === null || item.payloadJson === null) return null;
-                  let parsed: { step?: string } = {};
-                  try {
-                    parsed = JSON.parse(item.payloadJson) as { step?: string };
-                  } catch {
-                    return null;
-                  }
-                  if (parsed.step !== "narrated_halted") return null;
-                  return (
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void window.prospero.goals
-                            .narratedResume({ goalId })
-                            .then(() => markRead(item.id));
-                        }}
-                        className="text-xs px-3 py-1 bg-brand text-brand-fg rounded font-semibold"
-                      >
-                        {t("inbox.goalError.recovery.resumeNarrated")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void window.prospero.goals
-                            .narratedRollback({ goalId })
-                            .then(() => markRead(item.id));
-                        }}
-                        className="text-xs px-3 py-1 bg-semantic-danger text-white rounded font-semibold"
-                      >
-                        {t("inbox.goalError.recovery.rollback")}
-                      </button>
+        <ul className="space-y-3">
+          {shown.map((item) => {
+            const risk = inboxRisk(item);
+            return (
+              <li
+                key={item.id}
+                className={`bg-surface-card border border-surface-border rounded-2xl p-4 ${KIND_BORDER[item.kind]} ${item.readAt === null ? "" : "opacity-70"}`}
+              >
+                <div className="flex items-start gap-3">
+                  <span className="w-8 h-8 rounded-lg bg-surface-soft text-ink-muted flex items-center justify-center flex-shrink-0">
+                    <InboxKindIcon kind={item.kind} className="text-[17px]" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-ink truncate">{item.title}</h3>
+                      {risk !== null && <RiskPill kind={risk} />}
+                      <span className="ml-auto text-[10px] font-mono text-ink-soft whitespace-nowrap">
+                        {new Date(item.createdAt).toLocaleString()}
+                      </span>
                     </div>
-                  );
-                })()}
-              {item.kind === "skill_promotion_requested" &&
-                item.readAt === null &&
-                (() => {
-                  const sid = extractSkillId(item.payloadJson);
-                  if (sid === null) return null;
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => setPromotionSkillId(sid)}
-                      className="mt-2 text-xs text-brand hover:underline"
-                    >
-                      {t("inbox.skillPromotion.review")}
-                    </button>
-                  );
-                })()}
-              {item.kind === "skill_consolidation_proposed" &&
-                item.readAt === null &&
-                (() => {
-                  const pid = extractProposalId(item.payloadJson);
-                  if (pid === null) return null;
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => setConsolidationProposalId(pid)}
-                      className="mt-2 text-xs text-brand hover:underline"
-                    >
-                      {t("inbox.skillConsolidation.review")}
-                    </button>
-                  );
-                })()}
-              {item.kind === "verification_failed" &&
-                (() => {
-                  const goalId = extractGoalId(item.payloadJson);
-                  if (goalId === null) return null;
-                  return (
-                    <Link
-                      to={`/goals/${goalId}`}
-                      onClick={() => {
-                        if (item.readAt === null) void markRead(item.id);
-                      }}
-                      className="text-xs text-brand hover:underline font-semibold mt-2 inline-block"
-                    >
-                      {t("inbox.verificationFailed.open")} →
-                    </Link>
-                  );
-                })()}
-              {item.kind === "verification_review" &&
-                (() => {
-                  const goalId = extractGoalId(item.payloadJson);
-                  if (goalId === null) return null;
-                  return (
-                    <Link
-                      to={`/goals/${goalId}`}
-                      onClick={() => {
-                        if (item.readAt === null) void markRead(item.id);
-                      }}
-                      className="text-xs text-brand hover:underline font-semibold mt-2 inline-block"
-                    >
-                      {t("inbox.verificationReview.open")} →
-                    </Link>
-                  );
-                })()}
-              {item.kind === "security_zone_blocked" && (
-                <p className="text-xs text-ink-muted mt-2">{t("inbox.zoneBlocked.description")}</p>
-              )}
-              {item.readAt === null && item.requiresAction === false && (
-                <button
-                  onClick={() => void markRead(item.id)}
-                  type="button"
-                  className="text-[10px] text-ink-muted hover:underline mt-2"
-                >
-                  {t("inbox.markRead")}
-                </button>
-              )}
-            </li>
-          ))}
+                    {item.preview !== null && (
+                      <p className="text-xs text-ink-muted mt-1 break-words">{item.preview}</p>
+                    )}
+                    {item.kind === "trust_promotion_suggested" && (
+                      <TrustPromotionCard item={item} markRead={(id) => void markRead(id)} />
+                    )}
+                    {(item.kind === "approval" || item.kind === "manager_request") &&
+                      item.requiresAction &&
+                      item.readAt === null && (
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => setApprovalModalItem(item)}
+                            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand text-brand-fg"
+                          >
+                            {t("inbox.decide")}
+                          </button>
+                        </div>
+                      )}
+                    {GOAL_KINDS.includes(item.kind) &&
+                      (() => {
+                        const goalId = extractGoalId(item.payloadJson);
+                        if (goalId === null) return null;
+                        return (
+                          <Link
+                            to={`/goals/${goalId}`}
+                            onClick={() => {
+                              if (item.readAt === null) void markRead(item.id);
+                            }}
+                            className="text-xs text-brand hover:underline font-semibold mt-2 inline-block"
+                          >
+                            {t("inbox.openGoal")} →
+                          </Link>
+                        );
+                      })()}
+                    {item.kind === "org_proposed" && (
+                      <Link
+                        to="/org-plan"
+                        onClick={() => {
+                          if (item.readAt === null) void markRead(item.id);
+                        }}
+                        className="text-xs text-brand hover:underline font-semibold mt-2 inline-block"
+                      >
+                        {t("inbox.openOrgPlan")} →
+                      </Link>
+                    )}
+                    {item.kind === "goal_error" &&
+                      (() => {
+                        const goalId = extractGoalId(item.payloadJson);
+                        if (goalId === null || item.payloadJson === null) return null;
+                        let parsed: { step?: string } = {};
+                        try {
+                          parsed = JSON.parse(item.payloadJson) as { step?: string };
+                        } catch {
+                          return null;
+                        }
+                        if (parsed.step !== "narrated_halted") return null;
+                        return (
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void window.prospero.goals
+                                  .narratedResume({ goalId })
+                                  .then(() => markRead(item.id));
+                              }}
+                              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand text-brand-fg"
+                            >
+                              {t("inbox.goalError.recovery.resumeNarrated")}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void window.prospero.goals
+                                  .narratedRollback({ goalId })
+                                  .then(() => markRead(item.id));
+                              }}
+                              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-semantic-danger text-white"
+                            >
+                              {t("inbox.goalError.recovery.rollback")}
+                            </button>
+                          </div>
+                        );
+                      })()}
+                    {item.kind === "skill_promotion_requested" &&
+                      item.readAt === null &&
+                      (() => {
+                        const sid = extractSkillId(item.payloadJson);
+                        if (sid === null) return null;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setPromotionSkillId(sid)}
+                            className="mt-2 text-xs text-brand hover:underline font-semibold inline-block"
+                          >
+                            {t("inbox.skillPromotion.review")}
+                          </button>
+                        );
+                      })()}
+                    {item.kind === "skill_consolidation_proposed" &&
+                      item.readAt === null &&
+                      (() => {
+                        const pid = extractProposalId(item.payloadJson);
+                        if (pid === null) return null;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setConsolidationProposalId(pid)}
+                            className="mt-2 text-xs text-brand hover:underline font-semibold inline-block"
+                          >
+                            {t("inbox.skillConsolidation.review")}
+                          </button>
+                        );
+                      })()}
+                    {item.kind === "verification_failed" &&
+                      (() => {
+                        const goalId = extractGoalId(item.payloadJson);
+                        if (goalId === null) return null;
+                        return (
+                          <Link
+                            to={`/goals/${goalId}`}
+                            onClick={() => {
+                              if (item.readAt === null) void markRead(item.id);
+                            }}
+                            className="text-xs text-brand hover:underline font-semibold mt-2 inline-block"
+                          >
+                            {t("inbox.verificationFailed.open")} →
+                          </Link>
+                        );
+                      })()}
+                    {item.kind === "verification_review" &&
+                      (() => {
+                        const goalId = extractGoalId(item.payloadJson);
+                        if (goalId === null) return null;
+                        return (
+                          <Link
+                            to={`/goals/${goalId}`}
+                            onClick={() => {
+                              if (item.readAt === null) void markRead(item.id);
+                            }}
+                            className="text-xs text-brand hover:underline font-semibold mt-2 inline-block"
+                          >
+                            {t("inbox.verificationReview.open")} →
+                          </Link>
+                        );
+                      })()}
+                    {item.kind === "security_zone_blocked" && (
+                      <p className="text-xs text-ink-muted mt-2">
+                        {t("inbox.zoneBlocked.description")}
+                      </p>
+                    )}
+                    {item.readAt === null && item.requiresAction === false && (
+                      <button
+                        onClick={() => void markRead(item.id)}
+                        type="button"
+                        className="text-[10px] text-ink-muted hover:underline mt-2"
+                      >
+                        {t("inbox.markRead")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
       {promotionSkillId !== null && (

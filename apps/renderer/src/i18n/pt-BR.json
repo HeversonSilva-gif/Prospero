@@ -5,6 +5,7 @@
   "nav": {
     "inicio": "Início",
     "pedirAlgo": "Pedir algo",
+    "decisoes": "Decisões",
     "projetos": "Projetos",
     "equipe": "Minha equipe",
     "ajustes": "Ajustes"
@@ -949,19 +950,26 @@
     "loading": "Carregando…",
     "precisaDeVoce": "Precisa de você",
     "precisaDeVoceEmpty": "Tudo certo. Nada esperando você no momento.",
-    "precisaDeVoceCount": "{{count}} esperando sua decisão",
     "verButton": "Ver",
-    "markReviewed": "Marcar como visto",
-    "oQueAconteceu": "O que aconteceu esta noite",
-    "tarefasConcluidas": "tarefas concluídas",
-    "emAndamento": "em andamento",
-    "gastosHoje": "gastos hoje",
+    "hoje": "Hoje",
+    "hojeEmpty": "Nada por aqui ainda hoje.",
+    "verTudo": "Ver tudo",
+    "verEquipe": "Ver equipe",
+    "maisDecisoes_one": "+{{count}} outra decisão esperando",
+    "maisDecisoes_other": "+{{count}} outras decisões esperando",
     "suaEquipeAgora": "Sua equipe agora",
     "suaEquipeAgoraEmpty": "Você ainda não tem funcionários. Contrate alguém em \"Minha equipe\"."
   },
   "inbox": {
     "title": "Inbox",
+    "subtitle": "Você decide o que precisa de gente; o resto a equipe faz sozinha.",
     "empty": "Inbox vazia.",
+    "pendentesEmpty": "Nada pra decidir agora.",
+    "historicoEmpty": "Nada no histórico ainda.",
+    "tabs": {
+      "pendentes": "Pendentes",
+      "historico": "Histórico"
+    },
     "approve": "Aprovar",
     "reject": "Rejeitar",
     "decide": "Decidir",
@@ -1033,7 +1041,9 @@
       "confirmation": "Confirmado",
       "observation": "Nota"
     },
-    "loadOlder": "Carregar {{count}} mensagens antigas"
+    "loadOlder": "Carregar {{count}} mensagens antigas",
+    "toolActions_one": "{{count}} ação",
+    "toolActions_other": "{{count}} ações"
   },
   "common": {
     "save": "Salvar",
@@ -1124,6 +1134,22 @@
   },
   "ajustes": {
     "title": "Ajustes",
+    "subtitle": "Conecte os serviços e ajuste como o Prospero trabalha.",
+    "gerais": "Ajustes gerais",
+    "conexoes": {
+      "title": "Conexões",
+      "progress": "{{n}} de 4 conectadas",
+      "connected": "conectado",
+      "connect": "conectar",
+      "manage": "Gerenciar",
+      "connectBtn": "Conectar",
+      "unlocks": {
+        "x": "Publicar e responder",
+        "stripe": "Receber pagamentos",
+        "cloudflare": "Hospedar o site",
+        "email": "Enviar e responder"
+      }
+    },
     "backToAjustes": "Ajustes",
     "conta": {
       "title": "Conta",
@@ -1502,6 +1528,14 @@
     "empty": {
       "title": "Sua equipe está vazia",
       "description": "Contrate alguém pra começar."
+    },
+    "card": {
+      "leadsTeam": "Lidera o time",
+      "menu": "Opções"
+    },
+    "reassign": {
+      "pickTitle": "Reatribuir chefe de {{name}}",
+      "pickHint": "Escolha o novo chefe"
     }
   },
   "funcionario": {
@@ -1659,16 +1693,19 @@
       "subtitle": "Escolha como quer começar. O CEO vai conversar com você e montar o plano.",
       "help": {
         "title": "Não tenho ideia — me ajuda a decidir",
-        "desc": "O CEO te entrevista, descobre nichos que encaixam no seu perfil e propõe o plano."
+        "desc": "O CEO te entrevista, descobre nichos que encaixam no seu perfil e propõe o plano.",
+        "go": "Me ajude a decidir"
       },
       "idea": {
         "title": "Já sei o que quero",
-        "desc": "Descreva sua ideia para o CEO, ele molda um plano viável e te mostra para aprovar."
-      }
+        "desc": "Descreva sua ideia para o CEO, ele molda um plano viável e te mostra para aprovar.",
+        "go": "Tenho uma ideia"
+      },
+      "trust": "Você aprova tudo. Nada vai ao ar nem cobra ninguém sem o seu OK."
     },
     "seed": {
-      "help": "Olá! Vou te ajudar a encontrar um negócio online que faz sentido pra você. Vou te fazer algumas perguntas sobre seus interesses, habilidades e disponibilidade — e no final proponho um plano de negócio concreto. Pode começar me contando: o que você mais gosta de fazer no seu tempo livre?",
-      "idea": "Olá! Me conte sobre a ideia de negócio que você tem em mente. Quero entender o que você quer vender, para quem e por que acredita que vai funcionar — assim posso moldar um plano de negócio viável e apresentar para você aprovar."
+      "help": "Oi! Acabei de criar minha empresa e ainda não tenho ideia do que vender — só sei que quero um negócio online que você consiga tocar. Pode começar me entrevistando sobre meus interesses, habilidades e tempo disponível e, no final, me propor um plano de negócio concreto?",
+      "idea": "Oi! Acabei de criar minha empresa e já tenho uma ideia de negócio em mente. Pode me fazer algumas perguntas pra entender o que eu quero vender, pra quem e por quê — e depois moldar isso num plano de negócio viável pra eu aprovar?"
     }
   },
   "businessPlan": {
@@ -1721,5 +1758,12 @@
     },
     "pageTitle": "Plano de negócio",
     "none": "Nenhum plano de negócio aguardando revisão."
+  },
+  "decisoes": {
+    "risk": {
+      "money": "cobra de verdade",
+      "publish": "fica público",
+      "safe": "seguro"
+    }
   }
 }
