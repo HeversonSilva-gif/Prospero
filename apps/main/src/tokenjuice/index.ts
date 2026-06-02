@@ -2,6 +2,7 @@ import { countChars, estimateTokens } from "./measure.js";
 import { clamp } from "./clamp.js";
 import { tokenjuiceConfig, budgetFor } from "./config.js";
 import { shapers } from "./shapers.js";
+import { recordToolOutputMetrics, type MetricsContext } from "./metrics.js";
 
 export interface CompressStats {
   toolName: string;
@@ -83,4 +84,10 @@ export const compressToolResult = (input: CompressInput): CompressOutput => {
     console.warn("[tokenjuice] compress failed", err);
     return mk(result, "passthrough", false);
   }
+};
+
+export const processToolResult = (input: CompressInput & { ctx: MetricsContext }): string => {
+  const { text, stats } = compressToolResult({ toolName: input.toolName, result: input.result });
+  recordToolOutputMetrics(input.ctx, stats);
+  return text;
 };
