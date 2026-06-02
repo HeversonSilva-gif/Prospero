@@ -95,6 +95,7 @@ export const Ajustes: FC = () => {
             name="Stripe"
             unlocks={t("ajustes.conexoes.unlocks.stripe")}
             connected={conn.stripe.connected}
+            {...(conn.stripe.account !== undefined ? { detail: conn.stripe.account } : {})}
             onAction={() => navigate("/settings/conta")}
           />
           <ConnectorCard
@@ -110,6 +111,7 @@ export const Ajustes: FC = () => {
             name="Email"
             unlocks={t("ajustes.conexoes.unlocks.email")}
             connected={conn.email.connected}
+            {...(conn.email.from !== undefined ? { detail: conn.email.from } : {})}
             onAction={() => navigate("/settings/conta")}
           />
         </div>
