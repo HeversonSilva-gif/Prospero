@@ -27,6 +27,8 @@ import {
   preapprovalKey,
   preapprovalPath,
 } from "../approvals/deferred-approval.js";
+import { checkActionCap } from "../approvals/action-cap.js";
+import { createGuardrailAlert } from "../security/guardrail-alert.js";
 import { createArtifactsRepository } from "../artifacts/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { recomputeAgentTrust } from "../trust/engine.js";
@@ -139,6 +141,37 @@ const gateAction = async (
   if (existsSync(prePath)) {
     safeUnlink(prePath);
     return { decision: "allow" };
+  }
+
+  // Runaway circuit-breaker: deny (without creating an approval) once the per-hour cap
+  // for this side-effecting tool — or the company ceiling — is hit. Read/unknown tools
+  // return exceeded:false. Counting attempts that created rows caps how many proceed.
+  const cap = checkActionCap(ctx.db, {
+    companyId: ctx.companyId,
+    agentId: ctx.agentId,
+    toolName,
+    now: Date.now(),
+  });
+  if (cap.exceeded) {
+    createGuardrailAlert(ctx.db, {
+      companyId: ctx.companyId,
+      actorId: ctx.agentId,
+      title: "Limite de ações por hora atingido",
+      preview: `${toolName} (${cap.scope === "company" ? "teto da empresa" : "limite do agente"}: ${cap.limit}/h)`,
+    });
+    tryGetRecorder()?.recordActivity({
+      companyId: ctx.companyId,
+      actor: { kind: "agent", id: ctx.agentId },
+      action: "security.action_cap_exceeded",
+      entityKind: "agent",
+      entityId: ctx.agentId,
+      agentId: ctx.agentId,
+      payload: { toolName, limit: cap.limit, count: cap.count, scope: cap.scope },
+    });
+    return {
+      decision: "deny",
+      message: `Limite de ${cap.limit}/hora atingido para ${toolName}. Tente novamente mais tarde.`,
+    };
   }
 
   const approvals = createApprovalsRepository(ctx.db);
