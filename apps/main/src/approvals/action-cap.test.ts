@@ -94,4 +94,16 @@ describe("checkActionCap", () => {
     expect(r.exceeded).toBe(true);
     expect(r.count).toBe(30);
   });
+
+  it("fails open (not exceeded) when the approvals table is missing", () => {
+    const db = new Database(":memory:"); // no migrations → no `approvals` table → db.prepare throws
+    const r = checkActionCap(db, {
+      companyId: "co_1",
+      agentId: "ag_1",
+      toolName: "post_to_x",
+      now: 1_000_000,
+    });
+    expect(r.exceeded).toBe(false);
+    expect(r.scope).toBe("none");
+  });
 });
