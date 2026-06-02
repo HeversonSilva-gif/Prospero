@@ -1510,6 +1510,14 @@
     "empty": {
       "title": "Your team is empty",
       "description": "Hire someone to get started."
+    },
+    "card": {
+      "leadsTeam": "Leads the team",
+      "menu": "Options"
+    },
+    "reassign": {
+      "pickTitle": "Reassign {{name}}'s manager",
+      "pickHint": "Choose the new manager"
     }
   },
   "funcionario": {

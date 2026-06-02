@@ -1510,6 +1510,14 @@
     "empty": {
       "title": "Sua equipe está vazia",
       "description": "Contrate alguém pra começar."
+    },
+    "card": {
+      "leadsTeam": "Lidera o time",
+      "menu": "Opções"
+    },
+    "reassign": {
+      "pickTitle": "Reatribuir chefe de {{name}}",
+      "pickHint": "Escolha o novo chefe"
     }
   },
   "funcionario": {
