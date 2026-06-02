@@ -2,24 +2,27 @@ import { describe, it, expect } from "vitest";
 import { agentStatusInfo } from "./status.js";
 
 describe("agentStatusInfo", () => {
-  it("maps an active agent to jade tone", () => {
-    expect(agentStatusInfo("active").tone).toBe("active");
+  it("working and thinking are the active tone (jade)", () => {
+    expect(agentStatusInfo("working").tone).toBe("active");
+    expect(agentStatusInfo("thinking").tone).toBe("active");
   });
-  it("maps a waiting-on-user agent to amber tone", () => {
+  it("waiting and paused are the wait tone (amber)", () => {
     expect(agentStatusInfo("waiting").tone).toBe("wait");
+    expect(agentStatusInfo("paused").tone).toBe("wait");
   });
-  it("maps idle/terminated to idle tone", () => {
+  it("idle and terminated are the idle tone", () => {
     expect(agentStatusInfo("idle").tone).toBe("idle");
     expect(agentStatusInfo("terminated").tone).toBe("idle");
   });
-  it("defaults unknown status to idle", () => {
+  it("error is the error tone (danger)", () => {
+    expect(agentStatusInfo("error").tone).toBe("error");
+  });
+  it("exposes the i18n labelKey for the status", () => {
+    expect(agentStatusInfo("working").labelKey).toBe("agentStatus.working");
+    expect(agentStatusInfo("waiting").labelKey).toBe("agentStatus.waiting");
+  });
+  it("defaults an unknown status to idle", () => {
     expect(agentStatusInfo("???").tone).toBe("idle");
-  });
-  it("maps working/writing to active tone", () => {
-    expect(agentStatusInfo("working").tone).toBe("active");
-    expect(agentStatusInfo("writing").tone).toBe("active");
-  });
-  it("maps blocked to wait tone", () => {
-    expect(agentStatusInfo("blocked").tone).toBe("wait");
+    expect(agentStatusInfo("???").labelKey).toBe("agentStatus.idle");
   });
 });
