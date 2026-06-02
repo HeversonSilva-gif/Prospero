@@ -69,9 +69,14 @@ export const compressToolResult = (input: CompressInput): CompressOutput => {
       toolName,
     });
 
-    // Not worth the marker noise if the clamp barely helped.
-    if (countChars(clamped.text) / Math.max(1, rawChars) > 1 - tokenjuiceConfig.minReductionRatio) {
-      return mk(result, "passthrough", false);
+    // If clamping barely helped — relative to what went INTO the clamp — skip the
+    // marker noise and keep the pre-clamp text (preserving any shaper reduction).
+    const workingChars = countChars(working);
+    if (
+      countChars(clamped.text) / Math.max(1, workingChars) >
+      1 - tokenjuiceConfig.minReductionRatio
+    ) {
+      return working === result ? mk(result, "passthrough", false) : mk(working, "json", false);
     }
     return mk(clamped.text, clamped.mode, true);
   } catch (err) {

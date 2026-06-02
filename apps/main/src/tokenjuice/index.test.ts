@@ -1,10 +1,12 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { compressToolResult } from "./index.js";
 import { shapers } from "./shapers.js";
+import { tokenjuiceConfig } from "./config.js";
 
 describe("compressToolResult", () => {
   afterEach(() => {
     shapers.clear();
+    tokenjuiceConfig.perToolBudgetChars = {};
   });
 
   it("passes small payloads through untouched", () => {
@@ -44,5 +46,14 @@ describe("compressToolResult", () => {
     });
     const input = JSON.stringify({ a: "c".repeat(20_000) });
     expect(() => compressToolResult({ toolName: "boom", result: input })).not.toThrow();
+  });
+
+  it("returns passthrough when clamping barely helps", () => {
+    tokenjuiceConfig.perToolBudgetChars["barely"] = 1000;
+    const input = "P".repeat(1040); // non-JSON, > minSize, just over budget
+    const out = compressToolResult({ toolName: "barely", result: input });
+    expect(out.stats.clamped).toBe(false);
+    expect(out.stats.mode).toBe("passthrough");
+    expect(out.text).toBe(input);
   });
 });
