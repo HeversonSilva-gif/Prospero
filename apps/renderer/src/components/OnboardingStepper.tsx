@@ -1,4 +1,5 @@
 import { type FC } from "react";
+import { Check } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import { ONBOARDING_PHASES, type OnboardingPhase } from "../lib/onboarding.js";
 
@@ -20,11 +21,11 @@ export const OnboardingStepper: FC<{ active: OnboardingPhase }> = ({ active }) =
                 current
                   ? "bg-brand text-brand-fg"
                   : done
-                    ? "bg-semantic-success text-white"
+                    ? "bg-brand-bg text-brand"
                     : "bg-surface-soft text-ink-soft border border-surface-border"
               }`}
             >
-              {done ? "✓" : i + 1}
+              {done ? <Check size={12} weight="bold" /> : i + 1}
             </span>
             <span className={`text-xs ${current ? "font-semibold text-ink" : "text-ink-muted"}`}>
               {t(`novaEmpresa.steps.${phase}`)}
