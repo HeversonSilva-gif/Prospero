@@ -6,6 +6,8 @@ export type StatusInfo = {
   textClass: string;
   /** tailwind background color class for the dot */
   dotClass: string;
+  /** rgba halo color for the dot's boxShadow ring (tone-matched) */
+  halo: string;
 };
 
 // Maps the many agent statuses to the 3 Estúdio tones (jade / amber / grey).
@@ -17,9 +19,21 @@ export const agentStatusInfo = (status: string): StatusInfo => {
         ? "wait"
         : "idle";
   const byTone: Record<StatusTone, Omit<StatusInfo, "tone">> = {
-    active: { textClass: "text-status-active", dotClass: "bg-status-active" },
-    wait: { textClass: "text-status-wait", dotClass: "bg-status-wait" },
-    idle: { textClass: "text-status-idle", dotClass: "bg-status-idle" },
+    active: {
+      textClass: "text-status-active",
+      dotClass: "bg-status-active",
+      halo: "rgba(15,118,110,.15)",
+    },
+    wait: {
+      textClass: "text-status-wait",
+      dotClass: "bg-status-wait",
+      halo: "rgba(217,162,27,.18)",
+    },
+    idle: {
+      textClass: "text-status-idle",
+      dotClass: "bg-status-idle",
+      halo: "rgba(155,176,167,.18)",
+    },
   };
   return { tone, ...byTone[tone] };
 };

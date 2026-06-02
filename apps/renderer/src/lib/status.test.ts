@@ -15,4 +15,11 @@ describe("agentStatusInfo", () => {
   it("defaults unknown status to idle", () => {
     expect(agentStatusInfo("???").tone).toBe("idle");
   });
+  it("maps working/writing to active tone", () => {
+    expect(agentStatusInfo("working").tone).toBe("active");
+    expect(agentStatusInfo("writing").tone).toBe("active");
+  });
+  it("maps blocked to wait tone", () => {
+    expect(agentStatusInfo("blocked").tone).toBe("wait");
+  });
 });

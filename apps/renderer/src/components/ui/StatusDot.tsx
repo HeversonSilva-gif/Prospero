@@ -5,8 +5,8 @@ export const StatusDot: FC<{ status: string; className?: string }> = ({ status, 
   const info = agentStatusInfo(status);
   return (
     <span
-      className={`inline-block w-[7px] h-[7px] rounded-full ${info.dotClass} ${className ?? ""}`}
-      style={{ boxShadow: "0 0 0 3px rgba(15,118,110,.15)" }}
+      className={`inline-block w-[7px] h-[7px] rounded-full ${info.dotClass}${className ? ` ${className}` : ""}`}
+      style={{ boxShadow: `0 0 0 3px ${info.halo}` }}
       aria-hidden="true"
     />
   );
