@@ -39,6 +39,7 @@ import { memoryToolDefinitions } from "./tools-memory.js";
 import { isaToolDefinitions } from "./tools-isa.js";
 import { projectContextToolDefinitions } from "./tools-project-context.js";
 import { genesisToolDefinitions } from "./tools-genesis.js";
+import { processToolResult } from "../tokenjuice/index.js";
 
 const agentId = process.env["AGENT_ID"];
 const companyId = process.env["COMPANY_ID"];
@@ -125,7 +126,8 @@ for (const def of allToolDefinitions) {
       // application-level auth token is meaningful. AGENT_ID/COMPANY_ID still come from
       // env to scope the tool context. If we ever switch transport to HTTP/WS, revisit.
       const result = await def.run(input as never, ctx);
-      return { content: [{ type: "text" as const, text: result }] };
+      const text = processToolResult({ toolName: def.name, result, ctx });
+      return { content: [{ type: "text" as const, text }] };
     },
   );
 }
