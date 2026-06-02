@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Compass, Lightbulb, ArrowRight, ShieldCheck } from "@phosphor-icons/react";
 import { useCompaniesStore } from "../stores/companies.js";
 
 export type GenesisDoor = "ajuda" | "ideia";
@@ -33,25 +34,36 @@ export const GenesisEntry = ({ onClose, onCreated, variant = "modal" }: Props) =
 
   const doors = (
     <div className="space-y-3">
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void pick("ajuda")}
-        className="w-full text-left p-4 border border-surface-border rounded hover:border-brand disabled:opacity-50"
-      >
-        <div className="text-sm font-semibold text-ink">{t("genesis.entry.help.title")}</div>
-        <div className="text-xs text-ink-muted mt-1">{t("genesis.entry.help.desc")}</div>
-      </button>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void pick("ideia")}
-        className="w-full text-left p-4 border border-surface-border rounded hover:border-brand disabled:opacity-50"
-      >
-        <div className="text-sm font-semibold text-ink">{t("genesis.entry.idea.title")}</div>
-        <div className="text-xs text-ink-muted mt-1">{t("genesis.entry.idea.desc")}</div>
-      </button>
+      {[
+        { door: "ajuda" as const, icon: <Compass size={22} />, key: "genesis.entry.help" },
+        { door: "ideia" as const, icon: <Lightbulb size={22} />, key: "genesis.entry.idea" },
+      ].map(({ door, icon, key }) => (
+        <button
+          key={door}
+          type="button"
+          disabled={busy}
+          onClick={() => void pick(door)}
+          className="w-full text-left p-5 bg-surface-card border border-surface-border rounded-2xl hover:border-brand hover:shadow-[0_8px_22px_-10px_rgba(15,118,110,.3)] transition disabled:opacity-50 flex items-start gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        >
+          <span
+            className="w-11 h-11 rounded-xl bg-brand-bg text-brand flex items-center justify-center flex-shrink-0"
+            aria-hidden="true"
+          >
+            {icon}
+          </span>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-ink">{t(`${key}.title`)}</div>
+            <div className="text-xs text-ink-muted mt-1 leading-relaxed">{t(`${key}.desc`)}</div>
+            <div className="text-[12px] font-semibold text-brand mt-2.5 flex items-center gap-1">
+              {t(`${key}.go`)} <ArrowRight size={13} aria-hidden="true" />
+            </div>
+          </div>
+        </button>
+      ))}
       {error !== null && <p className="text-xs text-semantic-danger">{error}</p>}
+      <p className="text-[11px] text-ink-soft flex items-center gap-1.5 pt-1">
+        <ShieldCheck size={13} aria-hidden="true" /> {t("genesis.entry.trust")}
+      </p>
     </div>
   );
 
@@ -65,10 +77,10 @@ export const GenesisEntry = ({ onClose, onCreated, variant = "modal" }: Props) =
       onClick={onClose}
     >
       <div
-        className="bg-surface rounded-lg shadow-xl w-full max-w-lg p-6"
+        className="bg-surface-card rounded-2xl shadow-xl w-full max-w-lg p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold mb-1">{t("genesis.entry.title")}</h2>
+        <h2 className="text-lg font-semibold text-ink mb-1">{t("genesis.entry.title")}</h2>
         <p className="text-xs text-ink-muted mb-4">{t("genesis.entry.subtitle")}</p>
         {doors}
       </div>

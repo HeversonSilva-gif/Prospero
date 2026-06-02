@@ -1693,12 +1693,15 @@
       "subtitle": "Escolha como quer começar. O CEO vai conversar com você e montar o plano.",
       "help": {
         "title": "Não tenho ideia — me ajuda a decidir",
-        "desc": "O CEO te entrevista, descobre nichos que encaixam no seu perfil e propõe o plano."
+        "desc": "O CEO te entrevista, descobre nichos que encaixam no seu perfil e propõe o plano.",
+        "go": "Me ajude a decidir"
       },
       "idea": {
         "title": "Já sei o que quero",
-        "desc": "Descreva sua ideia para o CEO, ele molda um plano viável e te mostra para aprovar."
-      }
+        "desc": "Descreva sua ideia para o CEO, ele molda um plano viável e te mostra para aprovar.",
+        "go": "Tenho uma ideia"
+      },
+      "trust": "Você aprova tudo. Nada vai ao ar nem cobra ninguém sem o seu OK."
     },
     "seed": {
       "help": "Oi! Acabei de criar minha empresa e ainda não tenho ideia do que vender — só sei que quero um negócio online que você consiga tocar. Pode começar me entrevistando sobre meus interesses, habilidades e tempo disponível e, no final, me propor um plano de negócio concreto?",

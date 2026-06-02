@@ -1693,12 +1693,15 @@
       "subtitle": "Choose how you want to start. The CEO will chat with you and build the plan.",
       "help": {
         "title": "I have no idea — help me decide",
-        "desc": "The CEO interviews you, discovers niches that fit your profile, and proposes the plan."
+        "desc": "The CEO interviews you, discovers niches that fit your profile, and proposes the plan.",
+        "go": "Help me decide"
       },
       "idea": {
         "title": "I already know what I want",
-        "desc": "Describe your idea to the CEO, who shapes it into a feasible plan for you to approve."
-      }
+        "desc": "Describe your idea to the CEO, who shapes it into a feasible plan for you to approve.",
+        "go": "I have an idea"
+      },
+      "trust": "You approve everything. Nothing goes live or charges anyone without your OK."
     },
     "seed": {
       "help": "Hi! I just created my company and I don't have a business idea yet — I just know I want an online business you can run. Can you start by interviewing me about my interests, skills, and available time, then propose a concrete business plan?",
