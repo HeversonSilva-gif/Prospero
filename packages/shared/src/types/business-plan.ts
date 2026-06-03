@@ -44,6 +44,43 @@ export type ChargeModel = {
 export type Competitor = { name: string; what: string; price?: string | undefined };
 export type BusinessResearch = { competitors: Competitor[]; differentiation: string };
 
+// P4.2 — 3-options genesis. Signal scores 0-100 for each dimension; revenue12m
+// is a human-readable range string (e.g. "R$ 2–6 mil/mês").
+export type BusinessSignals = {
+  market: number; // 0-100
+  virality: number; // 0-100
+  community: number; // 0-100
+  revenue12m: string; // e.g. "R$ 2–6 mil/mês"
+};
+
+// Month-by-month revenue projection attached to a single option.
+export type RevenueProjection = {
+  month3: string; // e.g. "R$ 300–800"
+  month6: string;
+  month12: string;
+  assumption: string; // single-sentence caveat
+};
+
+// One candidate business path proposed by the CEO in the 3-options genesis flow.
+// Extends all single-plan fields (inline rather than extending to keep things
+// self-contained) plus the option-specific metadata.
+export type BusinessPlanOption = {
+  // Core plan fields (mirror BusinessPlan flat columns)
+  concept: string;
+  monetization: string[];
+  pricing: ChargeModel | null;
+  research: BusinessResearch | null;
+  ownerProfile: string | null;
+  marketing: BusinessPlanMarketing;
+  identity: BusinessPlanIdentity;
+  dropped: DroppedIdea[];
+  // Option-specific
+  recommended: boolean;
+  whyRecommended: string; // non-empty only when recommended === true
+  signals: BusinessSignals;
+  projection: RevenueProjection;
+};
+
 export type BusinessPlan = {
   id: string;
   companyId: string;

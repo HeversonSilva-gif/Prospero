@@ -1757,7 +1757,23 @@
       "title": "About you"
     },
     "pageTitle": "Business plan",
-    "none": "No business plan awaiting review."
+    "none": "No business plan awaiting review.",
+    "options": {
+      "title": "I designed 3 paths for you",
+      "ceoPitch": "I researched the market based on your profile. All three are viable for my team to run solo — I recommend the first one, and I'll explain why. Choose one to see the full plan.",
+      "recommended": "Recommended",
+      "optionN": "Option {{n}}",
+      "whyPrefix": "Why I recommend this:",
+      "seePlan": "See full plan",
+      "chooseAria": "Choose {{name}}",
+      "disclaimer": "CEO estimates based on market research — direction, not a guarantee.",
+      "signals": {
+        "market": "Market",
+        "virality": "Virality",
+        "community": "Community",
+        "revenue12m": "12 months"
+      }
+    }
   },
   "decisoes": {
     "risk": {
