@@ -310,11 +310,16 @@ const memorySearch: Tool = {
     };
     const repo = createMemoriesRepository(ctx.db);
     const safeQuery = toFtsMatchExpr(query);
+    // #8 (audit 2026-06-03): scope to this agent's own rows PLUS the company's
+    // global ones (agent_id NULL), within the company. Searching the exact
+    // agentId alone hid company-wide retrospectives from the agent that needs
+    // them. companyId keeps it from leaking other tenants' memories.
     const rows =
       safeQuery === ""
         ? []
         : repo.search(safeQuery, {
-            agentId: ctx.agentId,
+            companyId: ctx.companyId,
+            scopeToAgent: ctx.agentId,
             ...(limit !== undefined ? { limit } : {}),
           });
     repo.recordAccess(rows.map((m) => m.id));
