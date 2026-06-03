@@ -3,7 +3,11 @@ import Database from "better-sqlite3";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { collectTrackRecord, DEFAULT_WINDOW_MS } from "./track-record.js";
+import {
+  collectTrackRecord,
+  DEFAULT_WINDOW_MS,
+  VERIFIED_OUTCOME_WINDOW_MS,
+} from "./track-record.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -71,6 +75,15 @@ describe("collectTrackRecord", () => {
     seedGoal(db, "g3", "a1", "achieved", now);
     const r = collectTrackRecord(db, "a1");
     expect(r.verifiedOutcomes).toBe(2);
+  });
+
+  it("excludes achievements older than the long verified-outcome window (#12)", () => {
+    const { db } = setup();
+    const now = Date.now();
+    seedGoal(db, "g-recent", "a1", "achieved", now - 10 * 24 * 60 * 60 * 1000);
+    seedGoal(db, "g-old", "a1", "achieved", now - VERIFIED_OUTCOME_WINDOW_MS - 60_000);
+    const r = collectTrackRecord(db, "a1", { now });
+    expect(r.verifiedOutcomes).toBe(1); // only the recent achievement counts
   });
 
   it("computes iscFirstPassRate from goal_criteria across the agent's goals", () => {
