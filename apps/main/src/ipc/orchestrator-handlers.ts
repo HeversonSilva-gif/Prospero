@@ -69,6 +69,9 @@ import { critiqueGoalPlan } from "../agents/goal-plan-critique.js";
 import { decidePlanOutcome } from "../agents/plan-outcome.js";
 import { formatGoalPlanRequest } from "../goals/format-request.js";
 import { createIssuesRepository } from "../issues/repository.js";
+import { reactToIssueChange } from "../issues/react-to-change.js";
+import { notifyAssignee } from "../issues/notify-assignee.js";
+import { buildVerificationDeps } from "../verification/deps.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
 import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
 import { pickAdapterForHire } from "../agents/hire-adapter.js";
@@ -686,6 +689,24 @@ export const registerOrchestratorHandlers = (
           issueId: p.issueId,
           companyId: issueRow.company_id,
         });
+        // C1 (audit 2026-06-03): the AGENT path (MCP update_issue) emits
+        // issue.updated but — unlike the renderer IPC handler — never ran the
+        // verification trigger / topo-unlock, so a goal whose last issue an
+        // agent marked done was stranded `in_progress` forever. Run the SAME
+        // shared reaction here and wake any unlocked dependents.
+        const unlocked = reactToIssueChange(db, p.issueId, buildVerificationDeps());
+        const recorder = tryGetRecorder();
+        for (const dep of unlocked) {
+          notifyAssignee(db, eventsDir, dep);
+          recorder?.recordActivity({
+            companyId: dep.companyId,
+            actor: { kind: "system" },
+            action: "issue.unlocked_by_deps",
+            entityKind: "issue",
+            entityId: dep.id,
+            payload: { unlockedBy: p.issueId },
+          });
+        }
       }
     } else if (
       kind === "approval.route" ||
