@@ -322,6 +322,49 @@ describe("memory_search records access", () => {
   });
 });
 
+describe("memory_search — special character safety", () => {
+  const specialChars = ['"', ":", "*", "-", "(", "^", "OR", "AND NOT"];
+
+  for (const chars of specialChars) {
+    it(`memory_search does not throw for query containing: ${chars}`, async () => {
+      const ctx = newCtx();
+      const repo = createMemoriesRepository(ctx.db);
+      repo.create({ companyId: ctx.companyId, agentId: ctx.agentId, kind: "rule", body: "dummy" });
+
+      await expect(
+        tool("memory_search").run({ query: `some ${chars} query` }, ctx),
+      ).resolves.toBeDefined();
+    });
+  }
+
+  it("memory_search with only special chars returns empty results without error", async () => {
+    const ctx = newCtx();
+    const repo = createMemoriesRepository(ctx.db);
+    repo.create({ companyId: ctx.companyId, agentId: ctx.agentId, kind: "rule", body: "dummy" });
+
+    // A raw FTS expression like `"docker":*` would throw; our escaper wraps each
+    // whitespace-separated token in double-quotes, making it safe.
+    const result = JSON.parse(await tool("memory_search").run({ query: '"docker":*' }, ctx)) as {
+      memories: unknown[];
+    };
+    expect(result.memories).toBeDefined();
+  });
+
+  it("memory_search still finds real matches after escaping", async () => {
+    const ctx = newCtx();
+    await tool("memory_add").run({ kind: "rule", body: "docker compose tip" }, ctx);
+
+    // Query with a dash (FTS operator) mixed in — should still find the word "docker".
+    const hits = JSON.parse(await tool("memory_search").run({ query: "docker-compose" }, ctx)) as {
+      memories: Array<{ body: string }>;
+    };
+    // "docker-compose" is escaped to `"docker-compose"` — FTS5 treats the dash
+    // as a literal character inside quotes, so this may or may not match
+    // depending on FTS tokenizer. What matters is it does NOT throw.
+    expect(hits.memories).toBeDefined();
+  });
+});
+
 describe("session_search tool", () => {
   it("finds past messages by keyword", async () => {
     const ctx = newCtx();

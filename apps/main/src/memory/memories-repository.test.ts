@@ -191,6 +191,117 @@ describe("memories-repository — recordAccess", () => {
   });
 });
 
+describe("memories-repository — softDelete FTS cleanup", () => {
+  it("soft-deleting a memory removes its memories_fts row", () => {
+    const db = newDb();
+    const repo = createMemoriesRepository(db);
+    const m = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      kind: "rule",
+      body: "docker compose tip",
+    });
+
+    // Confirm the FTS row exists before delete.
+    const before = db
+      .prepare("SELECT memory_id FROM memories_fts WHERE memory_id = ?")
+      .get(m.id) as { memory_id: string } | undefined;
+    expect(before).toBeDefined();
+
+    repo.softDelete(m.id);
+
+    // FTS row should be gone.
+    const after = db.prepare("SELECT memory_id FROM memories_fts WHERE memory_id = ?").get(m.id) as
+      | { memory_id: string }
+      | undefined;
+    expect(after).toBeUndefined();
+
+    // The memory itself still exists (soft-deleted) in the main table.
+    const row = db.prepare("SELECT soft_deleted FROM memories WHERE id = ?").get(m.id) as
+      | { soft_deleted: number }
+      | undefined;
+    expect(row?.soft_deleted).toBe(1);
+  });
+
+  it("soft-deleting stamps soft_deleted_at", () => {
+    const db = newDb();
+    const repo = createMemoriesRepository(db);
+    const m = repo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "timestamped" });
+    const before = Date.now();
+    repo.softDelete(m.id);
+    const after = Date.now();
+    const row = db.prepare("SELECT soft_deleted_at FROM memories WHERE id = ?").get(m.id) as
+      | { soft_deleted_at: number | null }
+      | undefined;
+    expect(row?.soft_deleted_at).toBeGreaterThanOrEqual(before);
+    expect(row?.soft_deleted_at).toBeLessThanOrEqual(after);
+  });
+
+  it("search does NOT find a soft-deleted memory (FTS row removed)", () => {
+    const db = newDb();
+    const repo = createMemoriesRepository(db);
+    const m = repo.create({
+      companyId: "c1",
+      agentId: "a1",
+      kind: "rule",
+      body: "docker networking",
+    });
+    repo.softDelete(m.id);
+    const hits = repo.search("docker");
+    expect(hits.map((r) => r.id)).not.toContain(m.id);
+  });
+});
+
+describe("memories-repository — purgeSoftDeleted", () => {
+  it("hard-deletes old soft-deleted rows and their FTS rows", () => {
+    const db = newDb();
+    const repo = createMemoriesRepository(db);
+    const m = repo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "old note" });
+    repo.softDelete(m.id);
+
+    // Back-date the soft_deleted_at to simulate 31 days ago.
+    const oldTs = Date.now() - 31 * 24 * 60 * 60 * 1000;
+    db.prepare("UPDATE memories SET soft_deleted_at = ? WHERE id = ?").run(oldTs, m.id);
+
+    const count = repo.purgeSoftDeleted(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    expect(count).toBe(1);
+
+    // Row is hard-deleted.
+    const row = db.prepare("SELECT id FROM memories WHERE id = ?").get(m.id);
+    expect(row).toBeUndefined();
+
+    // FTS row is gone too.
+    const fts = db.prepare("SELECT memory_id FROM memories_fts WHERE memory_id = ?").get(m.id);
+    expect(fts).toBeUndefined();
+  });
+
+  it("does NOT purge recently soft-deleted rows (within the grace period)", () => {
+    const db = newDb();
+    const repo = createMemoriesRepository(db);
+    const m = repo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "recent note" });
+    repo.softDelete(m.id);
+
+    // soft_deleted_at was just set to now — should survive the cutoff at 30 days ago.
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const count = repo.purgeSoftDeleted(cutoff);
+    expect(count).toBe(0);
+
+    const row = db.prepare("SELECT id FROM memories WHERE id = ?").get(m.id);
+    expect(row).toBeDefined();
+  });
+
+  it("does NOT purge rows without soft_deleted_at (legacy rows)", () => {
+    const db = newDb();
+    const repo = createMemoriesRepository(db);
+    const m = repo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "legacy note" });
+    // Soft-delete without soft_deleted_at (simulate pre-0062 row).
+    db.prepare("UPDATE memories SET soft_deleted = 1 WHERE id = ?").run(m.id);
+
+    const count = repo.purgeSoftDeleted(Date.now() + 1);
+    expect(count).toBe(0);
+  });
+});
+
 describe("memories-repository — decay support", () => {
   it("listDecayCandidates returns active, non-pinned, non-identity memories across companies", () => {
     const db = newDb();

@@ -23,24 +23,15 @@ import {
   rejectProposal as applyRejectProposal,
 } from "../curator/apply-proposal.js";
 import { createProposalsRepository } from "../curator/proposals-repository.js";
+import { toFtsMatchExpr } from "../memory/fts-query.js";
 
 // M11 PR-F1: a thumb up/down on a skill or memory.
 type RateDirection = "up" | "down";
 // Asymmetric, per spec §8: distrust accrues faster than trust.
 const TRUST_DELTA: Record<RateDirection, number> = { up: 0.05, down: -0.1 };
 
-// Turns raw search-box input into a safe FTS5 MATCH expression: each
-// whitespace-separated term is wrapped in double quotes (so special characters
-// can never break the query), and the quoted terms are joined by spaces, which
-// FTS5 reads as an implicit AND. Returns "" for blank input.
-export const toFtsMatchExpr = (query: string): string => {
-  return query
-    .trim()
-    .split(/\s+/)
-    .filter((w) => w.length > 0)
-    .map((w) => `"${w.replace(/"/g, '""')}"`)
-    .join(" ");
-};
+// Re-export so existing callers of this module continue to work.
+export { toFtsMatchExpr };
 
 export type LearningHandlers = {
   // Private skills of the agent + the company-shared skills it inherits.

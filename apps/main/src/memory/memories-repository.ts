@@ -17,6 +17,7 @@ type MemoryRow = {
   last_accessed: number | null;
   access_count: number;
   soft_deleted: number;
+  soft_deleted_at: number | null;
 };
 
 const rowToMemory = (r: MemoryRow): Memory => ({
@@ -76,6 +77,9 @@ export type MemoriesRepository = {
   listCompanyGlobal(companyId: string): Memory[];
   update(id: string, patch: UpdateMemoryPatch): Memory;
   softDelete(id: string): void;
+  // v0.2.4: hard-delete memories that were soft-deleted before `olderThanMs`.
+  // Also removes their memories_fts rows. Returns the count of hard-deleted rows.
+  purgeSoftDeleted(olderThanMs: number): number;
   search(query: string, opts?: MemorySearchOptions): Memory[];
   // M11 PR-F1: active, non-pinned, non-identity memories — the decay pass input.
   listDecayCandidates(): Memory[];
@@ -114,7 +118,10 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
   const updateStmt = db.prepare(
     "UPDATE memories SET body = ?, importance = ?, trust = ?, pinned = ? WHERE id = ?",
   );
-  const softDeleteStmt = db.prepare("UPDATE memories SET soft_deleted = 1 WHERE id = ?");
+  const softDeleteStmt = db.prepare(
+    "UPDATE memories SET soft_deleted = 1, soft_deleted_at = COALESCE(soft_deleted_at, ?) WHERE id = ?",
+  );
+  const deleteFts = db.prepare("DELETE FROM memories_fts WHERE memory_id = ?");
   const listDecayCandidatesStmt = db.prepare(
     `SELECT * FROM memories
       WHERE soft_deleted = 0 AND pinned = 0 AND kind != 'identity'
@@ -180,7 +187,29 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
       return getById(id)!;
     },
     softDelete(id) {
-      softDeleteStmt.run(id);
+      const now = Date.now();
+      db.transaction(() => {
+        softDeleteStmt.run(now, id);
+        deleteFts.run(id);
+      })();
+    },
+    purgeSoftDeleted(olderThanMs) {
+      // Collect ids first so we can remove their FTS rows atomically.
+      const rows = db
+        .prepare(
+          "SELECT id FROM memories WHERE soft_deleted = 1 AND soft_deleted_at IS NOT NULL AND soft_deleted_at < ?",
+        )
+        .all(olderThanMs) as Array<{ id: string }>;
+      if (rows.length === 0) return 0;
+      const purgeMemory = db.prepare("DELETE FROM memories WHERE id = ?");
+      const purgeFts = db.prepare("DELETE FROM memories_fts WHERE memory_id = ?");
+      db.transaction(() => {
+        for (const { id } of rows) {
+          purgeMemory.run(id);
+          purgeFts.run(id);
+        }
+      })();
+      return rows.length;
     },
     listDecayCandidates() {
       return (listDecayCandidatesStmt.all() as MemoryRow[]).map(rowToMemory);

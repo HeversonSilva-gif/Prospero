@@ -6,6 +6,7 @@ import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { getAgentMemoryDir, skillBodyPath } from "../memory/memory-dir.js";
 import { sanitizeMemoryBody } from "../memory/sanitizer.js";
+import { toFtsMatchExpr } from "../memory/fts-query.js";
 import { createRateLimiter } from "./rate-limiter.js";
 import {
   OPERATING_MANUAL,
@@ -308,10 +309,14 @@ const memorySearch: Tool = {
       limit?: number;
     };
     const repo = createMemoriesRepository(ctx.db);
-    const rows = repo.search(query, {
-      agentId: ctx.agentId,
-      ...(limit !== undefined ? { limit } : {}),
-    });
+    const safeQuery = toFtsMatchExpr(query);
+    const rows =
+      safeQuery === ""
+        ? []
+        : repo.search(safeQuery, {
+            agentId: ctx.agentId,
+            ...(limit !== undefined ? { limit } : {}),
+          });
     repo.recordAccess(rows.map((m) => m.id));
     return JSON.stringify({
       memories: rows.map((m) => ({ id: m.id, kind: m.kind, body: m.body })),

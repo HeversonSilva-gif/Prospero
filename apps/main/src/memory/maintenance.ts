@@ -32,6 +32,7 @@ export type MaintenanceResult = {
   warned: number;
   pruned: number;
   purgedSkills: number;
+  purgedMemories: number;
 };
 
 const readLastRun = (db: Database.Database): number | null => {
@@ -56,13 +57,13 @@ export const runMemoryMaintenance = (db: Database.Database, now: number): Mainte
 
   // Throttle: at most one pass per ~day.
   if (lastRun !== null && now - lastRun < MIN_INTERVAL_MS) {
-    return { ran: false, decayed: 0, warned: 0, pruned: 0, purgedSkills: 0 };
+    return { ran: false, decayed: 0, warned: 0, pruned: 0, purgedSkills: 0, purgedMemories: 0 };
   }
 
   // First-ever run: record the baseline, decay nothing (elapsed is unknown).
   if (lastRun === null) {
     writeLastRun(db, now);
-    return { ran: true, decayed: 0, warned: 0, pruned: 0, purgedSkills: 0 };
+    return { ran: true, decayed: 0, warned: 0, pruned: 0, purgedSkills: 0, purgedMemories: 0 };
   }
 
   const elapsedDays = (now - lastRun) / DAY_MS;
@@ -116,6 +117,10 @@ export const runMemoryMaintenance = (db: Database.Database, now: number): Mainte
     )
     .run(purgeBefore).changes;
 
+  // v0.2.4: hard-purge memories soft-deleted past the 30-day grace period,
+  // removing their memories_fts rows at the same time.
+  const purgedMemories = memoriesRepo.purgeSoftDeleted(purgeBefore);
+
   writeLastRun(db, now);
-  return { ran: true, decayed, warned, pruned, purgedSkills };
+  return { ran: true, decayed, warned, pruned, purgedSkills, purgedMemories };
 };
