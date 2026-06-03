@@ -169,54 +169,72 @@ export type StripeCharge = {
   customer: string | null;
 };
 
+// Max pages followed for any paginated list — a runaway backstop (100/page × 50 = 5000).
+const MAX_PAGES = 50;
+
 export const listCharges = async (
   http: StripeHttp,
   key: string,
   opts: { createdGte?: number; limit?: number } = {},
 ): Promise<StripeCharge[]> => {
-  const params = [`limit=${String(opts.limit ?? 100)}`];
-  if (opts.createdGte !== undefined) {
-    // Stripe wants `created[gte]` in seconds; encode the brackets for the query.
-    params.push(`created%5Bgte%5D=${String(Math.floor(opts.createdGte / 1000))}`);
-  }
-  const res = await http(`https://api.stripe.com/v1/charges?${params.join("&")}`, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${key}` },
-  });
-  const data = (await res.json()) as {
-    data?: Array<{
-      id: string;
-      amount: number;
-      amount_refunded?: number;
-      disputed?: boolean;
-      customer?: string | null;
-      currency: string;
-      created: number;
-      status: string;
-    }>;
-    error?: { message?: string };
-  };
-  if (res.status >= 400) {
-    throw new StripeApiError(
-      res.status,
-      data.error?.message ?? `Stripe API error ${String(res.status)}`,
-    );
-  }
-  return (data.data ?? []).map((c) => {
-    const disputed = c.disputed === true;
-    // A dispute removes the whole charge; record it as a full refund so net = 0.
-    const amountRefunded = disputed ? c.amount : (c.amount_refunded ?? 0);
-    return {
-      id: c.id,
-      amount: c.amount,
-      currency: c.currency,
-      created: c.created * 1000,
-      status: c.status,
-      amountRefunded,
-      disputed,
-      customer: typeof c.customer === "string" ? c.customer : null,
+  const limit = opts.limit ?? 100;
+  const out: StripeCharge[] = [];
+  let startingAfter: string | undefined;
+  // Follow Stripe's `has_more`/`starting_after` cursor — a busy company can have far
+  // more than one page of charges in the window; truncating at 100 silently undercounts
+  // revenue exactly when the business is succeeding.
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const params = [`limit=${String(limit)}`];
+    if (opts.createdGte !== undefined) {
+      // Stripe wants `created[gte]` in seconds; encode the brackets for the query.
+      params.push(`created%5Bgte%5D=${String(Math.floor(opts.createdGte / 1000))}`);
+    }
+    if (startingAfter !== undefined) params.push(`starting_after=${startingAfter}`);
+    const res = await http(`https://api.stripe.com/v1/charges?${params.join("&")}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${key}` },
+    });
+    const data = (await res.json()) as {
+      data?: Array<{
+        id: string;
+        amount: number;
+        amount_refunded?: number;
+        disputed?: boolean;
+        customer?: string | null;
+        currency: string;
+        created: number;
+        status: string;
+      }>;
+      has_more?: boolean;
+      error?: { message?: string };
     };
-  });
+    if (res.status >= 400) {
+      throw new StripeApiError(
+        res.status,
+        data.error?.message ?? `Stripe API error ${String(res.status)}`,
+      );
+    }
+    const rows = (data.data ?? []).map((c) => {
+      const disputed = c.disputed === true;
+      // A dispute removes the whole charge; record it as a full refund so net = 0.
+      const amountRefunded = disputed ? c.amount : (c.amount_refunded ?? 0);
+      return {
+        id: c.id,
+        amount: c.amount,
+        currency: c.currency,
+        created: c.created * 1000,
+        status: c.status,
+        amountRefunded,
+        disputed,
+        customer: typeof c.customer === "string" ? c.customer : null,
+      };
+    });
+    out.push(...rows);
+    const last = rows[rows.length - 1];
+    if (data.has_more !== true || last === undefined) break;
+    startingAfter = last.id;
+  }
+  return out;
 };
 
 // --- Finance panorama (v0.2.8): subscriptions feed MRR / churn / active customers ---
@@ -243,56 +261,83 @@ type RawSubItem = {
   };
 };
 
+const mapSubscription = (s: {
+  id: string;
+  customer?: string | null;
+  status: string;
+  created: number;
+  canceled_at?: number | null;
+  items?: { data?: RawSubItem[] };
+}): StripeSubscription => {
+  const items = s.items?.data ?? [];
+  const primary = items[0]?.price;
+  const interval = primary?.recurring?.interval ?? "month";
+  const currency = primary?.currency ?? "";
+  // Sum every line item that shares the primary price's interval+currency so a
+  // multi-item subscription (base plan + add-on) reports its FULL recurring amount, not
+  // just the first line — otherwise MRR silently undercounts multi-item subs.
+  const amount = items.reduce((sum, it) => {
+    const p = it.price;
+    if (p?.recurring?.interval === interval && p.currency === currency) {
+      return sum + (p.unit_amount ?? 0);
+    }
+    return sum;
+  }, 0);
+  const product = primary?.product ?? null;
+  const productId = typeof product === "string" ? product : (product?.id ?? null);
+  const productName =
+    typeof product === "object" && product !== null ? (product.name ?? null) : null;
+  return {
+    id: s.id,
+    customer: typeof s.customer === "string" ? s.customer : null,
+    status: s.status,
+    created: s.created * 1000,
+    canceledAt: typeof s.canceled_at === "number" ? s.canceled_at * 1000 : null,
+    productId,
+    productName,
+    amount,
+    currency,
+    interval,
+  };
+};
+
 export const listSubscriptions = async (
   http: StripeHttp,
   key: string,
   opts: { limit?: number } = {},
 ): Promise<StripeSubscription[]> => {
-  // status=all so we also see canceled subs (needed for churn). Expand the product so
-  // we get its display name for "top products" rather than a bare id.
-  const params = [
-    `limit=${String(opts.limit ?? 100)}`,
-    "status=all",
-    "expand%5B%5D=data.items.data.price.product",
-  ];
-  const res = await http(`https://api.stripe.com/v1/subscriptions?${params.join("&")}`, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${key}` },
-  });
-  const data = (await res.json()) as {
-    data?: Array<{
-      id: string;
-      customer?: string | null;
-      status: string;
-      created: number;
-      canceled_at?: number | null;
-      items?: { data?: RawSubItem[] };
-    }>;
-    error?: { message?: string };
-  };
-  if (res.status >= 400) {
-    throw new StripeApiError(
-      res.status,
-      data.error?.message ?? `Stripe API error ${String(res.status)}`,
-    );
-  }
-  return (data.data ?? []).map((s) => {
-    const price = s.items?.data?.[0]?.price;
-    const product = price?.product ?? null;
-    const productId = typeof product === "string" ? product : (product?.id ?? null);
-    const productName =
-      typeof product === "object" && product !== null ? (product.name ?? null) : null;
-    return {
-      id: s.id,
-      customer: typeof s.customer === "string" ? s.customer : null,
-      status: s.status,
-      created: s.created * 1000,
-      canceledAt: typeof s.canceled_at === "number" ? s.canceled_at * 1000 : null,
-      productId,
-      productName,
-      amount: price?.unit_amount ?? 0,
-      currency: price?.currency ?? "",
-      interval: price?.recurring?.interval ?? "month",
+  const limit = opts.limit ?? 100;
+  const out: StripeSubscription[] = [];
+  let startingAfter: string | undefined;
+  // status=all so we also see canceled subs (needed for churn). Expand the product so we
+  // get its display name. Paginate so MRR/churn don't truncate at 100 active subs.
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const params = [
+      `limit=${String(limit)}`,
+      "status=all",
+      "expand%5B%5D=data.items.data.price.product",
+    ];
+    if (startingAfter !== undefined) params.push(`starting_after=${startingAfter}`);
+    const res = await http(`https://api.stripe.com/v1/subscriptions?${params.join("&")}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${key}` },
+    });
+    const data = (await res.json()) as {
+      data?: Array<Parameters<typeof mapSubscription>[0]>;
+      has_more?: boolean;
+      error?: { message?: string };
     };
-  });
+    if (res.status >= 400) {
+      throw new StripeApiError(
+        res.status,
+        data.error?.message ?? `Stripe API error ${String(res.status)}`,
+      );
+    }
+    const rows = (data.data ?? []).map(mapSubscription);
+    out.push(...rows);
+    const lastRaw = (data.data ?? [])[(data.data ?? []).length - 1];
+    if (data.has_more !== true || lastRaw === undefined) break;
+    startingAfter = lastRaw.id;
+  }
+  return out;
 };

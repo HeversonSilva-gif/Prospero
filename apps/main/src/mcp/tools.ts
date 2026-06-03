@@ -256,6 +256,10 @@ const gateAction = async (
 // but it rejects the obviously-bogus / abusive targets the gate prose only described.
 const isValidEmailAddress = (raw: string): boolean => {
   const s = raw.trim();
+  // Reject all control chars (incl. NUL/C0/DEL) — \s only covers CR/LF/tab, but NUL and
+  // other control bytes are header-injection / smuggling vectors too.
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(s)) return false;
   return /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]{2,}$/.test(s) && s.length <= 320;
 };
 
@@ -1242,9 +1246,10 @@ export const toolDefinitions = [
           return JSON.stringify({ ok: false, status: outcome.decision, message: outcome.message });
         }
       } else {
-        // M2: a preview auto-runs (no approval) but still consumes the deploy_app cap so
-        // it can't be fired in an unbounded loop.
-        const capped = enforceActionCapOnly(ctx, "deploy_app", {
+        // M2: a preview auto-runs (no approval) but still consumes a SEPARATE hourly cap
+        // (deploy_app_preview) so it can't loop unbounded — without eating the 1/h
+        // production slot, so "preview then promote" still works.
+        const capped = enforceActionCapOnly(ctx, "deploy_app_preview", {
           project_name: input.project_name,
           mode: "preview",
         });

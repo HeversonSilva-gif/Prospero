@@ -143,6 +143,38 @@ describe("computeFinanceSummary", () => {
     expect(s.mrrCents).toBe(0);
   });
 
+  it("does not count a refunded-only in-window customer as active", () => {
+    // cus_x's only window payment is fully refunded → not an active customer.
+    pay({
+      id: "r",
+      amount: 1000,
+      amountRefunded: 1000,
+      customerId: "cus_x",
+      createdAt: NOW - 1 * DAY,
+    });
+    const s = computeFinanceSummary(db, "c1", { now: NOW, windowMs: WINDOW });
+    expect(s.activeCustomers).toBe(0);
+  });
+
+  it("never reports churn over 100% even with subs created+canceled inside the window", () => {
+    // 1 cohort sub active at window start…
+    subRec({ id: "old", status: "active", createdAt: NOW - 100 * DAY, customerId: "cus_1" });
+    // …and 3 subs created AND canceled within the window (would inflate a naive numerator).
+    for (let i = 0; i < 3; i += 1) {
+      subRec({
+        id: `w${String(i)}`,
+        status: "canceled",
+        createdAt: NOW - 5 * DAY,
+        canceledAt: NOW - 2 * DAY,
+        customerId: `cus_w${String(i)}`,
+      });
+    }
+    const s = computeFinanceSummary(db, "c1", { now: NOW, windowMs: WINDOW });
+    expect(s.churnRatePct).not.toBeNull();
+    expect(s.churnRatePct as number).toBeLessThanOrEqual(100);
+    expect(s.churnRatePct).toBe(0); // none of the START cohort churned
+  });
+
   it("is empty-safe with no Stripe data", () => {
     const s = computeFinanceSummary(db, "c1", { now: NOW, windowMs: WINDOW });
     expect(s.hasStripe).toBe(false);

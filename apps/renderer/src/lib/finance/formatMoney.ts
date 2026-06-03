@@ -5,8 +5,9 @@
 const ZERO_DECIMAL = new Set(["jpy", "krw", "vnd", "clp"]); // Stripe zero-decimal currencies
 
 export const formatMoney = (amountMinor: number, currency: string): string => {
-  const code = (currency || "brl").toUpperCase();
-  const zeroDecimal = ZERO_DECIMAL.has(currency.toLowerCase());
+  const safe = currency || "brl";
+  const code = safe.toUpperCase();
+  const zeroDecimal = ZERO_DECIMAL.has(safe.toLowerCase());
   const value = zeroDecimal ? amountMinor : amountMinor / 100;
   try {
     return new Intl.NumberFormat("pt-BR", {

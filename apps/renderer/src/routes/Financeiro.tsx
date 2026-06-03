@@ -49,7 +49,8 @@ const compactMajor = (cents: number, currency: string): string => {
   return `${sym}${String(Math.round(v))}`;
 };
 
-const Panorama: FC<{ s: FinanceSummary }> = ({ s }) => {
+// Exported for render-safety tests (the data-heavy subtree, driven by a prop).
+export const Panorama: FC<{ s: FinanceSummary }> = ({ s }) => {
   const { t } = useTranslation();
   const chartData = s.revenueByMonth.map((m) => ({
     label: formatMonthLabel(m.month),

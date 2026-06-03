@@ -123,7 +123,10 @@ export const computeFinanceSummary = (
   for (const p of payments) {
     if (p.customerId === null) continue;
     firstSeen.set(p.customerId, Math.min(firstSeen.get(p.customerId) ?? Infinity, p.createdAt));
-    if (p.createdAt >= windowStart) customersWithWindowPayment.add(p.customerId);
+    // "Active by payment" requires a NET-POSITIVE payment in the window — a customer
+    // whose only in-window charge was fully refunded/disputed isn't an active customer
+    // (consistent with the release's net-revenue intent).
+    if (p.createdAt >= windowStart && net(p) > 0) customersWithWindowPayment.add(p.customerId);
     paymentCountByCustomer.set(p.customerId, (paymentCountByCustomer.get(p.customerId) ?? 0) + 1);
   }
   const customersWithActiveSub = new Set<string>();
@@ -143,18 +146,24 @@ export const computeFinanceSummary = (
   let churnRatePct: number | null = null;
   let repeatPurchaseRatePct: number | null = null;
   if (subs.length > 0) {
+    // Subs active at the start of the window = the cohort churn is measured against.
     const activeAtStart = subs.filter(
       (s) => s.createdAt < windowStart && (s.canceledAt === null || s.canceledAt >= windowStart),
     ).length;
-    const canceledInWindow = subs.filter(
-      (s) => s.canceledAt !== null && s.canceledAt >= windowStart && s.canceledAt <= now,
+    // Churned = subs FROM THAT COHORT that canceled within the window. Counting any
+    // cancellation (incl. subs both created AND canceled inside the window) in the
+    // numerator while excluding them from the denominator let churn exceed 100%.
+    const churnedFromCohort = subs.filter(
+      (s) =>
+        s.createdAt < windowStart &&
+        s.canceledAt !== null &&
+        s.canceledAt >= windowStart &&
+        s.canceledAt <= now,
     ).length;
     churnRatePct =
       activeAtStart > 0
-        ? Math.round((canceledInWindow / activeAtStart) * 1000) / 10
-        : canceledInWindow > 0
-          ? 100
-          : 0;
+        ? Math.min(100, Math.round((churnedFromCohort / activeAtStart) * 1000) / 10)
+        : 0; // no cohort at window start ⇒ nothing to churn from
   } else {
     const payers = paymentCountByCustomer.size;
     const repeaters = [...paymentCountByCustomer.values()].filter((n) => n >= 2).length;

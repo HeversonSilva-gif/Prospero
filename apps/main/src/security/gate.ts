@@ -45,7 +45,10 @@ const X_POST_TOOLS = new Set(["post_to_x", "reply_on_x"]);
 // human even in auto mode. Deliberately lenient — a normal post/reply passes — so it adds
 // a floor without disabling the autonomous X loop. Pure + exported for unit testing.
 export const screenAutomatedXContent = (text: string): { risky: boolean; reason: string } => {
-  const mentions = (text.match(/(^|\s)@\w{1,15}/g) ?? []).length;
+  // Count @mentions the way X parses them: an @handle preceded by start-of-text or any
+  // non-(word|@) char. Using `\s` alone missed punctuation-separated reply-bombs like
+  // "@a,@b,@c,@d,@e" (the exact mass-mention attack C1 guards against).
+  const mentions = (text.match(/(^|[^A-Za-z0-9_@])@\w{1,15}/g) ?? []).length;
   const links = (text.match(/https?:\/\//gi) ?? []).length;
   const hashtags = (text.match(/(^|\s)#\w+/g) ?? []).length;
   if (mentions > 3) return { risky: true, reason: `${String(mentions)} menções` };

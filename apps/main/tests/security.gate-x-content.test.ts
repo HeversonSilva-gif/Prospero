@@ -77,6 +77,13 @@ describe("C1 — X content screen escapes blanket auto-approval", () => {
     expect(r.reason).toMatch(/menç|conteúdo X/i);
   });
 
+  it("punctuation-separated mention spam still escalates (no comma/paren bypass)", () => {
+    for (const text of ["@a,@b,@c,@d,@e", "(@a)(@b)(@c)(@d)(@e)", "@a;@b;@c;@d;@e"]) {
+      const r = gate("reply_on_x", { tweet_id: "1", text });
+      expect(r.action).toBe("request_user");
+    }
+  });
+
   it("hashtag-stuffed post escalates to a human", () => {
     const r = gate("post_to_x", { text: "promo #a #b #c #d #e #f #g" });
     expect(r.action).toBe("request_user");

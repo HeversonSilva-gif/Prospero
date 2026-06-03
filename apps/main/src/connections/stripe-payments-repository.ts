@@ -101,15 +101,33 @@ export const createStripePaymentsRepository = (db: Database.Database): StripePay
     "SELECT MAX(created_at) AS m FROM stripe_payments WHERE company_id = ?",
   );
 
+  // exists-check + upsert wrapped in a transaction so the isNew result is atomic even if
+  // MAIN and the MCP child both record the same charge (the first-sale signal must fire
+  // exactly once). better-sqlite3 transactions take a write lock and run synchronously.
+  const recordTx = db.transaction(
+    (row: {
+      id: string;
+      companyId: string;
+      amount: number;
+      amountRefunded: number;
+      currency: string;
+      createdAt: number;
+      recordedAt: number;
+      customerId: string | null;
+    }): boolean => {
+      const isNew = existsStmt.get(row.id) === undefined;
+      upsertStmt.run(row);
+      return isNew;
+    },
+  );
+
   return {
     record(input) {
-      const isNew = existsStmt.get(input.id) === undefined;
-      upsertStmt.run({
+      return recordTx({
         ...input,
         amountRefunded: input.amountRefunded ?? 0,
         customerId: input.customerId ?? null,
       });
-      return isNew;
     },
     countByCompany(companyId) {
       const r = countStmt.get(companyId) as { n: number };
