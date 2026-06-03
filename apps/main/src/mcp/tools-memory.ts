@@ -338,16 +338,24 @@ const sessionSearch: Tool = {
       query: string;
       limit?: number;
     };
+    // Escape the query for FTS5 (raw punctuation like `:` is parsed as a column
+    // filter and throws), and scope to threads the caller participates in — the
+    // tool must not leak other agents'/companies' conversations. Mirrors the
+    // IPC searchSessions handler. Audit 2026-06-03 (learning-system report).
+    const expr = toFtsMatchExpr(query);
+    if (expr === "") return JSON.stringify({ results: [] });
     const rows = ctx.db
       .prepare(
         `SELECT m.id AS message_id, m.content AS content, m.created_at AS created_at
            FROM messages_fts f
            JOIN messages m ON m.id = f.message_id
+           JOIN threads t ON t.id = m.thread_id
           WHERE messages_fts MATCH ?
+            AND t.participants_json LIKE '%' || ? || '%'
           ORDER BY rank
           LIMIT ?`,
       )
-      .all(query, limit ?? 50) as Array<{
+      .all(expr, ctx.agentId, limit ?? 50) as Array<{
       message_id: string;
       content: string;
       created_at: number;
