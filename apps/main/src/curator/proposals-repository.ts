@@ -16,6 +16,7 @@ type Row = {
   reviewed_at: number | null;
   reject_reason: string | null;
   created_at: number;
+  source_versions_json: string | null;
 };
 
 const toProposal = (r: Row): SkillProposal => ({
@@ -32,6 +33,10 @@ const toProposal = (r: Row): SkillProposal => ({
   reviewedAt: r.reviewed_at,
   rejectReason: r.reject_reason,
   createdAt: r.created_at,
+  sourceVersions:
+    r.source_versions_json !== null && r.source_versions_json !== undefined
+      ? (JSON.parse(r.source_versions_json) as Record<string, number>)
+      : null,
 });
 
 export type CreateProposalInput = {
@@ -42,6 +47,9 @@ export type CreateProposalInput = {
   proposedDescription?: string | null;
   proposedBody?: string | null;
   rationale: string;
+  // Snapshot of each source skill's version at proposal creation time. Optional
+  // so callers that don't yet track it can omit it (stored as null).
+  sourceVersions?: Record<string, number> | null;
 };
 
 export type ProposalsRepository = {
@@ -60,10 +68,12 @@ export const createProposalsRepository = (db: Database.Database): ProposalsRepos
   const insertStmt = db.prepare(`
     INSERT INTO skill_proposals (
       id, company_id, kind, source_skill_ids, proposed_name, proposed_description,
-      proposed_body, rationale, status, reviewed_by, reviewed_at, reject_reason, created_at
+      proposed_body, rationale, status, reviewed_by, reviewed_at, reject_reason, created_at,
+      source_versions_json
     ) VALUES (
       @id, @companyId, @kind, @sourceSkillIds, @proposedName, @proposedDescription,
-      @proposedBody, @rationale, 'pending', NULL, NULL, NULL, @createdAt
+      @proposedBody, @rationale, 'pending', NULL, NULL, NULL, @createdAt,
+      @sourceVersionsJson
     )
   `);
   const byId = db.prepare("SELECT * FROM skill_proposals WHERE id = ?");
@@ -90,6 +100,8 @@ export const createProposalsRepository = (db: Database.Database): ProposalsRepos
         proposedBody: input.proposedBody ?? null,
         rationale: input.rationale,
         createdAt: Date.now(),
+        sourceVersionsJson:
+          input.sourceVersions != null ? JSON.stringify(input.sourceVersions) : null,
       });
       return getById(id)!;
     },

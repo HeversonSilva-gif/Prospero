@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type Database from "better-sqlite3";
 import type { RunDerivationResult } from "../derivation/runner.js";
 import { runLifecyclePass } from "./lifecycle.js";
@@ -11,6 +12,31 @@ const LAST_RUN_KEY = "curator_last_run";
 const DRY_RUN_KEY = "curator_dry_run";
 const DERIVATION_MODEL = "claude-sonnet-4-6";
 const MIN_LIBRARY_SIZE = 3;
+
+// Per-company settings key: stores the SHA-256 hash of the library contents
+// at the last fork run, so we can skip spawning Sonnet when nothing changed.
+const libraryHashKey = (companyId: string): string => `curator_library_hash_${companyId}`;
+
+// Computes a stable hash over the company's active library. Covers id, name,
+// description, version, and body_path — enough to detect any meaningful change
+// (rename, description edit, body edit) without reading file contents.
+const computeLibraryHash = (db: Database.Database, companyId: string): string => {
+  const rows = db
+    .prepare(
+      "SELECT id, name, description, version, body_path FROM skills " +
+        "WHERE company_id = ? AND soft_deleted = 0 AND lifecycle_state != 'archived' " +
+        "ORDER BY id",
+    )
+    .all(companyId) as Array<{
+    id: string;
+    name: string;
+    description: string;
+    version: number;
+    body_path: string;
+  }>;
+  const canonical = JSON.stringify(rows);
+  return createHash("sha256").update(canonical).digest("hex");
+};
 
 export type CuratorPassResult = {
   lifecycle: { toStale: number; toArchived: number; revived: number };
@@ -109,6 +135,15 @@ export const runCuratorPass = async (deps: RunCuratorPassDeps): Promise<CuratorP
   let tokens = 0;
   let forkRan = false;
   for (const companyId of companyIds) {
+    // Skip the Sonnet fork if the library content hasn't changed since the
+    // last run for this company. This avoids wasted cost on no-op ticks.
+    const currentHash = computeLibraryHash(db, companyId);
+    const storedHash = readSetting(db, libraryHashKey(companyId));
+    if (storedHash !== undefined && storedHash === currentHash) {
+      // Library unchanged — no need to spawn a fork for this company.
+      continue;
+    }
+
     const r = await runLibrarianFork({
       db,
       companyId,
@@ -121,6 +156,9 @@ export const runCuratorPass = async (deps: RunCuratorPassDeps): Promise<CuratorP
     tokens += r.tokens;
     // The librarian wrote skill_consolidation_proposed cards for this company.
     if (r.proposalsCreated > 0) broadcastInbox(companyId);
+
+    // Persist the hash so the next pass can skip if nothing changed.
+    writeSetting(db, libraryHashKey(companyId), currentHash);
   }
   writeSetting(db, LAST_RUN_KEY, String(now));
   return { lifecycle, fork: { ran: forkRan, proposalsCreated, tokens } };
