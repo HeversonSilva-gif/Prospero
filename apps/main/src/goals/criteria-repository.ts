@@ -146,11 +146,20 @@ export const createGoalCriteriaRepository = (db: Database.Database): GoalCriteri
 
   const applyResult: GoalCriteriaRepository["applyResult"] = (result) => {
     const now = Date.now();
+    // Persist the human-readable `detail` ALONGSIDE the structured resultJson so
+    // it is recoverable from last_result_json (the only consumer is the LEARN
+    // failure trail, which reads `.detail`). Without this the structured shape
+    // ({exitCode,stdout,stderr,...}) has no `detail` key and the failure lesson
+    // is blind to the actual error. Audit 2026-06-03 Facet 5 M3.
+    const base =
+      result.resultJson !== null && typeof result.resultJson === "object"
+        ? (result.resultJson as Record<string, unknown>)
+        : {};
     applyResultStmt.run({
       id: result.criterionId,
       status: result.status,
       checkedAt: now,
-      resultJson: JSON.stringify(result.resultJson),
+      resultJson: JSON.stringify({ ...base, detail: result.detail }),
       updatedAt: now,
     });
   };
