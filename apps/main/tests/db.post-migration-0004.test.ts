@@ -54,7 +54,7 @@ describe("postMigration 0004 — seed roles + backfill", () => {
         "SELECT default_model, default_capabilities_json FROM role_templates WHERE id = 'role-ceo'",
       )
       .get() as { default_model: string; default_capabilities_json: string };
-    expect(ceo.default_model).toBe("claude-opus-4-7");
+    expect(ceo.default_model).toBe("claude-opus-4-8");
     expect((JSON.parse(ceo.default_capabilities_json) as string[]).sort()).toEqual([
       "chat",
       "delegation",
@@ -81,7 +81,7 @@ describe("postMigration 0004 — seed roles + backfill", () => {
       "inbox",
       "issues",
     ]);
-    expect(row.model).toBe("claude-opus-4-7");
+    expect(row.model).toBe("claude-opus-4-8");
   });
 
   it("backfills non-root orphan agents (reports_to IS NOT NULL, template_id IS NULL) with role-engineer", () => {

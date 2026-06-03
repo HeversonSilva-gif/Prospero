@@ -1,7 +1,9 @@
 import type Database from "better-sqlite3";
+import { MODEL_ID_REGEX } from "@prospero/shared";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
 import { createRoleTemplatesRepository } from "../agents/role-templates-repository.js";
+import { resolveModelPreset, MODEL_PRESETS } from "../agents/model-presets.js";
 import { writeCharter } from "../agents/role-charter-store.js";
 import type { AgentsMdPayload, ConflictMode, HireSummary } from "./schema.js";
 
@@ -15,6 +17,19 @@ import type { AgentsMdPayload, ConflictMode, HireSummary } from "./schema.js";
 //   * reports_to wired in a second pass by looking up the freshly-created name.
 
 const DEFAULT_MODEL = "claude-sonnet-4-6";
+
+// Audit 2026-06-03 Inteligência & Contexto M4: the AGENTS.md `model` field is
+// untrusted free text (schema only enforces z.string()). Accept it only if it is
+// a known preset alias (→ resolve to the real id) OR already a valid raw id
+// (MODEL_ID_REGEX shape, which the rest of the system enforces before a
+// shell-spawned --model). Anything else returns null so the caller falls back +
+// warns instead of silently running resolveModelPreset's sonnet default (or
+// spawning an injected string).
+const resolveAndValidateModel = (raw: string): string | null => {
+  const trimmed = raw.trim();
+  if ((MODEL_PRESETS as readonly string[]).includes(trimmed)) return resolveModelPreset(trimmed);
+  return MODEL_ID_REGEX.test(trimmed) ? trimmed : null;
+};
 
 export type HireOptions = {
   companyId: string;
@@ -64,11 +79,22 @@ export const hireFromAgentsMd = (
       summary.skipped.roles.push(r.name);
       continue;
     }
+    let roleModel = DEFAULT_MODEL;
+    if (r.model !== undefined && r.model.trim() !== "") {
+      const valid = resolveAndValidateModel(r.model);
+      if (valid === null) {
+        summary.warnings.push(
+          `role "${r.name}": invalid model "${r.model}" — fell back to ${DEFAULT_MODEL}`,
+        );
+      } else {
+        roleModel = valid;
+      }
+    }
     const created = roleRepo.create({
       name: r.name,
       description: r.description ?? "",
       icon: r.icon ?? null,
-      defaultModel: r.model ?? DEFAULT_MODEL,
+      defaultModel: roleModel,
       defaultCapabilities: r.capabilities ?? [],
     });
     if (r.charter !== undefined && r.charter.trim() !== "") {
@@ -119,6 +145,21 @@ export const hireFromAgentsMd = (
       summary.replaced.agents.push(a.name);
     }
 
+    // M4: resolve + validate an explicit per-agent model (preset alias or raw
+    // id); fall back to the role default on invalid input. role.defaultModel is
+    // already a real id from the DB, so it needs no resolution.
+    let agentModel = role.defaultModel;
+    if (a.model !== undefined && a.model.trim() !== "") {
+      const valid = resolveAndValidateModel(a.model);
+      if (valid === null) {
+        summary.warnings.push(
+          `agent "${a.name}": invalid model "${a.model}" — fell back to ${role.defaultModel}`,
+        );
+      } else {
+        agentModel = valid;
+      }
+    }
+
     const created = agentsRepo.create({
       companyId: opts.companyId,
       name: a.name,
@@ -127,7 +168,7 @@ export const hireFromAgentsMd = (
       mode: "supervised",
       alwaysOn: false,
       templateId: role.id,
-      model: a.model ?? role.defaultModel,
+      model: agentModel,
       capabilities: a.capabilities ?? role.defaultCapabilities,
       actor: { kind: "user" },
     });

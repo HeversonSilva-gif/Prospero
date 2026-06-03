@@ -189,6 +189,71 @@ describe("hireFromAgentsMd conflict resolution", () => {
     expect(summary.warnings[0]).toMatch(/unknown role/);
   });
 
+  it("resolves an imported preset alias to a real model id", () => {
+    // Audit 2026-06-03 Inteligência & Contexto M4: "opus-4" must reach create()
+    // as the resolved real id, not the alias.
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+    const summary = hireFromAgentsMd(
+      db,
+      {
+        company: "Acme",
+        projects: [],
+        agents: [{ name: "Ada", role: "engineer", model: "opus-4" }],
+      },
+      { companyId: co.id, conflictModes: {}, userDataDir: tmpUserData() },
+    );
+    expect(summary.created.agents).toBe(1);
+    expect(summary.warnings).toEqual([]);
+    const ada = createAgentsRepository(db)
+      .listByCompany(co.id)
+      .find((a) => a.name === "Ada");
+    expect(ada?.model).toBe("claude-opus-4-8");
+  });
+
+  it("rejects an invalid imported model and falls back to the role default + warns", () => {
+    // M4: a model id with shell-unsafe characters must never reach --model.
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+    const summary = hireFromAgentsMd(
+      db,
+      {
+        company: "Acme",
+        projects: [],
+        agents: [{ name: "Eve", role: "engineer", model: "rm -rf /" }],
+      },
+      { companyId: co.id, conflictModes: {}, userDataDir: tmpUserData() },
+    );
+    expect(summary.created.agents).toBe(1);
+    expect(summary.warnings.length).toBe(1);
+    expect(summary.warnings[0]).toMatch(/invalid model/);
+    const eve = createAgentsRepository(db)
+      .listByCompany(co.id)
+      .find((a) => a.name === "Eve");
+    // role-engineer default model
+    expect(eve?.model).toBe("claude-sonnet-4-6");
+  });
+
+  it("resolves a role's imported preset alias to a real model id", () => {
+    const db = setupDb();
+    const co = createCompaniesRepository(db).create({ name: "Acme" });
+    const summary = hireFromAgentsMd(
+      db,
+      {
+        company: "Acme",
+        projects: [],
+        roles: [{ name: "Strategist", model: "opus-4" }],
+        agents: [{ name: "Sun", role: "Strategist" }],
+      },
+      { companyId: co.id, conflictModes: {}, userDataDir: tmpUserData() },
+    );
+    expect(summary.created.roles).toBe(1);
+    const role = createRoleTemplatesRepository(db)
+      .listAll()
+      .find((r) => r.name === "Strategist");
+    expect(role?.defaultModel).toBe("claude-opus-4-8");
+  });
+
   it("skips project when path already exists", () => {
     const db = setupDb();
     const co = createCompaniesRepository(db).create({ name: "Acme" });

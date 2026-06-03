@@ -11,6 +11,21 @@ type Props = {
 
 const CUSTOM = "__custom__";
 
+// Audit 2026-06-03 Inteligência & Contexto I3: the option list is derived from
+// the shared CLAUDE_MODEL_PRESETS (single source of truth) so it can't drift to
+// a stale id again. We only surface the models we ship a label for; the legacy
+// `claude-opus-4-7` stays in the shared preset list (so existing agents pinned
+// to it still render as a preset, not "Custom") but is no longer offered to pick.
+const PRESET_LABEL_KEY: Record<string, string> = {
+  "claude-opus-4-8": "settings.model.presetOpus",
+  "claude-sonnet-4-6": "settings.model.presetSonnet",
+  "claude-haiku-4-5-20251001": "settings.model.presetHaiku",
+};
+
+const SELECTABLE_PRESETS = (CLAUDE_MODEL_PRESETS as readonly string[]).filter(
+  (id) => id in PRESET_LABEL_KEY,
+);
+
 const tierClass = (tier: CostTier): string => {
   switch (tier) {
     case "cheap":
@@ -33,7 +48,9 @@ const tierLabel = (tier: CostTier, t: ReturnType<typeof useTranslation>["t"]): s
 
 export const ModelDropdown: FC<Props> = ({ value, onChange, disabled = false }) => {
   const { t } = useTranslation();
-  const isPreset = (CLAUDE_MODEL_PRESETS as readonly string[]).includes(value);
+  // Only a *selectable* preset maps to the dropdown; a legacy id like
+  // claude-opus-4-7 falls through to the Custom input so its value stays visible.
+  const isPreset = SELECTABLE_PRESETS.includes(value);
   const [selectValue, setSelectValue] = useState<string>(isPreset ? value : CUSTOM);
   const [customValue, setCustomValue] = useState<string>(isPreset ? "" : value);
   const [error, setError] = useState<string | null>(null);
@@ -67,9 +84,11 @@ export const ModelDropdown: FC<Props> = ({ value, onChange, disabled = false }) 
           disabled={disabled}
           className="flex-1 px-3 py-2 bg-surface-soft border border-surface-border rounded text-sm"
         >
-          <option value="claude-opus-4-7">{t("settings.model.presetOpus")}</option>
-          <option value="claude-sonnet-4-6">{t("settings.model.presetSonnet")}</option>
-          <option value="claude-haiku-4-5-20251001">{t("settings.model.presetHaiku")}</option>
+          {SELECTABLE_PRESETS.map((id) => (
+            <option key={id} value={id}>
+              {t(PRESET_LABEL_KEY[id]!)}
+            </option>
+          ))}
           <option value={CUSTOM}>{t("settings.model.custom")}</option>
         </select>
         {selectedTier.symbol !== "" && (
