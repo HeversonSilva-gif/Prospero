@@ -164,6 +164,7 @@ import {
 } from "../agents/business-plan-critique.js";
 import { formatBusinessPlanFeedback } from "../agents/format-business-plan-feedback.js";
 import { buildCapabilityBoundary } from "../agents/genesis/capability-boundary.js";
+import { BusinessPlanOptionsPayloadSchema } from "../schemas/businessPlan.js";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -469,21 +470,33 @@ export const registerOrchestratorHandlers = (
     const repo = createBusinessPlansRepository(db);
     const plan = repo.getById(businessPlanId);
     if (plan === null || plan.status !== "critiquing") return;
-    const verdict = await critiqueBusinessPlan(
-      { runDerivation: (i) => runDerivation({ runProcess: defaultRunProcess }, i) },
-      {
-        plan: {
-          concept: plan.concept,
-          monetization: plan.monetization,
-          ...(plan.pricing !== null ? { pricing: plan.pricing } : {}),
-          marketing: plan.marketing,
-          identity: plan.identity,
-          dropped: plan.dropped,
-        },
-        capabilityBoundary: buildCapabilityBoundary(["x"]),
-        env: buildAuthEnv(db),
-      },
-    );
+    const deps = {
+      runDerivation: (i: { prompt: string; model: string; env: Record<string, string> }) =>
+        runDerivation({ runProcess: defaultRunProcess }, i),
+    };
+    const parsedOptions =
+      plan.options !== null
+        ? BusinessPlanOptionsPayloadSchema.safeParse({ options: plan.options })
+        : null;
+    const verdict =
+      parsedOptions !== null && parsedOptions.success
+        ? await critiqueBusinessPlan(deps, {
+            options: parsedOptions.data.options,
+            capabilityBoundary: buildCapabilityBoundary(["x"]),
+            env: buildAuthEnv(db),
+          })
+        : await critiqueBusinessPlan(deps, {
+            plan: {
+              concept: plan.concept,
+              monetization: plan.monetization,
+              ...(plan.pricing !== null ? { pricing: plan.pricing } : {}),
+              marketing: plan.marketing,
+              identity: plan.identity,
+              dropped: plan.dropped,
+            },
+            capabilityBoundary: buildCapabilityBoundary(["x"]),
+            env: buildAuthEnv(db),
+          });
     const flagged = !verdict.feasible || !verdict.specific;
     const attempts = businessPlanRevisions.get(companyId) ?? 0;
     const outcome = decideBusinessPlanOutcome({
