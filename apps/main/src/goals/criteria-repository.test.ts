@@ -115,7 +115,9 @@ describe("goalCriteriaRepository", () => {
     const fetched = repo.getById(c.id);
     expect(fetched?.status).toBe("failed");
     expect(fetched?.lastCheckedAt).not.toBeNull();
-    expect(fetched?.lastResultJson).toBe(JSON.stringify({ exitCode: 1 }));
+    // last_result_json carries the structured result AND the human `detail`, so
+    // the LEARN failure trail can recover why it failed (Facet 5 M3).
+    expect(fetched?.lastResultJson).toBe(JSON.stringify({ exitCode: 1, detail: "exit 1" }));
   });
 
   it("setJudgment persists status and verifiedBy", () => {

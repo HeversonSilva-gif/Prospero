@@ -112,7 +112,11 @@ describe("checkDeterministic", () => {
     expect((await checkDeterministic(c, failCtx)).status).toBe("failed");
   });
 
-  it("metric check fails when the tool throws", async () => {
+  it("metric check is WAIVED (not failed) when the tool is unavailable", async () => {
+    // In production callMetricTool is not wired (always rejects). A throw here
+    // is not the agent's fault, so it must NOT mark the criterion `failed` —
+    // that would block the goal AND demote the owner's trust for a check the
+    // system can't run. Waive it instead (Audit Facet 5 I1).
     const c = mkCriterion({
       checkType: "metric",
       checkSpec: {
@@ -129,7 +133,7 @@ describe("checkDeterministic", () => {
       callMetricTool: () => Promise.reject(new Error("tool not found")),
     };
     const r = await checkDeterministic(c, ctx);
-    expect(r.status).toBe("failed");
+    expect(r.status).toBe("waived");
     expect(r.detail).toContain("tool not found");
   });
 

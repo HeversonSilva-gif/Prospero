@@ -48,6 +48,19 @@ describe("critiqueBusinessPlan", () => {
     });
     expect(v).toEqual({ feasible: true, specific: true, feedback: "" });
   });
+  it("parses a verdict wrapped in prose / an uppercase fence instead of fail-opening", async () => {
+    // The old anchored fence-strip + JSON.parse threw on surrounding prose (or a
+    // ```JSON fence with CRLF) and fail-opened — silently APPROVING a plan the
+    // critic actually flagged. Bracket-scan must recover the embedded verdict.
+    const v = await critiqueBusinessPlan(
+      depsReturning(
+        'Here is my verdict:\r\n```JSON\r\n{"feasible":false,"specific":true,"feedback":"needs design"}\r\n```\r\nHope that helps.',
+      ),
+      { plan, capabilityBoundary: "boundary", env: {} },
+    );
+    expect(v.feasible).toBe(false);
+    expect(v.feedback).toContain("design");
+  });
   it("fails open when the runner throws", async () => {
     const v = await critiqueBusinessPlan(
       { runDerivation: () => Promise.reject(new Error("boom")) },

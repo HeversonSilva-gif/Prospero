@@ -584,3 +584,36 @@ describe("createDerivationWorker — memory triggers", () => {
     expect((db.prepare("SELECT COUNT(*) AS n FROM cost_events").get() as { n: number }).n).toBe(1);
   });
 });
+
+describe("createDerivationWorker — per-class daily cap", () => {
+  it("a full success-class budget does not starve failure-class derivations", async () => {
+    const db = seedVerificationFailed();
+    // Consume the whole daily cap (default 3) with success-class attempts. The
+    // insert omits trigger_class on purpose: pre-migration the column doesn't
+    // exist; post-migration it defaults to 'success'.
+    db.prepare(
+      "INSERT INTO derivation_attempts (agent_id, day_utc, count) VALUES ('a1', 0, 3)",
+    ).run();
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: () =>
+        Promise.resolve({
+          text: '```json\n{"name":"always-typecheck","description":"run tsc before delivery","body":"run pnpm typecheck"}\n```',
+          usage: ZERO_USAGE,
+        }),
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    // A failure-class job (verification_failed) must STILL run — its daily
+    // budget is independent of the (full) success-class budget.
+    await worker.processJob({
+      trigger: "verification_failed",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      goalId: "g1",
+      failedCriterionIds: ["cr1"],
+    });
+    expect(createSkillCandidatesRepository(db).listPending("c1")).toHaveLength(1);
+  });
+});

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations } from "../db/migrations.js";
 import { buildVerificationFailedTrail } from "./verification-failed-trail.js";
+import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
 
 const seed = () => {
   const db = new Database(":memory:");
@@ -40,5 +41,21 @@ describe("buildVerificationFailedTrail", () => {
     const { db } = seed();
     const trail = buildVerificationFailedTrail(db, "g1", ["cr1", "ghost"]);
     expect(trail!.failed.length).toBe(1);
+  });
+
+  it("surfaces the human detail persisted through the real applyResult path", () => {
+    // The other tests hand-seed last_result_json as {"detail":...}, a shape the
+    // production write path never produces. applyResult persists
+    // result.resultJson ({exitCode,stdout,stderr}); the human-readable `detail`
+    // must survive into last_result_json or the LEARN prompt sees nothing.
+    const { db } = seed();
+    createGoalCriteriaRepository(db).applyResult({
+      criterionId: "cr2",
+      status: "failed",
+      detail: "exit 1: tsc found 2 errors",
+      resultJson: { exitCode: 1, timedOut: false, stdout: "", stderr: "error TS2304" },
+    });
+    const trail = buildVerificationFailedTrail(db, "g1", ["cr2"]);
+    expect(trail!.failed[0]!.lastDetail).toContain("tsc found 2 errors");
   });
 });

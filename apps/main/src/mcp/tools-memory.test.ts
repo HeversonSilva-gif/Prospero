@@ -366,25 +366,58 @@ describe("memory_search — special character safety", () => {
 });
 
 describe("session_search tool", () => {
-  it("finds past messages by keyword", async () => {
+  const seedMsg = (
+    ctx: ToolContext,
+    threadId: string,
+    companyId: string,
+    participants: string,
+    msgId: string,
+    content: string,
+  ): void => {
+    ctx.db
+      .prepare("INSERT OR IGNORE INTO companies (id, name, created_at) VALUES (?, ?, 0)")
+      .run(companyId, companyId);
+    ctx.db
+      .prepare(
+        "INSERT OR IGNORE INTO threads (id, company_id, participants_json, created_at) VALUES (?,?,?,0)",
+      )
+      .run(threadId, companyId, participants);
+    ctx.db
+      .prepare(
+        "INSERT INTO messages (id, thread_id, sender_kind, sender_id, content, kind, tool_calls_json, created_at) VALUES (?,?,'user',NULL,?,'message',NULL,0)",
+      )
+      .run(msgId, threadId, content);
+    ctx.db
+      .prepare("INSERT INTO messages_fts (message_id, content) VALUES (?,?)")
+      .run(msgId, content);
+  };
+
+  it("finds past messages by keyword in the caller's own thread", async () => {
     const ctx = newCtx();
-    ctx.db
-      .prepare(
-        "INSERT INTO threads (id, company_id, participants_json, created_at) VALUES ('t1','c1','user|a1',0)",
-      )
-      .run();
-    ctx.db
-      .prepare(
-        "INSERT INTO messages (id, thread_id, sender_kind, sender_id, content, kind, tool_calls_json, created_at) VALUES ('m1','t1','user',NULL,'investigate the redis outage','message',NULL,0)",
-      )
-      .run();
-    ctx.db
-      .prepare(
-        "INSERT INTO messages_fts (message_id, content) VALUES ('m1','investigate the redis outage')",
-      )
-      .run();
+    seedMsg(ctx, "t1", "c1", `user|${ctx.agentId}`, "m1", "investigate the redis outage");
     const hits = JSON.parse(await tool("session_search").run({ query: "redis" }, ctx)) as {
-      results: Array<{ messageId: string; content: string }>;
+      results: Array<{ messageId: string }>;
+    };
+    expect(hits.results.map((r) => r.messageId)).toEqual(["m1"]);
+  });
+
+  it("does not leak messages from threads the caller is not a participant of", async () => {
+    const ctx = newCtx();
+    seedMsg(ctx, "t1", "c1", `user|${ctx.agentId}`, "m1", "investigate the redis outage");
+    // Another company/agent's thread with the same keyword — must NOT come back.
+    seedMsg(ctx, "t2", "c2", "user|other_agent", "m2", "redis incident at another company");
+    const hits = JSON.parse(await tool("session_search").run({ query: "redis" }, ctx)) as {
+      results: Array<{ messageId: string }>;
+    };
+    expect(hits.results.map((r) => r.messageId)).toEqual(["m1"]);
+  });
+
+  it("does not crash on FTS punctuation in the query", async () => {
+    const ctx = newCtx();
+    seedMsg(ctx, "t1", "c1", `user|${ctx.agentId}`, "m1", "investigate the redis outage");
+    // Raw 'redis:outage' is parsed by FTS5 as a column filter and throws.
+    const hits = JSON.parse(await tool("session_search").run({ query: "redis:outage" }, ctx)) as {
+      results: Array<{ messageId: string }>;
     };
     expect(hits.results.map((r) => r.messageId)).toEqual(["m1"]);
   });

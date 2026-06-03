@@ -264,6 +264,64 @@ describe("criterion_judge tool", () => {
       ),
     ).rejects.toThrow(/not found/);
   });
+
+  it("rejects self-certification: an agent assigned to the goal's work cannot judge", async () => {
+    const { ctx, goalId } = setup();
+    toVerifying(ctx, goalId);
+    const issue = createIssuesRepository(ctx.db).create({
+      companyId: ctx.companyId,
+      title: "Build it",
+      projectId: null,
+      description: null,
+      assigneeId: "agent_1", // the caller (ctx.agentId) did this work
+      priority: "medium",
+      parentId: null,
+      createdBy: null,
+    });
+    ctx.db.prepare("UPDATE issues SET goal_id = ? WHERE id = ?").run(goalId, issue.id);
+    const crit = createGoalCriteriaRepository(ctx.db).create({
+      goalId,
+      statement: "on brand",
+      kind: "judgment",
+    });
+    await expect(
+      criterionJudge.run({ criterion_id: crit.id, verdict: "passed" }, ctx),
+    ).rejects.toThrow(/worked on|cannot judge/i);
+    expect(createGoalCriteriaRepository(ctx.db).getById(crit.id)?.status).not.toBe("passed");
+  });
+
+  it("allows the CEO to judge even when the goal has assigned work", async () => {
+    const { ctx, goalId } = setup();
+    const now = Date.now();
+    ctx.db
+      .prepare(
+        `INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json, mode, always_on, status, model, adapter_name, created_at, updated_at)
+         VALUES ('ceo_1', ?, 'Boss', 'ceo', '', '[]', '[]', 'supervised', 0, 'idle', 'claude-opus-4-8', 'claude-oauth-local', ?, ?)`,
+      )
+      .run(ctx.companyId, now, now);
+    toVerifying(ctx, goalId);
+    const issue = createIssuesRepository(ctx.db).create({
+      companyId: ctx.companyId,
+      title: "Build it",
+      projectId: null,
+      description: null,
+      assigneeId: "agent_1",
+      priority: "medium",
+      parentId: null,
+      createdBy: null,
+    });
+    ctx.db.prepare("UPDATE issues SET goal_id = ? WHERE id = ?").run(goalId, issue.id);
+    const crit = createGoalCriteriaRepository(ctx.db).create({
+      goalId,
+      statement: "on brand",
+      kind: "judgment",
+    });
+    await criterionJudge.run(
+      { criterion_id: crit.id, verdict: "passed" },
+      { ...ctx, agentId: "ceo_1" },
+    );
+    expect(createGoalCriteriaRepository(ctx.db).getById(crit.id)?.status).toBe("passed");
+  });
 });
 
 describe("telos_read tool", () => {

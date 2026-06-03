@@ -46,6 +46,10 @@ import {
 } from "../orchestrator/lifecycle.js";
 import { createRespawnFn, type PendingTurn, type SpawnState } from "../orchestrator/respawn.js";
 import {
+  mayOverwriteStatusOnLifecycleEvent,
+  rememberPendingTurn,
+} from "../orchestrator/lifecycle-guards.js";
+import {
   setRecoveryBroadcastFn,
   setRecoveryPauseFn,
   setRespawnFn,
@@ -117,7 +121,10 @@ import { handleApprovalEvent } from "../approvals/event-handler.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
 import { preapprovalKey, preapprovalPath } from "../approvals/deferred-approval.js";
 import { getPermissionsDir } from "../security/permissions-dir.js";
-import { createConnectionsRepository } from "../connections/connections-repository.js";
+import {
+  createConnectionsRepository,
+  listConnectedChannels,
+} from "../connections/connections-repository.js";
 import { handleXPostEvent } from "../connections/x-post-event.js";
 import { handleStripeSetupEvent } from "../connections/stripe-setup-event.js";
 import type { StripeChargeItem } from "../connections/stripe-monetization-executor.js";
@@ -349,7 +356,11 @@ export const registerOrchestratorHandlers = (
   const writeStdinFn = (agentId: string, content: string, messageId: string | null): void => {
     const a = getAdapter(agentId);
     if (a === undefined || !a.isAlive()) return;
-    pendingTurnByAgent.set(agentId, { content, messageId });
+    // First-unanswered-write-wins: during a 401 the adapter stays alive through
+    // the recovery debounce, so a 2nd message here must not clobber the first
+    // still-unanswered turn that the respawn will replay. Cleared on
+    // turn-complete. Audit 2026-06-03 Facet 1 C2.
+    rememberPendingTurn(pendingTurnByAgent, agentId, { content, messageId });
 
     if (messageId === null) {
       a.sendInput(content);
@@ -421,10 +432,11 @@ export const registerOrchestratorHandlers = (
   const GOAL_PLAN_REVISION_CAP = 1;
   const goalPlanRevisions = new Map<string, number>();
 
-  // P4.1 — business-plan critic. Cap of 1 auto-revision per company, same shape as
-  // the org-plan critic. In-memory; resets when the card is created (and on restart).
+  // P4.1 — business-plan critic. Cap of 1 auto-revision per company, same shape
+  // as the org-plan critic. The counter is now DB-backed (business_plan_revisions)
+  // so the cap survives restarts — the plan's critiquing/proposed status is
+  // durable, so an in-memory counter made the cap bypassable. Audit Facet 6 C2.
   const BUSINESS_PLAN_REVISION_CAP = 1;
-  const businessPlanRevisions = new Map<string, number>();
 
   const handleOrgProposed = async (orgPlanId: string, companyId: string): Promise<void> => {
     const orgPlans = createOrgPlansRepository(db);
@@ -483,7 +495,7 @@ export const registerOrchestratorHandlers = (
       parsedOptions !== null && parsedOptions.success
         ? await critiqueBusinessPlan(deps, {
             options: parsedOptions.data.options,
-            capabilityBoundary: buildCapabilityBoundary(["x"]),
+            capabilityBoundary: buildCapabilityBoundary(listConnectedChannels(db, companyId)),
             env: buildAuthEnv(db),
           })
         : await critiqueBusinessPlan(deps, {
@@ -491,28 +503,33 @@ export const registerOrchestratorHandlers = (
               concept: plan.concept,
               monetization: plan.monetization,
               ...(plan.pricing !== null ? { pricing: plan.pricing } : {}),
+              // Include research + ownerProfile so the critic can flag invented
+              // competitors / vague differentiation (the prompt judges `research`
+              // when present). Audit 2026-06-03 Facet 6 C1.
+              ...(plan.research !== null ? { research: plan.research } : {}),
+              ...(plan.ownerProfile !== null ? { ownerProfile: plan.ownerProfile } : {}),
               marketing: plan.marketing,
               identity: plan.identity,
               dropped: plan.dropped,
             },
-            capabilityBoundary: buildCapabilityBoundary(["x"]),
+            capabilityBoundary: buildCapabilityBoundary(listConnectedChannels(db, companyId)),
             env: buildAuthEnv(db),
           });
     const flagged = !verdict.feasible || !verdict.specific;
-    const attempts = businessPlanRevisions.get(companyId) ?? 0;
+    const attempts = repo.getRevisionAttempts(companyId);
     const outcome = decideBusinessPlanOutcome({
       flagged,
       attempts,
       cap: BUSINESS_PLAN_REVISION_CAP,
     });
     if (outcome === "revise") {
-      businessPlanRevisions.set(companyId, attempts + 1);
+      repo.bumpRevisionAttempts(companyId);
       // Leave the plan 'critiquing' — the CEO's resubmit supersedes it via
       // submit_business_plan's own prior-supersede logic. No card yet.
       deliverSystemMessage(plan.proposedByAgentId, formatBusinessPlanFeedback(verdict.feedback));
       return;
     }
-    businessPlanRevisions.delete(companyId);
+    repo.clearRevisionAttempts(companyId);
     const note = flagged ? "⚠ Revisar — pode estar genérico ou inviável. " : "";
     repo.markProposed(businessPlanId);
     inbox.create({
@@ -1499,16 +1516,22 @@ export const registerOrchestratorHandlers = (
         } else {
           autoHealAttempts.delete(agent.id); // clean exit resets the auto-heal budget
         }
-        agents.updateStatus(agent.id, {
-          status: code === 0 ? "idle" : "error",
-          currentAction: null,
-        });
-        broadcast({
-          kind: "status-changed",
-          agentId: agent.id,
-          status: code === 0 ? "idle" : "error",
-          updatedAt: Date.now(),
-        });
+        // Respect a status a concurrent budget-pause or terminate just set: a
+        // process exit (esp. a clean code-0 exit right after a budget pause)
+        // must not flip the agent back to idle and let it respawn + keep
+        // spending. Mirrors the turn-complete guard. Audit 2026-06-03 Facet 1 I4.
+        if (mayOverwriteStatusOnLifecycleEvent(agents.getById(agent.id))) {
+          agents.updateStatus(agent.id, {
+            status: code === 0 ? "idle" : "error",
+            currentAction: null,
+          });
+          broadcast({
+            kind: "status-changed",
+            agentId: agent.id,
+            status: code === 0 ? "idle" : "error",
+            updatedAt: Date.now(),
+          });
+        }
         currentActionDebouncer.cancel(agent.id);
         broadcast({ kind: "current-action-changed", agentId: agent.id, action: null });
         // A slot just freed — wake the drain so waiting agents can spawn.
@@ -1569,6 +1592,12 @@ export const registerOrchestratorHandlers = (
     }
   });
 
+  // Agents with a spawn currently in flight. `respawnAgent` is async (100-500ms);
+  // without this guard a 2nd ensureAgentRunner call in that window (e.g. a drain
+  // tick and a message arriving on the same tick) would start a SECOND `claude`
+  // process for the same agent — the first becomes an orphan burning tokens with
+  // no cleanup. Cleared in `.finally` below. Audit 2026-06-03 Facet 1 C1.
+  const spawning = new Set<string>();
   const ensureAgentRunner = (agent: Agent): void => {
     const existing = getAdapter(agent.id);
     if (existing !== undefined && existing.isAlive()) return;
@@ -1576,6 +1605,9 @@ export const registerOrchestratorHandlers = (
     // Never spawn a terminated agent. `terminatedAt` is the authoritative kill
     // marker; a zombie row whose status was reset to 'idle' must stay dead.
     if (agent.terminatedAt !== null) return;
+
+    // A spawn for this agent is already in flight — bail (see `spawning` above).
+    if (spawning.has(agent.id)) return;
 
     // Account-wide Max rate limit in effect → don't spawn; the team auto-resumes
     // when the window resets (handled in drainScheduler).
@@ -1591,6 +1623,7 @@ export const registerOrchestratorHandlers = (
     if (activeAdapterCount() >= MAX_CONCURRENT_AGENTS) return;
     if (!isCeoAgent(agent) && liveWorkerCount() >= MAX_CONCURRENT_AGENTS - 1) return;
 
+    spawning.add(agent.id);
     void respawnAgent(agent.id)
       .then(() => {
         // Eager per-spawn `thisSpawn` capture happens inside createRespawnFn
@@ -1600,7 +1633,8 @@ export const registerOrchestratorHandlers = (
         // spawned (e.g. enqueue called before isAlive).
         router.deliverQueued(agent.id);
       })
-      .catch((err: Error) => handleSpawnError(agent.id, err));
+      .catch((err: Error) => handleSpawnError(agent.id, err))
+      .finally(() => spawning.delete(agent.id));
   };
 
   // Continuous drain: keeps the ≤MAX_CONCURRENT_AGENTS slots filled whenever

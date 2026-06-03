@@ -68,6 +68,16 @@ const resolveIssueIdOrIdentifier = (
   return byIdent !== null && byIdent.companyId === companyId ? byIdent.id : null;
 };
 
+// Authority guard for the CEO-only approval tools. The MCP child auto-allows
+// meta-tools in auto-mode, so the permission gate never sees these calls — a
+// worker that knows an approval ID could otherwise approve its own blocked call.
+// These tools MUST verify, at the tool boundary, that the caller is the CEO of
+// this company (audit 2026-06-03 Facet 4 C2/M7).
+const callerIsCeo = (ctx: ToolContext): boolean => {
+  const caller = createAgentsRepository(ctx.db).getById(ctx.agentId);
+  return caller !== null && caller.companyId === ctx.companyId && isCeoAgent(caller);
+};
+
 export const waitForResolution = async (
   dir: string,
   toolUseId: string,
@@ -437,7 +447,10 @@ export const toolDefinitions = [
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (_input: unknown, ctx: ToolContext): Promise<string> => {
       const repo = createAgentsRepository(ctx.db, tryGetRecorder());
-      const agents = repo.listByCompany(ctx.companyId);
+      // Hide terminated agents: `terminatedAt` is the authoritative kill marker
+      // (a zombie row may have status reset to idle). The CEO must not see — and
+      // therefore cannot reassign work to — a corpse. Audit 2026-06-03 Facet 2 C1.
+      const agents = repo.listByCompany(ctx.companyId).filter((a) => a.terminatedAt === null);
       return JSON.stringify({
         agents: agents.map((a) => ({
           id: a.id,
@@ -557,19 +570,24 @@ export const toolDefinitions = [
       const target = ctx.db
         .prepare("SELECT id, company_id FROM agents WHERE id = ?")
         .get(input.agent_id) as { id: string; company_id: string } | undefined;
-      ctx.emit({ kind: "agent.kill", payload: { agentId: input.agent_id } });
-      ctx.db.prepare("DELETE FROM agents WHERE id = ?").run(input.agent_id);
-      if (target !== undefined) {
-        tryGetRecorder()?.recordActivity({
-          companyId: target.company_id,
-          actor: { kind: "agent", id: ctx.agentId },
-          action: "agent.terminated",
-          entityKind: "agent",
-          entityId: input.agent_id,
-          agentId: input.agent_id,
-          payload: { reason: "fire_agent invoked" },
-        });
+      // Company scope: only fire agents in the caller's own company — never
+      // kill/delete another company's agent. Audit 2026-06-03 Facet 4 C1.
+      if (target === undefined || target.company_id !== ctx.companyId) {
+        return JSON.stringify({ ok: false, error: "agent not found" });
       }
+      ctx.emit({ kind: "agent.kill", payload: { agentId: input.agent_id } });
+      ctx.db
+        .prepare("DELETE FROM agents WHERE id = ? AND company_id = ?")
+        .run(input.agent_id, ctx.companyId);
+      tryGetRecorder()?.recordActivity({
+        companyId: target.company_id,
+        actor: { kind: "agent", id: ctx.agentId },
+        action: "agent.terminated",
+        entityKind: "agent",
+        entityId: input.agent_id,
+        agentId: input.agent_id,
+        payload: { reason: "fire_agent invoked" },
+      });
       return JSON.stringify({ ok: true });
     },
   },
@@ -800,8 +818,12 @@ export const toolDefinitions = [
       if (resolved === null) {
         return JSON.stringify({ ok: false, error: "issue not found" });
       }
+      // `terminated_at IS NULL`: never assign to a terminated agent — the issue
+      // would sit in `doing` with nobody working it, and the reconciler would
+      // wake the CEO to reassign it to the same corpse (invisible stall loop).
+      // Audit 2026-06-03 Facet 2 C1.
       const targetAgent = ctx.db
-        .prepare("SELECT id FROM agents WHERE id = ? AND company_id = ?")
+        .prepare("SELECT id FROM agents WHERE id = ? AND company_id = ? AND terminated_at IS NULL")
         .get(input.agent_id, ctx.companyId) as { id: string } | undefined;
       if (targetAgent === undefined) {
         return JSON.stringify({ ok: false, error: "agent not found" });
@@ -1277,6 +1299,12 @@ export const toolDefinitions = [
     inputSchema: z.object({}),
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (_input: unknown, ctx: ToolContext): Promise<string> => {
+      // Only the CEO has requests routed to them; a non-CEO caller must not see
+      // (and could otherwise read) other agents' approval payloads. Audit
+      // 2026-06-03 Facet 4 M7.
+      if (!callerIsCeo(ctx)) {
+        return JSON.stringify({ pending: [] });
+      }
       const repo = createApprovalsRepository(ctx.db);
       const pending = repo.listPendingRoutedToCeo(ctx.companyId);
       return JSON.stringify({
@@ -1305,11 +1333,23 @@ export const toolDefinitions = [
       input: { approval_id: string; decision: "approve" | "reject" | "escalate"; note?: string },
       ctx: ToolContext,
     ): Promise<string> => {
+      if (!callerIsCeo(ctx)) {
+        return JSON.stringify({ ok: false, error: "only the CEO can decide approvals" });
+      }
       const repo = createApprovalsRepository(ctx.db);
       const apv = repo.getById(input.approval_id);
       if (apv === null) return JSON.stringify({ ok: false, error: "not found" });
       if (apv.status !== "pending" || apv.routedTo !== "ceo") {
         return JSON.stringify({ ok: false, error: "already resolved or not routed to you" });
+      }
+      // Company isolation: the approval's requester must belong to this company,
+      // so the CEO of company A cannot decide an approval raised in company B.
+      // Skipped when there is no requester id (e.g. a system-raised approval).
+      if (apv.agentId !== null) {
+        const requester = createAgentsRepository(ctx.db).getById(apv.agentId);
+        if (requester === null || requester.companyId !== ctx.companyId) {
+          return JSON.stringify({ ok: false, error: "not found" });
+        }
       }
 
       // This tool runs in the MCP child where the engine bridge/recorder are
@@ -1391,6 +1431,16 @@ export const toolDefinitions = [
       },
       ctx: ToolContext,
     ): Promise<string> => {
+      if (!callerIsCeo(ctx)) {
+        return JSON.stringify({
+          ok: false,
+          decided: 0,
+          errors: input.decisions.map((d) => ({
+            approval_id: d.approval_id,
+            error: "only the CEO can decide approvals",
+          })),
+        });
+      }
       const repo = createApprovalsRepository(ctx.db);
       const errors: { approval_id: string; error: string }[] = [];
       let decided = 0;
@@ -1407,6 +1457,15 @@ export const toolDefinitions = [
             error: "already resolved or not routed to you",
           });
           continue;
+        }
+        // Company isolation (mirrors decide_request): the approval's requester
+        // must belong to this company (skipped when there is no requester id).
+        if (apv.agentId !== null) {
+          const requester = createAgentsRepository(ctx.db).getById(apv.agentId);
+          if (requester === null || requester.companyId !== ctx.companyId) {
+            errors.push({ approval_id: d.approval_id, error: "not found" });
+            continue;
+          }
         }
 
         if (d.decision === "escalate") {

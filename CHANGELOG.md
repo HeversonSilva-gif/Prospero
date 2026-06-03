@@ -3,6 +3,46 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.5 — 2026-06-03
+
+Endurecimento do **sistema de agentes** a partir de uma auditoria completa: quem
+pode mandar em quem, trabalho que não trava nem se perde, e um time que de fato
+aprende com o que dá certo — não só com o que dá errado. É uma release de
+fundação, sem telas novas; tudo por baixo do capô.
+
+### Segurança
+
+- **Só o CEO aprova, decide e vê as pendências.** Antes, um funcionário que
+  soubesse o ID conseguia aprovar a própria ação bloqueada ou enxergar pedidos de
+  outros. Agora a autoridade é verificada na hora.
+- **Ninguém carimba o próprio trabalho.** O agente que executou uma tarefa não
+  pode mais dar o "passou" no critério de verificação dela.
+- **Demitir e buscar conversas ficam restritos à sua empresa** — sem alcançar nem
+  vazar dados de outra.
+
+### Confiabilidade
+
+- **Agentes não duplicam mais** (nada de dois processos do mesmo agente queimando
+  custo), **a pausa por orçamento não é desfeita** sozinha, e **a primeira mensagem
+  não se perde** durante uma reconexão.
+- **Trabalho não trava num agente demitido** — ele some da lista e não recebe
+  novas tarefas.
+- **Lotes de aprovação escalam todos os itens** pro humano, não só o primeiro.
+
+### Aprendizado & confiança
+
+- **O time agora aprende com os sucessos**, não só com as falhas — e a lição de
+  falha passou a enxergar o erro real.
+- **Uma verificação que o sistema não consegue rodar não pune mais o agente** à toa.
+- **A medição de competência ficou justa:** uma falha pontual não despenca o agente
+  vários níveis de uma vez, e tropeços antigos não o travam pra sempre.
+
+### Gênese
+
+- **O crítico de negócio julga contra a realidade** — os canais que você realmente
+  conectou e a pesquisa de concorrentes — e o limite de revisão do plano agora
+  resiste a reinícios.
+
 ## v0.2.4 — 2026-06-03
 
 A **Gênese agora te dá 3 caminhos de negócio** pra escolher (um recomendado, com o

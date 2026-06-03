@@ -36,6 +36,17 @@ export type ConnectionsRepository = {
 const parseMeta = (json: string | null): Record<string, unknown> =>
   json !== null ? (JSON.parse(json) as Record<string, unknown>) : {};
 
+// The channel kinds a company has actually connected (no decrypt, no cipher
+// needed — just the `kind` list). Fed to buildCapabilityBoundary so the CEO's
+// business-plan critic judges feasibility against channels that REALLY exist,
+// not a hardcoded ["x"]. Audit 2026-06-03 Facet 3 C1.
+export const listConnectedChannels = (db: Database.Database, companyId: string): string[] =>
+  (
+    db
+      .prepare("SELECT kind FROM connections WHERE company_id = ? ORDER BY kind")
+      .all(companyId) as Array<{ kind: string }>
+  ).map((r) => r.kind);
+
 export const createConnectionsRepository = (
   db: Database.Database,
   cipher: Cipher,

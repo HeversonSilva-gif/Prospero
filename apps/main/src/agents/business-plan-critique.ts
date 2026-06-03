@@ -98,10 +98,20 @@ export const buildBusinessPlanOptionsCritiquePrompt = (
   ].join("\n");
 };
 
-const stripFence = (text: string): string => {
-  const t = text.trim();
-  const m = /^```[a-z]*\n([\s\S]*)\n```$/.exec(t);
-  return m !== null ? m[1]!.trim() : t;
+// Bracket-scan for the first {...} — robust to code fences (```json / ```JSON),
+// CRLF, and surrounding prose. The old anchored fence-strip required the WHOLE
+// response to be exactly a lowercase-```fence; anything else made JSON.parse
+// throw and the critic fail-OPEN, silently approving a flagged plan. Mirrors
+// the other critics. Audit 2026-06-03 Facet 6 I2.
+const extractJson = (text: string): unknown => {
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) return null;
+  try {
+    return JSON.parse(text.slice(start, end + 1));
+  } catch {
+    return null;
+  }
 };
 
 // Fail-open: any error (runner throw, non-JSON, missing fields) yields a passing
@@ -128,7 +138,7 @@ export async function critiqueBusinessPlan(
       model: CRITIC_MODEL,
       env: input.env,
     });
-    const parsed = JSON.parse(stripFence(result.text)) as Partial<BusinessPlanVerdict>;
+    const parsed = (extractJson(result.text) ?? {}) as Partial<BusinessPlanVerdict>;
     return {
       feasible: parsed.feasible !== false,
       specific: parsed.specific !== false,

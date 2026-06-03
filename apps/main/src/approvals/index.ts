@@ -230,9 +230,14 @@ const onCoalescedFlush = (payload: FlushPayload): void => {
     },
   );
 
-  // Arm escalation timer for the head — followers stay tied to it via
-  // coalesced_with; if the CEO times out the whole batch escalates as one.
-  timers?.arm(head.id);
+  // Arm an escalation timer for EVERY approval in the batch, not just the head.
+  // The wake names only head.id, so a CEO that decides just the head would leave
+  // the followers sitting pending with no timer/bounce — the requesting workers
+  // then hang until restart. Each follower escalates on its own timeout;
+  // deciding it cancels its timer. Audit 2026-06-03 Facet 2 C2.
+  for (const a of approvals) {
+    timers?.arm(a.id);
+  }
 };
 
 export const setApprovalEngineBridge = (b: ApprovalEngineBridge): void => {

@@ -89,11 +89,18 @@ const checkMetric = async (
   try {
     raw = await ctx.callMetricTool(spec.tool, spec.params);
   } catch (err) {
+    // The metric tool is not wired in production (callMetricTool rejects), so a
+    // throw means "the system can't verify this", NOT "the agent failed". Mark
+    // it WAIVED, not failed: failing here would both block the goal and demote
+    // the owner's trust (verificationFailures) for a check we never ran. Audit
+    // 2026-06-03 Facet 5 I1. (Real fix: wire callMetricTool or drop metric ISCs
+    // from ISA generation.) A tool that RETURNS a bad value still fails below.
+    const message = err instanceof Error ? err.message : String(err);
     return {
       criterionId: c.id,
-      status: "failed",
-      detail: `metric tool error: ${err instanceof Error ? err.message : String(err)}`,
-      resultJson: { error: err instanceof Error ? err.message : String(err) },
+      status: "waived",
+      detail: `metric tool unavailable (${spec.tool}); waived — cannot verify automatically: ${message}`,
+      resultJson: { waived: true, reason: "metric_tool_unavailable", error: message },
     };
   }
   const value = getField(raw, spec.field);

@@ -13,12 +13,14 @@ function setup() {
   const db = new Database(":memory:");
   applyMigrations(db);
   db.prepare("INSERT INTO companies (id,name,created_at) VALUES ('c1','Acme',?)").run(Date.now());
-  for (const id of ["ceo1", "bot1"]) {
+  const seedAgent = (id: string, role: string): void => {
     db.prepare(
       `INSERT INTO agents (id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,model,adapter_name,created_at,updated_at)
-       VALUES (?,?,?,'engineer','','[]','[]','supervised',0,'idle','claude-sonnet-4-6','claude-oauth-local',?,?)`,
-    ).run(id, "c1", id, Date.now(), Date.now());
-  }
+       VALUES (?,?,?,?,'','[]','[]','supervised',0,'idle','claude-sonnet-4-6','claude-oauth-local',?,?)`,
+    ).run(id, "c1", id, role, Date.now(), Date.now());
+  };
+  seedAgent("ceo1", "ceo"); // real CEO — passes the new callerIsCeo guard
+  seedAgent("bot1", "engineer"); // worker — must be rejected by the guard
   const dir = mkdtempSync(join(tmpdir(), "perm-"));
   // The CEO-side tools now EMIT events instead of touching the engine bridge
   // directly (the bridge is null in the MCP child). Capture emitted events so
@@ -144,6 +146,99 @@ describe("decide_request", () => {
         note: "ok",
       }),
     });
+  });
+
+  it("rejects a non-CEO caller (a worker cannot approve its own blocked call)", async () => {
+    const repo = createApprovalsRepository(env.db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "tool_call",
+      payload: { tool_name: "Write", tool_input: {}, tool_use_id: "tuW" },
+    });
+    repo.setRouted(apv.id, "ceo");
+    const out = JSON.parse(
+      await decideTool.run(
+        { approval_id: apv.id, decision: "approve" },
+        { ...env.ctx, agentId: "bot1" },
+      ),
+    ) as { ok: boolean; error?: string };
+    expect(out.ok).toBe(false);
+    expect(out.error).toMatch(/CEO/i);
+    expect(existsSync(join(env.dir, "tuW.res.json"))).toBe(false);
+    expect(repo.getById(apv.id)?.status).toBe("pending");
+  });
+});
+
+const decideBatchTool = toolDefinitions.find((t) => t.name === "decide_batch")!;
+
+describe("decide_batch", () => {
+  let env: ReturnType<typeof setup>;
+  beforeEach(() => {
+    env = setup();
+  });
+
+  it("rejects every decision when the caller is not the CEO", async () => {
+    const repo = createApprovalsRepository(env.db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "tool_call",
+      payload: { tool_name: "Write", tool_input: {}, tool_use_id: "tuB" },
+    });
+    repo.setRouted(apv.id, "ceo");
+    const out = JSON.parse(
+      await decideBatchTool.run(
+        { decisions: [{ approval_id: apv.id, decision: "approve" }] },
+        { ...env.ctx, agentId: "bot1" },
+      ),
+    ) as { ok: boolean; decided: number; errors: { approval_id: string; error: string }[] };
+    expect(out.decided).toBe(0);
+    expect(out.errors[0]?.error).toMatch(/CEO/i);
+    expect(existsSync(join(env.dir, "tuB.res.json"))).toBe(false);
+    expect(repo.getById(apv.id)?.status).toBe("pending");
+  });
+
+  it("decides for a CEO caller (regression)", async () => {
+    const repo = createApprovalsRepository(env.db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "tool_call",
+      payload: { tool_name: "Write", tool_input: {}, tool_use_id: "tuB2" },
+    });
+    repo.setRouted(apv.id, "ceo");
+    const out = JSON.parse(
+      await decideBatchTool.run(
+        { decisions: [{ approval_id: apv.id, decision: "approve" }] },
+        env.ctx,
+      ),
+    ) as { ok: boolean; decided: number };
+    expect(out.decided).toBe(1);
+    expect(existsSync(join(env.dir, "tuB2.res.json"))).toBe(true);
+  });
+});
+
+const listPendingTool = toolDefinitions.find((t) => t.name === "list_pending_requests")!;
+
+describe("list_pending_requests", () => {
+  it("returns nothing to a non-CEO caller and the real list to the CEO", async () => {
+    const env = setup();
+    const repo = createApprovalsRepository(env.db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "manager_request",
+      payload: { topic: "hire", summary: "secret payload" },
+    });
+    repo.setRouted(apv.id, "ceo");
+
+    const worker = JSON.parse(await listPendingTool.run({}, { ...env.ctx, agentId: "bot1" })) as {
+      pending: unknown[];
+    };
+    expect(worker.pending).toEqual([]);
+
+    const ceo = JSON.parse(await listPendingTool.run({}, env.ctx)) as {
+      pending: { approval_id: string }[];
+    };
+    expect(ceo.pending).toHaveLength(1);
+    expect(ceo.pending[0]?.approval_id).toBe(apv.id);
   });
 });
 
