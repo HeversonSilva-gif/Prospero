@@ -34,6 +34,7 @@ import { AuthErrorBanner } from "./components/banners/AuthErrorBanner.js";
 import { OAuthExpiryBanner } from "./components/banners/OAuthExpiryBanner.js";
 import { RateLimitBanner } from "./components/banners/RateLimitBanner.js";
 import { UpdateBanner } from "./components/UpdateBanner.js";
+import { RouteErrorBoundary } from "./components/RouteErrorBoundary.js";
 
 const Activity = lazy(() => import("./routes/Activity.js").then((m) => ({ default: m.Activity })));
 const Costs = lazy(() => import("./routes/Costs.js"));
@@ -179,373 +180,378 @@ export const App = () => {
   return (
     <HashRouter>
       <Shell>
-        {loading ? (
-          <div className="flex-1 flex items-center justify-center bg-surface-soft">
-            <p className="text-ink-muted">Loading…</p>
-          </div>
-        ) : (
-          <Routes>
-            <Route
-              path="/setup"
-              element={appReady ? <Navigate to="/briefing" replace /> : <SetupWizard />}
-            />
-            <Route
-              path="/briefing"
-              element={
-                appReady ? (
+        <RouteErrorBoundary>
+          {loading ? (
+            <div className="flex-1 flex items-center justify-center bg-surface-soft">
+              <p className="text-ink-muted">Loading…</p>
+            </div>
+          ) : (
+            <Routes>
+              <Route
+                path="/setup"
+                element={appReady ? <Navigate to="/briefing" replace /> : <SetupWizard />}
+              />
+              <Route
+                path="/briefing"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Briefing />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/routines"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Routines />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/routines/new"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <RoutineForm />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/routines/:id"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <RoutineForm />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Dashboard />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/settings"
+                element={
                   <Layout>
-                    <Briefing />
+                    <Ajustes />
                   </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/routines"
-              element={
-                appReady ? (
+                }
+              />
+              <Route
+                path="/settings/conta"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <AjustesConta />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/settings/preferencias"
+                element={
                   <Layout>
-                    <Routines />
+                    <AjustesPreferencias />
                   </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/routines/new"
-              element={
-                appReady ? (
+                }
+              />
+              <Route
+                path="/settings/avancado"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <AjustesAvancado />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/settings/governanca-assincrona"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <AjustesGovernanca />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/inbox"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Inbox />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/org-plan"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <OrgPlan />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/business-plan"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <BusinessPlan />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/projects"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Projects />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/issues"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Issues />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/roles"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Roles />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/telos"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Telos />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/activity"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                        <Activity />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/costs"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                        <Costs />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/goals"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                        <Goals />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/goals/new"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                        <PedirAlgo />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/empresa/nova/:companyId"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                        <NovaEmpresaWizard />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/pedir/:goalId"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                        <PedirAlgo />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/pedir/:goalId/plano"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                        <PlanoRevisao />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/goals/:id"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                        <GoalDetail />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/agents"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                        <Agents />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/agents/new"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <AgentNew />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/agents/:id"
+                element={
                   <Layout>
-                    <RoutineForm />
+                    <AgentRoute />
                   </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/routines/:id"
-              element={
-                appReady ? (
-                  <Layout>
-                    <RoutineForm />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <Layout>
-                  <Ajustes />
-                </Layout>
-              }
-            />
-            <Route
-              path="/settings/conta"
-              element={
-                appReady ? (
-                  <Layout>
-                    <AjustesConta />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/settings/preferencias"
-              element={
-                <Layout>
-                  <AjustesPreferencias />
-                </Layout>
-              }
-            />
-            <Route
-              path="/settings/avancado"
-              element={
-                appReady ? (
-                  <Layout>
-                    <AjustesAvancado />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/settings/governanca-assincrona"
-              element={
-                appReady ? (
-                  <Layout>
-                    <AjustesGovernanca />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/inbox"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Inbox />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/org-plan"
-              element={
-                appReady ? (
-                  <Layout>
-                    <OrgPlan />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/business-plan"
-              element={
-                appReady ? (
-                  <Layout>
-                    <BusinessPlan />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/projects"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Projects />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/issues"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Issues />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/roles"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Roles />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/telos"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Telos />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/activity"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
-                      <Activity />
-                    </Suspense>
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/costs"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
-                      <Costs />
-                    </Suspense>
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/goals"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
-                      <Goals />
-                    </Suspense>
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/goals/new"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
-                      <PedirAlgo />
-                    </Suspense>
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/empresa/nova/:companyId"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
-                      <NovaEmpresaWizard />
-                    </Suspense>
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/pedir/:goalId"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
-                      <PedirAlgo />
-                    </Suspense>
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/pedir/:goalId/plano"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
-                      <PlanoRevisao />
-                    </Suspense>
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/goals/:id"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
-                      <GoalDetail />
-                    </Suspense>
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/agents"
-              element={
-                appReady ? (
-                  <Layout>
-                    <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
-                      <Agents />
-                    </Suspense>
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/agents/new"
-              element={
-                appReady ? (
-                  <Layout>
-                    <AgentNew />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route
-              path="/agents/:id"
-              element={
-                <Layout>
-                  <AgentRoute />
-                </Layout>
-              }
-            />
-            <Route
-              path="/agents/:id/ajustar"
-              element={
-                appReady ? (
-                  <Layout>
-                    <AgentAjustar />
-                  </Layout>
-                ) : (
-                  <Navigate to="/setup" replace />
-                )
-              }
-            />
-            <Route path="*" element={<Navigate to={appReady ? "/briefing" : "/setup"} replace />} />
-          </Routes>
-        )}
+                }
+              />
+              <Route
+                path="/agents/:id/ajustar"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <AgentAjustar />
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="*"
+                element={<Navigate to={appReady ? "/briefing" : "/setup"} replace />}
+              />
+            </Routes>
+          )}
+        </RouteErrorBoundary>
       </Shell>
     </HashRouter>
   );

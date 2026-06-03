@@ -1,4 +1,8 @@
 {
+  "errorBoundary": {
+    "title": "This screen hit an error",
+    "reload": "Reload"
+  },
   "app": {
     "title": "Prospero"
   },
