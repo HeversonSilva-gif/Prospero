@@ -9,7 +9,8 @@ describe("migration 0061 — derivation_attempts", () => {
     const cols = (
       db.prepare(`PRAGMA table_info(derivation_attempts)`).all() as Array<{ name: string }>
     ).map((c) => c.name);
-    expect(cols).toEqual(expect.arrayContaining(["agent_id", "day_utc", "count"]));
+    // trigger_class added in 0062 (segments the success/failure daily budgets).
+    expect(cols).toEqual(expect.arrayContaining(["agent_id", "day_utc", "trigger_class", "count"]));
   });
 
   it("round-trips an insert and upsert increment", () => {
@@ -20,7 +21,7 @@ describe("migration 0061 — derivation_attempts", () => {
     db.prepare(
       `INSERT INTO derivation_attempts (agent_id, day_utc, count)
        VALUES ('a1', 1748736000000, 1)
-       ON CONFLICT(agent_id, day_utc) DO UPDATE SET count = count + 1`,
+       ON CONFLICT(agent_id, day_utc, trigger_class) DO UPDATE SET count = count + 1`,
     ).run();
 
     const row1 = db.prepare(`SELECT count FROM derivation_attempts WHERE agent_id='a1'`).get() as {
@@ -32,7 +33,7 @@ describe("migration 0061 — derivation_attempts", () => {
     db.prepare(
       `INSERT INTO derivation_attempts (agent_id, day_utc, count)
        VALUES ('a1', 1748736000000, 1)
-       ON CONFLICT(agent_id, day_utc) DO UPDATE SET count = count + 1`,
+       ON CONFLICT(agent_id, day_utc, trigger_class) DO UPDATE SET count = count + 1`,
     ).run();
 
     const row2 = db.prepare(`SELECT count FROM derivation_attempts WHERE agent_id='a1'`).get() as {

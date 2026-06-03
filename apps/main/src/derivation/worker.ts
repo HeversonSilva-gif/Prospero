@@ -64,6 +64,14 @@ export type DerivationWorker = {
   processJob(job: DerivationJob): Promise<void>;
 };
 
+// Success-class lessons (issue_done / recovery / goal_achieved) and failure-class
+// lessons (verification_failed / approval_rejected) get SEPARATE daily budgets,
+// so a busy day of one kind can't starve the other under a single shared cap.
+// Audit 2026-06-03 Facet 5 M2.
+type TriggerClass = "success" | "failure";
+const triggerClassOf = (trigger: DerivationJob["trigger"]): TriggerClass =>
+  trigger === "verification_failed" || trigger === "approval_rejected" ? "failure" : "success";
+
 // Start of the UTC calendar day for a timestamp. The cap counts cost_events,
 // and the whole costs subsystem buckets by UTC midnight — keeping the same
 // boundary here makes the cap agree with what the /costs UI shows.
@@ -80,15 +88,15 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
   // successful runs.
   const capCountStmt = db.prepare(
     `SELECT COALESCE(SUM(count), 0) AS n FROM derivation_attempts
-      WHERE agent_id = ? AND day_utc = ?`,
+      WHERE agent_id = ? AND day_utc = ? AND trigger_class = ?`,
   );
-  // Upsert: insert with count=1 on first attempt of the day; increment on
-  // subsequent attempts. Executed BEFORE runDerivation so failures consume
-  // budget too.
+  // Upsert: insert with count=1 on first attempt of the day for this class;
+  // increment on subsequent attempts. Executed BEFORE runDerivation so failures
+  // consume budget too.
   const recordAttemptStmt = db.prepare(
-    `INSERT INTO derivation_attempts (agent_id, day_utc, count)
-     VALUES (?, ?, 1)
-     ON CONFLICT(agent_id, day_utc) DO UPDATE SET count = count + 1`,
+    `INSERT INTO derivation_attempts (agent_id, day_utc, trigger_class, count)
+     VALUES (?, ?, ?, 1)
+     ON CONFLICT(agent_id, day_utc, trigger_class) DO UPDATE SET count = count + 1`,
   );
 
   const log = (msg: string): void => {
@@ -114,9 +122,10 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
 
       const cap = createSettingsRepository(db).read().derivationsPerDayPerAgent;
       const dayUtc = startOfDayUtc(deps.now());
-      const used = (capCountStmt.get(job.agentId, dayUtc) as { n: number }).n;
+      const klass = triggerClassOf(job.trigger);
+      const used = (capCountStmt.get(job.agentId, dayUtc, klass) as { n: number }).n;
       if (used >= cap) {
-        log(`cap reached for agent ${job.agentId} (${used}/${cap}) — skipping`);
+        log(`cap reached for agent ${job.agentId} ${klass} (${used}/${cap}) — skipping`);
         return;
       }
 
@@ -187,7 +196,7 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
 
       // Record the attempt BEFORE running so that failures (auth outage, etc.)
       // still consume a daily-cap slot and prevent unbounded retry storms.
-      recordAttemptStmt.run(job.agentId, dayUtc);
+      recordAttemptStmt.run(job.agentId, dayUtc, klass);
 
       const result = await deps.runDerivation({
         prompt,
