@@ -95,6 +95,24 @@ describe("checkActionCap", () => {
     expect(r.count).toBe(30);
   });
 
+  it("caps provision_database (audit 2026-06-03 Conectores I2)", () => {
+    const db = new Database(":memory:");
+    applyMigrations(db);
+    setupAgent(db);
+    const now = 10_000_000;
+    const limit = SIDE_EFFECTING_LIMITS.provision_database ?? 0;
+    expect(limit).toBeGreaterThan(0); // it must be a capped (side-effecting) tool
+    for (let i = 0; i < limit; i += 1) seed(db, "ag_1", "provision_database", now - i * 1000);
+    const r = checkActionCap(db, {
+      companyId: "co_1",
+      agentId: "ag_1",
+      toolName: "provision_database",
+      now,
+    });
+    expect(r.count).toBe(limit);
+    expect(r.exceeded).toBe(true);
+  });
+
   it("fails open (not exceeded) when the approvals table is missing", () => {
     const db = new Database(":memory:"); // no migrations → no `approvals` table → db.prepare throws
     const r = checkActionCap(db, {
