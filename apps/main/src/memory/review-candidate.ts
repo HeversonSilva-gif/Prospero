@@ -6,6 +6,8 @@ import { createSkillCandidatesRepository } from "./skill-candidates-repository.j
 import { createSkillsRepository } from "./skills-repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { getAgentMemoryDir, skillBodyPath } from "./memory-dir.js";
+import { sanitizeMemoryBody } from "./sanitizer.js";
+import { assertValidSkillName } from "./skill-name.js";
 
 // Maps the candidate's derivation trigger to the resulting skill's source.
 const SOURCE_BY_TRIGGER: Record<SkillCandidateTrigger, SkillSource> = {
@@ -45,6 +47,11 @@ export const acceptSkillCandidate = (
   if (name === "" || description === "" || body.trim() === "") {
     throw new Error("skill name, description, and body are all required");
   }
+  assertValidSkillName(name);
+  const descSanitize = sanitizeMemoryBody(description);
+  if (!descSanitize.ok) throw new Error(`skill description rejected: ${descSanitize.reason}`);
+  const bodySanitize = sanitizeMemoryBody(body);
+  if (!bodySanitize.ok) throw new Error(`skill body rejected: ${bodySanitize.reason}`);
   const scopeDir = getAgentMemoryDir(userDataDir, candidate.companyId, candidate.agentId);
   const bodyPath = skillBodyPath(scopeDir, name);
   mkdirSync(dirname(bodyPath), { recursive: true });

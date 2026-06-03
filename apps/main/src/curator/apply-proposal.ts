@@ -6,6 +6,8 @@ import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createProposalsRepository } from "./proposals-repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { getAgentMemoryDir, getCompanyMemoryDir, skillBodyPath } from "../memory/memory-dir.js";
+import { sanitizeMemoryBody } from "../memory/sanitizer.js";
+import { assertValidSkillName } from "../memory/skill-name.js";
 
 export type AcceptProposalInput = {
   proposalId: string;
@@ -54,6 +56,11 @@ export const acceptProposal = (
     if (name === "" || description === "" || body.trim() === "") {
       throw new Error("merge requires name, description, and body");
     }
+    assertValidSkillName(name);
+    const descSanitize = sanitizeMemoryBody(description);
+    if (!descSanitize.ok) throw new Error(`skill description rejected: ${descSanitize.reason}`);
+    const bodySanitize = sanitizeMemoryBody(body);
+    if (!bodySanitize.ok) throw new Error(`skill body rejected: ${bodySanitize.reason}`);
     const agentIds = new Set(sources.map((s) => s.agentId));
     const singleAgent = agentIds.size === 1 ? [...agentIds][0]! : null;
     const scopeDir =
@@ -81,6 +88,11 @@ export const acceptProposal = (
     ).trim();
     const body = input.body ?? proposal.proposedBody ?? "";
     if (body.trim() === "") throw new Error("patch requires a body");
+    const patchDescSanitize = sanitizeMemoryBody(description);
+    if (!patchDescSanitize.ok)
+      throw new Error(`skill description rejected: ${patchDescSanitize.reason}`);
+    const patchBodySanitize = sanitizeMemoryBody(body);
+    if (!patchBodySanitize.ok) throw new Error(`skill body rejected: ${patchBodySanitize.reason}`);
     writeFileSync(target.bodyPath, body, "utf8");
     skillsRepo.update(target.id, { description });
     skillsRepo.recordPatch(target.id);
