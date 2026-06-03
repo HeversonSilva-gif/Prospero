@@ -11,8 +11,38 @@
     "pedirAlgo": "Pedir algo",
     "decisoes": "Decisões",
     "projetos": "Projetos",
+    "financeiro": "Financeiro",
     "equipe": "Minha equipe",
     "ajustes": "Ajustes"
+  },
+  "financeiro": {
+    "title": "Financeiro",
+    "subtitle": "Panorama do faturamento, assinaturas e custo do negócio.",
+    "loading": "Carregando o panorama financeiro…",
+    "empty": "Conecte o Stripe em Ajustes › Conta para ver o panorama financeiro.",
+    "windowDays": "{{days}} dias",
+    "revenueOverTime": "Receita nos últimos 12 meses",
+    "revenue": "Receita",
+    "topProducts": "Principais produtos",
+    "noProducts": "Sem assinaturas ativas ainda.",
+    "activeCount": "{{count}} ativa(s)",
+    "perMonth": "/mês",
+    "costVsRevenue": "Custo vs. receita",
+    "revenueWindow": "Receita ({{days}} dias)",
+    "aiCost": "Custo de IA (período)",
+    "statusEarning": "Gerando receita no período.",
+    "statusNoRevenue": "Sem receita no período — o negócio ainda está no investimento.",
+    "kpi": {
+      "lifetime": "Faturamento (total)",
+      "lifetimeSub": "receita líquida acumulada",
+      "mrr": "Receita recorrente (MRR)",
+      "mrrSub": "{{count}} assinatura(s) ativa(s)",
+      "churn": "Churn",
+      "repeat": "Recompra",
+      "windowSub": "nos últimos {{days}} dias",
+      "customers": "Clientes ativos",
+      "customersSub": "{{count}} novo(s) no período"
+    }
   },
   "company": {
     "switcher": {

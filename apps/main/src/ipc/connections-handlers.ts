@@ -35,14 +35,29 @@ const OAUTH_TIMEOUT_MS = 5 * 60_000;
 // Exported so the orchestrator's `x.post` event handler can decrypt the company's
 // token in MAIN (the MCP child has no safeStorage).
 export const safeStorageCipher = (): Cipher => ({
-  encrypt: (plain) => safeStorage.encryptString(plain).toString("base64"),
+  encrypt: (plain) => {
+    // I1 (audit 2026-06-03 Conectores): refuse to store a connector secret when
+    // OS-level encryption isn't available — same bar as auth/token-storage and
+    // api-key-storage. Without this, on a machine with no keyring the X/Stripe/
+    // Cloudflare/SMTP secrets would be stored with safeStorage's weak fallback
+    // while the auth token (which guards) would have refused.
+    if (!safeStorage.isEncryptionAvailable()) {
+      throw new Error("OS-level encryption is not available; cannot store connector credentials");
+    }
+    return safeStorage.encryptString(plain).toString("base64");
+  },
   decrypt: (stored) => safeStorage.decryptString(Buffer.from(stored, "base64")),
 });
 
 // Adapts global fetch (Node 18+/Electron) to the connectors' injected XHttp shape.
+// `headers` is forwarded so the X client can read Retry-After on a 429 (I8).
 export const httpFetch: XHttp = async (url, init) => {
   const res = await fetch(url, init);
-  return { status: res.status, json: () => res.json() };
+  return {
+    status: res.status,
+    json: () => res.json(),
+    headers: { get: (name: string) => res.headers.get(name) },
+  };
 };
 
 type ConnectResult = { connected: boolean; handle?: string; error?: string };

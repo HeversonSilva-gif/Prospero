@@ -6,6 +6,7 @@ import {
   createPrice,
   createPaymentLink,
   listCharges,
+  listSubscriptions,
   StripeApiError,
   type StripeHttp,
 } from "./stripe-client.js";
@@ -88,6 +89,26 @@ describe("stripe-client createProduct / createPrice / createPaymentLink", () => 
     expect(r).toEqual({ id: "prod_1" });
   });
 
+  it("sends an Idempotency-Key header when one is provided (I6)", async () => {
+    let captured: { url: string; init: Init } | undefined;
+    const http: StripeHttp = (url, init) => {
+      captured = { url, init };
+      return Promise.resolve({ status: 200, json: () => Promise.resolve({ id: "prod_1" }) });
+    };
+    await createProduct(http, "rk_test_x", { name: "Plano", description: "x" }, "idem-abc");
+    expect(captured?.init.headers["Idempotency-Key"]).toBe("idem-abc");
+  });
+
+  it("omits the Idempotency-Key header when none is provided", async () => {
+    let captured: { url: string; init: Init } | undefined;
+    const http: StripeHttp = (url, init) => {
+      captured = { url, init };
+      return Promise.resolve({ status: 200, json: () => Promise.resolve({ id: "prod_1" }) });
+    };
+    await createProduct(http, "rk_test_x", { name: "Plano", description: "x" });
+    expect(captured?.init.headers["Idempotency-Key"]).toBeUndefined();
+  });
+
   it("POSTs a one-time price (no recurring) ", async () => {
     let body: string | undefined;
     const http: StripeHttp = (_url, init) => {
@@ -167,7 +188,46 @@ describe("stripe-client listCharges", () => {
       currency: "brl",
       created: 1_000_000,
       status: "succeeded",
+      amountRefunded: 0,
+      disputed: false,
+      customer: null,
     });
+  });
+
+  it("maps amount_refunded, dispute (as full refund) and customer (I5)", async () => {
+    const http: StripeHttp = () =>
+      Promise.resolve({
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: [
+              // partial refund
+              {
+                id: "ch_r",
+                amount: 1000,
+                amount_refunded: 400,
+                currency: "brl",
+                created: 1000,
+                status: "succeeded",
+                customer: "cus_1",
+              },
+              // disputed: treated as a full refund (net 0)
+              {
+                id: "ch_d",
+                amount: 2000,
+                amount_refunded: 0,
+                disputed: true,
+                currency: "brl",
+                created: 2000,
+                status: "succeeded",
+                customer: null,
+              },
+            ],
+          }),
+      });
+    const charges = await listCharges(http, "rk_test_x");
+    expect(charges[0]).toMatchObject({ amountRefunded: 400, customer: "cus_1", disputed: false });
+    expect(charges[1]).toMatchObject({ amountRefunded: 2000, disputed: true, customer: null });
   });
 
   it("returns [] when there is no data and throws on error", async () => {
@@ -177,5 +237,160 @@ describe("stripe-client listCharges", () => {
     const err: StripeHttp = () =>
       Promise.resolve({ status: 401, json: () => Promise.resolve({ error: { message: "bad" } }) });
     await expect(listCharges(err, "bad")).rejects.toBeInstanceOf(StripeApiError);
+  });
+
+  it("follows has_more/starting_after across pages (no 100-record truncation)", async () => {
+    const urls: string[] = [];
+    const charge = (id: string) => ({
+      id,
+      amount: 100,
+      currency: "brl",
+      created: 1,
+      status: "succeeded",
+    });
+    const http: StripeHttp = (u) => {
+      urls.push(u);
+      if (urls.length === 1)
+        return Promise.resolve({
+          status: 200,
+          json: () => Promise.resolve({ data: [charge("c1"), charge("c2")], has_more: true }),
+        });
+      return Promise.resolve({
+        status: 200,
+        json: () => Promise.resolve({ data: [charge("c3")], has_more: false }),
+      });
+    };
+    const charges = await listCharges(http, "rk_test_x");
+    expect(charges.map((c) => c.id)).toEqual(["c1", "c2", "c3"]);
+    expect(urls).toHaveLength(2);
+    expect(urls[1]).toContain("starting_after=c2");
+  });
+});
+
+describe("stripe-client listSubscriptions", () => {
+  it("requests all statuses with the product expanded, and maps the primary price", async () => {
+    let url = "";
+    const http: StripeHttp = (u) => {
+      url = u;
+      return Promise.resolve({
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: [
+              {
+                id: "sub_1",
+                customer: "cus_1",
+                status: "active",
+                created: 1000,
+                canceled_at: null,
+                items: {
+                  data: [
+                    {
+                      price: {
+                        unit_amount: 1000,
+                        currency: "brl",
+                        recurring: { interval: "month" },
+                        product: { id: "prod_1", name: "Plano Pro" },
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                id: "sub_2",
+                customer: "cus_2",
+                status: "canceled",
+                created: 2000,
+                canceled_at: 5000,
+                items: {
+                  data: [
+                    {
+                      price: {
+                        unit_amount: 12000,
+                        currency: "brl",
+                        recurring: { interval: "year" },
+                        product: "prod_2",
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+      });
+    };
+    const subs = await listSubscriptions(http, "rk_test_x");
+    expect(url).toContain("https://api.stripe.com/v1/subscriptions?");
+    expect(url).toContain("status=all");
+    expect(url).toContain("data.items.data.price.product");
+    expect(subs[0]).toEqual({
+      id: "sub_1",
+      customer: "cus_1",
+      status: "active",
+      created: 1_000_000,
+      canceledAt: null,
+      productId: "prod_1",
+      productName: "Plano Pro",
+      amount: 1000,
+      currency: "brl",
+      interval: "month",
+    });
+    expect(subs[1]).toMatchObject({
+      status: "canceled",
+      canceledAt: 5_000_000,
+      productId: "prod_2",
+      productName: null, // unexpanded product is just an id
+      interval: "year",
+    });
+  });
+
+  it("returns [] when empty and throws StripeApiError on error", async () => {
+    const empty: StripeHttp = () =>
+      Promise.resolve({ status: 200, json: () => Promise.resolve({ data: [] }) });
+    expect(await listSubscriptions(empty, "rk_test_x")).toEqual([]);
+    const err: StripeHttp = () =>
+      Promise.resolve({ status: 403, json: () => Promise.resolve({ error: { message: "no" } }) });
+    await expect(listSubscriptions(err, "bad")).rejects.toBeInstanceOf(StripeApiError);
+  });
+
+  it("sums multi-item subscription amounts of the same interval+currency (MRR not truncated)", async () => {
+    const http: StripeHttp = () =>
+      Promise.resolve({
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: [
+              {
+                id: "sub_m",
+                customer: "cus_1",
+                status: "active",
+                created: 1,
+                items: {
+                  data: [
+                    {
+                      price: {
+                        unit_amount: 1000,
+                        currency: "brl",
+                        recurring: { interval: "month" },
+                        product: { id: "p1", name: "Base" },
+                      },
+                    },
+                    {
+                      price: {
+                        unit_amount: 500,
+                        currency: "brl",
+                        recurring: { interval: "month" },
+                        product: "p2",
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+      });
+    const subs = await listSubscriptions(http, "rk_test_x");
+    expect(subs[0]?.amount).toBe(1500); // 1000 base + 500 add-on, not just the first item
+    expect(subs[0]?.productName).toBe("Base");
   });
 });

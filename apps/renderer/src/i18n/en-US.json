@@ -11,8 +11,38 @@
     "pedirAlgo": "Ask for something",
     "decisoes": "Decisions",
     "projetos": "Projects",
+    "financeiro": "Finance",
     "equipe": "My team",
     "ajustes": "Settings"
+  },
+  "financeiro": {
+    "title": "Finance",
+    "subtitle": "Overview of revenue, subscriptions and the business's cost.",
+    "loading": "Loading the finance overview…",
+    "empty": "Connect Stripe in Settings › Account to see the finance overview.",
+    "windowDays": "{{days}} days",
+    "revenueOverTime": "Revenue over the last 12 months",
+    "revenue": "Revenue",
+    "topProducts": "Top products",
+    "noProducts": "No active subscriptions yet.",
+    "activeCount": "{{count}} active",
+    "perMonth": "/mo",
+    "costVsRevenue": "Cost vs. revenue",
+    "revenueWindow": "Revenue ({{days}} days)",
+    "aiCost": "AI cost (window)",
+    "statusEarning": "Earning revenue this period.",
+    "statusNoRevenue": "No revenue this period — the business is still investing.",
+    "kpi": {
+      "lifetime": "Lifetime revenue",
+      "lifetimeSub": "net accumulated revenue",
+      "mrr": "Recurring revenue (MRR)",
+      "mrrSub": "{{count}} active subscription(s)",
+      "churn": "Churn",
+      "repeat": "Repeat rate",
+      "windowSub": "in the last {{days}} days",
+      "customers": "Active customers",
+      "customersSub": "{{count}} new this period"
+    }
   },
   "company": {
     "switcher": {

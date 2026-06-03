@@ -38,6 +38,34 @@ describe("executeStripeSetup", () => {
     expect(calls.some((c) => c.includes("/payment_links"))).toBe(true);
   });
 
+  it("sends a deterministic Idempotency-Key on every create call (I6)", async () => {
+    const keysFor = async (): Promise<Array<string | undefined>> => {
+      const keys: Array<string | undefined> = [];
+      const http: StripeHttp = (url, init) => {
+        keys.push(init.headers["Idempotency-Key"]);
+        if (url.endsWith("/products"))
+          return Promise.resolve({ status: 200, json: () => Promise.resolve({ id: "prod_1" }) });
+        if (url.endsWith("/prices"))
+          return Promise.resolve({ status: 200, json: () => Promise.resolve({ id: "price_1" }) });
+        return Promise.resolve({
+          status: 200,
+          json: () => Promise.resolve({ id: "plink_1", url: "https://buy.stripe.com/x" }),
+        });
+      };
+      await executeStripeSetup(repoWith("rk_test_x"), http, "c1", [
+        { name: "Plano", description: "acesso", amount: 900, currency: "brl", interval: "month" },
+      ]);
+      return keys;
+    };
+    const run1 = await keysFor();
+    const run2 = await keysFor();
+    // product, price, payment_link all carry a key…
+    expect(run1).toHaveLength(3);
+    expect(run1.every((k) => typeof k === "string" && k.length > 0)).toBe(true);
+    // …and a re-run with identical inputs reuses the SAME keys ⇒ Stripe dedupes.
+    expect(run2).toEqual(run1);
+  });
+
   it("throws a clear error when Stripe is not connected", async () => {
     await expect(
       executeStripeSetup(repoWith(null), fakeHttp([]), "c1", [

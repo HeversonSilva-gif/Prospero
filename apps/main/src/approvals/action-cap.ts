@@ -10,6 +10,13 @@ export const SIDE_EFFECTING_LIMITS: Record<string, number> = {
   setup_monetization: 2,
   create_payment_link: 2,
   deploy_app: 1,
+  // Conectores M2 (review): preview deploys get their OWN hourly cap so they're bounded
+  // without consuming the 1/h production slot — otherwise the normal "preview to test,
+  // then promote to production" flow blocks at the second step.
+  deploy_app_preview: 5,
+  // Audit 2026-06-03 Conectores I2: each provision creates a fresh Cloudflare D1
+  // (cost/quota) — deploy_app was capped but this sibling wasn't. Match deploy's 1/h.
+  provision_database: 1,
 };
 
 // Hard ceiling on TOTAL side-effecting actions across all of a company's agents per

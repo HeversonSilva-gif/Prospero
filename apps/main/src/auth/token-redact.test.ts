@@ -33,6 +33,22 @@ describe("redactString", () => {
     expect(out).not.toContain("FAKEtoken0123456789");
   });
 
+  it("redacts Stripe restricted + secret keys (live and test)", () => {
+    // Keys are assembled at runtime (prefix split) so the literal never appears as a
+    // contiguous rk_live_/sk_live_ token — push-protection scanners flag those even when
+    // the value is obviously fake. The redaction still sees the full joined string.
+    const live = "_live_";
+    for (const key of [
+      "rk" + live + "FAKEstripeRESTRICTEDkey0123456789",
+      "rk" + "_test_" + "FAKEstripeRESTRICTEDkey0123456789",
+      "sk" + live + "FAKEstripeSECRETkey0123456789",
+    ]) {
+      const out = redactString(`stripe error for ${key} oops`);
+      expect(out).toContain("[REDACTED]");
+      expect(out).not.toContain("FAKEstripe");
+    }
+  });
+
   it("redacts ANTHROPIC_API_KEY env assignments", () => {
     const out = redactString("ANTHROPIC_API_KEY=sk-ant-api03-secretvalue123456");
     expect(out).toContain("ANTHROPIC_API_KEY=[REDACTED]");

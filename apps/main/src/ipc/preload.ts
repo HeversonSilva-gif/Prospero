@@ -35,6 +35,7 @@ import {
   type CostsQueryResult,
   type CostsAggregateTodayResult,
   type CostBudgets,
+  type FinanceSummary,
   type Goal,
   type GoalStatus,
   type GoalWithPlan,
@@ -520,6 +521,10 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.on(IPC.AGENT_EVENT, handler);
       return () => ipcRenderer.off(IPC.AGENT_EVENT, handler);
     },
+  },
+  finance: {
+    summary: (companyId: string, days?: number) =>
+      ipcRenderer.invoke(IPC.FINANCE_SUMMARY, { companyId, days }) as Promise<FinanceSummary>,
   },
   runs: {
     list: (agentId: string, limit?: number) =>

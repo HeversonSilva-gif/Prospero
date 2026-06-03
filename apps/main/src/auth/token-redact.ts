@@ -8,6 +8,9 @@ const SECRET_PATTERNS: SecretPattern[] = [
   { re: /sk-ant-[A-Za-z0-9_-]{8,}/g, replacement: "[REDACTED]" },
   // GitHub tokens (ghp_, gho_, ghs_, ghu_).
   { re: /\bgh[opsu]_[A-Za-z0-9]{16,}\b/g, replacement: "[REDACTED]" },
+  // Stripe keys — restricted (rk_) and secret (sk_), live or test. Audit
+  // 2026-06-03 Conectores M1: the connector secret was outside the redaction set.
+  { re: /\b[rs]k_(?:live|test)_[A-Za-z0-9]{16,}\b/g, replacement: "[REDACTED]" },
   // Authorization: Bearer <token>.
   { re: /Bearer\s+[A-Za-z0-9._-]{12,}/gi, replacement: "Bearer [REDACTED]" },
   // Env-var assignments that carry a credential value.

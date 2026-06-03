@@ -9,11 +9,20 @@
 export type XHttp = (
   url: string,
   init: { method: string; headers: Record<string, string>; body?: string },
-) => Promise<{ status: number; json: () => Promise<unknown> }>;
+) => Promise<{
+  status: number;
+  json: () => Promise<unknown>;
+  // Optional case-insensitive header accessor (matches the fetch Headers API). Used
+  // to read Retry-After on a 429; tests/fakes that don't set it just see no back-off.
+  headers?: { get: (name: string) => string | null };
+}>;
 
 export type XPostResult = { id: string; url: string };
 
 export class XApiError extends Error {
+  // On a 429, how long X asked us to wait (Retry-After), in ms — so a poller can
+  // back off instead of hammering. Undefined when not rate-limited / not provided.
+  retryAfterMs?: number;
   constructor(
     readonly status: number,
     message: string,
@@ -22,6 +31,30 @@ export class XApiError extends Error {
     this.name = "XApiError";
   }
 }
+
+// Reads the Retry-After header (delta-seconds, per RFC 9110) into ms. Returns
+// undefined when absent or unparseable — the caller then uses its own default.
+const parseRetryAfterMs = (headers?: {
+  get: (name: string) => string | null;
+}): number | undefined => {
+  const raw = headers?.get("retry-after");
+  if (raw === null || raw === undefined) return undefined;
+  const seconds = Number.parseInt(raw, 10);
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000 : undefined;
+};
+
+// Builds the error for a non-OK X response, tagging 429s with the Retry-After back-off.
+const apiError = (
+  status: number,
+  message: string,
+  headers?: { get: (name: string) => string | null },
+): XApiError => {
+  const err = new XApiError(status, message);
+  // Only set the optional field when we actually have a value (exactOptionalPropertyTypes).
+  const retryAfterMs = status === 429 ? parseRetryAfterMs(headers) : undefined;
+  if (retryAfterMs !== undefined) err.retryAfterMs = retryAfterMs;
+  return err;
+};
 
 const CREATE_TWEET_URL = "https://api.x.com/2/tweets";
 const ME_URL = "https://api.x.com/2/users/me";
@@ -88,7 +121,7 @@ export const getUserMetrics = async (http: XHttp, accessToken: string): Promise<
   };
   const pm = data.data?.public_metrics;
   if (res.status >= 400 || pm === undefined) {
-    throw new XApiError(res.status, data.detail ?? `X API error ${String(res.status)}`);
+    throw apiError(res.status, data.detail ?? `X API error ${String(res.status)}`, res.headers);
   }
   return {
     followers: pm.followers_count ?? 0,
@@ -133,7 +166,7 @@ export const getTweetMetrics = async (
     detail?: string;
   };
   if (res.status >= 400) {
-    throw new XApiError(res.status, data.detail ?? `X API error ${String(res.status)}`);
+    throw apiError(res.status, data.detail ?? `X API error ${String(res.status)}`, res.headers);
   }
   return (data.data ?? []).map((t) => ({
     id: t.id,

@@ -10,6 +10,7 @@ import {
   FolderIcon,
   UsersIcon,
   SettingsIcon,
+  FinanceIcon,
 } from "./sidebar-icons.js";
 
 // Estúdio redesign — sidebar with Phosphor icons + Decisões item.
@@ -27,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/goals/new", labelKey: "nav.pedirAlgo", Icon: SparklesIcon },
   { to: "/inbox", labelKey: "nav.decisoes", Icon: DecisionsIcon },
   { to: "/projects", labelKey: "nav.projetos", Icon: FolderIcon },
+  { to: "/financeiro", labelKey: "nav.financeiro", Icon: FinanceIcon },
   { to: "/agents", labelKey: "nav.equipe", Icon: UsersIcon, end: true },
   { to: "/settings", labelKey: "nav.ajustes", Icon: SettingsIcon },
 ];

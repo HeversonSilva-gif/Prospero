@@ -35,6 +35,7 @@ import type {
   CostsQueryResult,
   CostsAggregateTodayResult,
   CostBudgets,
+  FinanceSummary,
   Goal,
   GoalStatus,
   GoalWithPlan,
@@ -362,6 +363,9 @@ declare global {
         onNew: (
           cb: (payload: { agentId: string; deltaTokens: number; deltaCents: number }) => void,
         ) => () => void;
+      };
+      finance: {
+        summary: (companyId: string, days?: number) => Promise<FinanceSummary>;
       };
       runs: {
         list: (agentId: string, limit?: number) => Promise<AgentRunRow[]>;

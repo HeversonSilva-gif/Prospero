@@ -8,6 +8,9 @@ const charge = (over: Partial<StripeCharge>): StripeCharge => ({
   currency: "brl",
   created: 1000,
   status: "succeeded",
+  amountRefunded: 0,
+  disputed: false,
+  customer: null,
   ...over,
 });
 
@@ -69,6 +72,70 @@ describe("collectStripeSales", () => {
       }),
     );
     expect(onFirstSale).not.toHaveBeenCalled();
+  });
+
+  it("fires onFirstSale with the EARLIEST new charge, not the newest (M3)", async () => {
+    // Stripe returns newest-first; the first sale is the oldest one.
+    const onFirstSale = vi.fn();
+    await collectStripeSales(
+      baseDeps({
+        countExisting: () => 0,
+        listCharges: () =>
+          Promise.resolve([
+            charge({ id: "newer", amount: 999, created: 5000 }),
+            charge({ id: "older", amount: 100, created: 2000 }),
+          ]),
+        onFirstSale,
+      }),
+    );
+    expect(onFirstSale).toHaveBeenCalledWith("c1", { amount: 100, currency: "brl" });
+  });
+
+  it("passes amount_refunded + customer through to record (I5)", async () => {
+    const recorded: Array<{ amountRefunded?: number; customerId?: string | null }> = [];
+    await collectStripeSales(
+      baseDeps({
+        listCharges: () =>
+          Promise.resolve([charge({ id: "ch_r", amountRefunded: 300, customer: "cus_9" })]),
+        record: (i) => {
+          recorded.push({ amountRefunded: i.amountRefunded, customerId: i.customerId });
+          return true;
+        },
+      }),
+    );
+    expect(recorded[0]).toEqual({ amountRefunded: 300, customerId: "cus_9" });
+  });
+
+  it("backfills from the last recorded charge when older than the window (M3 cursor)", async () => {
+    let sinceArg = -1;
+    await collectStripeSales(
+      baseDeps({
+        now: () => 1_000_000,
+        windowMs: 1000, // window start = 999_000
+        lastCreatedAt: () => 10_000, // far older than the window → backfill from here
+        listCharges: (_key, sinceMs) => {
+          sinceArg = sinceMs;
+          return Promise.resolve([]);
+        },
+      }),
+    );
+    expect(sinceArg).toBe(10_000);
+  });
+
+  it("uses the normal window when the last charge is recent (M3 cursor)", async () => {
+    let sinceArg = -1;
+    await collectStripeSales(
+      baseDeps({
+        now: () => 1_000_000,
+        windowMs: 1000,
+        lastCreatedAt: () => 999_500, // inside the window → use window start
+        listCharges: (_key, sinceMs) => {
+          sinceArg = sinceMs;
+          return Promise.resolve([]);
+        },
+      }),
+    );
+    expect(sinceArg).toBe(999_000);
   });
 
   it("is fail-soft: one company throwing does not stop the others", async () => {

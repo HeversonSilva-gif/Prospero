@@ -108,6 +108,7 @@ export const IPC = {
   COSTS_NEW: "costs:new",
   RUNS_LIST: "runs:list",
   COSTS_GET_AGENT_BUDGET_STATUS: "costs:get-agent-budget-status",
+  FINANCE_SUMMARY: "finance:summary",
   GOALS_LIST: "goals:list",
   GOALS_GET: "goals:get",
   GOALS_CREATE: "goals:create",

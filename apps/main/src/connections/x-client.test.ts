@@ -109,6 +109,20 @@ describe("getUserMetrics", () => {
     const http: XHttp = () => Promise.resolve({ status: 401, json: () => Promise.resolve({}) });
     await expect(getUserMetrics(http, "AT")).rejects.toBeInstanceOf(XApiError);
   });
+  it("surfaces the Retry-After header (seconds) on a 429 so the poller can back off", async () => {
+    // I8 (audit 2026-06-03 Conectores): respect X's rate-limit back-off instead of
+    // hammering. Retry-After is delta-seconds; we expose it as retryAfterMs.
+    const http: XHttp = () =>
+      Promise.resolve({
+        status: 429,
+        headers: { get: (n) => (n.toLowerCase() === "retry-after" ? "90" : null) },
+        json: () => Promise.resolve({}),
+      });
+    await expect(getUserMetrics(http, "AT")).rejects.toMatchObject({
+      status: 429,
+      retryAfterMs: 90_000,
+    });
+  });
 });
 
 describe("getTweetMetrics", () => {
