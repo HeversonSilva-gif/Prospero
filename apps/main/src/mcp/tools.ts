@@ -781,6 +781,18 @@ export const toolDefinitions = [
       if (existing === null) {
         return JSON.stringify({ ok: false, error: "issue not found" });
       }
+      // I-sm (audit 2026-06-03): the agent path enforces the documented issue
+      // machine — `done` is only reachable from `doing` or `review`. A
+      // backlog/todo -> done jump skips the work, zeroes the tool-history, and
+      // fires premature verification. Humans dragging the Kanban board go
+      // through the IPC repo path, which keeps full freedom; only agents are
+      // bound here.
+      if (input.status === "done" && existing.status !== "doing" && existing.status !== "review") {
+        return JSON.stringify({
+          ok: false,
+          error: `cannot move issue to 'done' from '${existing.status}' — move it to 'doing' while you work it, then to 'done' (or 'review'). No jumping straight to done.`,
+        });
+      }
       const patch: Parameters<typeof issues.update>[1] = {};
       if (input.status !== undefined) patch.status = input.status;
       if (input.description !== undefined) patch.description = input.description;

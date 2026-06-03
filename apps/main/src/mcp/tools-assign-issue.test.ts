@@ -83,6 +83,14 @@ describe("assign_issue / list_agents — terminated agents", () => {
   it("update_issue emits the status change so MAIN can record the activity (C5: agent work was invisible to learning)", async () => {
     const { db } = setup();
     const issue = makeIssue(db); // created as 'todo'
+    createIssuesRepository(db).update(
+      issue.id,
+      { status: "doing" },
+      {
+        actorKind: "agent",
+        actorId: "live1",
+      },
+    );
     const events: { kind: string; payload: unknown }[] = [];
     const ctx2: ToolContext = {
       agentId: "live1",
@@ -97,7 +105,39 @@ describe("assign_issue / list_agents — terminated agents", () => {
     const sc = (
       updated?.payload as { statusChange?: { from: string; to: string; agentId: string } }
     ).statusChange;
-    expect(sc).toEqual({ from: "todo", to: "done", agentId: "live1" });
+    expect(sc).toEqual({ from: "doing", to: "done", agentId: "live1" });
+  });
+
+  it("update_issue refuses to jump straight to done — must pass through doing/review (I-sm)", async () => {
+    // Audit 2026-06-03 I-sm: backlog/todo -> done skips the work, zeroes the
+    // tool-history, and fires premature verification. The agent path enforces
+    // the documented machine (operating-manual: never jump straight to done).
+    const { db, ctx } = setup();
+    const issue = makeIssue(db); // 'todo'
+    const out = JSON.parse(await updateTool.run({ id: issue.id, status: "done" }, ctx)) as {
+      ok?: boolean;
+      error?: string;
+    };
+    expect(out.ok).toBe(false);
+    expect(out.error).toMatch(/doing|review|transition/i);
+    expect(createIssuesRepository(db).getById(issue.id)?.status).toBe("todo");
+  });
+
+  it("update_issue allows done from review", async () => {
+    const { db, ctx } = setup();
+    const issue = makeIssue(db);
+    createIssuesRepository(db).update(
+      issue.id,
+      { status: "review" },
+      {
+        actorKind: "agent",
+        actorId: "live1",
+      },
+    );
+    const out = JSON.parse(await updateTool.run({ id: issue.id, status: "done" }, ctx)) as {
+      status?: string;
+    };
+    expect(out.status).toBe("done");
   });
 
   it("list_agents excludes terminated agents", async () => {
