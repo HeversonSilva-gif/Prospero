@@ -17,7 +17,14 @@ export type CompactionInput = {
   digestPath: string;
 };
 
-export type CompactionResult = { taskState: string; foldedCount: number };
+export type CompactionResult = {
+  taskState: string;
+  foldedCount: number;
+  /** Reflects the distill parse outcome. "ok" = digest was valid and may have
+   *  been folded; "discard" = the model output was unparseable or explicitly
+   *  empty — no digest was written. Only "ok" warrants a session reset. */
+  distillKind: "ok" | "discard";
+};
 
 export type CompactionWorkerDeps = {
   // Injected so the worker is testable without a real claude process.
@@ -39,7 +46,7 @@ export const createCompactionWorker = (deps: CompactionWorkerDeps): CompactionWo
     deps.onCost(run.usage, COMPACTION_MODEL);
 
     const parsed = parseCompactionOutput(run.text);
-    if (parsed.kind === "discard") return { taskState: "", foldedCount: 0 };
+    if (parsed.kind === "discard") return { taskState: "", foldedCount: 0, distillKind: "discard" };
 
     if (parsed.knowledge.length > 0) {
       const incoming: DigestEntry[] = parsed.knowledge.map((k) => ({
@@ -60,6 +67,6 @@ export const createCompactionWorker = (deps: CompactionWorkerDeps): CompactionWo
         deepDives: current.deepDives,
       });
     }
-    return { taskState: parsed.taskState, foldedCount: parsed.knowledge.length };
+    return { taskState: parsed.taskState, foldedCount: parsed.knowledge.length, distillKind: "ok" };
   },
 });

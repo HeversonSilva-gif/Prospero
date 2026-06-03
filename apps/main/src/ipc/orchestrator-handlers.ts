@@ -152,6 +152,7 @@ import { shouldCompact } from "../context/should-compact.js";
 import { hashSources } from "../context/freshness.js";
 import { relativeDigestPath, projectDigestPath, agentDigestPath } from "../context/digest-dir.js";
 import { compactionTarget } from "../context/compaction-target.js";
+import { shouldResetSession } from "../context/compaction-decision.js";
 import { estimateCostCents } from "../costs/pricing.js";
 import { createOrgPlansRepository } from "../agents/org-plans-repository.js";
 import { gatherBusinessContext } from "../agents/business-context.js";
@@ -1138,25 +1139,32 @@ export const registerOrchestratorHandlers = (
             }),
         });
 
-        const { taskState } = await worker.compact({
+        const { taskState, distillKind } = await worker.compact({
           companyId: agent.companyId,
           agentId: agent.id,
           transcript,
           digestPath,
         });
 
+        // Always set the cooldown, regardless of whether the distill succeeded
+        // or was discarded. A failed/discarded distill must still back off so
+        // we don't retry on every subsequent turn (retry storm).
         lastCompactedAt.set(compactionKey, Date.now());
 
         // The project digest_path marker is project-only (agent digests are
         // resolved purely from companyId + agentId, no DB row).
-        if (proj !== null) {
+        if (proj !== null && shouldResetSession(distillKind)) {
           createProjectsRepository(db).setDigestPath(
             proj.id,
             relativeDigestPath(agent.companyId, proj.id),
           );
         }
 
-        // Re-check after the async distill: only reset if STILL idle and live.
+        // Re-check after the async distill: only reset if STILL idle and live,
+        // AND only when the distill produced a valid digest (distillKind="ok").
+        // A discarded distill means no new digest was written — resetting the
+        // session would throw away live context for nothing.
+        if (!shouldResetSession(distillKind)) return;
         const live2 = agents.getById(agent.id);
         if (live2 === null || live2.status === "paused" || live2.status === "terminated") return;
         if (router.getCurrentThread(agent.id) !== null) return; // became busy again
