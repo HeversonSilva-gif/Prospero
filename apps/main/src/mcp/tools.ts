@@ -593,7 +593,8 @@ export const toolDefinitions = [
   },
   {
     name: "create_issue",
-    description: "Create a new issue. project may be a project ID or a project name.",
+    description:
+      "Create a new issue. project may be a project ID or a project name. Pass goal_id to attach the issue to a goal so completing it advances that goal's verification.",
     inputSchema: z.object({
       project: z.string(),
       title: z.string().min(1),
@@ -601,6 +602,7 @@ export const toolDefinitions = [
       assignee: z.string().optional(),
       priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
       parent_id: z.string().optional(),
+      goal_id: z.string().optional(),
     }),
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (
@@ -611,6 +613,7 @@ export const toolDefinitions = [
         assignee?: string;
         priority?: "low" | "medium" | "high" | "urgent";
         parent_id?: string;
+        goal_id?: string;
       },
       ctx: ToolContext,
     ): Promise<string> => {
@@ -619,6 +622,17 @@ export const toolDefinitions = [
       if (lookup.matches === 0) return JSON.stringify({ ok: false, error: "project not found" });
       if (lookup.matches > 1)
         return JSON.stringify({ ok: false, error: "multiple projects match" });
+      // C (audit 2026-06-03): validate the goal belongs to this company before
+      // linking. An ad-hoc issue with no goal stays orphaned — its completion
+      // can never advance a goal's verification, so the loop never closes for it.
+      if (input.goal_id !== undefined) {
+        const g = ctx.db.prepare("SELECT company_id FROM goals WHERE id = ?").get(input.goal_id) as
+          | { company_id: string }
+          | undefined;
+        if (g === undefined || g.company_id !== ctx.companyId) {
+          return JSON.stringify({ ok: false, error: "goal not found" });
+        }
+      }
       const created = issues.create(
         {
           companyId: ctx.companyId,
@@ -632,6 +646,9 @@ export const toolDefinitions = [
         },
         { actorKind: "agent", actorId: ctx.agentId },
       );
+      if (input.goal_id !== undefined) {
+        ctx.db.prepare("UPDATE issues SET goal_id = ? WHERE id = ?").run(input.goal_id, created.id);
+      }
       ctx.emit({ kind: "issue.created", payload: { issueId: created.id } });
       return JSON.stringify({
         id: created.id,
