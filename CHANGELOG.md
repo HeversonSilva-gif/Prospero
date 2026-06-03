@@ -3,6 +3,58 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.8 — 2026-06-03
+
+Auditoria completa do pilar **Conectores Externos** (a ponte com o mundo real: X,
+e-mail, Stripe e Cloudflare) **+ uma tela nova de Financeiro**. A fundação de
+segurança já era sólida; o que faltava era a camada de cima — defesas que existiam
+no papel mas não rodavam, e o dinheiro contado de formas inconsistentes. Esta
+release fecha tudo isso e dá ao dono um panorama financeiro de verdade. Feita com
+agentes em paralelo + um pente-fino multi-agente antes de soltar.
+
+### Financeiro — uma tela nova
+
+- **Tela "Financeiro" no menu**, com o panorama do negócio: **faturamento total**
+  (líquido), **receita recorrente (MRR)**, **churn** (ou taxa de recompra quando não
+  há assinaturas), **clientes ativos** e novos no período, um **gráfico de receita
+  dos últimos 12 meses**, os **principais produtos** e **custo de IA vs. receita**.
+- Você escolhe a janela (30 / 90 / 365 dias). Enquanto o Stripe não estiver
+  conectado, a tela explica como conectar — nunca fica em branco.
+
+### O dinheiro agora é contado certo
+
+- **Receita é líquida.** Reembolsos e contestações (chargebacks) deixam de contar
+  como receita pra sempre — uma cobrança reembolsada depois é atualizada.
+- **"Tô no lucro?" fica consistente.** As leituras financeiras passam a contar
+  pagamentos e somar receita **na mesma janela** (antes misturava contagem total com
+  receita do período).
+- **Sem teto de 100 registros.** A leitura do Stripe agora pagina — um negócio que
+  vende bastante não tem mais números subestimados silenciosamente.
+- **Assinaturas com vários itens** somam o valor completo no MRR.
+- **Configurar cobrança no Stripe não duplica mais** produtos/preços ao repetir
+  (idempotência), e e-mails reenviados após uma aprovação adiada não saem em dobro.
+
+### Segurança dos conectores
+
+- **X (Twitter) no automático ganhou um freio de conteúdo:** posts/respostas com
+  cara de spam (excesso de menções, links ou hashtags) vão pra revisão humana mesmo
+  no modo autônomo — protege a conta contra suspensão. Post normal continua saindo
+  sozinho.
+- **O guard de injeção de e-mail agora lê o corpo da mensagem** (antes só olhava o
+  assunto) — o vetor real de ataque.
+- **E-mail valida o destinatário** (endereço bem-formado, sem bytes de injeção de
+  cabeçalho) antes de enviar.
+- **Erros de e-mail não vazam mais** host/porta/usuário/senha de volta pro agente.
+- **Credenciais de conector só são salvas se o sistema operacional tiver
+  criptografia** disponível (mesma régua do token de login).
+- **Provisionar banco** e **deploy de preview** ganharam limite por hora (antes
+  ilimitados); chaves do Stripe entram na lista de redação de logs.
+
+### Robustez de rede
+
+- **X renova o token e tenta de novo** numa falha de autenticação no meio da
+  publicação, e respeita o limite de requisições (429) sem travar a coleta.
+
 ## v0.2.7 — 2026-06-03
 
 Uma auditoria completa do pilar **Inteligência & Contexto** (o que o agente sabe
