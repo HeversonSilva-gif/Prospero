@@ -26,15 +26,19 @@ export type BuildMemoryBlockDeps = {
 };
 
 // Joins entry bodies (already importance-sorted by the repo) until the cap.
-const renderMemories = (rows: Memory[], cap: number): string => {
+// Returns the rendered text plus the ids actually written into the block, so
+// the caller can record access (Audit 2026-06-03 Inteligência & Contexto I5).
+const renderMemories = (rows: Memory[], cap: number): { text: string; renderedIds: string[] } => {
   let out = "";
+  const renderedIds: string[] = [];
   for (const m of rows) {
     if (m.trust < MIN_L0_TRUST) continue;
     const line = `- ${m.body.trim()}\n`;
     if (out.length + line.length > cap) break;
     out += line;
+    renderedIds.push(m.id);
   }
-  return out;
+  return { text: out, renderedIds };
 };
 
 // Renders skill L0 (name + description), highest use_count / trust first.
@@ -65,6 +69,11 @@ export const buildMemoryBlock = (deps: BuildMemoryBlockDeps): string | undefined
     if (text.length > 0) sections.push(`## About the user\n\n${text}`);
   }
 
+  // Audit 2026-06-03 Inteligência & Contexto I5: record access for the memories
+  // actually rendered into L0 (not the whole candidate set) so the ones injected
+  // every turn don't decay as if unused and get pruned. Mirrors skill recordView.
+  const accessedMemoryIds: string[] = [];
+
   const company = renderMemories(
     [
       ...deps.memoriesRepo.listCompanyGlobal(deps.companyId),
@@ -72,10 +81,14 @@ export const buildMemoryBlock = (deps: BuildMemoryBlockDeps): string | undefined
     ],
     COMPANY_CAP,
   );
-  if (company.length > 0) sections.push(`## Company memory\n\n${company.trimEnd()}`);
+  if (company.text.length > 0) sections.push(`## Company memory\n\n${company.text.trimEnd()}`);
+  accessedMemoryIds.push(...company.renderedIds);
 
   const agent = renderMemories(deps.memoriesRepo.listByAgent(deps.agentId), AGENT_CAP);
-  if (agent.length > 0) sections.push(`## Your memory\n\n${agent.trimEnd()}`);
+  if (agent.text.length > 0) sections.push(`## Your memory\n\n${agent.text.trimEnd()}`);
+  accessedMemoryIds.push(...agent.renderedIds);
+
+  if (accessedMemoryIds.length > 0) deps.memoriesRepo.recordAccess(accessedMemoryIds);
 
   const rendered = renderSkills(
     [
@@ -111,5 +124,5 @@ export const buildMemoryBlock = (deps: BuildMemoryBlockDeps): string | undefined
 // agent slot of buildMemoryBlock (low-trust entries are excluded, as in L0).
 export const agentMemoryNearFull = (memoriesRepo: MemoriesRepository, agentId: string): boolean => {
   const rendered = renderMemories(memoriesRepo.listByAgent(agentId), AGENT_CAP);
-  return rendered.length > AGENT_CAP * 0.9;
+  return rendered.text.length > AGENT_CAP * 0.9;
 };

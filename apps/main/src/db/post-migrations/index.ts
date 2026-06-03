@@ -5,6 +5,7 @@ import { runPostMigration0004 } from "./0004.js";
 import { runPostMigration0005 } from "./0005.js";
 import { runPostMigration0006 } from "./0006.js";
 import { runPostMigration0007 } from "./0007.js";
+import { runPostMigration0008 } from "./0008.js";
 
 const SCRIPTS: Array<{ id: number; run: (db: Database.Database) => void }> = [
   { id: 2, run: runPostMigration0002 },
@@ -13,6 +14,7 @@ const SCRIPTS: Array<{ id: number; run: (db: Database.Database) => void }> = [
   { id: 5, run: runPostMigration0005 },
   { id: 6, run: runPostMigration0006 },
   { id: 7, run: runPostMigration0007 },
+  { id: 8, run: runPostMigration0008 },
 ];
 
 export const runPostMigrations = (db: Database.Database): void => {

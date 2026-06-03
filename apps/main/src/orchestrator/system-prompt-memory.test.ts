@@ -151,6 +151,45 @@ describe("buildMemoryBlock", () => {
     buildMemoryBlock(deps(s));
     expect(s.skillsRepo.getById(skill.id)!.viewCount).toBe(0);
   });
+
+  // Audit 2026-06-03 Inteligência & Contexto I5: memories injected into L0 every
+  // turn must record access, or they decay as if unused and get pruned.
+  it("records access for an agent memory rendered into L0", () => {
+    const mem = s.memoriesRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      kind: "rule",
+      body: "lint first",
+    });
+    expect(s.memoriesRepo.getById(mem.id)!.accessCount).toBe(0);
+    buildMemoryBlock(deps(s));
+    const after = s.memoriesRepo.getById(mem.id)!;
+    expect(after.accessCount).toBe(1);
+    expect(after.lastAccessed).not.toBeNull();
+  });
+
+  it("records access for a company memory rendered into L0", () => {
+    const mem = s.memoriesRepo.create({
+      companyId: "c1",
+      agentId: null,
+      kind: "rule",
+      body: "company policy x",
+    });
+    buildMemoryBlock(deps(s));
+    expect(s.memoriesRepo.getById(mem.id)!.accessCount).toBe(1);
+  });
+
+  it("does NOT record access for a memory below MIN_L0_TRUST (not rendered)", () => {
+    const mem = s.memoriesRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      kind: "rule",
+      body: "distrusted memory body",
+      trust: 0.1,
+    });
+    buildMemoryBlock(deps(s));
+    expect(s.memoriesRepo.getById(mem.id)!.accessCount).toBe(0);
+  });
 });
 
 describe("buildMemoryBlock — role inheritance", () => {

@@ -31,7 +31,10 @@ const ROLES: RoleSeed[] = [
     default_system_prompt:
       "You are the CEO. Receive user requests via chat, decide whether to handle directly or delegate to a specialist agent, and orchestrate the team. Never execute technical work yourself.",
     default_capabilities_json: JSON.stringify(["delegation", "issues", "inbox", "chat", "fs-read"]),
-    default_model: "claude-opus-4-7",
+    // Audit 2026-06-03 Inteligência & Contexto I4: keep the role-ceo seed on the
+    // current Opus (4.8) so a CEO hired from this template matches the live
+    // onboarding CEO (agents/seed.ts). Post-migration 0008 backfills old rows.
+    default_model: "claude-opus-4-8",
     icon: "📋",
   },
   {

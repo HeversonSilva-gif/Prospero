@@ -14,6 +14,19 @@ describe("categorizeCostTier", () => {
     expect(categorizeCostTier("claude-opus-4-7").tier).toBe("expensive");
   });
 
+  // Audit 2026-06-03 Inteligência & Contexto M3: Opus 4.8 (the CEO model) had
+  // no chip entry → the most expensive model showed the weakest cost signal.
+  it("returns the same tier for opus 4.8 as opus 4.7", () => {
+    expect(categorizeCostTier("claude-opus-4-8").tier).toBe(
+      categorizeCostTier("claude-opus-4-7").tier,
+    );
+    expect(categorizeCostTier("claude-opus-4-8").tier).toBe("expensive");
+  });
+
+  it("returns 'expensive' for a dated opus 4.8 id (CLI may echo a date suffix)", () => {
+    expect(categorizeCostTier("claude-opus-4-8-20260601").tier).toBe("expensive");
+  });
+
   it("returns 'unknown' for unmapped model id", () => {
     expect(categorizeCostTier("future-model-x").tier).toBe("unknown");
   });

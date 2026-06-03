@@ -14,6 +14,10 @@ export const AgentsMdProjectSchema = z.object({
 export const AgentsMdRoleSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
+  // Audit 2026-06-03 Inteligência & Contexto M4: kept as a loose string on
+  // purpose — it may be a preset alias ("opus-4") OR a raw id. hire.ts runs it
+  // through resolveModelPreset + MODEL_ID_REGEX (warn + fall back on invalid)
+  // so one bad model doesn't fail the whole import.
   model: z.string().optional(),
   capabilities: z.array(z.string()).optional(),
   icon: z.string().optional(),
@@ -23,6 +27,8 @@ export const AgentsMdRoleSchema = z.object({
 export const AgentsMdAgentSchema = z.object({
   name: z.string().min(1),
   role: z.string().min(1),
+  // M4: loose string (preset alias or raw id); validated in hire.ts. See note
+  // on AgentsMdRoleSchema.model above.
   model: z.string().optional(),
   capabilities: z.array(z.string()).optional(),
   reports_to: z.string().optional(),

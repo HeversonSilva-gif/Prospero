@@ -20,13 +20,25 @@ export type ModelPricing = {
 
 export const MODEL_PRICING: Record<string, ModelPricing> = {
   "claude-opus-4-7": { in: 1500, out: 7500, cacheCreate: 1875, cacheRead: 150 },
+  // Audit 2026-06-03 Inteligência & Contexto C2: Opus 4.8 (the CEO model) was
+  // absent → unknown model → $0 in the ledger. Same Opus tier as 4.7.
+  "claude-opus-4-8": { in: 1500, out: 7500, cacheCreate: 1875, cacheRead: 150 },
   "claude-sonnet-4-6": { in: 300, out: 1500, cacheCreate: 375, cacheRead: 30 },
   "claude-haiku-4-5-20251001": { in: 100, out: 500, cacheCreate: 125, cacheRead: 10 },
 };
 
+// Audit 2026-06-03 Inteligência & Contexto C2 (review): the Anthropic CLI can
+// echo a DATED model id (e.g. claude-opus-4-8-20260601) in its result event,
+// while our table keys the short id (claude-opus-4-8). Resolve exact first, then
+// retry with a trailing -YYYYMMDD date suffix stripped — so a dated opus matches
+// the short entry, while the intentionally-dated haiku key still hits exactly.
+// Otherwise the priciest model would silently stay R$0 in production.
+export const resolveModelPricing = (model: string): ModelPricing | undefined =>
+  MODEL_PRICING[model] ?? MODEL_PRICING[model.replace(/-\d{8}$/, "")];
+
 export const estimateCostCents = (model: string | undefined, usage: UsageEstimate): number => {
   if (model === undefined) return 0;
-  const p = MODEL_PRICING[model];
+  const p = resolveModelPricing(model);
   if (p === undefined) return 0;
   const microCents =
     usage.input * p.in +

@@ -758,7 +758,7 @@
     "model.custom": "Model id customizado",
     "model.customPlaceholder": "claude-...",
     "model.invalid": "Model id tem caracteres inválidos. Use a-z, 0-9 e hífens.",
-    "model.presetOpus": "Opus 4.7 (melhor raciocínio)",
+    "model.presetOpus": "Opus 4.8 (melhor raciocínio)",
     "model.presetSonnet": "Sonnet 4.6 (balanceado — recomendado)",
     "model.presetHaiku": "Haiku 4.5 (mais rápido, mais barato)",
     "model.saved": "Salvo",

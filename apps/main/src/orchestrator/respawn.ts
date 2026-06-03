@@ -5,6 +5,7 @@ import { createAgentsRepository } from "../agents/repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
+import { createGoalsRepository } from "../goals/repository.js";
 import { buildMemoryBlock } from "./system-prompt-memory.js";
 import { buildTelosBlock } from "./system-prompt-telos.js";
 import { buildCapabilityBoundary } from "../agents/genesis/capability-boundary.js";
@@ -184,6 +185,15 @@ export const createRespawnFn = (deps: RespawnDeps): RespawnFn => {
       listConnectedChannels(deps.db, agent.companyId),
     );
 
+    // Audit 2026-06-03 Inteligência & Contexto I2: respawn is the sole
+    // SpawnContext constructor; it must resolve narrated-active host-side (the
+    // adapter comment says the host owns this) or buildNarratedBlock() is dead
+    // code. The block only applies to a CEO mid-narrated-loop, so only set it
+    // when the goals repo reports an active narrated execution for THIS agent.
+    // Safe: only ever set to true; absence leaves the slot off (atomic default).
+    const narratedActive =
+      createGoalsRepository(deps.db).findActiveNarratedByCeo(agent.id) !== null;
+
     const opts: EnsureAdapterOptions = {
       agent,
       ...(oauthToken !== undefined ? { oauthToken } : {}),
@@ -192,6 +202,7 @@ export const createRespawnFn = (deps: RespawnDeps): RespawnFn => {
       dbPath: databasePath(),
       permissionsDir: getPermissionsDir(app.getPath("userData")),
       eventsDir: deps.eventsDir,
+      ...(narratedActive ? { narratedActive: true } : {}),
       ...(memoryBlock !== undefined ? { memoryBlock } : {}),
       ...(telosBlock !== undefined ? { telosBlock } : {}),
       ...(projectContextBlock !== undefined ? { projectContextBlock } : {}),

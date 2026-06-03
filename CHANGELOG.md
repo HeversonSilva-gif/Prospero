@@ -3,6 +3,49 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.7 — 2026-06-03
+
+Uma auditoria completa do pilar **Inteligência & Contexto** (o que o agente sabe
+num turno: prompt, compactação, recall e modelo). Achado central: o time
+"emburrecia em silêncio" em alguns pontos. Esta release religa o recall na
+delegação autônoma, torna o custo do CEO visível, e endurece prompt/memória/
+modelo. Sem telas novas; tudo por baixo do capô. Implementada com agentes em
+paralelo + um pente-fino multi-agente antes de soltar.
+
+### O agente lembra e enxerga melhor
+
+- **Recall volta a chegar no agente delegado.** Quando o CEO delegava uma tarefa,
+  o agente acordava (v0.2.6) mas **sem** as lições passadas — o gancho de recall
+  não disparava no caminho autônomo. Agora dispara.
+- **Memórias e fatos do projeto que são usados param de "envelhecer" à toa.** O que
+  é injetado a cada turno passa a registrar uso, então não decai (e some) como se
+  fosse esquecido.
+- **O CEO consegue ler e corrigir o próprio resumo de contexto** (antes só era
+  escrito, nunca acessível a ele).
+- **O bloco de instruções de execução do plano volta a aparecer** pro CEO (estava
+  desligado por engano), e a lista de ferramentas que o agente vê no prompt agora
+  bate com as que ele realmente pode usar.
+
+### Custo e modelo
+
+- **O custo do CEO deixa de ser invisível.** O modelo dele (Opus 4.8) não estava na
+  tabela de preço → aparecia como R$ 0 no painel. Agora é contabilizado (inclusive
+  quando o id vem com data), e mostra o selo de custo.
+- **Migração Opus 4.7 → 4.8 finalizada** em todos os cantos (dropdown de Ajustes,
+  template do CEO + dados já existentes, rótulos), e modelos vindos de import de
+  `AGENTS.md` agora são validados.
+
+### Robustez
+
+- **A compactação não entra mais em loop de retry** quando a destilação falha (ex.
+  durante um problema de autenticação).
+
+### Conhecido / próximos passos
+
+- Diferidos para uma próxima release (precisam de mais desenho, não correções
+  rápidas): a compactação destilar a sessão real (e não só o chat), e persistir o
+  "onde você parou" entre reinícios do app.
+
 ## v0.2.6 — 2026-06-03
 
 Uma auditoria completa do pilar **Delegação & Trabalho** revelou que o ciclo

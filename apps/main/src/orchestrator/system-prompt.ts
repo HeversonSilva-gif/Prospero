@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve, join } from "node:path";
 import { homedir } from "node:os";
-import { ensureChatCapability, resolveCapabilityTools } from "@prospero/shared";
+import { ensureChatCapability, resolveCapabilityTools, applyRunPolicy } from "@prospero/shared";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -27,6 +27,13 @@ const getPreamble = (): string => {
 export type ComposeArgs = {
   agentPersona: string;
   capabilities: string[];
+  // Audit 2026-06-03 Inteligência & Contexto I9: the run policy that build-args
+  // applies to --allowedTools (drops hire/fire/assign when not permitted). The
+  // prompt's "visible tools" line MUST reflect the same filtered set, or it
+  // promises tools the CLI blocks. Defaults to fully-permissive when omitted so
+  // callers that don't gate (tests, back-compat wrapper) see the raw resolution.
+  canHire?: boolean;
+  canAssign?: boolean;
   role?: { name: string; description: string } | null;
   preambleOverride?: string;
   goalsBlock?: string;
@@ -39,7 +46,12 @@ export type ComposeArgs = {
 export const composeSystemPrompt = (args: ComposeArgs): string => {
   const preamble = args.preambleOverride ?? getPreamble();
   const effectiveCapabilities = ensureChatCapability(args.capabilities);
-  const resolvedTools = resolveCapabilityTools(args.capabilities);
+  // Audit 2026-06-03 Inteligência & Contexto I9: mirror build-args' run-policy
+  // filter so the advertised tool list matches the real --allowedTools.
+  const resolvedTools = applyRunPolicy(resolveCapabilityTools(args.capabilities), {
+    canHire: args.canHire ?? true,
+    canAssign: args.canAssign ?? true,
+  });
 
   const roleBlock =
     args.role !== null && args.role !== undefined

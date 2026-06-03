@@ -5,9 +5,10 @@ import { join } from "node:path";
 import {
   renderProjectContextBlock,
   buildAgentContextBlock,
+  buildProjectContextBlock,
 } from "./system-prompt-project-context.js";
-import { writeDigestAt } from "../context/digest-store.js";
-import { agentDigestPath } from "../context/digest-dir.js";
+import { writeDigestAt, readDigestAt, readDigest } from "../context/digest-store.js";
+import { agentDigestPath, projectDigestPath } from "../context/digest-dir.js";
 import type { DigestEntry } from "@prospero/shared";
 
 const e = (over: Partial<DigestEntry> = {}): DigestEntry => ({
@@ -121,5 +122,74 @@ describe("buildAgentContextBlock", () => {
     expect(out).toContain("# Project context");
     expect(out).toContain("CEO prioritizes revenue.");
     expect(out.toLowerCase()).not.toContain("possibly stale");
+  });
+
+  // Audit 2026-06-03 Inteligência & Contexto I6: entries injected into the
+  // prompt must bump accessCount, or they decay at the base half-life and age
+  // out regardless of how often they are used.
+  it("bumps accessCount for agent digest entries it injects", () => {
+    writeDigestAt(agentDigestPath(dir, "co_1", "ag_1"), {
+      version: 1,
+      entries: [{ ...e({ id: "agX", body: "CEO prioritizes revenue.", accessCount: 0 }) }],
+      deepDives: [],
+    });
+    buildAgentContextBlock({ userDataDir: dir, companyId: "co_1", agentId: "ag_1" });
+    const persisted = readDigestAt(agentDigestPath(dir, "co_1", "ag_1"));
+    expect(persisted.entries.find((x) => x.id === "agX")!.accessCount).toBe(1);
+    expect(persisted.entries.find((x) => x.id === "agX")!.lastAccessed).not.toBeNull();
+  });
+});
+
+describe("buildProjectContextBlock", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "prjctx-"));
+  });
+
+  // Audit 2026-06-03 Inteligência & Contexto I6.
+  it("bumps accessCount for project digest entries it injects", () => {
+    writeDigestAt(projectDigestPath(dir, "co_1", "pr_1"), {
+      version: 1,
+      // sourceFiles empty → freshness hash matches "" content path consistently;
+      // entry stays live and gets rendered.
+      entries: [{ ...e({ id: "prX", body: "monorepo layout", sourceFiles: [], accessCount: 0 }) }],
+      deepDives: [],
+    });
+    buildProjectContextBlock({
+      userDataDir: dir,
+      companyId: "co_1",
+      projectId: "pr_1",
+      projectPath: dir, // any path; the entry has no sourceFiles
+    });
+    const persisted = readDigest(dir, "co_1", "pr_1");
+    expect(persisted.entries.find((x) => x.id === "prX")!.accessCount).toBe(1);
+  });
+
+  it("does NOT bump accessCount for an entry it drops (decayed below floor)", () => {
+    writeDigestAt(projectDigestPath(dir, "co_1", "pr_1"), {
+      version: 1,
+      entries: [
+        {
+          ...e({
+            id: "dead",
+            body: "old",
+            sourceFiles: [],
+            trust: 0.5,
+            derivedAt: 0,
+            accessCount: 0,
+          }),
+        },
+      ],
+      deepDives: [],
+    });
+    buildProjectContextBlock({
+      userDataDir: dir,
+      companyId: "co_1",
+      projectId: "pr_1",
+      projectPath: dir,
+    });
+    const persisted = readDigest(dir, "co_1", "pr_1");
+    // derivedAt=0 → decayed below floor → not rendered → no access bump.
+    expect(persisted.entries.find((x) => x.id === "dead")!.accessCount).toBe(0);
   });
 });
