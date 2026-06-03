@@ -1,6 +1,7 @@
 import type Database from "better-sqlite3";
 import { isCeoAgent } from "@prospero/shared";
 import { createGoalsRepository } from "./repository.js";
+import { createGoalPlansRepository } from "./plans-repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
@@ -64,6 +65,42 @@ export const scanStuckNarrated = (db: Database.Database): string[] => {
         issuesCount: issues,
       }),
       requiresAction: true,
+    });
+    created.push(item.id);
+  }
+  return created;
+};
+
+// I-prop (audit 2026-06-03): a goal stuck in `proposed` whose approval inbox
+// card was lost (dismissed, or a broadcast that never reached the renderer) had
+// no recovery — boot heals `planning`, narrated-`approved`, and `verifying`,
+// but `proposed` had nobody, so the goal sat forever, silently. Re-file the
+// goal_proposed card for any proposed goal that has a proposed plan but no open
+// (unread) card referencing it. Idempotent. Returns the inbox item ids created.
+export const scanProposedWithoutCard = (db: Database.Database): string[] => {
+  const plansRepo = createGoalPlansRepository(db);
+  const inboxRepo = createInboxRepository(db);
+  const rows = db
+    .prepare("SELECT id, company_id, title FROM goals WHERE status = 'proposed'")
+    .all() as { id: string; company_id: string; title: string }[];
+  const hasOpenCard = db.prepare(
+    `SELECT 1 FROM inbox_items
+      WHERE company_id = ? AND kind = 'goal_proposed' AND read_at IS NULL AND payload_json LIKE ?
+      LIMIT 1`,
+  );
+  const created: string[] = [];
+  for (const row of rows) {
+    const plan = plansRepo.getCurrent(row.id);
+    if (plan === null || plan.status !== "proposed") continue;
+    if (hasOpenCard.get(row.company_id, `%${row.id}%`) !== undefined) continue;
+    const item = inboxRepo.create({
+      companyId: row.company_id,
+      kind: "goal_proposed",
+      actorId: plan.proposedByAgentId,
+      title: `Plano proposto para "${row.title}"`,
+      preview: plan.summary.slice(0, 200),
+      requiresAction: true,
+      payloadJson: JSON.stringify({ goalId: row.id, planId: plan.id }),
     });
     created.push(item.id);
   }

@@ -94,6 +94,7 @@ import {
   scanPlanningWithoutPlan,
   scanStuckNarrated,
   scanStrandedInProgress,
+  scanProposedWithoutCard,
 } from "../goals/recovery.js";
 import { createSettingsRepository } from "../settings/repository.js";
 import {
@@ -2638,6 +2639,26 @@ export const registerOrchestratorHandlers = (
     }
   } catch (e) {
     console.error("[goals] stranded in_progress scan failed", e);
+  }
+
+  // I-prop (audit 2026-06-03): re-file the approval card for goals stuck in
+  // `proposed` whose goal_proposed inbox card was lost — otherwise the goal
+  // sits forever, invisibly. Idempotent (skips goals that still have an open
+  // card). Broadcast so a running renderer picks up the re-filed card.
+  try {
+    const refiled = scanProposedWithoutCard(db);
+    if (refiled.length > 0) {
+      console.log(`[goals] re-filed ${refiled.length} lost goal_proposed card(s)`);
+      try {
+        for (const win of BrowserWindow.getAllWindows()) {
+          win.webContents.send(IPC.INBOX_UPDATE, {});
+        }
+      } catch {
+        /* boot may be pre-window */
+      }
+    }
+  } catch (e) {
+    console.error("[goals] proposed-without-card scan failed", e);
   }
 
   // M8.6 — Boot recovery for narrated executions halted mid-loop (CEO

@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations } from "../db/migrations.js";
-import { scanPlanningWithoutPlan, scanStuckNarrated, scanStrandedInProgress } from "./recovery.js";
+import {
+  scanPlanningWithoutPlan,
+  scanStuckNarrated,
+  scanStrandedInProgress,
+  scanProposedWithoutCard,
+} from "./recovery.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { createGoalsRepository } from "./repository.js";
 import { createGoalCriteriaRepository } from "./criteria-repository.js";
@@ -102,6 +107,66 @@ describe("scanPlanningWithoutPlan", () => {
       },
     });
     expect(called).toBe(0);
+  });
+});
+
+describe("scanProposedWithoutCard (I-prop, audit 2026-06-03)", () => {
+  let env: ReturnType<typeof setup>;
+  beforeEach(() => {
+    env = setup();
+  });
+
+  const seedProposedGoal = (): string => {
+    const goals = createGoalsRepository(env.db);
+    const plans = createGoalPlansRepository(env.db);
+    const g = goals.create({ companyId: env.companyId, title: "Ship the thing" });
+    goals.updateStatus(g.id, "planning");
+    plans.insert({
+      goalId: g.id,
+      version: 1,
+      proposedByAgentId: env.ceoId,
+      summary: "Summary long enough to validate at twenty characters minimum.",
+      agentsToHire: [],
+      issuesToCreate: [],
+      estimatedTotalTokens: null,
+      estimatedDurationDays: null,
+      estimatedCostCents: null,
+      risks: [],
+    });
+    goals.updateStatus(g.id, "proposed");
+    return g.id;
+  };
+
+  it("re-files a goal_proposed card for a proposed goal whose approval card was lost", () => {
+    const goalId = seedProposedGoal();
+    const created = scanProposedWithoutCard(env.db);
+    expect(created).toHaveLength(1);
+    const inbox = createInboxRepository(env.db).listByCompany(env.companyId);
+    const card = inbox.find((i) => i.kind === "goal_proposed");
+    expect(card).toBeDefined();
+    expect(card!.requiresAction).toBe(true);
+    expect(card!.payloadJson).toContain(goalId);
+  });
+
+  it("does NOT duplicate when an open goal_proposed card already exists", () => {
+    const goalId = seedProposedGoal();
+    createInboxRepository(env.db).create({
+      companyId: env.companyId,
+      kind: "goal_proposed",
+      title: "Plano proposto",
+      requiresAction: true,
+      payloadJson: JSON.stringify({ goalId }),
+    });
+    const created = scanProposedWithoutCard(env.db);
+    expect(created).toHaveLength(0);
+  });
+
+  it("ignores goals that are not in proposed status", () => {
+    const goals = createGoalsRepository(env.db);
+    const g = goals.create({ companyId: env.companyId, title: "Draft only" });
+    goals.updateStatus(g.id, "planning");
+    const created = scanProposedWithoutCard(env.db);
+    expect(created).toHaveLength(0);
   });
 });
 
