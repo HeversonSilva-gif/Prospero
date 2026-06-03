@@ -23,6 +23,10 @@ describe("categorizeCostTier", () => {
     expect(categorizeCostTier("claude-opus-4-8").tier).toBe("expensive");
   });
 
+  it("returns 'expensive' for a dated opus 4.8 id (CLI may echo a date suffix)", () => {
+    expect(categorizeCostTier("claude-opus-4-8-20260601").tier).toBe("expensive");
+  });
+
   it("returns 'unknown' for unmapped model id", () => {
     expect(categorizeCostTier("future-model-x").tier).toBe("unknown");
   });

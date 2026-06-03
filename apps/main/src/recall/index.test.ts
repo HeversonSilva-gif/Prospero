@@ -9,11 +9,13 @@ import { createMemoriesRepository } from "../memory/memories-repository.js";
 import type { ActivityEventRow } from "@prospero/shared";
 import type { Router } from "../orchestrator/router.js";
 
-// C1 (audit 2026-06-03 Inteligência & Contexto): the recall observer must seed
-// the new assignee when an `issue.assignee_changed` activity is recorded. MAIN
-// now re-records that event for the autonomous (MCP assign_issue) path, so this
-// proves the observer consumes the exact shape MAIN records → recall reaches the
-// delegated agent instead of dying.
+// C1 (audit 2026-06-03 Inteligência & Contexto): this guards the OBSERVER SEAM —
+// given an `issue.assignee_changed` activity of the exact shape MAIN records on
+// the autonomous (MCP assign_issue) path, a recall seed is parked for the new
+// assignee. The re-recording itself lives in dispatchAgentEvent (an orchestrator
+// closure that isn't unit-testable in isolation; verified by inspection + the
+// full suite + the release E2E). If a refactor made the observer ignore this
+// event shape, C1 would silently break — this test catches that.
 describe("initRecall observer", () => {
   it("parks a recall seed for the new assignee on issue.assignee_changed", () => {
     const db = new Database(":memory:");

@@ -33,4 +33,16 @@ describe("estimateCostCents", () => {
   it("mirrors the Opus 4.7 rates for claude-opus-4-8", () => {
     expect(MODEL_PRICING["claude-opus-4-8"]).toEqual(MODEL_PRICING["claude-opus-4-7"]);
   });
+
+  // Review of C2: the CLI may echo a DATED id; pricing must still resolve it,
+  // else the CEO's cost stays R$0 in production despite the table entry.
+  it("prices a dated opus id (claude-opus-4-8-20260601) like the short id", () => {
+    const dated = estimateCostCents("claude-opus-4-8-20260601", sampleUsage);
+    expect(dated).toBeGreaterThan(0);
+    expect(dated).toBe(estimateCostCents("claude-opus-4-8", sampleUsage));
+  });
+
+  it("still prices the intentionally-dated haiku key exactly", () => {
+    expect(estimateCostCents("claude-haiku-4-5-20251001", sampleUsage)).toBeGreaterThan(0);
+  });
 });

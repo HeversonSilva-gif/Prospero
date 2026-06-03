@@ -26,6 +26,9 @@ const SYMBOL_BY_TIER: Record<CostTier, CostTierInfo["symbol"]> = {
 };
 
 export const categorizeCostTier = (model: string): CostTierInfo => {
-  const tier = TIER_BY_MODEL[model] ?? "unknown";
+  // Match exact, then retry with a trailing -YYYYMMDD date suffix stripped, so a
+  // dated id the CLI may echo (claude-opus-4-8-20260601) still maps to its tier
+  // while the intentionally-dated haiku key hits exactly. Audit 2026-06-03 C2/M3.
+  const tier = TIER_BY_MODEL[model] ?? TIER_BY_MODEL[model.replace(/-\d{8}$/, "")] ?? "unknown";
   return { tier, symbol: SYMBOL_BY_TIER[tier] };
 };
