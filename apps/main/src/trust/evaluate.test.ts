@@ -53,11 +53,17 @@ describe("evaluateTier", () => {
     expect(ev.current).toBe("confiavel");
   });
 
-  it("autonomo agent with a recent failure → eligible drops to novato", () => {
+  it("a verification failure demotes at most ONE tier (autonomo → confiavel, not novato)", () => {
     const ev = evaluateTier(
       base({ verifiedOutcomes: 20, verificationFailures: 1, iscFirstPassRate: 0.9 }),
       "autonomo",
     );
+    expect(ev.eligible).toBe("confiavel");
+    expect(ev.blockedReason).toMatch(/falha/i);
+  });
+
+  it("a verification failure demotes confiavel → novato (one tier)", () => {
+    const ev = evaluateTier(base({ verifiedOutcomes: 5, verificationFailures: 1 }), "confiavel");
     expect(ev.eligible).toBe("novato");
   });
 

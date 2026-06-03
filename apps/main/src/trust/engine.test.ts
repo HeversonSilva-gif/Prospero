@@ -122,7 +122,7 @@ describe("recomputeAgentTrust", () => {
     expect(recorded.some((r) => r.action === "trust.promotion_suggested")).toBe(true);
   });
 
-  it("demotes autonomo→novato on a verification failure and reverts mode=supervised", () => {
+  it("demotes autonomo→confiavel (one tier) on a verification failure and reverts mode=supervised", () => {
     seedCompanyAndAgent(db);
     db.prepare("UPDATE agents SET trust_tier='autonomo', mode='auto' WHERE id=?").run("a1");
     seedAchievedGoals(db, "a1", 15);
@@ -137,7 +137,9 @@ describe("recomputeAgentTrust", () => {
       trust_tier: string;
       mode: string;
     };
-    expect(row.trust_tier).toBe("novato");
+    // One-tier demotion: autonomo → confiavel (not a collapse to novato), but
+    // mode still reverts to supervised since it dropped OUT of autonomo.
+    expect(row.trust_tier).toBe("confiavel");
     expect(row.mode).toBe("supervised");
     expect(recorded.some((r) => r.action === "trust.demoted")).toBe(true);
   });
