@@ -1,4 +1,4 @@
--- 0062_derivation_attempts_trigger_class.sql — Segment the derivation daily cap
+-- 0064_derivation_attempts_trigger_class.sql — Segment the derivation daily cap
 -- by trigger CLASS. Previously one shared per-(agent,day) budget covered every
 -- trigger, so on a busy day success lessons (issue_done/recovery/goal_achieved)
 -- and failure lessons (verification_failed/approval_rejected) starved each

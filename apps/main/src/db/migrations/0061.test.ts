@@ -9,7 +9,7 @@ describe("migration 0061 — derivation_attempts", () => {
     const cols = (
       db.prepare(`PRAGMA table_info(derivation_attempts)`).all() as Array<{ name: string }>
     ).map((c) => c.name);
-    // trigger_class added in 0062 (segments the success/failure daily budgets).
+    // trigger_class added in 0064 (segments the success/failure daily budgets).
     expect(cols).toEqual(expect.arrayContaining(["agent_id", "day_utc", "trigger_class", "count"]));
   });
 
