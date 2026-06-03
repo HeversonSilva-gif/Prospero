@@ -567,19 +567,24 @@ export const toolDefinitions = [
       const target = ctx.db
         .prepare("SELECT id, company_id FROM agents WHERE id = ?")
         .get(input.agent_id) as { id: string; company_id: string } | undefined;
-      ctx.emit({ kind: "agent.kill", payload: { agentId: input.agent_id } });
-      ctx.db.prepare("DELETE FROM agents WHERE id = ?").run(input.agent_id);
-      if (target !== undefined) {
-        tryGetRecorder()?.recordActivity({
-          companyId: target.company_id,
-          actor: { kind: "agent", id: ctx.agentId },
-          action: "agent.terminated",
-          entityKind: "agent",
-          entityId: input.agent_id,
-          agentId: input.agent_id,
-          payload: { reason: "fire_agent invoked" },
-        });
+      // Company scope: only fire agents in the caller's own company — never
+      // kill/delete another company's agent. Audit 2026-06-03 Facet 4 C1.
+      if (target === undefined || target.company_id !== ctx.companyId) {
+        return JSON.stringify({ ok: false, error: "agent not found" });
       }
+      ctx.emit({ kind: "agent.kill", payload: { agentId: input.agent_id } });
+      ctx.db
+        .prepare("DELETE FROM agents WHERE id = ? AND company_id = ?")
+        .run(input.agent_id, ctx.companyId);
+      tryGetRecorder()?.recordActivity({
+        companyId: target.company_id,
+        actor: { kind: "agent", id: ctx.agentId },
+        action: "agent.terminated",
+        entityKind: "agent",
+        entityId: input.agent_id,
+        agentId: input.agent_id,
+        payload: { reason: "fire_agent invoked" },
+      });
       return JSON.stringify({ ok: true });
     },
   },
