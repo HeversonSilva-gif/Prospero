@@ -3,6 +3,57 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.6 — 2026-06-03
+
+Uma auditoria completa do pilar **Delegação & Trabalho** revelou que o ciclo
+autônomo **não fechava**: uma meta concluída por um agente podia ficar presa
+"em andamento" para sempre. Esta release fecha esse ciclo de ponta a ponta, dá
+dentes à verificação ("concluído" passa a significar "conferido"), tampa
+vazamentos no aprendizado, e corrige uma tela branca da Gênese.
+
+### O ciclo autônomo agora fecha
+
+- **Concluir o trabalho dispara a verificação.** Antes isso só acontecia pela
+  tela; quando um agente concluía a tarefa, nada acontecia e a meta travava.
+  Agora a conclusão dispara a verificação e libera as tarefas seguintes.
+- **Delegar acorda quem recebeu a tarefa** — antes o agente ficava dormindo.
+- **Redes de segurança no boot:** metas presas (em andamento com tudo pronto,
+  paradas em "proposta" sem aviso, ou em execução interrompida) são recuperadas
+  ao abrir o app, em vez de ficarem esquecidas em silêncio.
+
+### "Concluído" agora significa verificado
+
+- **Meta sem critério não é mais dada como pronta de graça** — ela espera você
+  confirmar.
+- **O entregável é conferido de verdade:** um commit é checado no repositório,
+  um arquivo é checado no disco. Não dá mais para "dizer que fez".
+- **Só o responsável (ou o CEO) fecha e entrega uma tarefa** — ninguém carimba o
+  trabalho do outro.
+- **O CEO não consegue mais marcar uma meta como "atingida" pulando a
+  verificação,** e um plano sem tarefas é recusado.
+
+### Aprendizado que não vaza nem some
+
+- **Rejeições do CEO viram preferência aprendida** ("o que a empresa não quer").
+- **A busca de memória de um agente acha as lições da empresa** (antes só via as
+  próprias), sem misturar memórias de outras empresas.
+- **As habilidades respeitam o papel de cada agente** nos lugares onde eram
+  expostas amplas demais.
+- **A régua de confiança não trava mais o agente para sempre** por um tropeço
+  antigo, e o CEO só propõe negócios nos canais que a empresa realmente conectou.
+
+### Telas
+
+- **Aceitar os indicadores de sucesso propostos pela IA agora funciona:** eles
+  viram itens de "julgamento" que você confirma na verificação — antes nasciam
+  quebrados e falhavam para sempre.
+- **Habilidades aprendidas ganham um "Revisar →" na Caixa de entrada,** que abre
+  o painel de candidatos do agente.
+- **Corrigida a tela branca da Gênese:** clicar "Ver plano completo" em uma das
+  três opções de negócio podia deixar a tela totalmente em branco. Além do
+  conserto, qualquer erro de tela agora aparece como um cartão legível (com a
+  mensagem e um botão de recarregar) em vez de uma página em branco.
+
 ## v0.2.5 — 2026-06-03
 
 Endurecimento do **sistema de agentes** a partir de uma auditoria completa: quem

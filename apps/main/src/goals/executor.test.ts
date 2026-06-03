@@ -93,6 +93,9 @@ describe("executePlan", () => {
     expect(result.createdIssueIds).toHaveLength(1);
     const goal = createGoalsRepository(env.db).getById(goalId);
     expect(goal?.status).toBe("in_progress");
+    // C3 (audit 2026-06-03): the goal must get an owner on execution, else trust
+    // + the success retrospective stay dead for the main work path.
+    expect(goal?.ownerAgentId).toBe(env.ceoId);
   });
 
   it("resolves reports_to_index pointing to another hired agent", () => {

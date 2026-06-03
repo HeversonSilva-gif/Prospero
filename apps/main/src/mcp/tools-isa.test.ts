@@ -127,10 +127,12 @@ describe("criterion_check tool", () => {
       createdBy: null,
     });
     ctx.db.prepare("UPDATE issues SET goal_id = ? WHERE id = ?").run(goalId, issue.id);
+    // output_text is inline evidence — C7a passes it on a DB match (no ref to
+    // resolve), so this stays a clean "deterministic check runs + persists" test.
     createArtifactsRepository(ctx.db).create({
       issueId: issue.id,
-      kind: "file_path",
-      ref: "out/report.md",
+      kind: "output_text",
+      ref: "the report was produced",
       contentPreview: null,
       createdBy: null,
     });
@@ -139,7 +141,7 @@ describe("criterion_check tool", () => {
       statement: "report delivered",
       kind: "deterministic",
       checkType: "artifact_exists",
-      checkSpec: { checkType: "artifact_exists", artifactKind: "file_path" },
+      checkSpec: { checkType: "artifact_exists", artifactKind: "output_text" },
     });
     const out = JSON.parse(await criterionCheck.run({ criterion_id: crit.id }, ctx)) as {
       status: string;

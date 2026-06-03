@@ -83,6 +83,9 @@ export class ClaudeApiKeyLocalAdapter implements AgentAdapter {
       ...(this.ctx.instructionsBlock !== undefined
         ? { instructionsBlock: this.ctx.instructionsBlock }
         : {}),
+      ...(this.ctx.capabilityBoundary !== undefined
+        ? { capabilityBoundary: this.ctx.capabilityBoundary }
+        : {}),
     });
 
     const { agentConfigDir, agentSandboxCwd, isEphemeralConfigDir } = prepareSandbox(

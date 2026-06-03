@@ -69,6 +69,9 @@ import { critiqueGoalPlan } from "../agents/goal-plan-critique.js";
 import { decidePlanOutcome } from "../agents/plan-outcome.js";
 import { formatGoalPlanRequest } from "../goals/format-request.js";
 import { createIssuesRepository } from "../issues/repository.js";
+import { reactToIssueChange } from "../issues/react-to-change.js";
+import { notifyAssignee } from "../issues/notify-assignee.js";
+import { buildVerificationDeps } from "../verification/deps.js";
 import { setRemoteExecutionConfigResolver } from "../orchestrator/adapters/claude-oauth-remote-docker/connection-manager.js";
 import { toRemoteExecutionConfig } from "../orchestrator/adapters/claude-oauth-remote-docker/config.js";
 import { pickAdapterForHire } from "../agents/hire-adapter.js";
@@ -87,7 +90,12 @@ import {
 import { getEventsDir } from "../orchestrator/events-dir.js";
 import { registerGoalsHandlers } from "./goals-handlers.js";
 import { registerNarratedHandlers } from "./goals-narrated-handlers.js";
-import { scanPlanningWithoutPlan, scanStuckNarrated } from "../goals/recovery.js";
+import {
+  scanPlanningWithoutPlan,
+  resumeStuckNarrated,
+  scanStrandedInProgress,
+  scanProposedWithoutCard,
+} from "../goals/recovery.js";
 import { createSettingsRepository } from "../settings/repository.js";
 import {
   startEventsWatcher,
@@ -550,7 +558,7 @@ export const registerOrchestratorHandlers = (
     const plan = plansRepo.getById(planId);
     const goal = goalsRepo.getById(goalId);
     if (plan === null || goal === null || plan.status !== "critiquing") return;
-    const { vagueIssues } = await critiqueGoalPlan(
+    const { vagueIssues, coverageGaps } = await critiqueGoalPlan(
       { db, runDerivation: (i) => runDerivation({ runProcess: defaultRunProcess }, i) },
       {
         goalTitle: goal.title,
@@ -561,16 +569,31 @@ export const registerOrchestratorHandlers = (
       },
     );
     const attempts = goalPlanRevisions.get(goalId) ?? 0;
+    // I-cov (audit 2026-06-03): coverage gaps (goal requirements no issue
+    // delivers) count toward "needs revision" alongside vague issues — a plan
+    // that misses part of the goal would otherwise sail through and the goal
+    // could never be achieved.
     const outcome = decidePlanOutcome({
-      flaggedCount: vagueIssues.length,
+      flaggedCount: vagueIssues.length + coverageGaps.length,
       attempts,
       cap: GOAL_PLAN_REVISION_CAP,
     });
     if (outcome === "revise") {
       goalPlanRevisions.set(goalId, attempts + 1);
-      const feedback =
-        "Some issues are too vague (no concrete deliverable / done-when):\n" +
-        vagueIssues.map((v) => `- ${v.title}: ${v.feedback}`).join("\n");
+      const parts: string[] = [];
+      if (vagueIssues.length > 0) {
+        parts.push(
+          "Some issues are too vague (no concrete deliverable / done-when):\n" +
+            vagueIssues.map((v) => `- ${v.title}: ${v.feedback}`).join("\n"),
+        );
+      }
+      if (coverageGaps.length > 0) {
+        parts.push(
+          "The plan does not fully cover the goal — add issues for:\n" +
+            coverageGaps.map((g) => `- ${g}`).join("\n"),
+        );
+      }
+      const feedback = parts.join("\n\n");
       // Re-engage the CEO via the existing goal-plan feedback loop. The goal is
       // still 'planning' and the plan stays 'critiquing' (hidden) until resubmit.
       deliverSystemMessage(plan.proposedByAgentId, formatGoalPlanRequest(goal, feedback));
@@ -676,7 +699,10 @@ export const registerOrchestratorHandlers = (
       typeof payload === "object" &&
       payload !== null
     ) {
-      const p = payload as { issueId: string };
+      const p = payload as {
+        issueId: string;
+        statusChange?: { from: string; to: string; agentId: string };
+      };
       const issueRow = db.prepare("SELECT company_id FROM issues WHERE id = ?").get(p.issueId) as
         | { company_id: string }
         | undefined;
@@ -686,7 +712,45 @@ export const registerOrchestratorHandlers = (
           issueId: p.issueId,
           companyId: issueRow.company_id,
         });
+        // C1 (audit 2026-06-03): the AGENT path (MCP update_issue) emits
+        // issue.updated but — unlike the renderer IPC handler — never ran the
+        // verification trigger / topo-unlock, so a goal whose last issue an
+        // agent marked done was stranded `in_progress` forever. Run the SAME
+        // shared reaction here and wake any unlocked dependents.
+        const unlocked = reactToIssueChange(db, p.issueId, buildVerificationDeps());
+        const recorder = tryGetRecorder();
+        // C5 (audit 2026-06-03): the MCP child has no recorder, so an agent's
+        // issue status change wrote no activity_events — the derivation/routines/
+        // recall observers were blind to agent issue work. Re-record it in MAIN
+        // (where the recorder is live) so issue_done lessons etc. actually fire.
+        if (p.statusChange !== undefined) {
+          recorder?.recordActivity({
+            companyId: issueRow.company_id,
+            actor: { kind: "agent", id: p.statusChange.agentId },
+            action: "issue.status_changed",
+            entityKind: "issue",
+            entityId: p.issueId,
+            agentId: p.statusChange.agentId,
+            payload: { from: p.statusChange.from, to: p.statusChange.to },
+          });
+        }
+        for (const dep of unlocked) {
+          notifyAssignee(db, eventsDir, dep);
+          recorder?.recordActivity({
+            companyId: dep.companyId,
+            actor: { kind: "system" },
+            action: "issue.unlocked_by_deps",
+            entityKind: "issue",
+            entityId: dep.id,
+            payload: { unlockedBy: p.issueId },
+          });
+        }
       }
+    } else if (kind === "issue.assigned" && typeof payload === "object" && payload !== null) {
+      // C6 (audit 2026-06-03): the MCP assign_issue tool can't call notifyAssignee
+      // (no BrowserWindow in the child), so it emits this; MAIN wakes the assignee.
+      const issue = createIssuesRepository(db).getById((payload as { issueId: string }).issueId);
+      if (issue !== null) notifyAssignee(db, eventsDir, issue);
     } else if (
       kind === "approval.route" ||
       kind === "approval.decided" ||
@@ -2581,13 +2645,49 @@ export const registerOrchestratorHandlers = (
     console.error("[goals] recovery scan failed", e);
   }
 
-  // M8.6 — Boot recovery for narrated executions halted mid-loop (CEO
-  // max-turns hit, app crash). Creates a goal_error inbox per stuck goal so
-  // the user can choose to resume or rollback via /inbox CTAs.
+  // C2 (audit 2026-06-03): recover goals stranded `in_progress` with every issue
+  // terminal (pre-fix leftovers, or a dropped issue.updated event). Idempotent.
   try {
-    const halted = scanStuckNarrated(db);
-    if (halted.length > 0) {
-      console.log(`[goals/narrated] flagged ${halted.length} stuck narrated execution(s)`);
+    const recoveredGoals = scanStrandedInProgress(db, buildVerificationDeps());
+    if (recoveredGoals.length > 0) {
+      console.log(`[goals] recovered ${recoveredGoals.length} stranded in_progress goal(s)`);
+    }
+  } catch (e) {
+    console.error("[goals] stranded in_progress scan failed", e);
+  }
+
+  // I-prop (audit 2026-06-03): re-file the approval card for goals stuck in
+  // `proposed` whose goal_proposed inbox card was lost — otherwise the goal
+  // sits forever, invisibly. Idempotent (skips goals that still have an open
+  // card). Broadcast so a running renderer picks up the re-filed card.
+  try {
+    const refiled = scanProposedWithoutCard(db);
+    if (refiled.length > 0) {
+      console.log(`[goals] re-filed ${refiled.length} lost goal_proposed card(s)`);
+      try {
+        for (const win of BrowserWindow.getAllWindows()) {
+          win.webContents.send(IPC.INBOX_UPDATE, {});
+        }
+      } catch {
+        /* boot may be pre-window */
+      }
+    }
+  } catch (e) {
+    console.error("[goals] proposed-without-card scan failed", e);
+  }
+
+  // M8.6 + I-narr (audit 2026-06-03): a narrated execution halted mid-loop (CEO
+  // max-turns, app crash) used to only file a goal_error card for the human to
+  // resume by hand — the loop just stopped. Since the per-plan tools are
+  // idempotent, auto-resume re-enqueues the CEO execute-request; only goals
+  // that genuinely can't resume fall back to a card.
+  try {
+    const { resumed, flagged } = resumeStuckNarrated(db, { enqueueExecuteRequest });
+    if (resumed.length > 0) {
+      console.log(`[goals/narrated] auto-resumed ${resumed.length} stuck narrated execution(s)`);
+    }
+    if (flagged.length > 0) {
+      console.log(`[goals/narrated] flagged ${flagged.length} unresumable narrated execution(s)`);
       try {
         for (const win of BrowserWindow.getAllWindows()) {
           win.webContents.send(IPC.INBOX_UPDATE, {});

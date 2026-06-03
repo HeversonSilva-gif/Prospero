@@ -227,7 +227,7 @@ const EnrichedPlanView: FC<EnrichedPlanProps> = ({
 
           {/* How it makes money + Marketing */}
           <div className="flex gap-3.5 flex-wrap">
-            {option.pricing !== null && option.pricing.items.length > 0 && (
+            {option.pricing != null && option.pricing.items.length > 0 && (
               <Card className="flex-1 min-w-[200px]">
                 <SectionLabel>{t("businessPlan.review.howMonetizes")}</SectionLabel>
                 {option.pricing.items.map((item, i) => (
@@ -265,7 +265,7 @@ const EnrichedPlanView: FC<EnrichedPlanProps> = ({
           </div>
 
           {/* Competition & differentiation */}
-          {option.research !== null && (
+          {option.research != null && (
             <Card>
               <SectionLabel>{t("businessPlan.review.competitionTitle")}</SectionLabel>
               <p className="text-[12.5px] text-ink-muted m-0 leading-relaxed">
@@ -285,7 +285,7 @@ const EnrichedPlanView: FC<EnrichedPlanProps> = ({
           )}
 
           {/* About you */}
-          {option.ownerProfile !== null && option.ownerProfile.trim() !== "" && (
+          {option.ownerProfile != null && option.ownerProfile.trim() !== "" && (
             <Card>
               <SectionLabel>{t("businessPlan.review.aboutYou")}</SectionLabel>
               <p className="text-[13px] text-ink leading-[1.55] m-0 whitespace-pre-wrap">
@@ -387,7 +387,7 @@ const LegacyPlanView: FC<LegacyPlanProps> = ({
           )}
 
           {/* Pricing */}
-          {plan.pricing !== null && plan.pricing.items.length > 0 && (
+          {plan.pricing != null && plan.pricing.items.length > 0 && (
             <Card>
               <SectionLabel>{t("businessPlan.review.howMonetizes")}</SectionLabel>
               {plan.pricing.items.map((item, i) => (
@@ -428,7 +428,7 @@ const LegacyPlanView: FC<LegacyPlanProps> = ({
           )}
 
           {/* Competition */}
-          {plan.research !== null && (
+          {plan.research != null && (
             <Card>
               <SectionLabel>{t("businessPlan.review.competitionTitle")}</SectionLabel>
               <p className="text-[12.5px] text-ink-muted m-0 leading-relaxed">
@@ -448,7 +448,7 @@ const LegacyPlanView: FC<LegacyPlanProps> = ({
           )}
 
           {/* About you */}
-          {plan.ownerProfile !== null && plan.ownerProfile.trim() !== "" && (
+          {plan.ownerProfile != null && plan.ownerProfile.trim() !== "" && (
             <Card>
               <SectionLabel>{t("businessPlan.review.aboutYou")}</SectionLabel>
               <p className="text-[13px] text-ink leading-[1.55] m-0 whitespace-pre-wrap">

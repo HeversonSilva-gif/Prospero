@@ -1,9 +1,13 @@
 import type Database from "better-sqlite3";
 import { isCeoAgent } from "@prospero/shared";
 import { createGoalsRepository } from "./repository.js";
+import { createGoalPlansRepository } from "./plans-repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
+import { createIssuesRepository } from "../issues/repository.js";
+import { runVerification, type RunVerificationDeps } from "../verification/index.js";
 import { formatGoalPlanRequest } from "./format-request.js";
+import { formatGoalExecuteRequest } from "./format-execute-request.js";
 
 export type RecoveryDeps = {
   deliverSystemMessage: (agentId: string, text: string) => void;
@@ -66,4 +70,124 @@ export const scanStuckNarrated = (db: Database.Database): string[] => {
     created.push(item.id);
   }
   return created;
+};
+
+// I-prop (audit 2026-06-03): a goal stuck in `proposed` whose approval inbox
+// card was lost (dismissed, or a broadcast that never reached the renderer) had
+// no recovery — boot heals `planning`, narrated-`approved`, and `verifying`,
+// but `proposed` had nobody, so the goal sat forever, silently. Re-file the
+// goal_proposed card for any proposed goal that has a proposed plan but no open
+// (unread) card referencing it. Idempotent. Returns the inbox item ids created.
+export const scanProposedWithoutCard = (db: Database.Database): string[] => {
+  const plansRepo = createGoalPlansRepository(db);
+  const inboxRepo = createInboxRepository(db);
+  const rows = db
+    .prepare("SELECT id, company_id, title FROM goals WHERE status = 'proposed'")
+    .all() as { id: string; company_id: string; title: string }[];
+  const hasOpenCard = db.prepare(
+    `SELECT 1 FROM inbox_items
+      WHERE company_id = ? AND kind = 'goal_proposed' AND read_at IS NULL AND payload_json LIKE ?
+      LIMIT 1`,
+  );
+  const created: string[] = [];
+  for (const row of rows) {
+    const plan = plansRepo.getCurrent(row.id);
+    if (plan === null || plan.status !== "proposed") continue;
+    if (hasOpenCard.get(row.company_id, `%${row.id}%`) !== undefined) continue;
+    const item = inboxRepo.create({
+      companyId: row.company_id,
+      kind: "goal_proposed",
+      actorId: plan.proposedByAgentId,
+      title: `Plano proposto para "${row.title}"`,
+      preview: plan.summary.slice(0, 200),
+      requiresAction: true,
+      payloadJson: JSON.stringify({ goalId: row.id, planId: plan.id }),
+    });
+    created.push(item.id);
+  }
+  return created;
+};
+
+export type NarratedResumeDeps = {
+  enqueueExecuteRequest: (ceoId: string, prompt: string) => { threadId: string };
+};
+
+// I-narr (audit 2026-06-03): a narrated execution interrupted before the CEO
+// called finalize_goal_execution left the goal `approved` with execution_state,
+// and boot only filed a goal_error card for the human to resume by hand. But
+// hire_agent_for_plan / create_issue_for_plan are idempotent (they return the
+// existing id for an already-instantiated index), so the loop can resume
+// itself: re-enqueue the [GOAL_EXECUTE_REQUEST] CEO turn and refresh the
+// thread. Goals that genuinely can't resume (no plan / no CEO / no state) fall
+// back to a goal_error card so nothing is silently lost. Returns the goal ids
+// resumed and the inbox item ids flagged.
+export const resumeStuckNarrated = (
+  db: Database.Database,
+  deps: NarratedResumeDeps,
+): { resumed: string[]; flagged: string[] } => {
+  const goalsRepo = createGoalsRepository(db);
+  const plansRepo = createGoalPlansRepository(db);
+  const agentsRepo = createAgentsRepository(db);
+  const inboxRepo = createInboxRepository(db);
+  const resumed: string[] = [];
+  const flagged: string[] = [];
+  for (const goal of goalsRepo.findStuckNarrated()) {
+    const state = goalsRepo.getExecutionState(goal.id);
+    const plan = state !== null ? plansRepo.getById(state.planId) : null;
+    const ceo = agentsRepo.listByCompany(goal.companyId).find(isCeoAgent);
+    if (state === null || plan === null || ceo === undefined) {
+      const hired = state ? Object.keys(state.agentIndexToId).length : 0;
+      const issues = state ? Object.keys(state.issueIndexToId).length : 0;
+      const item = inboxRepo.create({
+        companyId: goal.companyId,
+        kind: "goal_error",
+        title: `Plan execution halted for "${goal.title}"`,
+        preview: `Narrated loop could not auto-resume. ${hired} agents hired, ${issues} issues created.`,
+        payloadJson: JSON.stringify({
+          goalId: goal.id,
+          planId: state?.planId ?? null,
+          step: "narrated_halted",
+          hiredCount: hired,
+          issuesCount: issues,
+        }),
+        requiresAction: true,
+      });
+      flagged.push(item.id);
+      continue;
+    }
+    const { threadId } = deps.enqueueExecuteRequest(ceo.id, formatGoalExecuteRequest(goal, plan));
+    goalsRepo.setExecutionState(goal.id, { ...state, threadId });
+    resumed.push(goal.id);
+  }
+  return { resumed, flagged };
+};
+
+// C2 (audit 2026-06-03): safety-net for goals stranded `in_progress` with every
+// issue terminal — left over from before the loop-closing fix, or if the
+// best-effort issue.updated event was ever dropped. Mirrors maybeStartVerification's
+// goal gate but scans ALL in_progress goals. Idempotent: a goal that advances
+// past `in_progress` is excluded by the status query. Run at boot + periodically.
+// Returns the goal ids it moved to `verifying`.
+export const scanStrandedInProgress = (
+  db: Database.Database,
+  deps: RunVerificationDeps,
+): string[] => {
+  const goalsRepo = createGoalsRepository(db);
+  const issuesRepo = createIssuesRepository(db);
+  const rows = db.prepare("SELECT id FROM goals WHERE status = 'in_progress'").all() as {
+    id: string;
+  }[];
+  const triggered: string[] = [];
+  for (const { id } of rows) {
+    const issues = issuesRepo.listByGoal(id);
+    const allTerminal =
+      issues.length > 0 && issues.every((i) => i.status === "done" || i.status === "cancelled");
+    if (!allTerminal) continue;
+    goalsRepo.updateStatus(id, "verifying");
+    void runVerification(db, id, deps).catch((err: unknown) =>
+      console.warn(`[recovery] stranded-goal verification failed for ${id}: ${String(err)}`),
+    );
+    triggered.push(id);
+  }
+  return triggered;
 };

@@ -137,7 +137,7 @@ describe("checkDeterministic", () => {
     expect(r.detail).toContain("tool not found");
   });
 
-  it("artifact_exists check passes when a matching artifact exists", async () => {
+  const seedArtifact = (kind: string, ref: string): void => {
     const issue = createIssuesRepository(db).create({
       companyId,
       title: "I",
@@ -151,17 +151,83 @@ describe("checkDeterministic", () => {
     db.prepare("UPDATE issues SET goal_id = ? WHERE id = ?").run(goalId, issue.id);
     createArtifactsRepository(db).create({
       issueId: issue.id,
-      kind: "file_path",
-      ref: "out/report.md",
+      kind: kind as "file_path",
+      ref,
       contentPreview: null,
       createdBy: null,
     });
+  };
+
+  it("artifact_exists passes only when the file ref actually resolves (C7a)", async () => {
+    seedArtifact("file_path", "out/report.md");
     const c = mkCriterion({
       checkType: "artifact_exists",
       checkSpec: { checkType: "artifact_exists", artifactKind: "file_path" },
     });
-    const r = await checkDeterministic(c, baseCtx(db));
+    const ctx: VerifyContext = { ...baseCtx(db), fileExists: () => Promise.resolve(true) };
+    expect((await checkDeterministic(c, ctx)).status).toBe("passed");
+  });
+
+  it("artifact_exists FAILS a fabricated file ref that does not resolve (C7a)", async () => {
+    seedArtifact("file_path", "out/report.md");
+    const c = mkCriterion({
+      checkType: "artifact_exists",
+      checkSpec: { checkType: "artifact_exists", artifactKind: "file_path" },
+    });
+    const ctx: VerifyContext = { ...baseCtx(db), fileExists: () => Promise.resolve(false) };
+    const r = await checkDeterministic(c, ctx);
+    expect(r.status).toBe("failed");
+    expect(r.detail).toMatch(/not found|sandbox/i);
+  });
+
+  it("artifact_exists verifies a commit_sha against the repo (C7a) — pass on git cat-file exit 0", async () => {
+    seedArtifact("commit_sha", "0123456789abcdef0123456789abcdef01234567");
+    const c = mkCriterion({
+      checkType: "artifact_exists",
+      checkSpec: { checkType: "artifact_exists", artifactKind: "commit_sha" },
+    });
+    const calls: string[] = [];
+    const ctx: VerifyContext = {
+      ...baseCtx(db),
+      runCommand: (i) => {
+        calls.push(i.command);
+        return Promise.resolve({ exitCode: 0, stdout: "", stderr: "", timedOut: false });
+      },
+    };
+    const r = await checkDeterministic(c, ctx);
     expect(r.status).toBe("passed");
+    expect(calls.some((cmd) => cmd.includes("git cat-file"))).toBe(true);
+  });
+
+  it("artifact_exists FAILS a fabricated commit_sha (git cat-file exit 1) (C7a)", async () => {
+    seedArtifact("commit_sha", "0123456789abcdef0123456789abcdef01234567");
+    const c = mkCriterion({
+      checkType: "artifact_exists",
+      checkSpec: { checkType: "artifact_exists", artifactKind: "commit_sha" },
+    });
+    const ctx: VerifyContext = {
+      ...baseCtx(db),
+      runCommand: () => Promise.resolve({ exitCode: 1, stdout: "", stderr: "", timedOut: false }),
+    };
+    expect((await checkDeterministic(c, ctx)).status).toBe("failed");
+  });
+
+  it("artifact_exists WAIVES a pr_url (cannot verify offline) (C7a)", async () => {
+    seedArtifact("pr_url", "https://github.com/acme/repo/pull/7");
+    const c = mkCriterion({
+      checkType: "artifact_exists",
+      checkSpec: { checkType: "artifact_exists", artifactKind: "pr_url" },
+    });
+    expect((await checkDeterministic(c, baseCtx(db))).status).toBe("waived");
+  });
+
+  it("artifact_exists passes an output_text artifact on a DB match (inline evidence)", async () => {
+    seedArtifact("output_text", "the command printed OK");
+    const c = mkCriterion({
+      checkType: "artifact_exists",
+      checkSpec: { checkType: "artifact_exists", artifactKind: "output_text" },
+    });
+    expect((await checkDeterministic(c, baseCtx(db))).status).toBe("passed");
   });
 
   it("artifact_exists check fails when no artifact matches", async () => {
@@ -174,29 +240,13 @@ describe("checkDeterministic", () => {
   });
 
   it("artifact_exists check matches a refPattern", async () => {
-    const issue = createIssuesRepository(db).create({
-      companyId,
-      title: "I",
-      projectId: null,
-      description: null,
-      assigneeId: null,
-      priority: "medium",
-      parentId: null,
-      createdBy: null,
-    });
-    db.prepare("UPDATE issues SET goal_id = ? WHERE id = ?").run(goalId, issue.id);
-    createArtifactsRepository(db).create({
-      issueId: issue.id,
-      kind: "file_path",
-      ref: "out/report.md",
-      contentPreview: null,
-      createdBy: null,
-    });
+    seedArtifact("file_path", "out/report.md");
     const c = mkCriterion({
       checkType: "artifact_exists",
       checkSpec: { checkType: "artifact_exists", artifactKind: "file_path", refPattern: "\\.md$" },
     });
-    expect((await checkDeterministic(c, baseCtx(db))).status).toBe("passed");
+    const ctx: VerifyContext = { ...baseCtx(db), fileExists: () => Promise.resolve(true) };
+    expect((await checkDeterministic(c, ctx)).status).toBe("passed");
   });
 
   it("artifact_exists check fails an invalid refPattern cleanly", async () => {

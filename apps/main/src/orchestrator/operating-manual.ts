@@ -65,7 +65,7 @@ Before you move an issue to \`done\` — or to \`review\` for someone else to
 accept — record what you produced with \`record_artifact\`. An artifact is the
 concrete deliverable, not a description of it:
 
-- \`kind: "commit_sha"\`, \`ref: "<40-char hex>"\` — the commit that closes it.
+- \`kind: "commit_sha"\`, \`ref: "<hex sha>"\` — the commit that closes it. Verified with \`git cat-file\`, so it must be a real commit in your sandbox.
 - \`kind: "pr_url"\`, \`ref: "https://github.com/..."\` — the pull request.
 - \`kind: "file_path"\`, \`ref: "<absolute path>"\` — the primary file changed.
 - \`kind: "output_text"\`, \`ref: "<short id>"\`, \`preview: "<excerpt>"\` — a

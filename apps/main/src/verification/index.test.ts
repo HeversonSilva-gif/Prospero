@@ -76,10 +76,19 @@ describe("verification gate", () => {
     expect(createGoalsRepository(db).getById(goalId)?.status).toBe("achieved");
   });
 
-  it("a goal with no criteria moves straight to achieved", async () => {
+  it("a goal with NO criteria is not trivially achieved — it waits on human confirmation (C4)", async () => {
+    // Audit 2026-06-03 C4: a goal with zero acceptance criteria has nothing to
+    // verify, so auto-achieving it is a false positive (trust laundering). It
+    // must stay `verifying` and file a review card asking the human to confirm.
     const goalId = toVerifying(db, companyId);
     await runVerification(db, goalId, depsWith(0));
-    expect(createGoalsRepository(db).getById(goalId)?.status).toBe("achieved");
+    expect(createGoalsRepository(db).getById(goalId)?.status).toBe("verifying");
+    const inbox = db
+      .prepare("SELECT kind, payload_json FROM inbox_items WHERE company_id = ?")
+      .all(companyId) as { kind: string; payload_json: string }[];
+    const card = inbox.find((i) => i.kind === "verification_review");
+    expect(card).toBeDefined();
+    expect((JSON.parse(card!.payload_json) as { noCriteria?: boolean }).noCriteria).toBe(true);
   });
 
   it("a failed check bounces the goal to in_progress and files an inbox card when at the retry cap", async () => {

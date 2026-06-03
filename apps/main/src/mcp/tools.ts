@@ -593,7 +593,8 @@ export const toolDefinitions = [
   },
   {
     name: "create_issue",
-    description: "Create a new issue. project may be a project ID or a project name.",
+    description:
+      "Create a new issue. project may be a project ID or a project name. Pass goal_id to attach the issue to a goal so completing it advances that goal's verification.",
     inputSchema: z.object({
       project: z.string(),
       title: z.string().min(1),
@@ -601,6 +602,7 @@ export const toolDefinitions = [
       assignee: z.string().optional(),
       priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
       parent_id: z.string().optional(),
+      goal_id: z.string().optional(),
     }),
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (
@@ -611,6 +613,7 @@ export const toolDefinitions = [
         assignee?: string;
         priority?: "low" | "medium" | "high" | "urgent";
         parent_id?: string;
+        goal_id?: string;
       },
       ctx: ToolContext,
     ): Promise<string> => {
@@ -619,6 +622,17 @@ export const toolDefinitions = [
       if (lookup.matches === 0) return JSON.stringify({ ok: false, error: "project not found" });
       if (lookup.matches > 1)
         return JSON.stringify({ ok: false, error: "multiple projects match" });
+      // C (audit 2026-06-03): validate the goal belongs to this company before
+      // linking. An ad-hoc issue with no goal stays orphaned — its completion
+      // can never advance a goal's verification, so the loop never closes for it.
+      if (input.goal_id !== undefined) {
+        const g = ctx.db.prepare("SELECT company_id FROM goals WHERE id = ?").get(input.goal_id) as
+          | { company_id: string }
+          | undefined;
+        if (g === undefined || g.company_id !== ctx.companyId) {
+          return JSON.stringify({ ok: false, error: "goal not found" });
+        }
+      }
       const created = issues.create(
         {
           companyId: ctx.companyId,
@@ -632,6 +646,9 @@ export const toolDefinitions = [
         },
         { actorKind: "agent", actorId: ctx.agentId },
       );
+      if (input.goal_id !== undefined) {
+        ctx.db.prepare("UPDATE issues SET goal_id = ? WHERE id = ?").run(input.goal_id, created.id);
+      }
       ctx.emit({ kind: "issue.created", payload: { issueId: created.id } });
       return JSON.stringify({
         id: created.id,
@@ -764,6 +781,28 @@ export const toolDefinitions = [
       if (existing === null) {
         return JSON.stringify({ ok: false, error: "issue not found" });
       }
+      // I-sm (audit 2026-06-03): the agent path enforces the documented issue
+      // machine — `done` is only reachable from `doing` or `review`. A
+      // backlog/todo -> done jump skips the work, zeroes the tool-history, and
+      // fires premature verification. Humans dragging the Kanban board go
+      // through the IPC repo path, which keeps full freedom; only agents are
+      // bound here.
+      if (input.status === "done" && existing.status !== "doing" && existing.status !== "review") {
+        return JSON.stringify({
+          ok: false,
+          error: `cannot move issue to 'done' from '${existing.status}' — move it to 'doing' while you work it, then to 'done' (or 'review'). No jumping straight to done.`,
+        });
+      }
+      // C8 (audit 2026-06-03): only the issue's assignee or the CEO (who
+      // approves work in `review`) may close it. Otherwise any company agent
+      // could close another's issue — with a falsifiable artifact that is trust
+      // laundering (verified work the agent never did).
+      if (input.status === "done" && existing.assigneeId !== ctx.agentId && !callerIsCeo(ctx)) {
+        return JSON.stringify({
+          ok: false,
+          error: "only the issue's assignee or the CEO can mark it done",
+        });
+      }
       const patch: Parameters<typeof issues.update>[1] = {};
       if (input.status !== undefined) patch.status = input.status;
       if (input.description !== undefined) patch.description = input.description;
@@ -787,7 +826,21 @@ export const toolDefinitions = [
           payloadJson: JSON.stringify({ issueId: next.id, byAgent: caller?.name ?? null }),
         });
       }
-      ctx.emit({ kind: "issue.updated", payload: { issueId: next.id } });
+      // C5 (audit 2026-06-03): the MCP child has no recorder, so the repo's
+      // recordActivity for this status change is a silent no-op — agent issue
+      // work was invisible to the derivation/routines/recall observers. Carry
+      // the from/to so MAIN re-records the issue.status_changed activity.
+      const statusChanged =
+        input.status !== undefined && existing.status !== next.status
+          ? { from: existing.status, to: next.status, agentId: ctx.agentId }
+          : undefined;
+      ctx.emit({
+        kind: "issue.updated",
+        payload: {
+          issueId: next.id,
+          ...(statusChanged !== undefined ? { statusChange: statusChanged } : {}),
+        },
+      });
       let warning: string | undefined;
       if (input.status === "done") {
         const artifacts = createArtifactsRepository(ctx.db);
@@ -835,6 +888,11 @@ export const toolDefinitions = [
       );
       if (next === null) return JSON.stringify({ ok: false, error: "issue not found" });
       ctx.emit({ kind: "issue.updated", payload: { issueId: next.id } });
+      // C6 (audit 2026-06-03): wake the new assignee. The MCP child can't call
+      // notifyAssignee (no BrowserWindow); MAIN turns this into the wake event.
+      // Without it a delegated issue just sat idle (= the dead recall-seed
+      // diferido #7 too — the seed is only consumed once the agent is woken).
+      ctx.emit({ kind: "issue.assigned", payload: { issueId: next.id } });
       return JSON.stringify({ id: next.id, assignee: next.assigneeId });
     },
   },
@@ -1275,8 +1333,19 @@ export const toolDefinitions = [
       if (resolvedId === null) {
         return JSON.stringify({ ok: false, error: "issue not found" });
       }
-      if (input.kind === "commit_sha" && !/^[a-f0-9]{40}$/i.test(input.ref)) {
-        return JSON.stringify({ ok: false, error: "commit_sha must be 40-char hex" });
+      // C8 (audit 2026-06-03): only the issue's assignee or the CEO may attach a
+      // deliverable. Fabricating another agent's artifact is trust laundering.
+      const artifactIssue = createIssuesRepository(ctx.db).getById(resolvedId);
+      if (artifactIssue !== null && artifactIssue.assigneeId !== ctx.agentId && !callerIsCeo(ctx)) {
+        return JSON.stringify({
+          ok: false,
+          error: "only the issue's assignee or the CEO can record an artifact for it",
+        });
+      }
+      // commit_sha accepts 7..64 hex (short SHA-1 through full SHA-256) — the
+      // old 40-only rule rejected short refs and SHA-256 repos. Audit 2026-06-03.
+      if (input.kind === "commit_sha" && !/^[a-f0-9]{7,64}$/i.test(input.ref)) {
+        return JSON.stringify({ ok: false, error: "commit_sha must be 7-64 hex chars" });
       }
       if (input.kind === "pr_url" && !/^https?:\/\//i.test(input.ref)) {
         return JSON.stringify({ ok: false, error: "pr_url must be http(s)" });

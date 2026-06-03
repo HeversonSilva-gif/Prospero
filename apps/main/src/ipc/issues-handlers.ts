@@ -19,11 +19,10 @@ import { createIssueCommentsRepository } from "../issues/comments-repository.js"
 import { createArtifactsRepository } from "../artifacts/repository.js";
 import { createMessagesRepository } from "../messages/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
-import { computeUnlockedDependents } from "../issues/topo-activation.js";
+import { reactToIssueChange } from "../issues/react-to-change.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { getEventsDir } from "../orchestrator/events-dir.js";
 import { broadcastIssueChanged } from "./issue-events-broadcast.js";
-import { maybeStartVerification } from "../verification/trigger.js";
 import { buildVerificationDeps } from "../verification/deps.js";
 
 const broadcast = (event: AgentEvent): void => {
@@ -173,27 +172,22 @@ export const registerIssuesHandlers = (db: Database.Database): void => {
           patch.assigneeId !== undefined;
         if (reassigned) notifyAssignee(next);
 
-        // M8.6: topological unlock on status → done. Wake any dependent issues
-        // whose ALL deps are now done. Plan-driven issues populate
-        // depends_on_json; user-created issues have it NULL → loop is a no-op.
-        if (prev?.status !== "done" && next.status === "done") {
-          const unlocked = computeUnlockedDependents(db, next.id, next.companyId);
-          const recorder = tryGetRecorder();
-          for (const dep of unlocked) {
-            notifyAssignee(dep);
-            recorder?.recordActivity({
-              companyId: dep.companyId,
-              actor: { kind: "system" },
-              action: "issue.unlocked_by_deps",
-              entityKind: "issue",
-              entityId: dep.id,
-              payload: { unlockedBy: next.id },
-            });
-          }
+        // M8.6 topo-unlock + M13 verification, via the SHARED reaction so the
+        // agent (MCP) path runs identical logic (react-to-change.ts). Returns the
+        // dependents a done-transition unlocked; wake each.
+        const unlocked = reactToIssueChange(db, next.id, verificationDeps);
+        const recorder = tryGetRecorder();
+        for (const dep of unlocked) {
+          notifyAssignee(dep);
+          recorder?.recordActivity({
+            companyId: dep.companyId,
+            actor: { kind: "system" },
+            action: "issue.unlocked_by_deps",
+            entityKind: "issue",
+            entityId: dep.id,
+            payload: { unlockedBy: next.id },
+          });
         }
-        // M13: when the last issue of an in_progress goal finishes, transition
-        // the goal to `verifying` and run the verification engine.
-        maybeStartVerification(db, next, verificationDeps);
       }
       return next;
     },

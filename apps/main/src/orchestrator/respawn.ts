@@ -7,6 +7,8 @@ import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
 import { buildMemoryBlock } from "./system-prompt-memory.js";
 import { buildTelosBlock } from "./system-prompt-telos.js";
+import { buildCapabilityBoundary } from "../agents/genesis/capability-boundary.js";
+import { listConnectedChannels } from "../connections/connections-repository.js";
 import {
   buildProjectContextBlock,
   buildAgentContextBlock,
@@ -174,6 +176,14 @@ export const createRespawnFn = (deps: RespawnDeps): RespawnFn => {
       });
     }
 
+    // Audit 2026-06-03 Facet 3 C1: build the CEO capability boundary from the
+    // company's REAL connected channels (host-side; build-args has no DB), so
+    // the CEO only proposes what the system can actually deliver — instead of a
+    // hardcoded ["x"]. Consumed only for the CEO; harmless to compute always.
+    const capabilityBoundary = buildCapabilityBoundary(
+      listConnectedChannels(deps.db, agent.companyId),
+    );
+
     const opts: EnsureAdapterOptions = {
       agent,
       ...(oauthToken !== undefined ? { oauthToken } : {}),
@@ -186,6 +196,7 @@ export const createRespawnFn = (deps: RespawnDeps): RespawnFn => {
       ...(telosBlock !== undefined ? { telosBlock } : {}),
       ...(projectContextBlock !== undefined ? { projectContextBlock } : {}),
       instructionsBlock,
+      capabilityBoundary,
     };
 
     // Allocate a fresh per-spawn cell BEFORE buildCallbacks so the callback

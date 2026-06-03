@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
+import { createAgentsRepository } from "../agents/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { getAgentMemoryDir, skillBodyPath } from "../memory/memory-dir.js";
 import { sanitizeMemoryBody } from "../memory/sanitizer.js";
@@ -47,7 +48,10 @@ const skillSearch: Tool = {
     const { query } = skillSearch.inputSchema.parse(input) as { query: string };
     const repo = createSkillsRepository(ctx.db);
     const q = query.toLowerCase();
-    const pool = [...repo.listByAgent(ctx.agentId), ...repo.listCompanyShared(ctx.companyId)];
+    // #13 (audit 2026-06-03): shared skills are scoped to the agent's role
+    // (+ globals), not every role's, matching the system-prompt filter.
+    const role = createAgentsRepository(ctx.db).getById(ctx.agentId)?.role ?? null;
+    const pool = [...repo.listByAgent(ctx.agentId), ...repo.listSharedForRole(ctx.companyId, role)];
     const skills = pool
       .filter((s) => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q))
       .map((s) => ({
@@ -310,11 +314,16 @@ const memorySearch: Tool = {
     };
     const repo = createMemoriesRepository(ctx.db);
     const safeQuery = toFtsMatchExpr(query);
+    // #8 (audit 2026-06-03): scope to this agent's own rows PLUS the company's
+    // global ones (agent_id NULL), within the company. Searching the exact
+    // agentId alone hid company-wide retrospectives from the agent that needs
+    // them. companyId keeps it from leaking other tenants' memories.
     const rows =
       safeQuery === ""
         ? []
         : repo.search(safeQuery, {
-            agentId: ctx.agentId,
+            companyId: ctx.companyId,
+            scopeToAgent: ctx.agentId,
             ...(limit !== undefined ? { limit } : {}),
           });
     repo.recordAccess(rows.map((m) => m.id));

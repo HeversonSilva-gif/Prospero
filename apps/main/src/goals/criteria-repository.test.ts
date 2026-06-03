@@ -103,6 +103,36 @@ describe("goalCriteriaRepository", () => {
     expect(repo.getById(c.id)).toBeNull();
   });
 
+  it("coerces a deterministic criterion with no checkSpec to judgment (C7b invariant)", () => {
+    // Accepting an AI-proposed ISA sends a checkType HINT but no spec. A
+    // deterministic criterion with checkSpec=null fails verification forever
+    // ("no check spec"), so it must land as a judgment criterion instead.
+    const repo = createGoalCriteriaRepository(db);
+    const c = repo.create({
+      goalId,
+      statement: "tests pass",
+      kind: "deterministic",
+      checkType: "command",
+    });
+    expect(c.kind).toBe("judgment");
+    expect(c.checkType).toBeNull();
+    expect(c.checkSpec).toBeNull();
+  });
+
+  it("keeps a deterministic criterion that carries a real checkSpec", () => {
+    const repo = createGoalCriteriaRepository(db);
+    const c = repo.create({
+      goalId,
+      statement: "tests pass",
+      kind: "deterministic",
+      checkType: "command",
+      checkSpec: { checkType: "command", command: "x", expectedExitCode: 0, timeoutMs: 1000 },
+    });
+    expect(c.kind).toBe("deterministic");
+    expect(c.checkType).toBe("command");
+    expect(c.checkSpec).not.toBeNull();
+  });
+
   it("applyResult persists status, timestamp and result json", () => {
     const repo = createGoalCriteriaRepository(db);
     const c = repo.create({ goalId, statement: "tests pass", kind: "deterministic" });

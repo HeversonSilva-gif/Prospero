@@ -72,6 +72,11 @@ export type SkillsRepository = {
   listByAgent(agentId: string): Skill[];
   listCompanyShared(companyId: string): Skill[];
   listForRole(companyId: string, role: string): Skill[];
+  // #13 (audit 2026-06-03): the role-correct shared set for an agent — company
+  // globals (applies_to_role NULL) PLUS skills targeting `role`. role=null
+  // returns only the globals. Read paths must use this, not listCompanyShared,
+  // which over-exposes every role's skills to every agent.
+  listSharedForRole(companyId: string, role: string | null): Skill[];
   listCompanyGlobal(companyId: string): Skill[];
   promote(id: string, appliesToRole: string | null): Skill;
   update(id: string, patch: UpdateSkillPatch): Skill;
@@ -112,6 +117,11 @@ export const createSkillsRepository = (db: Database.Database): SkillsRepository 
   );
   const forRole = db.prepare(
     "SELECT * FROM skills WHERE company_id = ? AND agent_id IS NULL AND applies_to_role = ? AND soft_deleted = 0 AND lifecycle_state != 'archived' ORDER BY use_count DESC, created_at DESC",
+  );
+  // applies_to_role = NULL comparison is never true, so a null `role` param
+  // yields only the (applies_to_role IS NULL) globals — exactly what we want.
+  const sharedForRole = db.prepare(
+    "SELECT * FROM skills WHERE company_id = ? AND agent_id IS NULL AND (applies_to_role IS NULL OR applies_to_role = ?) AND soft_deleted = 0 AND lifecycle_state != 'archived' ORDER BY use_count DESC, created_at DESC",
   );
   const companyGlobal = db.prepare(
     "SELECT * FROM skills WHERE company_id = ? AND agent_id IS NULL AND applies_to_role IS NULL AND soft_deleted = 0 AND lifecycle_state != 'archived' ORDER BY use_count DESC, created_at DESC",
@@ -174,6 +184,9 @@ export const createSkillsRepository = (db: Database.Database): SkillsRepository 
     },
     listForRole(companyId, role) {
       return (forRole.all(companyId, role) as SkillRow[]).map(rowToSkill);
+    },
+    listSharedForRole(companyId, role) {
+      return (sharedForRole.all(companyId, role) as SkillRow[]).map(rowToSkill);
     },
     listCompanyGlobal(companyId) {
       return (companyGlobal.all(companyId) as SkillRow[]).map(rowToSkill);

@@ -36,7 +36,9 @@ const setup = () => {
     projectId: project.id,
     title: "T",
     description: null,
-    assigneeId: null,
+    // Assigned to the caller (ag_1) so record_artifact's assignee authz (C8)
+    // passes for the happy-path tests.
+    assigneeId: "ag_1",
     priority: "medium",
     parentId: null,
     createdBy: "ag_1",
@@ -80,13 +82,23 @@ describe("MCP record_artifact", () => {
     expect(result.id.startsWith("art_")).toBe(true);
   });
 
-  it("rejects invalid commit_sha (not 40-char hex)", async () => {
+  it("rejects invalid commit_sha (too short / non-hex)", async () => {
     const { ctx, issueId } = setup();
     const result = JSON.parse(
       await tool("record_artifact").run({ issue_id: issueId, kind: "commit_sha", ref: "abc" }, ctx),
     ) as { ok: boolean; error?: string };
     expect(result.ok).toBe(false);
     expect(result.error ?? "").toMatch(/commit_sha/i);
+  });
+
+  it("accepts a short SHA and a 64-char SHA-256 commit ref (not just 40-hex)", async () => {
+    const { ctx, issueId } = setup();
+    for (const ref of ["abc1234", "a".repeat(64)]) {
+      const result = JSON.parse(
+        await tool("record_artifact").run({ issue_id: issueId, kind: "commit_sha", ref }, ctx),
+      ) as { id?: string };
+      expect(result.id?.startsWith("art_")).toBe(true);
+    }
   });
 
   it("rejects preview longer than 4096 chars", async () => {
@@ -123,11 +135,42 @@ describe("MCP record_artifact", () => {
     ) as { ok: boolean };
     expect(result.ok).toBe(false);
   });
+
+  it("refuses an artifact from an agent who is not the assignee or CEO (C8 authz)", async () => {
+    // Audit 2026-06-03 C8/I-authz: fabricating another agent's delivery is
+    // trust laundering. Only the assignee or the CEO may record an artifact.
+    const { db, issueId } = setup(); // issue assigned to ag_1
+    const intruderCtx: ToolContext = {
+      agentId: "intruder",
+      companyId: "co_1",
+      db,
+      permissionsDir: "C:/tmp",
+      userDataDir: "/tmp/userdata",
+      emit: () => {},
+    };
+    const result = JSON.parse(
+      await tool("record_artifact").run(
+        { issue_id: issueId, kind: "output_text", ref: "o1" },
+        intruderCtx,
+      ),
+    ) as { ok: boolean; error?: string };
+    expect(result.ok).toBe(false);
+    expect(result.error ?? "").toMatch(/assignee|CEO/i);
+  });
 });
 
 describe("MCP update_issue soft warning on done without artifact", () => {
   it("includes warning when status='done' is set with zero artifacts", async () => {
-    const { ctx, issueId } = setup();
+    const { ctx, db, issueId } = setup();
+    // done is only reachable from doing/review (I-sm guard).
+    createIssuesRepository(db).update(
+      issueId,
+      { status: "doing" },
+      {
+        actorKind: "agent",
+        actorId: "ag_1",
+      },
+    );
     const result = JSON.parse(
       await tool("update_issue").run({ id: issueId, status: "done" }, ctx),
     ) as { id: string; status: string; warning?: string };
@@ -136,7 +179,15 @@ describe("MCP update_issue soft warning on done without artifact", () => {
   });
 
   it("omits warning when at least one artifact exists", async () => {
-    const { ctx, issueId } = setup();
+    const { ctx, db, issueId } = setup();
+    createIssuesRepository(db).update(
+      issueId,
+      { status: "doing" },
+      {
+        actorKind: "agent",
+        actorId: "ag_1",
+      },
+    );
     await tool("record_artifact").run({ issue_id: issueId, kind: "output_text", ref: "o1" }, ctx);
     const result = JSON.parse(
       await tool("update_issue").run({ id: issueId, status: "done" }, ctx),

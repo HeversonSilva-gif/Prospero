@@ -9,9 +9,18 @@ import type { TrackRecord } from "@prospero/shared";
 // this window count against the agent. Tunable in PR-A — start conservative.
 export const DEFAULT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
+// #12 (audit 2026-06-03): verified outcomes use a MUCH longer window than
+// failures/demotions. An achievement is durable credit, and a short window
+// would de-eligibilize agents productive on long (multi-month) goals — the
+// exact risk that deferred this in v0.2.5. 180 days keeps the credit
+// meaningful without letting one ancient achievement make eligibility eternal.
+export const VERIFIED_OUTCOME_WINDOW_MS = 180 * 24 * 60 * 60 * 1000;
+
 export type CollectTrackRecordOpts = {
   /** Defaults to DEFAULT_WINDOW_MS. */
   windowMs?: number;
+  /** Defaults to VERIFIED_OUTCOME_WINDOW_MS. The (longer) window for achievements. */
+  verifiedWindowMs?: number;
   /** Defaults to Date.now(). Test seam. */
   now?: number;
 };
@@ -24,12 +33,17 @@ export const collectTrackRecord = (
   const now = opts.now ?? Date.now();
   const windowMs = opts.windowMs ?? DEFAULT_WINDOW_MS;
   const since = now - windowMs;
+  const verifiedSince = now - (opts.verifiedWindowMs ?? VERIFIED_OUTCOME_WINDOW_MS);
 
-  // 1. Verified outcomes — goals reached 'achieved' owned by this agent.
+  // 1. Verified outcomes — goals reached 'achieved' owned by this agent, within
+  //    the (long) verified-outcome window. updated_at reflects the achievement
+  //    time (achieved is terminal, so no later status change touches it).
   const verifiedOutcomes = (
     db
-      .prepare("SELECT COUNT(*) AS n FROM goals WHERE owner_agent_id = ? AND status = 'achieved'")
-      .get(agentId) as { n: number }
+      .prepare(
+        "SELECT COUNT(*) AS n FROM goals WHERE owner_agent_id = ? AND status = 'achieved' AND updated_at >= ?",
+      )
+      .get(agentId, verifiedSince) as { n: number }
   ).n;
 
   // 2. ISC first-pass rate — across all goals the agent owns (any status),

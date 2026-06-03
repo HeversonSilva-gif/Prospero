@@ -158,6 +158,40 @@ describe("memory tools", () => {
     expect(hits.memories).toHaveLength(1);
   });
 
+  it("memory_search also finds company-global memories (agent_id null) — #8", async () => {
+    // A retrospective written company-wide (agent_id null) was invisible to the
+    // agent's own search because the tool scoped to the exact agentId. Audit
+    // 2026-06-03 learning report #8.
+    createMemoriesRepository(ctx.db).create({
+      companyId: ctx.companyId,
+      agentId: null,
+      kind: "rule",
+      body: "the company retrospective says ship docker images small",
+    });
+    const hits = JSON.parse(await tool("memory_search").run({ query: "retrospective" }, ctx)) as {
+      memories: Array<{ body: string }>;
+    };
+    expect(hits.memories.map((m) => m.body)).toContain(
+      "the company retrospective says ship docker images small",
+    );
+  });
+
+  it("memory_search does not leak another company's memories", async () => {
+    ctx.db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c2','Other',0)").run();
+    const repo = createMemoriesRepository(ctx.db);
+    repo.create({ companyId: "c1", agentId: null, kind: "rule", body: "ours mentions kubernetes" });
+    repo.create({
+      companyId: "c2",
+      agentId: null,
+      kind: "rule",
+      body: "theirs mentions kubernetes",
+    });
+    const hits = JSON.parse(await tool("memory_search").run({ query: "kubernetes" }, ctx)) as {
+      memories: Array<{ body: string }>;
+    };
+    expect(hits.memories.map((m) => m.body)).toEqual(["ours mentions kubernetes"]);
+  });
+
   it("memory_remove soft-deletes a memory", async () => {
     const added = JSON.parse(
       await tool("memory_add").run({ kind: "rule", body: "removable note" }, ctx),

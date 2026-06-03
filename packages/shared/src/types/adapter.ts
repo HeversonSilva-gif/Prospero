@@ -32,6 +32,11 @@ export type SpawnContext = {
   telosBlock?: string;
   // feat/memoria-contexto-projeto: pre-assembled project context system-prompt block.
   projectContextBlock?: string;
+  // Audit 2026-06-03 Facet 3 C1: the CEO capability-boundary prose, pre-built
+  // host-side from the company's real connected channels (build-args has no DB
+  // access). Only consumed for the CEO; absent → build-args falls back to the
+  // x-only default.
+  capabilityBoundary?: string;
 };
 
 export type AssistantContentBlock =

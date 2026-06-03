@@ -1,4 +1,8 @@
 {
+  "errorBoundary": {
+    "title": "This screen hit an error",
+    "reload": "Reload"
+  },
   "app": {
     "title": "Prospero"
   },
@@ -996,6 +1000,9 @@
       "manager_request": "Manager requests",
       "ceo_decision": "CEO decisions"
     },
+    "skillCandidate": {
+      "review": "Review"
+    },
     "skillPromotion": {
       "review": "Review",
       "title": "Promote skill to the company",
@@ -1219,8 +1226,8 @@
     "documentTitle": "Ideal State Artifact",
     "generate": "Generate ISA",
     "generating": "Generating…",
-    "draftReady": "A draft ISA was generated. Apply to replace the document and add the proposed criteria, or discard.",
-    "applyDraft": "Apply draft",
+    "draftReady": "A draft ISA was generated. Accepting replaces the document and adds each proposed criterion as a judgment item — you confirm it at verification. Open one later to make it automatic (command, metric, or artifact).",
+    "applyDraft": "Accept as judgment",
     "discardDraft": "Discard",
     "allSectionsPresent": "All 8 sections present.",
     "missingSections": "Missing sections: {{sections}}",

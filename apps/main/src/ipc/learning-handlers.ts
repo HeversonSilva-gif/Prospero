@@ -120,7 +120,13 @@ export const learningHandlers = (db: Database.Database, userDataDir: string): Le
     listSkills({ agentId }) {
       const row = companyOfAgent.get(agentId) as { company_id: string } | undefined;
       if (row === undefined) return [];
-      return [...skillsRepo.listByAgent(agentId), ...skillsRepo.listCompanyShared(row.company_id)];
+      // #13 (audit 2026-06-03): show the agent its role-correct shared skills
+      // (globals + its role), not every role's — matching the system prompt.
+      const roleRow = agentRoleStmt.get(agentId) as { role: string } | undefined;
+      return [
+        ...skillsRepo.listByAgent(agentId),
+        ...skillsRepo.listSharedForRole(row.company_id, roleRow?.role ?? null),
+      ];
     },
 
     readSkillBody({ skillId }) {

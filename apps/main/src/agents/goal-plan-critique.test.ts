@@ -26,6 +26,12 @@ describe("buildIssueCritiquePrompt", () => {
     expect(p.toLowerCase()).toContain("json");
     expect(p.toLowerCase()).toContain("vague");
   });
+
+  it("also asks whether the issue SET covers the whole goal (I-cov)", () => {
+    const p = buildIssueCritiquePrompt("Grow on X", "reach 1k followers", issues);
+    expect(p.toLowerCase()).toContain("cover");
+    expect(p).toContain("coverageGaps");
+  });
 });
 
 describe("critiqueGoalPlan", () => {
@@ -40,13 +46,32 @@ describe("critiqueGoalPlan", () => {
     );
     expect(out.vagueIssues.map((v) => v.title)).toEqual(["Set up X"]);
   });
-  it("fails open (no vague issues) when the verdict is unparseable", async () => {
+  it("returns coverage gaps the critic flags (I-cov)", async () => {
+    const db = newDb();
+    const verdict = JSON.stringify({
+      vagueIssues: [],
+      coverageGaps: ["No issue collects emails, which the goal requires"],
+    });
+    const out = await critiqueGoalPlan(
+      { db, runDerivation: runner(verdict) },
+      {
+        goalTitle: "Launch + collect emails",
+        goalDescription: "",
+        issues,
+        env: {},
+        companyId: "c1",
+      },
+    );
+    expect(out.coverageGaps).toEqual(["No issue collects emails, which the goal requires"]);
+  });
+  it("fails open (no vague issues / no coverage gaps) when the verdict is unparseable", async () => {
     const db = newDb();
     const out = await critiqueGoalPlan(
       { db, runDerivation: runner("not json") },
       { goalTitle: "g", goalDescription: "", issues, env: {}, companyId: "c1" },
     );
     expect(out.vagueIssues).toEqual([]);
+    expect(out.coverageGaps).toEqual([]);
   });
   it("fails open when the runner throws", async () => {
     const db = newDb();

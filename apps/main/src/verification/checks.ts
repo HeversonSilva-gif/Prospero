@@ -3,6 +3,8 @@
 // runners are injected via VerifyContext so the checks unit-test without
 // spawning processes or touching the MCP registry.
 
+import { access } from "node:fs/promises";
+import { resolve as pathResolve, relative as pathRelative, isAbsolute } from "node:path";
 import type Database from "better-sqlite3";
 import type {
   ArtifactCheckSpec,
@@ -23,7 +25,22 @@ export interface VerifyContext {
   runCommand: (input: RunSandboxedCommandInput) => Promise<SandboxedCommandResult>;
   // Resolves and invokes a Prospero MCP tool by name; throws if unavailable.
   callMetricTool: (tool: string, params: Record<string, unknown>) => Promise<unknown>;
+  // Injectable for tests; defaults to fs.access. Resolves a file_path artifact.
+  fileExists?: (absPath: string) => Promise<boolean>;
 }
+
+const defaultFileExists = async (absPath: string): Promise<boolean> => {
+  try {
+    await access(absPath);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// A commit ref we'll feed to `git cat-file`: hex, 7..64 chars (short SHA-1
+// through full SHA-256). The bound also blocks shell-injection via the ref.
+const HEX_COMMIT_REF = /^[a-f0-9]{7,64}$/i;
 
 const TRUNCATE = 4000;
 
@@ -121,11 +138,57 @@ const checkMetric = async (
   };
 };
 
-const checkArtifact = (
+// C7a (audit 2026-06-03): resolve an artifact's ref against reality, not just
+// match the DB row. A bare row is falsifiable — an agent records any commit_sha
+// / file_path and the criterion "passes" without the work existing.
+//   commit_sha  -> `git cat-file -e <ref>^{commit}` in the goal owner's sandbox
+//   file_path   -> the file exists under the sandbox (no traversal escape)
+//   pr_url      -> cannot verify offline -> WAIVED (neither falsely pass nor fail)
+//   snapshot/output_text -> inline evidence stored with the artifact (row = proof)
+const resolveArtifactRef = async (
+  kind: ArtifactCheckSpec["artifactKind"],
+  ref: string,
+  ctx: VerifyContext,
+): Promise<{ status: "passed" | "failed" | "waived"; detail: string }> => {
+  if (kind === "commit_sha") {
+    if (!HEX_COMMIT_REF.test(ref)) {
+      return { status: "failed", detail: `commit_sha ref is not a hex sha: ${ref}` };
+    }
+    const run = await ctx.runCommand({
+      command: `git cat-file -e ${ref}^{commit}`,
+      cwd: ctx.sandboxRoot,
+      timeoutMs: 10_000,
+      env: minimalVerificationEnv(),
+    });
+    return !run.timedOut && run.exitCode === 0
+      ? { status: "passed", detail: `commit ${ref} exists` }
+      : { status: "failed", detail: `commit ${ref} not found (git cat-file exit ${run.exitCode})` };
+  }
+  if (kind === "file_path") {
+    const abs = pathResolve(ctx.sandboxRoot, ref);
+    const rel = pathRelative(ctx.sandboxRoot, abs);
+    if (rel === "" || rel.startsWith("..") || isAbsolute(rel)) {
+      return { status: "failed", detail: `file_path escapes the sandbox: ${ref}` };
+    }
+    const exists = await (ctx.fileExists ?? defaultFileExists)(abs);
+    return exists
+      ? { status: "passed", detail: `file ${ref} exists` }
+      : { status: "failed", detail: `file ${ref} not found in sandbox` };
+  }
+  if (kind === "pr_url") {
+    // Verifying a PR needs network + credentials the sandbox doesn't have.
+    // Don't auto-pass on presence (falsifiable) nor auto-fail (we can't check).
+    return { status: "waived", detail: `pr_url present but not auto-verifiable offline: ${ref}` };
+  }
+  // snapshot / output_text: the artifact row carries the deliverable inline.
+  return { status: "passed", detail: `${kind} artifact recorded` };
+};
+
+const checkArtifact = async (
   c: GoalCriterion,
   spec: ArtifactCheckSpec,
   ctx: VerifyContext,
-): CriterionResult => {
+): Promise<CriterionResult> => {
   let re: RegExp | null = null;
   if (spec.refPattern !== undefined) {
     try {
@@ -141,23 +204,38 @@ const checkArtifact = (
   }
   const issues = createIssuesRepository(ctx.db).listByGoal(c.goalId);
   const artifactsRepo = createArtifactsRepository(ctx.db);
+  let matched = false;
+  let lastDetail = `no ${spec.artifactKind} artifact found on this goal's issues`;
   for (const issue of issues) {
     for (const artifact of artifactsRepo.listByIssue(issue.id)) {
-      if (artifact.kind === spec.artifactKind && (re === null || re.test(artifact.ref))) {
+      if (artifact.kind !== spec.artifactKind || (re !== null && !re.test(artifact.ref))) continue;
+      matched = true;
+      const res = await resolveArtifactRef(spec.artifactKind, artifact.ref, ctx);
+      if (res.status === "passed") {
         return {
           criterionId: c.id,
           status: "passed",
-          detail: `artifact ${artifact.kind}: ${artifact.ref}`,
-          resultJson: { matched: true, ref: artifact.ref },
+          detail: `artifact ${artifact.kind}: ${artifact.ref} — ${res.detail}`,
+          resultJson: { matched: true, ref: artifact.ref, resolved: true },
         };
       }
+      if (res.status === "waived") {
+        return {
+          criterionId: c.id,
+          status: "waived",
+          detail: res.detail,
+          resultJson: { matched: true, ref: artifact.ref, resolved: false, waived: true },
+        };
+      }
+      // A matching row that did NOT resolve — keep scanning for one that does.
+      lastDetail = res.detail;
     }
   }
   return {
     criterionId: c.id,
     status: "failed",
-    detail: `no ${spec.artifactKind} artifact found on this goal's issues`,
-    resultJson: { matched: false },
+    detail: matched ? lastDetail : `no ${spec.artifactKind} artifact found on this goal's issues`,
+    resultJson: { matched },
   };
 };
 
@@ -182,6 +260,6 @@ export const checkDeterministic = async (
     case "metric":
       return checkMetric(c, spec, ctx);
     case "artifact_exists":
-      return Promise.resolve(checkArtifact(c, spec, ctx));
+      return checkArtifact(c, spec, ctx);
   }
 };

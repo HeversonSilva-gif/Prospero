@@ -95,6 +95,25 @@ export const applyVerificationReport = (
     return;
   }
 
+  // C4 (audit 2026-06-03): a goal with zero acceptance criteria has nothing to
+  // verify — auto-achieving it is a false positive (trust laundering, and it
+  // teaches the success-retrospective from work that was never checked). Keep
+  // it `verifying` and ask the human to confirm completion instead. results is
+  // empty iff the goal has no criteria (both callers build one result/criterion).
+  if (report.results.length === 0) {
+    if (opts.fileReviewCard !== false) {
+      createInboxRepository(db).create({
+        companyId: goal.companyId,
+        kind: "verification_review",
+        title: `Confirm completion: ${goal.title}`,
+        preview: "This goal has no acceptance criteria — confirm it's done.",
+        requiresAction: true,
+        payloadJson: JSON.stringify({ goalId: goal.id, noCriteria: true }),
+      });
+    }
+    return;
+  }
+
   goalsRepo.updateStatus(goal.id, "achieved");
   // Record the success transition so the derivation dispatcher fires the
   // "what worked" retrospective (it keys on goal.status_changed → achieved).
