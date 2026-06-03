@@ -239,6 +239,55 @@ describe("verification gate", () => {
       expect(job?.agentId).toBe(agentId);
       expect(job?.goalId).toBe(goalId);
     });
+
+    it("a PASSED verification records goal.status_changed→achieved that routes to a goal_achieved job", async () => {
+      // The success retrospective ("what worked") only fires when the gate
+      // records a goal.status_changed activity the dispatcher can pick up.
+      const recorder = createRecorder(db, () => {}, { devMode: false });
+      _setRecorderForTest(recorder);
+      const { goalId, agentId } = seedAgentAndVerifyingGoal(db, companyId);
+      addCommandCriterion(goalId);
+      await runVerification(db, goalId, depsWith(0));
+      expect(createGoalsRepository(db).getById(goalId)?.status).toBe("achieved");
+      const eventRow = db
+        .prepare("SELECT * FROM activity_events WHERE action = 'goal.status_changed' LIMIT 1")
+        .get() as
+        | {
+            id: string;
+            company_id: string;
+            actor_kind: string;
+            actor_id: string | null;
+            action: string;
+            entity_kind: string;
+            entity_id: string;
+            agent_id: string | null;
+            payload_json: string;
+            created_at: number;
+          }
+        | undefined;
+      expect(eventRow).toBeDefined();
+      const row: ActivityEventRow = {
+        id: eventRow!.id,
+        companyId: eventRow!.company_id,
+        actorKind: eventRow!.actor_kind as ActivityEventRow["actorKind"],
+        actorId: eventRow!.actor_id,
+        action: eventRow!.action as ActivityEventRow["action"],
+        entityKind: eventRow!.entity_kind as ActivityEventRow["entityKind"],
+        entityId: eventRow!.entity_id,
+        agentId: eventRow!.agent_id,
+        payload: JSON.parse(eventRow!.payload_json) as Record<string, unknown>,
+        createdAt: eventRow!.created_at,
+      };
+      expect(row.payload["to"]).toBe("achieved");
+      // Critical: agentId must be the goal owner, not null — else the
+      // dispatcher's null guard kills the success-learning loop in production.
+      expect(row.agentId).toBe(agentId);
+      const job = jobForActivity(row);
+      expect(job).not.toBeNull();
+      expect(job?.trigger).toBe("goal_achieved");
+      expect(job?.agentId).toBe(agentId);
+      expect(job?.goalId).toBe(goalId);
+    });
   });
 
   it("a pending judgment keeps the goal verifying and files a review card", async () => {

@@ -96,6 +96,22 @@ export const applyVerificationReport = (
   }
 
   goalsRepo.updateStatus(goal.id, "achieved");
+  // Record the success transition so the derivation dispatcher fires the
+  // "what worked" retrospective (it keys on goal.status_changed → achieved).
+  // The failure path above records its own activity; without this mirror the
+  // success-learning loop was silently dead — verification is the only path to
+  // `achieved`, so no goal ever produced a success lesson. agentId must be the
+  // owner (the dispatcher's null guard drops owner-less rows). Audit
+  // 2026-06-03 Facet 5 C1.
+  tryGetRecorder()?.recordActivity({
+    companyId: goal.companyId,
+    actor: { kind: "system" },
+    action: "goal.status_changed",
+    entityKind: "goal",
+    entityId: goal.id,
+    agentId: goal.ownerAgentId ?? null,
+    payload: { from: "verifying", to: "achieved" },
+  });
   recomputeTrustForGoalOwner(db, goal.ownerAgentId);
 };
 
