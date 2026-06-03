@@ -6,6 +6,7 @@ import { createIssuesRepository } from "../issues/repository.js";
 
 const assignTool = toolDefinitions.find((t) => t.name === "assign_issue")!;
 const listAgentsTool = toolDefinitions.find((t) => t.name === "list_agents")!;
+const updateTool = toolDefinitions.find((t) => t.name === "update_issue")!;
 
 function setup() {
   const db = new Database(":memory:");
@@ -77,6 +78,26 @@ describe("assign_issue / list_agents — terminated agents", () => {
     };
     await assignTool.run({ issue_id: issue.id, agent_id: "live1" }, ctx2);
     expect(events.map((e) => e.kind)).toContain("issue.assigned");
+  });
+
+  it("update_issue emits the status change so MAIN can record the activity (C5: agent work was invisible to learning)", async () => {
+    const { db } = setup();
+    const issue = makeIssue(db); // created as 'todo'
+    const events: { kind: string; payload: unknown }[] = [];
+    const ctx2: ToolContext = {
+      agentId: "live1",
+      companyId: "c1",
+      db,
+      permissionsDir: "/tmp/perm",
+      userDataDir: "/tmp/perm",
+      emit: (e) => events.push(e),
+    };
+    await updateTool.run({ id: issue.id, status: "done" }, ctx2);
+    const updated = events.find((e) => e.kind === "issue.updated");
+    const sc = (
+      updated?.payload as { statusChange?: { from: string; to: string; agentId: string } }
+    ).statusChange;
+    expect(sc).toEqual({ from: "todo", to: "done", agentId: "live1" });
   });
 
   it("list_agents excludes terminated agents", async () => {

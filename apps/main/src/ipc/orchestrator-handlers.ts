@@ -683,7 +683,10 @@ export const registerOrchestratorHandlers = (
       typeof payload === "object" &&
       payload !== null
     ) {
-      const p = payload as { issueId: string };
+      const p = payload as {
+        issueId: string;
+        statusChange?: { from: string; to: string; agentId: string };
+      };
       const issueRow = db.prepare("SELECT company_id FROM issues WHERE id = ?").get(p.issueId) as
         | { company_id: string }
         | undefined;
@@ -700,6 +703,21 @@ export const registerOrchestratorHandlers = (
         // shared reaction here and wake any unlocked dependents.
         const unlocked = reactToIssueChange(db, p.issueId, buildVerificationDeps());
         const recorder = tryGetRecorder();
+        // C5 (audit 2026-06-03): the MCP child has no recorder, so an agent's
+        // issue status change wrote no activity_events — the derivation/routines/
+        // recall observers were blind to agent issue work. Re-record it in MAIN
+        // (where the recorder is live) so issue_done lessons etc. actually fire.
+        if (p.statusChange !== undefined) {
+          recorder?.recordActivity({
+            companyId: issueRow.company_id,
+            actor: { kind: "agent", id: p.statusChange.agentId },
+            action: "issue.status_changed",
+            entityKind: "issue",
+            entityId: p.issueId,
+            agentId: p.statusChange.agentId,
+            payload: { from: p.statusChange.from, to: p.statusChange.to },
+          });
+        }
         for (const dep of unlocked) {
           notifyAssignee(db, eventsDir, dep);
           recorder?.recordActivity({

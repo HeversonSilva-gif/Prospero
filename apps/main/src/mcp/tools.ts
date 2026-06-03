@@ -787,7 +787,21 @@ export const toolDefinitions = [
           payloadJson: JSON.stringify({ issueId: next.id, byAgent: caller?.name ?? null }),
         });
       }
-      ctx.emit({ kind: "issue.updated", payload: { issueId: next.id } });
+      // C5 (audit 2026-06-03): the MCP child has no recorder, so the repo's
+      // recordActivity for this status change is a silent no-op — agent issue
+      // work was invisible to the derivation/routines/recall observers. Carry
+      // the from/to so MAIN re-records the issue.status_changed activity.
+      const statusChanged =
+        input.status !== undefined && existing.status !== next.status
+          ? { from: existing.status, to: next.status, agentId: ctx.agentId }
+          : undefined;
+      ctx.emit({
+        kind: "issue.updated",
+        payload: {
+          issueId: next.id,
+          ...(statusChanged !== undefined ? { statusChange: statusChanged } : {}),
+        },
+      });
       let warning: string | undefined;
       if (input.status === "done") {
         const artifacts = createArtifactsRepository(ctx.db);
