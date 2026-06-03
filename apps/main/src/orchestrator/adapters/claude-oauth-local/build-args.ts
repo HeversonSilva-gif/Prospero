@@ -35,13 +35,26 @@ export const buildClaudeArgs = (
   });
   const isCeo = isCeoAgent(agent);
   const narratedBlock = opts.narratedActive === true ? buildNarratedBlock() : undefined;
+  // Audit 2026-06-03 Inteligência & Contexto M1: composeInstructions can return
+  // "" when the bundle exists but is blank, so `?? agent.systemPrompt` does NOT
+  // fall back (?? only catches undefined). Fall back when undefined OR blank so
+  // the agent never runs with an empty persona.
+  const agentPersona =
+    opts.instructionsBlock !== undefined && opts.instructionsBlock.trim() !== ""
+      ? opts.instructionsBlock
+      : agent.systemPrompt;
   const args = [
     "--system-prompt",
     composeSystemPrompt({
       // M12 PR-C: the instruction bundle replaces the legacy system_prompt
-      // string. Fall back to system_prompt if the host did not pass a bundle.
-      agentPersona: opts.instructionsBlock ?? agent.systemPrompt,
+      // string. Fall back to system_prompt if the bundle is missing or blank (M1).
+      agentPersona,
       capabilities: agent.capabilities,
+      // Audit 2026-06-03 Inteligência & Contexto I9: pass the run policy so the
+      // prompt's advertised tool list matches the run-policy-filtered
+      // --allowedTools computed above (same applyRunPolicy inputs).
+      canHire: agent.canHire,
+      canAssign: agent.canAssign,
       ...(isCeo
         ? {
             goalsBlock:
