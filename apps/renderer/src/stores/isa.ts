@@ -92,11 +92,17 @@ export const useIsaStore = create<State>((set, get) => ({
     if (!ok) return;
     try {
       for (const c of draft.criteria) {
+        // C7b (audit 2026-06-03): the AI proposes a checkType HINT but no concrete
+        // check spec, so accepted criteria are stored as JUDGMENT (you confirm
+        // them at verification). Persisting them as deterministic with no spec
+        // made them fail verification forever. Open a criterion later to automate
+        // it with a command/metric/artifact check.
         await window.prospero.isa.criterionCreate({
           goalId,
           statement: c.statement,
-          kind: c.kind,
-          checkType: c.checkType ?? null,
+          kind: "judgment",
+          checkType: null,
+          checkSpec: null,
         });
       }
       set({ draft: null });

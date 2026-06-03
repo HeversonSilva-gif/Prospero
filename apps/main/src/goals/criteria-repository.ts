@@ -115,14 +115,24 @@ export const createGoalCriteriaRepository = (db: Database.Database): GoalCriteri
     const id = `crit_${randomUUID()}`;
     const now = Date.now();
     const sortOrder = (nextSortStmt.get(input.goalId) as { n: number }).n;
+    // C7b (audit 2026-06-03): enforce the type invariant — a deterministic
+    // criterion REQUIRES a checkSpec, else checkDeterministic returns
+    // "no check spec" and the criterion fails verification forever. Accepting an
+    // AI-proposed ISA carries a checkType HINT but no spec; persist those (and
+    // any spec-less criterion) as JUDGMENT so a human verifies them instead of
+    // them silently failing. Both fields are null together for judgment.
+    const hasSpec = input.checkSpec != null;
+    const kind = hasSpec ? input.kind : "judgment";
+    const checkType = hasSpec ? (input.checkType ?? null) : null;
+    const checkSpec = hasSpec ? JSON.stringify(input.checkSpec) : null;
     insertStmt.run({
       id,
       goalId: input.goalId,
       sortOrder,
       statement: input.statement,
-      kind: input.kind,
-      checkType: input.checkType ?? null,
-      checkSpec: input.checkSpec != null ? JSON.stringify(input.checkSpec) : null,
+      kind,
+      checkType,
+      checkSpec,
       createdAt: now,
       updatedAt: now,
     });
@@ -131,9 +141,9 @@ export const createGoalCriteriaRepository = (db: Database.Database): GoalCriteri
       goal_id: input.goalId,
       sort_order: sortOrder,
       statement: input.statement,
-      kind: input.kind,
-      check_type: input.checkType ?? null,
-      check_spec: input.checkSpec != null ? JSON.stringify(input.checkSpec) : null,
+      kind,
+      check_type: checkType,
+      check_spec: checkSpec,
       status: "pending",
       last_checked_at: null,
       last_result_json: null,
