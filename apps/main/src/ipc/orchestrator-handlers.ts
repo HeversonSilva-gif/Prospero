@@ -502,6 +502,11 @@ export const registerOrchestratorHandlers = (
               concept: plan.concept,
               monetization: plan.monetization,
               ...(plan.pricing !== null ? { pricing: plan.pricing } : {}),
+              // Include research + ownerProfile so the critic can flag invented
+              // competitors / vague differentiation (the prompt judges `research`
+              // when present). Audit 2026-06-03 Facet 6 C1.
+              ...(plan.research !== null ? { research: plan.research } : {}),
+              ...(plan.ownerProfile !== null ? { ownerProfile: plan.ownerProfile } : {}),
               marketing: plan.marketing,
               identity: plan.identity,
               dropped: plan.dropped,
