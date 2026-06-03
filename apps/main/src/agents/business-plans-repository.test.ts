@@ -147,3 +147,18 @@ describe("business-plans-repository", () => {
     expect(repo.getById(p.id)?.chosenIndex).toBeNull();
   });
 });
+
+describe("business-plan revision attempts (durable cap)", () => {
+  it("defaults to 0, bumps, and clears — survives a restart (DB-backed, not in-memory)", () => {
+    const repo = createBusinessPlansRepository(db);
+    expect(repo.getRevisionAttempts("c1")).toBe(0);
+    repo.bumpRevisionAttempts("c1");
+    expect(repo.getRevisionAttempts("c1")).toBe(1);
+    repo.bumpRevisionAttempts("c1");
+    expect(repo.getRevisionAttempts("c1")).toBe(2);
+    // A fresh repo over the SAME db (simulating a process restart) still sees it.
+    expect(createBusinessPlansRepository(db).getRevisionAttempts("c1")).toBe(2);
+    repo.clearRevisionAttempts("c1");
+    expect(repo.getRevisionAttempts("c1")).toBe(0);
+  });
+});

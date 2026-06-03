@@ -432,10 +432,11 @@ export const registerOrchestratorHandlers = (
   const GOAL_PLAN_REVISION_CAP = 1;
   const goalPlanRevisions = new Map<string, number>();
 
-  // P4.1 — business-plan critic. Cap of 1 auto-revision per company, same shape as
-  // the org-plan critic. In-memory; resets when the card is created (and on restart).
+  // P4.1 — business-plan critic. Cap of 1 auto-revision per company, same shape
+  // as the org-plan critic. The counter is now DB-backed (business_plan_revisions)
+  // so the cap survives restarts — the plan's critiquing/proposed status is
+  // durable, so an in-memory counter made the cap bypassable. Audit Facet 6 C2.
   const BUSINESS_PLAN_REVISION_CAP = 1;
-  const businessPlanRevisions = new Map<string, number>();
 
   const handleOrgProposed = async (orgPlanId: string, companyId: string): Promise<void> => {
     const orgPlans = createOrgPlansRepository(db);
@@ -515,20 +516,20 @@ export const registerOrchestratorHandlers = (
             env: buildAuthEnv(db),
           });
     const flagged = !verdict.feasible || !verdict.specific;
-    const attempts = businessPlanRevisions.get(companyId) ?? 0;
+    const attempts = repo.getRevisionAttempts(companyId);
     const outcome = decideBusinessPlanOutcome({
       flagged,
       attempts,
       cap: BUSINESS_PLAN_REVISION_CAP,
     });
     if (outcome === "revise") {
-      businessPlanRevisions.set(companyId, attempts + 1);
+      repo.bumpRevisionAttempts(companyId);
       // Leave the plan 'critiquing' — the CEO's resubmit supersedes it via
       // submit_business_plan's own prior-supersede logic. No card yet.
       deliverSystemMessage(plan.proposedByAgentId, formatBusinessPlanFeedback(verdict.feedback));
       return;
     }
-    businessPlanRevisions.delete(companyId);
+    repo.clearRevisionAttempts(companyId);
     const note = flagged ? "⚠ Revisar — pode estar genérico ou inviável. " : "";
     repo.markProposed(businessPlanId);
     inbox.create({

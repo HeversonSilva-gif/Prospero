@@ -50,6 +50,12 @@ export type BusinessPlansRepository = {
   markRejected(id: string, userFeedback: string | null): void;
   markProposed(id: string): void;
   supersedeActiveForCompany(companyId: string): void;
+  // Facet 6 C2 — durable revision counter for the genesis critique loop, keyed
+  // per company (one active genesis conversation at a time). Was an in-memory
+  // Map that reset on restart, making the revision cap bypassable.
+  getRevisionAttempts(companyId: string): number;
+  bumpRevisionAttempts(companyId: string): void;
+  clearRevisionAttempts(companyId: string): void;
 };
 
 type Row = {
@@ -138,6 +144,14 @@ export const createBusinessPlansRepository = (db: Database.Database): BusinessPl
   const supersedeActiveStmt = db.prepare(
     "UPDATE business_plans SET status = 'superseded', decided_at = ? WHERE company_id = ? AND status IN ('proposed','critiquing')",
   );
+  const getRevisionsStmt = db.prepare(
+    "SELECT count FROM business_plan_revisions WHERE company_id = ?",
+  );
+  const bumpRevisionsStmt = db.prepare(
+    `INSERT INTO business_plan_revisions (company_id, count, updated_at) VALUES (?, 1, ?)
+     ON CONFLICT(company_id) DO UPDATE SET count = count + 1, updated_at = excluded.updated_at`,
+  );
+  const clearRevisionsStmt = db.prepare("DELETE FROM business_plan_revisions WHERE company_id = ?");
 
   const getById = (id: string): BusinessPlan | null => {
     const row = byIdStmt.get(id) as Row | undefined;
@@ -216,6 +230,16 @@ export const createBusinessPlansRepository = (db: Database.Database): BusinessPl
     },
     supersedeActiveForCompany(companyId) {
       supersedeActiveStmt.run(Date.now(), companyId);
+    },
+    getRevisionAttempts(companyId) {
+      const row = getRevisionsStmt.get(companyId) as { count: number } | undefined;
+      return row?.count ?? 0;
+    },
+    bumpRevisionAttempts(companyId) {
+      bumpRevisionsStmt.run(companyId, Date.now());
+    },
+    clearRevisionAttempts(companyId) {
+      clearRevisionsStmt.run(companyId);
     },
   };
 };
