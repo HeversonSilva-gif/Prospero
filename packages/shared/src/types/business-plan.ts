@@ -60,4 +60,10 @@ export type BusinessPlan = {
   userFeedback: string | null;
   proposedAt: number;
   decidedAt: number | null;
+  // P4.2 — 3-options genesis. Null for plans created before this feature.
+  // `options` is the full array proposed by the CEO; `chosenIndex` (0-based)
+  // is set when the owner approves one of the options. The existing flat
+  // columns above always reflect the chosen (or single) option.
+  options: unknown[] | null;
+  chosenIndex: number | null;
 };

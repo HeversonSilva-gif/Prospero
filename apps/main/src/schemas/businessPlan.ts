@@ -54,3 +54,39 @@ export const BusinessPlanPayloadSchema = z.object({
 });
 
 export type BusinessPlanPayload = z.infer<typeof BusinessPlanPayloadSchema>;
+
+// P4.2 — 3-options schema for the Gênese redesign. The CEO now proposes 2-3 business
+// options (exactly one recommended) instead of a single plan. Each option is the full
+// single-plan shape extended with comparison signals and a 12-month revenue projection.
+
+export const BusinessSignalSchema = z.object({
+  market: z.number().int().min(0).max(100),
+  virality: z.number().int().min(0).max(100),
+  community: z.number().int().min(0).max(100),
+  revenue12m: z.string().min(1),
+});
+
+export const RevenueProjectionSchema = z.object({
+  month3: z.string(),
+  month6: z.string(),
+  month12: z.string(),
+  assumption: z.string(),
+});
+
+export const BusinessPlanOptionSchema = BusinessPlanPayloadSchema.extend({
+  recommended: z.boolean(),
+  whyRecommended: z.string().min(1),
+  signals: BusinessSignalSchema,
+  projection: RevenueProjectionSchema,
+});
+
+export const BusinessPlanOptionsPayloadSchema = z
+  .object({ options: z.array(BusinessPlanOptionSchema).min(2).max(3) })
+  .refine((p) => p.options.filter((o) => o.recommended).length === 1, {
+    message: "exactly one option must be recommended",
+  });
+
+export type BusinessSignals = z.infer<typeof BusinessSignalSchema>;
+export type RevenueProjection = z.infer<typeof RevenueProjectionSchema>;
+export type BusinessPlanOption = z.infer<typeof BusinessPlanOptionSchema>;
+export type BusinessPlanOptionsPayload = z.infer<typeof BusinessPlanOptionsPayloadSchema>;
