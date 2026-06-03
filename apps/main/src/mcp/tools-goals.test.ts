@@ -216,7 +216,19 @@ describe("submit_goal_plan", () => {
   const validPayload = {
     summary: "Sample plan summary spanning at least twenty characters of text.",
     agentsToHire: [],
-    issuesToCreate: [],
+    // A plan must create at least one issue (I-zero guard, audit 2026-06-03).
+    issuesToCreate: [
+      {
+        index: 0,
+        title: "Do the work",
+        description: "",
+        priority: "medium" as const,
+        assigneeIndex: "CEO" as const,
+        estimatedTokens: 1000,
+        dependsOnIndexes: [] as number[],
+        rationale: "core deliverable",
+      },
+    ],
     estimatedTotalTokens: 5000,
     estimatedDurationDays: 1,
     estimatedCostCents: 25,

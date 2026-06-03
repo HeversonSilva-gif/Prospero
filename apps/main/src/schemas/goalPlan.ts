@@ -88,7 +88,11 @@ export const GoalPlanPayloadSchema = z
   .object({
     summary: z.string().min(20).max(2000),
     agentsToHire: z.array(AgentToHireSchema).max(20),
-    issuesToCreate: z.array(IssueToCreateSchema).max(50),
+    // I-zero (audit 2026-06-03): a plan must create at least one issue. A
+    // zero-issue plan traps its goal in in_progress forever — both the
+    // verification trigger and the reconciler require issues.length > 0, so
+    // nothing ever moves it to verifying.
+    issuesToCreate: z.array(IssueToCreateSchema).min(1).max(50),
     estimatedTotalTokens: z.number().int().positive().nullable().optional(),
     estimatedDurationDays: z.number().int().positive().nullable().optional(),
     estimatedCostCents: z.number().int().nonnegative().nullable().optional(),
