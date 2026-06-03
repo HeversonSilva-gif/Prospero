@@ -37,3 +37,41 @@ export const relativeDigestPath = (companyId: string, projectId: string): string
   assertSafePathSegment(projectId, "project id");
   return `companies/${companyId}/projects/${projectId}/digest.json`;
 };
+
+// --- Agent-scoped digest (v0.2.4) --------------------------------------------
+// An agent whose allowedProjects is `[]` (= all projects, the CEO's normal
+// scope) or multiple projects has no single project to fold into. Its compaction
+// digest lives under the AGENT instead of a project, so the CEO compacts AND
+// gets a durable digest re-injected. Mirrors the project layout exactly (same
+// assertSafePathSegment guard).
+
+// Per-agent digest directory: <userData>/companies/<cid>/agents/<aid>/  (created on access).
+export const getAgentDigestDir = (
+  userDataDir: string,
+  companyId: string,
+  agentId: string,
+): string => {
+  assertSafePathSegment(companyId, "company id");
+  assertSafePathSegment(agentId, "agent id");
+  const dir = join(userDataDir, "companies", companyId, "agents", agentId);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+};
+
+// Absolute agent digest.json path. Pure — does not create directories. Guards both ids.
+export const agentDigestPath = (
+  userDataDir: string,
+  companyId: string,
+  agentId: string,
+): string => {
+  assertSafePathSegment(companyId, "company id");
+  assertSafePathSegment(agentId, "agent id");
+  return join(userDataDir, "companies", companyId, "agents", agentId, "digest.json");
+};
+
+// Stable forward-slash relative path for serialization.
+export const relativeAgentDigestPath = (companyId: string, agentId: string): string => {
+  assertSafePathSegment(companyId, "company id");
+  assertSafePathSegment(agentId, "agent id");
+  return `companies/${companyId}/agents/${agentId}/digest.json`;
+};

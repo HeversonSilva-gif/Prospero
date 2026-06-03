@@ -2,21 +2,31 @@ import type { DigestEntry } from "@prospero/shared";
 import type { RunDerivationResult } from "../derivation/runner.js";
 import { buildCompactionPrompt } from "./compaction-prompt.js";
 import { parseCompactionOutput } from "./parse-compaction.js";
-import { readDigest, writeDigest, foldEntries } from "./digest-store.js";
+import { readDigestAt, writeDigestAt, foldEntries } from "./digest-store.js";
 
 const COMPACTION_MODEL = "claude-sonnet-4-6";
 
 export type CompactionInput = {
   companyId: string;
-  projectId: string;
   agentId: string;
   transcript: string;
+  // Absolute path to the digest.json the distilled knowledge folds into. The
+  // caller resolves this from the agent's compaction target (a project digest
+  // for single-project agents, an agent-scoped digest for `[]`/multi). Making
+  // the worker target-agnostic is what lets the CEO compact.
+  digestPath: string;
 };
 
-export type CompactionResult = { taskState: string; foldedCount: number };
+export type CompactionResult = {
+  taskState: string;
+  foldedCount: number;
+  /** Reflects the distill parse outcome. "ok" = digest was valid and may have
+   *  been folded; "discard" = the model output was unparseable or explicitly
+   *  empty — no digest was written. Only "ok" warrants a session reset. */
+  distillKind: "ok" | "discard";
+};
 
 export type CompactionWorkerDeps = {
-  userDataDir: string;
   // Injected so the worker is testable without a real claude process.
   runDistill: (input: { prompt: string; model: string }) => Promise<RunDerivationResult>;
   // Hash of the entry's source files against the live repo (provenance).
@@ -36,7 +46,7 @@ export const createCompactionWorker = (deps: CompactionWorkerDeps): CompactionWo
     deps.onCost(run.usage, COMPACTION_MODEL);
 
     const parsed = parseCompactionOutput(run.text);
-    if (parsed.kind === "discard") return { taskState: "", foldedCount: 0 };
+    if (parsed.kind === "discard") return { taskState: "", foldedCount: 0, distillKind: "discard" };
 
     if (parsed.knowledge.length > 0) {
       const incoming: DigestEntry[] = parsed.knowledge.map((k) => ({
@@ -50,13 +60,13 @@ export const createCompactionWorker = (deps: CompactionWorkerDeps): CompactionWo
         accessCount: 0,
         lastAccessed: null,
       }));
-      const current = readDigest(deps.userDataDir, input.companyId, input.projectId);
-      writeDigest(deps.userDataDir, input.companyId, input.projectId, {
+      const current = readDigestAt(input.digestPath);
+      writeDigestAt(input.digestPath, {
         version: 1,
         entries: foldEntries(current.entries, incoming),
         deepDives: current.deepDives,
       });
     }
-    return { taskState: parsed.taskState, foldedCount: parsed.knowledge.length };
+    return { taskState: parsed.taskState, foldedCount: parsed.knowledge.length, distillKind: "ok" };
   },
 });

@@ -6,6 +6,7 @@ import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { getAgentMemoryDir, skillBodyPath } from "../memory/memory-dir.js";
 import { sanitizeMemoryBody } from "../memory/sanitizer.js";
+import { toFtsMatchExpr } from "../memory/fts-query.js";
 import { createRateLimiter } from "./rate-limiter.js";
 import {
   OPERATING_MANUAL,
@@ -232,9 +233,14 @@ const memoryRead: Tool = {
     const repo = createMemoriesRepository(ctx.db);
     const rows =
       scope === "company" ? repo.listCompanyWide(ctx.companyId) : repo.listByAgent(ctx.agentId);
-    const memories = rows
-      .filter((m) => kind === undefined || m.kind === kind)
-      .map((m) => ({ id: m.id, kind: m.kind, body: m.body, importance: m.importance }));
+    const filtered = rows.filter((m) => kind === undefined || m.kind === kind);
+    repo.recordAccess(filtered.map((m) => m.id));
+    const memories = filtered.map((m) => ({
+      id: m.id,
+      kind: m.kind,
+      body: m.body,
+      importance: m.importance,
+    }));
     return JSON.stringify({ memories });
   },
 };
@@ -302,10 +308,16 @@ const memorySearch: Tool = {
       query: string;
       limit?: number;
     };
-    const rows = createMemoriesRepository(ctx.db).search(query, {
-      agentId: ctx.agentId,
-      ...(limit !== undefined ? { limit } : {}),
-    });
+    const repo = createMemoriesRepository(ctx.db);
+    const safeQuery = toFtsMatchExpr(query);
+    const rows =
+      safeQuery === ""
+        ? []
+        : repo.search(safeQuery, {
+            agentId: ctx.agentId,
+            ...(limit !== undefined ? { limit } : {}),
+          });
+    repo.recordAccess(rows.map((m) => m.id));
     return JSON.stringify({
       memories: rows.map((m) => ({ id: m.id, kind: m.kind, body: m.body })),
     });

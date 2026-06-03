@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { createBusinessPlansRepository } from "../agents/business-plans-repository.js";
-import { BusinessPlanPayloadSchema, type BusinessPlanPayload } from "../schemas/businessPlan.js";
+import {
+  BusinessPlanOptionsPayloadSchema,
+  type BusinessPlanOptionsPayload,
+} from "../schemas/businessPlan.js";
 import type { ToolContext } from "./tools.js";
 
 type Tool = {
@@ -13,22 +16,28 @@ type Tool = {
 const submitBusinessPlan: Tool = {
   name: "submit_business_plan",
   description:
-    "Submit ONE proposed business — concept, how it makes money, the first marketing channel (X, text), and a brand identity (name, voice, proposed @handle). Only propose what your AI team can build, run, and maintain unaided (SaaS, writing, organization, automation); list what you dropped and why. Validates + stores it and emits business_plan.proposed so the main process critiques feasibility and surfaces the proposal. Only the CEO calls this, during genesis.",
-  inputSchema: z.object({ plan: z.unknown() }),
+    "Submit 2–3 business options for the owner to choose from. Pass an `options` array where each entry is the full business plan shape (concept, monetization, pricing, marketing, identity, research, dropped) extended with `recommended` (boolean — mark EXACTLY ONE true), `whyRecommended` (string), `signals` ({market, virality, community} each 0–100 integer + revenue12m string), and `projection` ({month3, month6, month12, assumption} strings). Only propose what your AI team can build, run, and maintain unaided (SaaS, writing, organization, automation). Validates, stores all options, and emits business_plan.proposed so the main process critiques feasibility and surfaces the proposal. Only the CEO calls this, during genesis.",
+  inputSchema: z.object({ options: z.unknown() }),
   // eslint-disable-next-line @typescript-eslint/require-await
   run: async (input, ctx) => {
-    const { plan: rawPlan } = submitBusinessPlan.inputSchema.parse(input) as { plan: unknown };
-    let plan: unknown = rawPlan;
-    if (typeof plan === "string") {
+    const { options: rawOptions } = submitBusinessPlan.inputSchema.parse(input) as {
+      options: unknown;
+    };
+    let optionsInput: unknown = rawOptions;
+    if (typeof optionsInput === "string") {
       try {
-        plan = JSON.parse(plan);
+        optionsInput = JSON.parse(optionsInput);
       } catch {
         throw new Error(
-          "invalid_business_plan: plan must be a JSON object (could not parse string)",
+          "invalid_business_plan: options must be a JSON array (could not parse string)",
         );
       }
     }
-    const parsed = BusinessPlanPayloadSchema.safeParse(plan);
+
+    // Wrap bare array into the expected { options: [...] } shape
+    const toValidate = Array.isArray(optionsInput) ? { options: optionsInput } : optionsInput;
+
+    const parsed = BusinessPlanOptionsPayloadSchema.safeParse(toValidate);
     if (!parsed.success) {
       const detail = parsed.error.issues.map((i) => ({
         path: i.path.join("."),
@@ -36,21 +45,28 @@ const submitBusinessPlan: Tool = {
       }));
       throw new Error(`invalid_business_plan: ${JSON.stringify(detail)}`);
     }
-    const payload: BusinessPlanPayload = parsed.data;
+    const payload: BusinessPlanOptionsPayload = parsed.data;
+
+    // Mirror the recommended option into the legacy flat columns for backward
+    // compat with the critic + approve path. chosen_index stays null at propose time.
+    const recommended = payload.options.find((o) => o.recommended)!;
 
     const repo = createBusinessPlansRepository(ctx.db);
     repo.supersedeActiveForCompany(ctx.companyId);
     const created = repo.insert({
       companyId: ctx.companyId,
       proposedByAgentId: ctx.agentId,
-      concept: payload.concept,
-      monetization: payload.monetization,
-      ...(payload.pricing !== undefined ? { pricing: payload.pricing } : {}),
-      ...(payload.research !== undefined ? { research: payload.research } : {}),
-      ...(payload.ownerProfile !== undefined ? { ownerProfile: payload.ownerProfile } : {}),
-      marketing: payload.marketing,
-      identity: payload.identity,
-      dropped: payload.dropped,
+      // Legacy flat columns = recommended option
+      concept: recommended.concept,
+      monetization: recommended.monetization,
+      ...(recommended.pricing !== undefined ? { pricing: recommended.pricing } : {}),
+      ...(recommended.research !== undefined ? { research: recommended.research } : {}),
+      ...(recommended.ownerProfile !== undefined ? { ownerProfile: recommended.ownerProfile } : {}),
+      marketing: recommended.marketing,
+      identity: recommended.identity,
+      dropped: recommended.dropped,
+      // Full options array persisted verbatim
+      options: payload.options,
     });
 
     ctx.emit({ kind: "business_plan.proposed", payload: { businessPlanId: created.id } });

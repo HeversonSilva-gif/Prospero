@@ -1757,7 +1757,48 @@
       "title": "Sobre você"
     },
     "pageTitle": "Plano de negócio",
-    "none": "Nenhum plano de negócio aguardando revisão."
+    "none": "Nenhum plano de negócio aguardando revisão.",
+    "options": {
+      "title": "Desenhei 3 caminhos pra você",
+      "ceoPitch": "Pesquisei o mercado a partir do seu perfil. Os três são viáveis pra minha equipe tocar sozinha — recomendo o primeiro, te explico por quê. Escolha um pra ver o plano completo.",
+      "recommended": "Recomendado",
+      "optionN": "Opção {{n}}",
+      "whyPrefix": "Por que recomendo:",
+      "seePlan": "Ver plano completo",
+      "chooseAria": "Escolher {{name}}",
+      "disclaimer": "Estimativas do CEO com base na pesquisa de mercado — direção, não garantia.",
+      "signals": {
+        "market": "Mercado",
+        "virality": "Viralizar",
+        "community": "Comunidade",
+        "revenue12m": "12 meses"
+      }
+    },
+    "review": {
+      "backToOptions": "← Voltar às opções",
+      "concept": "O negócio",
+      "howMonetizes": "Como faz dinheiro",
+      "marketingLabel": "Marketing — começa no X",
+      "competitionTitle": "Concorrência & diferenciação",
+      "differentialPrefix": "Diferencial:",
+      "droppedTitle": "Descartei (e por quê)",
+      "aboutYou": "Sobre você",
+      "signals": {
+        "market": "Tamanho de mercado",
+        "virality": "Potencial de viralização",
+        "community": "Comunidade",
+        "revenue": "Faturamento estimado"
+      },
+      "projection": {
+        "month3": "Mês 3",
+        "month6": "Mês 6",
+        "month12": "Mês 12"
+      },
+      "footerNote": "Aprovar monta a equipe. Você ainda aprova cada post e cada cobrança.",
+      "requestAdjustments": "Pedir ajustes",
+      "refinePlaceholder": "O que você quer ajustar no plano?",
+      "sendRefine": "Enviar para o CEO revisar"
+    }
   },
   "decisoes": {
     "risk": {

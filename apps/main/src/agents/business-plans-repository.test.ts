@@ -105,4 +105,45 @@ describe("business-plans-repository", () => {
     expect(repo.getById(q.id)?.status).toBe("rejected");
     expect(repo.getById(q.id)?.userFeedback).toBe("no thanks");
   });
+
+  it("options and chosenIndex default to null when not provided", () => {
+    const repo = createBusinessPlansRepository(db);
+    const p = repo.insert(insert);
+    expect(p.options).toBeNull();
+    expect(p.chosenIndex).toBeNull();
+  });
+
+  it("round-trips options_json (3 options array)", () => {
+    const repo = createBusinessPlansRepository(db);
+    const options = [
+      { concept: "SaaS recipes", recommended: true, whyRecommended: "high margin" },
+      { concept: "E-book", recommended: false, whyRecommended: "" },
+      { concept: "Coaching", recommended: false, whyRecommended: "" },
+    ];
+    const p = repo.insert({ ...insert, options });
+    const fetched = repo.getById(p.id);
+    expect(fetched?.options).toEqual(options);
+    expect(fetched?.chosenIndex).toBeNull();
+  });
+
+  it("markApprovedWithOption sets status, decidedAt, and chosenIndex", () => {
+    const repo = createBusinessPlansRepository(db);
+    const options = [
+      { concept: "SaaS recipes", recommended: false },
+      { concept: "E-book", recommended: true },
+    ];
+    const p = repo.insert({ ...insert, options });
+    repo.markApprovedWithOption(p.id, 1);
+    const fetched = repo.getById(p.id);
+    expect(fetched?.status).toBe("approved");
+    expect(fetched?.decidedAt).not.toBeNull();
+    expect(fetched?.chosenIndex).toBe(1);
+  });
+
+  it("markApproved (no option) leaves chosenIndex null", () => {
+    const repo = createBusinessPlansRepository(db);
+    const p = repo.insert(insert);
+    repo.markApproved(p.id);
+    expect(repo.getById(p.id)?.chosenIndex).toBeNull();
+  });
 });

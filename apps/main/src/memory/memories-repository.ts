@@ -17,6 +17,7 @@ type MemoryRow = {
   last_accessed: number | null;
   access_count: number;
   soft_deleted: number;
+  soft_deleted_at: number | null;
 };
 
 const rowToMemory = (r: MemoryRow): Memory => ({
@@ -58,6 +59,12 @@ export type UpdateMemoryPatch = {
 export type MemorySearchOptions = {
   companyId?: string;
   agentId?: string;
+  /**
+   * When set, the search returns rows that are company-wide (agent_id IS NULL)
+   * OR owned by this specific agent. This is the correct filter for per-agent
+   * recall — use `agentId` (exact match) only when you want strictly private rows.
+   */
+  scopeToAgent?: string;
   limit?: number;
 };
 
@@ -70,11 +77,20 @@ export type MemoriesRepository = {
   listCompanyGlobal(companyId: string): Memory[];
   update(id: string, patch: UpdateMemoryPatch): Memory;
   softDelete(id: string): void;
+  // v0.2.4: hard-delete memories that were soft-deleted before `olderThanMs`.
+  // Also removes their memories_fts rows. Returns the count of hard-deleted rows.
+  purgeSoftDeleted(olderThanMs: number): number;
   search(query: string, opts?: MemorySearchOptions): Memory[];
   // M11 PR-F1: active, non-pinned, non-identity memories — the decay pass input.
   listDecayCandidates(): Memory[];
   // M11 PR-F1: atomically add `delta` to trust, clamped to [0, 1].
   bumpTrust(id: string, delta: number): Memory;
+  // v0.2.4: record that the given memory ids were surfaced (read/recalled).
+  // Updates last_accessed and increments access_count. No-op on empty array.
+  recordAccess(ids: string[]): void;
+  // v0.2.4: dedup guard — returns the first non-soft-deleted memory that was
+  // derived from the given source event id, or null if none exists.
+  findBySourceEvent(sourceEventId: string): Memory | null;
 };
 
 export const createMemoriesRepository = (db: Database.Database): MemoriesRepository => {
@@ -105,7 +121,10 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
   const updateStmt = db.prepare(
     "UPDATE memories SET body = ?, importance = ?, trust = ?, pinned = ? WHERE id = ?",
   );
-  const softDeleteStmt = db.prepare("UPDATE memories SET soft_deleted = 1 WHERE id = ?");
+  const softDeleteStmt = db.prepare(
+    "UPDATE memories SET soft_deleted = 1, soft_deleted_at = COALESCE(soft_deleted_at, ?) WHERE id = ?",
+  );
+  const deleteFts = db.prepare("DELETE FROM memories_fts WHERE memory_id = ?");
   const listDecayCandidatesStmt = db.prepare(
     `SELECT * FROM memories
       WHERE soft_deleted = 0 AND pinned = 0 AND kind != 'identity'
@@ -113,6 +132,9 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
   );
   const bumpTrustStmt = db.prepare(
     "UPDATE memories SET trust = MAX(0, MIN(1, trust + ?)) WHERE id = ?",
+  );
+  const bySourceEvent = db.prepare(
+    "SELECT * FROM memories WHERE source_event_id = ? AND soft_deleted = 0 LIMIT 1",
   );
 
   const getById = (id: string): Memory | null => {
@@ -171,7 +193,29 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
       return getById(id)!;
     },
     softDelete(id) {
-      softDeleteStmt.run(id);
+      const now = Date.now();
+      db.transaction(() => {
+        softDeleteStmt.run(now, id);
+        deleteFts.run(id);
+      })();
+    },
+    purgeSoftDeleted(olderThanMs) {
+      // Collect ids first so we can remove their FTS rows atomically.
+      const rows = db
+        .prepare(
+          "SELECT id FROM memories WHERE soft_deleted = 1 AND soft_deleted_at IS NOT NULL AND soft_deleted_at < ?",
+        )
+        .all(olderThanMs) as Array<{ id: string }>;
+      if (rows.length === 0) return 0;
+      const purgeMemory = db.prepare("DELETE FROM memories WHERE id = ?");
+      const purgeFts = db.prepare("DELETE FROM memories_fts WHERE memory_id = ?");
+      db.transaction(() => {
+        for (const { id } of rows) {
+          purgeMemory.run(id);
+          purgeFts.run(id);
+        }
+      })();
+      return rows.length;
     },
     listDecayCandidates() {
       return (listDecayCandidatesStmt.all() as MemoryRow[]).map(rowToMemory);
@@ -181,6 +225,23 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
       const updated = getById(id);
       if (updated === null) throw new Error(`memory not found: ${id}`);
       return updated;
+    },
+    recordAccess(ids) {
+      if (ids.length === 0) return;
+      const now = Date.now();
+      const tx = db.transaction(() => {
+        const stmt = db.prepare(
+          "UPDATE memories SET last_accessed = ?, access_count = access_count + 1 WHERE id = ?",
+        );
+        for (const id of ids) {
+          stmt.run(now, id);
+        }
+      });
+      tx();
+    },
+    findBySourceEvent(sourceEventId) {
+      const row = bySourceEvent.get(sourceEventId) as MemoryRow | undefined;
+      return row === undefined ? null : rowToMemory(row);
     },
     search(query, opts = {}) {
       const limit = opts.limit ?? 50;
@@ -193,6 +254,10 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
       if (opts.agentId !== undefined) {
         clauses.push("m.agent_id = ?");
         params.push(opts.agentId);
+      }
+      if (opts.scopeToAgent !== undefined) {
+        clauses.push("(m.agent_id IS NULL OR m.agent_id = ?)");
+        params.push(opts.scopeToAgent);
       }
       params.push(limit);
       const rows = db

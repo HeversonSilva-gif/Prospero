@@ -35,7 +35,7 @@ const log = (msg: string): void => {
 export const runLibrarianFork = async (deps: RunLibrarianDeps): Promise<LibrarianResult> => {
   const rows = deps.db
     .prepare(
-      "SELECT id, name, description, use_count, view_count, patch_count, trust, lifecycle_state, body_path " +
+      "SELECT id, name, description, use_count, view_count, patch_count, trust, lifecycle_state, body_path, version " +
         "FROM skills WHERE company_id = ? AND soft_deleted = 0 AND lifecycle_state != 'archived'",
     )
     .all(deps.companyId) as {
@@ -48,6 +48,7 @@ export const runLibrarianFork = async (deps: RunLibrarianDeps): Promise<Libraria
     trust: number;
     lifecycle_state: string;
     body_path: string;
+    version: number;
   }[];
 
   if (rows.length < MIN_LIBRARY_SIZE) return { ran: false, proposalsCreated: 0, tokens: 0 };
@@ -105,12 +106,21 @@ export const runLibrarianFork = async (deps: RunLibrarianDeps): Promise<Libraria
     occurredAt: deps.now(),
   });
 
+  // Build a version-snapshot map: skillId → version (read from DB at fork time).
+  // This is stored on the proposal so apply-proposal can detect staleness later.
+  const versionByRow = Object.fromEntries(rows.map((r) => [r.id, r.version]));
+
   const known = new Set(rows.map((r) => r.id));
   const proposals = parseProposals(result.text, known);
   const proposalsRepo = createProposalsRepository(deps.db);
   const inboxRepo = createInboxRepository(deps.db);
   let created = 0;
   for (const p of proposals) {
+    // Snapshot the version of each source skill at fork time for staleness detection.
+    const sourceVersions: Record<string, number> = {};
+    for (const sid of p.sourceSkillIds) {
+      if (versionByRow[sid] !== undefined) sourceVersions[sid] = versionByRow[sid]!;
+    }
     const row = proposalsRepo.create({
       companyId: deps.companyId,
       kind: p.kind,
@@ -119,6 +129,7 @@ export const runLibrarianFork = async (deps: RunLibrarianDeps): Promise<Libraria
       proposedDescription: p.description,
       proposedBody: p.body,
       rationale: p.rationale,
+      sourceVersions,
     });
     inboxRepo.create({
       companyId: deps.companyId,

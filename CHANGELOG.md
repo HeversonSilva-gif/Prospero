@@ -3,6 +3,38 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.4 — 2026-06-03
+
+A **Gênese agora te dá 3 caminhos de negócio** pra escolher (um recomendado, com o
+porquê), e o plano aparece bonito como no desenho — com sinais de mercado e uma
+projeção de 12 meses. Por baixo, a memória dos agentes ficou mais saudável, segura
+e econômica.
+
+### Corrigido
+
+- **A mensagem de abertura da Gênese não se duplica mais** ao voltar pra refinar o plano.
+- **O plano agora vem formatado** (antes vinha "cru") e **com 3 opções**, como pedido.
+
+### Adicionado
+
+- **3 opções de negócio na Gênese.** O CEO pesquisa e propõe três caminhos viáveis,
+  marca um como _Recomendado_ (com a justificativa) e mostra, pra cada um, sinais de
+  mercado / viralização / comunidade e uma projeção de faturamento em 3/6/12 meses.
+  Você escolhe um, revisa o plano completo e aprova — e é exatamente a opção escolhida
+  que vira o seu negócio.
+
+### Melhorado (memória dos agentes)
+
+- **O CEO agora também compacta o contexto** quando ele fica grande — menos custo, sem
+  perder o fio da meada.
+- **Memória mais segura:** todo texto que vira memória passa por uma checagem contra
+  injeção e vazamento de segredo, e nomes de habilidade não conseguem escapar de pasta.
+- **A memória esquece na hora certa:** o que é usado com frequência é mantido; o que é
+  apagado some de verdade (inclusive da busca) e é limpo depois de 30 dias.
+- **Menos desperdício e mais robustez:** buscas com símbolos não quebram mais, memórias
+  repetidas não se acumulam, e o curador da biblioteca não roda à toa nem deixa o estado
+  inconsistente no meio do caminho.
+
 ## v0.2.3 — 2026-06-02
 
 O **novo visual "Estúdio"** chega ao app — junto com os guardrails e a medição de

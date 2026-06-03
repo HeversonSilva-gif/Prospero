@@ -53,7 +53,7 @@ const fork = (): Promise<{
   Promise.resolve({ text: "[]", usage: { input: 0, output: 0, cacheCreation: 0, cacheRead: 0 } });
 
 describe("runCuratorPass", () => {
-  it("runs the lifecycle pass every call but throttles the fork to 7 days", async () => {
+  it("runs the lifecycle pass every call but throttles the fork to 7 days; skip-if-unchanged also applies", async () => {
     let forkCalls = 0;
     const countingFork = (): Promise<{
       text: string;
@@ -63,13 +63,37 @@ describe("runCuratorPass", () => {
       return fork();
     };
     const now = 1000 * DAY;
+    // First pass: fork runs (no prior hash).
     await runCuratorPass({ db, now, runDerivation: countingFork, authEnv: () => ({}) });
     expect(forkCalls).toBe(1);
+
+    // Within the 7-day window: skipped by time throttle regardless of library state.
     await runCuratorPass({ db, now: now + DAY, runDerivation: countingFork, authEnv: () => ({}) });
     expect(forkCalls).toBe(1);
+
+    // Past the 7-day window BUT library is unchanged → skip-if-unchanged wins.
     await runCuratorPass({
       db,
       now: now + 8 * DAY,
+      runDerivation: countingFork,
+      authEnv: () => ({}),
+    });
+    expect(forkCalls).toBe(1); // library unchanged → no fork
+
+    // Add a skill to change the library.
+    createSkillsRepository(db).create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "skill-new",
+      bodyPath: "/p/new",
+      description: "new",
+      source: "user_authored",
+    });
+
+    // Past the 7-day window AND library changed → fork fires.
+    await runCuratorPass({
+      db,
+      now: now + 16 * DAY,
       runDerivation: countingFork,
       authEnv: () => ({}),
     });
@@ -98,6 +122,67 @@ describe("runCuratorPass", () => {
     // The librarian created an inbox card for c1 — the renderer only reloads on
     // the broadcast, so it must fire or the proposal is invisible until reload.
     expect(broadcasts).toContain("c1");
+  });
+
+  it("skips the fork for a company whose library hash has not changed since the last run", async () => {
+    let forkCalls = 0;
+    const countingFork = (): Promise<{
+      text: string;
+      usage: { input: number; output: number; cacheCreation: number; cacheRead: number };
+    }> => {
+      forkCalls++;
+      return fork();
+    };
+
+    const now = 1000 * DAY;
+    // First run: fork should fire (no stored hash yet).
+    await runCuratorPass({ db, now, runDerivation: countingFork, authEnv: () => ({}) });
+    expect(forkCalls).toBe(1);
+
+    // Second run 8 days later (time-throttle would normally fire): library is
+    // unchanged → fork must be skipped for c1.
+    await runCuratorPass({
+      db,
+      now: now + 8 * DAY,
+      runDerivation: countingFork,
+      authEnv: () => ({}),
+    });
+    expect(forkCalls).toBe(1); // no additional fork call
+  });
+
+  it("runs the fork again after the library changes", async () => {
+    let forkCalls = 0;
+    const countingFork = (): Promise<{
+      text: string;
+      usage: { input: number; output: number; cacheCreation: number; cacheRead: number };
+    }> => {
+      forkCalls++;
+      return fork();
+    };
+
+    const now = 1000 * DAY;
+    // First pass — fork fires, hash stored.
+    await runCuratorPass({ db, now, runDerivation: countingFork, authEnv: () => ({}) });
+    expect(forkCalls).toBe(1);
+
+    // Add a new skill to change the library.
+    createSkillsRepository(db).create({
+      companyId: "c1",
+      agentId: "a1",
+      name: "skill4",
+      bodyPath: "/p/s4",
+      description: "d4",
+      source: "user_authored",
+    });
+
+    // Next pass 8 days later: library changed → fork fires again.
+    await runCuratorPass({
+      db,
+      now: now + 8 * DAY,
+      runDerivation: countingFork,
+      authEnv: () => ({}),
+    });
+    expect(forkCalls).toBe(2);
   });
 
   it("dry-run runs the fork but persists nothing and does not advance the throttle", async () => {

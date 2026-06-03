@@ -74,9 +74,21 @@ const startOfDayUtc = (ms: number): number => {
 
 export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWorker => {
   const { db } = deps;
+  // Cap is now based on derivation_attempts (counts every attempt, success or
+  // failure) so a burst of failing derivations during an auth outage cannot
+  // spawn unbounded subprocesses. The old cost_events query only counted
+  // successful runs.
   const capCountStmt = db.prepare(
-    `SELECT COUNT(*) AS n FROM cost_events
-      WHERE agent_id = ? AND adapter_name = 'derivation' AND occurred_at >= ?`,
+    `SELECT COALESCE(SUM(count), 0) AS n FROM derivation_attempts
+      WHERE agent_id = ? AND day_utc = ?`,
+  );
+  // Upsert: insert with count=1 on first attempt of the day; increment on
+  // subsequent attempts. Executed BEFORE runDerivation so failures consume
+  // budget too.
+  const recordAttemptStmt = db.prepare(
+    `INSERT INTO derivation_attempts (agent_id, day_utc, count)
+     VALUES (?, ?, 1)
+     ON CONFLICT(agent_id, day_utc) DO UPDATE SET count = count + 1`,
   );
 
   const log = (msg: string): void => {
@@ -85,8 +97,24 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
 
   const processJob = async (job: DerivationJob): Promise<void> => {
     try {
+      // Dedup short-circuit, as early as possible: if this event already has a
+      // derived memory, skip BEFORE spending an LLM call or consuming a daily
+      // attempt-budget slot. Re-fired/reconciled events are the storm we guard
+      // against; making the skip cheap is the whole point. Only applies when the
+      // job carries a sourceEventId — triggers without one fall through.
+      if (job.sourceEventId) {
+        const existing = createMemoriesRepository(db).findBySourceEvent(job.sourceEventId);
+        if (existing !== null) {
+          log(
+            `dedup: memory ${existing.id} already derived from event ${job.sourceEventId} — skipping`,
+          );
+          return;
+        }
+      }
+
       const cap = createSettingsRepository(db).read().derivationsPerDayPerAgent;
-      const used = (capCountStmt.get(job.agentId, startOfDayUtc(deps.now())) as { n: number }).n;
+      const dayUtc = startOfDayUtc(deps.now());
+      const used = (capCountStmt.get(job.agentId, dayUtc) as { n: number }).n;
       if (used >= cap) {
         log(`cap reached for agent ${job.agentId} (${used}/${cap}) — skipping`);
         return;
@@ -156,6 +184,10 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
         log(`unknown trigger: ${String(unknown)} — skipping`);
         return;
       }
+
+      // Record the attempt BEFORE running so that failures (auth outage, etc.)
+      // still consume a daily-cap slot and prevent unbounded retry storms.
+      recordAttemptStmt.run(job.agentId, dayUtc);
 
       const result = await deps.runDerivation({
         prompt,
@@ -236,8 +268,13 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
         log(`sanitizer rejected derived memory: ${memCheck.reason} — dropping`);
         return;
       }
+
+      // Dedup is already handled by the early short-circuit at the top of
+      // processJob (cheap, pre-LLM). By the time we reach here no memory exists
+      // for this source event, so we can create unconditionally.
+      const memRepo = createMemoriesRepository(db);
       if (job.trigger === "goal_achieved") {
-        createMemoriesRepository(db).create({
+        memRepo.create({
           companyId: job.companyId,
           agentId: null,
           kind: "retrospective",
@@ -253,7 +290,7 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
           payloadJson: JSON.stringify({ goalId: job.goalId }),
         });
       } else {
-        createMemoriesRepository(db).create({
+        memRepo.create({
           companyId: job.companyId,
           agentId: job.agentId,
           kind: "preference",

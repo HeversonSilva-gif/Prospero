@@ -95,6 +95,9 @@ export type SkillProposal = {
   reviewedAt: number | null;
   rejectReason: string | null;
   createdAt: number;
+  // Snapshot of each source skill's `version` at proposal creation time.
+  // Used by apply-proposal to detect staleness (null = no snapshot, pre-0063 row).
+  sourceVersions: Record<string, number> | null;
 };
 
 // A single full-text match from session_search — one past message the agent

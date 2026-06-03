@@ -3,17 +3,18 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createCompactionWorker } from "./compaction-worker.js";
-import { readDigest } from "./digest-store.js";
+import { readDigestAt } from "./digest-store.js";
 
 let dir: string;
+let digestPath: string;
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "compw-"));
+  digestPath = join(dir, "digest.json");
 });
 
 describe("compaction-worker", () => {
   it("folds distilled knowledge into the digest and returns the seed", async () => {
     const worker = createCompactionWorker({
-      userDataDir: dir,
       runDistill: () =>
         Promise.resolve({
           text: JSON.stringify({
@@ -36,13 +37,13 @@ describe("compaction-worker", () => {
 
     const result = await worker.compact({
       companyId: "co_1",
-      projectId: "pr_1",
       agentId: "ag_1",
       transcript: "agent read package.json",
+      digestPath,
     });
 
     expect(result.taskState).toContain("BACKEND-7");
-    const digest = readDigest(dir, "co_1", "pr_1");
+    const digest = readDigestAt(digestPath);
     expect(digest.entries[0]?.body).toBe("Electron monorepo.");
     expect(digest.entries[0]?.contentHash).toBe("abc");
     expect(digest.entries[0]?.trust).toBe(0.5);
@@ -52,7 +53,6 @@ describe("compaction-worker", () => {
 
   it("returns the seed but writes nothing when distill is discarded", async () => {
     const worker = createCompactionWorker({
-      userDataDir: dir,
       runDistill: () =>
         Promise.resolve({
           text: "garbage",
@@ -65,11 +65,11 @@ describe("compaction-worker", () => {
     });
     const result = await worker.compact({
       companyId: "co_1",
-      projectId: "pr_1",
       agentId: "ag_1",
       transcript: "x",
+      digestPath,
     });
     expect(result.taskState).toBe("");
-    expect(readDigest(dir, "co_1", "pr_1").entries).toHaveLength(0);
+    expect(readDigestAt(digestPath).entries).toHaveLength(0);
   });
 });

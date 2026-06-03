@@ -2,7 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DigestSection } from "@prospero/shared";
 import { DIGEST_SECTIONS } from "@prospero/shared";
-import { readDigest } from "../context/digest-store.js";
+import { readDigest, readDigestAt } from "../context/digest-store.js";
+import { agentDigestPath } from "../context/digest-dir.js";
 import { markFreshness, type FreshEntry } from "../context/freshness.js";
 import { decayFactor } from "../memory/decay.js";
 
@@ -77,5 +78,24 @@ export const buildProjectContextBlock = (deps: BuildProjectContextDeps): string 
     return readFileSync(abs, "utf8");
   };
   const marked = digest.entries.map((e) => markFreshness(e, read));
+  return renderProjectContextBlock(marked, deps.cap ?? PROJECT_CONTEXT_CAP);
+};
+
+export type BuildAgentContextDeps = {
+  userDataDir: string;
+  companyId: string;
+  agentId: string;
+  cap?: number;
+};
+
+// Agent-scoped variant (v0.2.4): for the CEO / multi-project agents, whose
+// compaction folds into an AGENT digest. There is no single repo root to verify
+// against, so entries are NEVER marked stale by file hashing — only read-time
+// decay (age + accessCount) governs trust. Otherwise renders identically, so the
+// CEO gets its durable digest re-injected with the same freshness/decay/cap rules.
+export const buildAgentContextBlock = (deps: BuildAgentContextDeps): string | undefined => {
+  const digest = readDigestAt(agentDigestPath(deps.userDataDir, deps.companyId, deps.agentId));
+  if (digest.entries.length === 0) return undefined;
+  const marked: FreshEntry[] = digest.entries.map((e) => ({ ...e, stale: false }));
   return renderProjectContextBlock(marked, deps.cap ?? PROJECT_CONTEXT_CAP);
 };

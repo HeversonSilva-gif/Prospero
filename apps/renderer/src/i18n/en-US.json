@@ -1757,7 +1757,48 @@
       "title": "About you"
     },
     "pageTitle": "Business plan",
-    "none": "No business plan awaiting review."
+    "none": "No business plan awaiting review.",
+    "options": {
+      "title": "I designed 3 paths for you",
+      "ceoPitch": "I researched the market based on your profile. All three are viable for my team to run solo — I recommend the first one, and I'll explain why. Choose one to see the full plan.",
+      "recommended": "Recommended",
+      "optionN": "Option {{n}}",
+      "whyPrefix": "Why I recommend this:",
+      "seePlan": "See full plan",
+      "chooseAria": "Choose {{name}}",
+      "disclaimer": "CEO estimates based on market research — direction, not a guarantee.",
+      "signals": {
+        "market": "Market",
+        "virality": "Virality",
+        "community": "Community",
+        "revenue12m": "12 months"
+      }
+    },
+    "review": {
+      "backToOptions": "← Back to options",
+      "concept": "The business",
+      "howMonetizes": "How it makes money",
+      "marketingLabel": "Marketing — starts on X",
+      "competitionTitle": "Competition & differentiation",
+      "differentialPrefix": "Differentiator:",
+      "droppedTitle": "Dropped (and why)",
+      "aboutYou": "About you",
+      "signals": {
+        "market": "Market size",
+        "virality": "Virality potential",
+        "community": "Community",
+        "revenue": "Estimated revenue"
+      },
+      "projection": {
+        "month3": "Month 3",
+        "month6": "Month 6",
+        "month12": "Month 12"
+      },
+      "footerNote": "Approving builds the team. You still approve every post and every charge.",
+      "requestAdjustments": "Request adjustments",
+      "refinePlaceholder": "What would you like to adjust in the plan?",
+      "sendRefine": "Send to CEO for review"
+    }
   },
   "decisoes": {
     "risk": {

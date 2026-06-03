@@ -1,5 +1,13 @@
-import { describe, it, expect } from "vitest";
-import { renderProjectContextBlock } from "./system-prompt-project-context.js";
+import { describe, it, expect, beforeEach } from "vitest";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  renderProjectContextBlock,
+  buildAgentContextBlock,
+} from "./system-prompt-project-context.js";
+import { writeDigestAt } from "../context/digest-store.js";
+import { agentDigestPath } from "../context/digest-dir.js";
 import type { DigestEntry } from "@prospero/shared";
 
 const e = (over: Partial<DigestEntry> = {}): DigestEntry => ({
@@ -84,5 +92,34 @@ describe("renderProjectContextBlock", () => {
     };
     const out = renderProjectContextBlock([cur], 4096, now)!;
     expect(out).toContain("Electron monorepo");
+  });
+});
+
+describe("buildAgentContextBlock", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "agctx-"));
+  });
+
+  it("returns undefined when the agent has no digest", () => {
+    expect(
+      buildAgentContextBlock({ userDataDir: dir, companyId: "co_1", agentId: "ag_1" }),
+    ).toBeUndefined();
+  });
+
+  it("renders the agent digest WITHOUT file-based staleness (no repo root)", () => {
+    writeDigestAt(agentDigestPath(dir, "co_1", "ag_1"), {
+      version: 1,
+      entries: [
+        // sourceFiles empty + no real repo: a file-hashing builder would mark
+        // this stale; the agent builder must not.
+        { ...e({ body: "CEO prioritizes revenue.", sourceFiles: [] }) },
+      ],
+      deepDives: [],
+    });
+    const out = buildAgentContextBlock({ userDataDir: dir, companyId: "co_1", agentId: "ag_1" })!;
+    expect(out).toContain("# Project context");
+    expect(out).toContain("CEO prioritizes revenue.");
+    expect(out.toLowerCase()).not.toContain("possibly stale");
   });
 });

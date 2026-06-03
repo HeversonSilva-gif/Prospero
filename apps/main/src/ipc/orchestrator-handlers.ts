@@ -150,7 +150,9 @@ import { buildAuthEnv } from "../derivation/index.js";
 import { createCompactionWorker } from "../context/compaction-worker.js";
 import { shouldCompact } from "../context/should-compact.js";
 import { hashSources } from "../context/freshness.js";
-import { relativeDigestPath } from "../context/digest-dir.js";
+import { relativeDigestPath, projectDigestPath, agentDigestPath } from "../context/digest-dir.js";
+import { compactionTarget } from "../context/compaction-target.js";
+import { shouldResetSession } from "../context/compaction-decision.js";
 import { estimateCostCents } from "../costs/pricing.js";
 import { createOrgPlansRepository } from "../agents/org-plans-repository.js";
 import { gatherBusinessContext } from "../agents/business-context.js";
@@ -163,6 +165,7 @@ import {
 } from "../agents/business-plan-critique.js";
 import { formatBusinessPlanFeedback } from "../agents/format-business-plan-feedback.js";
 import { buildCapabilityBoundary } from "../agents/genesis/capability-boundary.js";
+import { BusinessPlanOptionsPayloadSchema } from "../schemas/businessPlan.js";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -468,21 +471,33 @@ export const registerOrchestratorHandlers = (
     const repo = createBusinessPlansRepository(db);
     const plan = repo.getById(businessPlanId);
     if (plan === null || plan.status !== "critiquing") return;
-    const verdict = await critiqueBusinessPlan(
-      { runDerivation: (i) => runDerivation({ runProcess: defaultRunProcess }, i) },
-      {
-        plan: {
-          concept: plan.concept,
-          monetization: plan.monetization,
-          ...(plan.pricing !== null ? { pricing: plan.pricing } : {}),
-          marketing: plan.marketing,
-          identity: plan.identity,
-          dropped: plan.dropped,
-        },
-        capabilityBoundary: buildCapabilityBoundary(["x"]),
-        env: buildAuthEnv(db),
-      },
-    );
+    const deps = {
+      runDerivation: (i: { prompt: string; model: string; env: Record<string, string> }) =>
+        runDerivation({ runProcess: defaultRunProcess }, i),
+    };
+    const parsedOptions =
+      plan.options !== null
+        ? BusinessPlanOptionsPayloadSchema.safeParse({ options: plan.options })
+        : null;
+    const verdict =
+      parsedOptions !== null && parsedOptions.success
+        ? await critiqueBusinessPlan(deps, {
+            options: parsedOptions.data.options,
+            capabilityBoundary: buildCapabilityBoundary(["x"]),
+            env: buildAuthEnv(db),
+          })
+        : await critiqueBusinessPlan(deps, {
+            plan: {
+              concept: plan.concept,
+              monetization: plan.monetization,
+              ...(plan.pricing !== null ? { pricing: plan.pricing } : {}),
+              marketing: plan.marketing,
+              identity: plan.identity,
+              dropped: plan.dropped,
+            },
+            capabilityBoundary: buildCapabilityBoundary(["x"]),
+            env: buildAuthEnv(db),
+          });
     const flagged = !verdict.feasible || !verdict.specific;
     const attempts = businessPlanRevisions.get(companyId) ?? 0;
     const outcome = decideBusinessPlanOutcome({
@@ -1033,27 +1048,51 @@ export const registerOrchestratorHandlers = (
   const COMPACTION_COOLDOWN_MS = 10 * 60_000; // 10 min between compactions per project
 
   // Memória de Contexto de Projeto (Fase 1): after an idle turn, if the session
-  // re-read more cached context than the threshold, distill the session into the
-  // project digest (folding durable knowledge), then RESET the agent's session
-  // (clear session id + kill/drop the adapter). No seed message is delivered —
+  // re-read more cached context than the threshold, distill the session into a
+  // digest (folding durable knowledge), then RESET the agent's session (clear
+  // session id + kill/drop the adapter + seed). No live message is delivered —
   // the agent is idle, so the next real message re-spawns it fresh (no --resume)
-  // with the now-richer project-context block injected. Safe: never kills
-  // a mid-turn process.
+  // with the now-richer context block injected. Safe: never kills a mid-turn
+  // process.
+  //
+  // The session RESET is the real cost lever (caps cache_read growth). It applies
+  // to EVERY agent over threshold + idle — including the CEO, whose normal scope
+  // is allowedProjects=[] (= all projects). The digest FOLD target depends on
+  // scope: a single-project agent folds into that PROJECT's digest (verifiable
+  // against the repo); the CEO / multi-project agent has no single repo root, so
+  // it folds into an AGENT-scoped digest (knowledge not pinned to source files).
   const maybeCompactAfterTurn = async (agent: Agent, cacheRead: number): Promise<void> => {
     try {
       const threshold = settingsRepo.read().compactionCacheReadThreshold;
       if (!shouldCompact({ cacheRead }, threshold)) return;
 
-      const projectIds = agent.allowedProjects;
-      if (projectIds.length !== 1) return;
-      const proj = createProjectsRepository(db).getById(projectIds[0]!);
-      if (proj === null) return;
-
       const live = agents.getById(agent.id);
       if (live === null || live.status === "paused" || live.status === "terminated") return;
 
-      const compactionKey = `${agent.companyId}:${proj.id}`;
-      if (compactionInFlight.has(compactionKey)) return; // a compaction for this project is already running
+      const target = compactionTarget(agent);
+      // For a single-project agent, resolve the project so the digest folds against
+      // the live repo (provenance hashing + the project digest_path marker). For an
+      // agent-scoped target there is no single repo root.
+      const proj =
+        target.kind === "project" ? createProjectsRepository(db).getById(target.projectId) : null;
+      // A single-project agent whose project row is gone has nowhere to fold —
+      // skip (mirrors the old behaviour where proj===null returned early).
+      if (target.kind === "project" && proj === null) return;
+
+      const userDataDir = app.getPath("userData");
+      const digestPath =
+        target.kind === "project"
+          ? projectDigestPath(userDataDir, agent.companyId, target.projectId)
+          : agentDigestPath(userDataDir, agent.companyId, target.agentId);
+
+      // Serialize per target: project compactions key on the project (two agents
+      // on one project must not race the read-modify-write); agent-scoped ones key
+      // on the agent.
+      const compactionKey =
+        target.kind === "project"
+          ? `${agent.companyId}:${target.projectId}`
+          : `${agent.companyId}:agent:${target.agentId}`;
+      if (compactionInFlight.has(compactionKey)) return; // a compaction for this target is already running
       const last = lastCompactedAt.get(compactionKey) ?? 0;
       if (Date.now() - last < COMPACTION_COOLDOWN_MS) return;
       compactionInFlight.add(compactionKey);
@@ -1063,21 +1102,25 @@ export const registerOrchestratorHandlers = (
         const transcript = trail.messages.map((m) => `${m.sender}: ${m.content}`).join("\n");
 
         const worker = createCompactionWorker({
-          userDataDir: app.getPath("userData"),
           runDistill: ({ prompt, model }) =>
             runDerivation(
               { runProcess: defaultRunProcess },
               { prompt, model, env: buildAuthEnv(db) },
             ),
+          // Provenance hashing only makes sense against a single repo root. For an
+          // agent-scoped digest there is none, so source files stay unhashed (the
+          // freshness pass treats them as unverifiable, which is correct).
           hashSources: (files) =>
-            hashSources(files, (rel) => readFileSync(join(proj.path, rel), "utf8")),
+            proj !== null
+              ? hashSources(files, (rel) => readFileSync(join(proj.path, rel), "utf8"))
+              : "",
           newId: () => `dig_${randomUUID()}`,
           now: () => Date.now(),
           onCost: (usage, model) =>
             costsRepo.insert({
               companyId: agent.companyId,
               agentId: agent.id,
-              projectId: proj.id,
+              projectId: proj?.id ?? null,
               issueId: null,
               adapterName: "compaction",
               model,
@@ -1096,21 +1139,32 @@ export const registerOrchestratorHandlers = (
             }),
         });
 
-        const { taskState } = await worker.compact({
+        const { taskState, distillKind } = await worker.compact({
           companyId: agent.companyId,
-          projectId: proj.id,
           agentId: agent.id,
           transcript,
+          digestPath,
         });
 
+        // Always set the cooldown, regardless of whether the distill succeeded
+        // or was discarded. A failed/discarded distill must still back off so
+        // we don't retry on every subsequent turn (retry storm).
         lastCompactedAt.set(compactionKey, Date.now());
 
-        createProjectsRepository(db).setDigestPath(
-          proj.id,
-          relativeDigestPath(agent.companyId, proj.id),
-        );
+        // The project digest_path marker is project-only (agent digests are
+        // resolved purely from companyId + agentId, no DB row).
+        if (proj !== null && shouldResetSession(distillKind)) {
+          createProjectsRepository(db).setDigestPath(
+            proj.id,
+            relativeDigestPath(agent.companyId, proj.id),
+          );
+        }
 
-        // Re-check after the async distill: only reset if STILL idle and live.
+        // Re-check after the async distill: only reset if STILL idle and live,
+        // AND only when the distill produced a valid digest (distillKind="ok").
+        // A discarded distill means no new digest was written — resetting the
+        // session would throw away live context for nothing.
+        if (!shouldResetSession(distillKind)) return;
         const live2 = agents.getById(agent.id);
         if (live2 === null || live2.status === "paused" || live2.status === "terminated") return;
         if (router.getCurrentThread(agent.id) !== null) return; // became busy again

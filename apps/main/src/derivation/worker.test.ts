@@ -115,15 +115,12 @@ describe("createDerivationWorker", () => {
     expect(createSkillCandidatesRepository(db).listPending("c1")).toHaveLength(0);
   });
 
-  it("skips the run when the daily cap is already reached", async () => {
-    const insert = db.prepare(
-      `INSERT INTO cost_events (id, company_id, agent_id, project_id, issue_id, adapter_name,
-         model, session_id, input_tokens, output_tokens, cache_creation_tokens,
-         cache_read_tokens, cost_cents_estimate, occurred_at)
-       VALUES (?, 'c1', 'a1', NULL, NULL, 'derivation', 'claude-sonnet-4-6', NULL,
-         1, 1, 0, 0, 0, ?)`,
-    );
-    for (let i = 0; i < 3; i++) insert.run(`ce_${i}`, 1000);
+  it("skips the run when the daily cap is already reached (based on attempt count)", async () => {
+    // Seed derivation_attempts to simulate 3 attempts already consumed today.
+    // The default cap is 3 (from AppSettingsSchema), so the 4th call must be skipped.
+    db.prepare(
+      `INSERT INTO derivation_attempts (agent_id, day_utc, count) VALUES ('a1', 0, 3)`,
+    ).run();
     let ran = false;
     const worker = createDerivationWorker({
       db,
@@ -137,6 +134,41 @@ describe("createDerivationWorker", () => {
     await worker.processJob(issueJob);
     expect(ran).toBe(false);
     expect(createSkillCandidatesRepository(db).listPending("c1")).toHaveLength(0);
+  });
+
+  it("counts a failing attempt toward the daily cap so N failures block the (N+1)th run", async () => {
+    // Cap = 3 (default). Run 3 jobs that all fail (runner throws). Each failure
+    // should record an attempt. The 4th job must be skipped without running.
+    const failingWorker = createDerivationWorker({
+      db,
+      runDerivation: () => Promise.reject(new Error("auth outage")),
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    await failingWorker.processJob(issueJob);
+    await failingWorker.processJob(issueJob);
+    await failingWorker.processJob(issueJob);
+
+    // All 3 failures should have been swallowed (never throws).
+    let ran = false;
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: () => {
+        ran = true;
+        return Promise.resolve(skillOutput("x"));
+      },
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    await worker.processJob(issueJob);
+    expect(ran).toBe(false);
+    expect(createSkillCandidatesRepository(db).listPending("c1")).toHaveLength(0);
+
+    // Verify the attempt counter records 3 attempts (one per failing run).
+    const row = db.prepare(`SELECT count FROM derivation_attempts WHERE agent_id = 'a1'`).get() as {
+      count: number;
+    };
+    expect(row.count).toBe(3);
   });
 
   it("never throws when the runner fails", async () => {
@@ -406,6 +438,132 @@ describe("createDerivationWorker — memory triggers", () => {
     expect(memories[0]?.kind).toBe("preference");
     expect(memories[0]?.body).toBe("never force-push without asking");
     expect((db.prepare("SELECT COUNT(*) AS n FROM inbox_items").get() as { n: number }).n).toBe(0);
+  });
+
+  it("does NOT create a second memory when the same goal_achieved sourceEventId fires again", async () => {
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: () => Promise.resolve(memoryOutput("prefer docker compose for staging")),
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    const goalJob: DerivationJob = {
+      trigger: "goal_achieved",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      goalId: "g1",
+    };
+    // First fire — creates the memory.
+    await worker.processJob(goalJob);
+    expect(createMemoriesRepository(db).listCompanyWide("c1")).toHaveLength(1);
+
+    // Second fire with the same sourceEventId (retry / reconciliation) — must NOT duplicate.
+    await worker.processJob(goalJob);
+    expect(createMemoriesRepository(db).listCompanyWide("c1")).toHaveLength(1);
+  });
+
+  it("short-circuits a duplicate sourceEventId BEFORE runDerivation and without recording an attempt", async () => {
+    let runCount = 0;
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: () => {
+        runCount += 1;
+        return Promise.resolve(memoryOutput("prefer docker compose for staging"));
+      },
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    const goalJob: DerivationJob = {
+      trigger: "goal_achieved",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      goalId: "g1",
+    };
+    // First fire creates the memory and records exactly one attempt.
+    await worker.processJob(goalJob);
+    expect(runCount).toBe(1);
+    const attemptsAfterFirst = (
+      db.prepare("SELECT COALESCE(SUM(count), 0) AS n FROM derivation_attempts").get() as {
+        n: number;
+      }
+    ).n;
+    expect(attemptsAfterFirst).toBe(1);
+
+    // Second fire with the same sourceEventId must short-circuit BEFORE the
+    // runner is ever invoked and must NOT consume another attempt-budget slot.
+    await worker.processJob(goalJob);
+    expect(runCount).toBe(1); // runDerivation never called again
+    const attemptsAfterSecond = (
+      db.prepare("SELECT COALESCE(SUM(count), 0) AS n FROM derivation_attempts").get() as {
+        n: number;
+      }
+    ).n;
+    expect(attemptsAfterSecond).toBe(1); // still 1 — no new attempt recorded
+  });
+
+  it("creates a memory for a DIFFERENT sourceEventId even if one already exists for another event", async () => {
+    // Seed a second goal so we can fire two different goal_achieved events.
+    db.prepare(
+      `INSERT INTO goals (id, company_id, title, description, level, status, created_at, updated_at)
+       VALUES ('g2','c1','Ship v2','d','task','achieved',10,10)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO activity_events (id, company_id, actor_kind, actor_id, action, entity_kind,
+         entity_id, agent_id, payload_json, created_at)
+       VALUES ('evt_2','c1','agent','a1','goal.achieved','goal','g2','a1','{}',10)`,
+    ).run();
+
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: () => Promise.resolve(memoryOutput("prefer docker compose for staging")),
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+
+    // Fire event 1.
+    await worker.processJob({
+      trigger: "goal_achieved",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      goalId: "g1",
+    });
+    expect(createMemoriesRepository(db).listCompanyWide("c1")).toHaveLength(1);
+
+    // Fire event 2 — different sourceEventId → new memory.
+    await worker.processJob({
+      trigger: "goal_achieved",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_2",
+      goalId: "g2",
+    });
+    expect(createMemoriesRepository(db).listCompanyWide("c1")).toHaveLength(2);
+  });
+
+  it("does NOT create a second preference memory when the same approval_rejected sourceEventId fires again", async () => {
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: () => Promise.resolve(memoryOutput("never force-push without asking")),
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    const rejectedJob: DerivationJob = {
+      trigger: "approval_rejected",
+      companyId: "c1",
+      agentId: "a1",
+      sourceEventId: "evt_1",
+      approvalId: "ap1",
+    };
+    // First fire.
+    await worker.processJob(rejectedJob);
+    expect(createMemoriesRepository(db).listByAgent("a1")).toHaveLength(1);
+
+    // Second fire — must be deduped.
+    await worker.processJob(rejectedJob);
+    expect(createMemoriesRepository(db).listByAgent("a1")).toHaveLength(1);
   });
 
   it("writes nothing when the memory derivation discards", async () => {
