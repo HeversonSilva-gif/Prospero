@@ -70,6 +70,11 @@ describe("MCP tools — issues", () => {
         ctx,
       ),
     ) as { id: string };
+    // done is only reachable from doing/review (I-sm guard) — move there first.
+    await (tool("update_issue").run as (i: unknown, c: unknown) => Promise<string>)(
+      { id: created.id, status: "doing" },
+      ctx,
+    );
     await (tool("update_issue").run as (i: unknown, c: unknown) => Promise<string>)(
       { id: created.id, status: "done" },
       ctx,

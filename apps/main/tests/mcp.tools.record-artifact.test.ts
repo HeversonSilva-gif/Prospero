@@ -127,7 +127,16 @@ describe("MCP record_artifact", () => {
 
 describe("MCP update_issue soft warning on done without artifact", () => {
   it("includes warning when status='done' is set with zero artifacts", async () => {
-    const { ctx, issueId } = setup();
+    const { ctx, db, issueId } = setup();
+    // done is only reachable from doing/review (I-sm guard).
+    createIssuesRepository(db).update(
+      issueId,
+      { status: "doing" },
+      {
+        actorKind: "agent",
+        actorId: "ag_1",
+      },
+    );
     const result = JSON.parse(
       await tool("update_issue").run({ id: issueId, status: "done" }, ctx),
     ) as { id: string; status: string; warning?: string };
@@ -136,7 +145,15 @@ describe("MCP update_issue soft warning on done without artifact", () => {
   });
 
   it("omits warning when at least one artifact exists", async () => {
-    const { ctx, issueId } = setup();
+    const { ctx, db, issueId } = setup();
+    createIssuesRepository(db).update(
+      issueId,
+      { status: "doing" },
+      {
+        actorKind: "agent",
+        actorId: "ag_1",
+      },
+    );
     await tool("record_artifact").run({ issue_id: issueId, kind: "output_text", ref: "o1" }, ctx);
     const result = JSON.parse(
       await tool("update_issue").run({ id: issueId, status: "done" }, ctx),
