@@ -302,6 +302,82 @@ describe("memories-repository — purgeSoftDeleted", () => {
   });
 });
 
+describe("memories-repository — findBySourceEvent", () => {
+  it("returns null when no memory has the given source_event_id", () => {
+    const db = newDb();
+    db.prepare(
+      `INSERT INTO activity_events (id, company_id, actor_kind, actor_id, action, entity_kind,
+         entity_id, agent_id, payload_json, created_at)
+       VALUES ('evt_1','c1','agent','a1','goal.achieved','goal','g1','a1','{}',0)`,
+    ).run();
+    const repo = createMemoriesRepository(db);
+    expect(repo.findBySourceEvent("evt_1")).toBeNull();
+  });
+
+  it("returns the memory when one exists with that source_event_id", () => {
+    const db = newDb();
+    db.prepare(
+      `INSERT INTO activity_events (id, company_id, actor_kind, actor_id, action, entity_kind,
+         entity_id, agent_id, payload_json, created_at)
+       VALUES ('evt_1','c1','agent','a1','goal.achieved','goal','g1','a1','{}',0)`,
+    ).run();
+    const repo = createMemoriesRepository(db);
+    const created = repo.create({
+      companyId: "c1",
+      agentId: null,
+      kind: "retrospective",
+      body: "prefer docker compose for staging",
+      sourceEventId: "evt_1",
+    });
+    const found = repo.findBySourceEvent("evt_1");
+    expect(found).not.toBeNull();
+    expect(found!.id).toBe(created.id);
+    expect(found!.sourceEventId).toBe("evt_1");
+  });
+
+  it("does NOT return a soft-deleted memory for the same source_event_id", () => {
+    const db = newDb();
+    db.prepare(
+      `INSERT INTO activity_events (id, company_id, actor_kind, actor_id, action, entity_kind,
+         entity_id, agent_id, payload_json, created_at)
+       VALUES ('evt_1','c1','agent','a1','goal.achieved','goal','g1','a1','{}',0)`,
+    ).run();
+    const repo = createMemoriesRepository(db);
+    const m = repo.create({
+      companyId: "c1",
+      agentId: null,
+      kind: "retrospective",
+      body: "soft-deleted retrospective",
+      sourceEventId: "evt_1",
+    });
+    repo.softDelete(m.id);
+    expect(repo.findBySourceEvent("evt_1")).toBeNull();
+  });
+
+  it("returns null for an unrelated source_event_id when another event has a memory", () => {
+    const db = newDb();
+    db.prepare(
+      `INSERT INTO activity_events (id, company_id, actor_kind, actor_id, action, entity_kind,
+         entity_id, agent_id, payload_json, created_at)
+       VALUES ('evt_1','c1','agent','a1','goal.achieved','goal','g1','a1','{}',0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO activity_events (id, company_id, actor_kind, actor_id, action, entity_kind,
+         entity_id, agent_id, payload_json, created_at)
+       VALUES ('evt_2','c1','agent','a1','goal.achieved','goal','g2','a1','{}',1)`,
+    ).run();
+    const repo = createMemoriesRepository(db);
+    repo.create({
+      companyId: "c1",
+      agentId: null,
+      kind: "retrospective",
+      body: "for evt_1",
+      sourceEventId: "evt_1",
+    });
+    expect(repo.findBySourceEvent("evt_2")).toBeNull();
+  });
+});
+
 describe("memories-repository — decay support", () => {
   it("listDecayCandidates returns active, non-pinned, non-identity memories across companies", () => {
     const db = newDb();

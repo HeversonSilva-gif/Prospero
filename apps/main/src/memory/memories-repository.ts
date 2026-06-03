@@ -88,6 +88,9 @@ export type MemoriesRepository = {
   // v0.2.4: record that the given memory ids were surfaced (read/recalled).
   // Updates last_accessed and increments access_count. No-op on empty array.
   recordAccess(ids: string[]): void;
+  // v0.2.4: dedup guard — returns the first non-soft-deleted memory that was
+  // derived from the given source event id, or null if none exists.
+  findBySourceEvent(sourceEventId: string): Memory | null;
 };
 
 export const createMemoriesRepository = (db: Database.Database): MemoriesRepository => {
@@ -129,6 +132,9 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
   );
   const bumpTrustStmt = db.prepare(
     "UPDATE memories SET trust = MAX(0, MIN(1, trust + ?)) WHERE id = ?",
+  );
+  const bySourceEvent = db.prepare(
+    "SELECT * FROM memories WHERE source_event_id = ? AND soft_deleted = 0 LIMIT 1",
   );
 
   const getById = (id: string): Memory | null => {
@@ -232,6 +238,10 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
         }
       });
       tx();
+    },
+    findBySourceEvent(sourceEventId) {
+      const row = bySourceEvent.get(sourceEventId) as MemoryRow | undefined;
+      return row === undefined ? null : rowToMemory(row);
     },
     search(query, opts = {}) {
       const limit = opts.limit ?? 50;
