@@ -216,6 +216,32 @@ describe("decide_batch", () => {
   });
 });
 
+const listPendingTool = toolDefinitions.find((t) => t.name === "list_pending_requests")!;
+
+describe("list_pending_requests", () => {
+  it("returns nothing to a non-CEO caller and the real list to the CEO", async () => {
+    const env = setup();
+    const repo = createApprovalsRepository(env.db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "manager_request",
+      payload: { topic: "hire", summary: "secret payload" },
+    });
+    repo.setRouted(apv.id, "ceo");
+
+    const worker = JSON.parse(await listPendingTool.run({}, { ...env.ctx, agentId: "bot1" })) as {
+      pending: unknown[];
+    };
+    expect(worker.pending).toEqual([]);
+
+    const ceo = JSON.parse(await listPendingTool.run({}, env.ctx)) as {
+      pending: { approval_id: string }[];
+    };
+    expect(ceo.pending).toHaveLength(1);
+    expect(ceo.pending[0]?.approval_id).toBe(apv.id);
+  });
+});
+
 const reqPermTool = toolDefinitions.find((t) => t.name === "request_permission")!;
 
 describe("request_permission — deferred (slot reclaim)", () => {

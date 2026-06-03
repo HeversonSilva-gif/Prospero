@@ -1287,6 +1287,12 @@ export const toolDefinitions = [
     inputSchema: z.object({}),
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (_input: unknown, ctx: ToolContext): Promise<string> => {
+      // Only the CEO has requests routed to them; a non-CEO caller must not see
+      // (and could otherwise read) other agents' approval payloads. Audit
+      // 2026-06-03 Facet 4 M7.
+      if (!callerIsCeo(ctx)) {
+        return JSON.stringify({ pending: [] });
+      }
       const repo = createApprovalsRepository(ctx.db);
       const pending = repo.listPendingRoutedToCeo(ctx.companyId);
       return JSON.stringify({
