@@ -37,6 +37,23 @@ export type GateDecision =
 
 const FS_TOOLS = new Set(["Read", "Write", "Edit", "Glob", "Grep", "MultiEdit", "NotebookEdit"]);
 
+// C1 (Conectores audit): X publishing tools whose CONTENT is screened in auto mode.
+const X_POST_TOOLS = new Set(["post_to_x", "reply_on_x"]);
+
+// Conservative screen for automated X content. Flags the aggressive-automation patterns
+// X's policy targets (mention spam, link spam, hashtag stuffing) so they escalate to a
+// human even in auto mode. Deliberately lenient — a normal post/reply passes — so it adds
+// a floor without disabling the autonomous X loop. Pure + exported for unit testing.
+export const screenAutomatedXContent = (text: string): { risky: boolean; reason: string } => {
+  const mentions = (text.match(/(^|\s)@\w{1,15}/g) ?? []).length;
+  const links = (text.match(/https?:\/\//gi) ?? []).length;
+  const hashtags = (text.match(/(^|\s)#\w+/g) ?? []).length;
+  if (mentions > 3) return { risky: true, reason: `${String(mentions)} menções` };
+  if (links > 2) return { risky: true, reason: `${String(links)} links` };
+  if (hashtags > 5) return { risky: true, reason: `${String(hashtags)} hashtags` };
+  return { risky: false, reason: "" };
+};
+
 const expandHome = (p: string): string =>
   p.startsWith("~/") || p === "~" ? p.replace(/^~/, homedir()) : p;
 
@@ -247,6 +264,21 @@ export const evaluatePermission = (input: GateInput): GateDecision => {
   }
 
   if (agent.mode === "auto") {
+    // C1 (Conectores audit): in auto mode the gate auto-approves everything and there is
+    // no content floor beneath it. An autonomous X reply-bot that mass-mentions / link-
+    // spams violates X's automation policy and risks suspension (the X account is P1).
+    // So we screen X post/reply text and escalate ONLY the clearly policy-risky patterns
+    // to a human — a normal post/reply still auto-approves, preserving autonomy.
+    if (X_POST_TOOLS.has(toolName)) {
+      const text =
+        typeof (toolInput as { text?: unknown } | null)?.text === "string"
+          ? (toolInput as { text: string }).text
+          : "";
+      const screen = screenAutomatedXContent(text);
+      if (screen.risky) {
+        return { action: "request_user", reason: `conteúdo X para revisão: ${screen.reason}` };
+      }
+    }
     return { action: "allow" };
   }
 

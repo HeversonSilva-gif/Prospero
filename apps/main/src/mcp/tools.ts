@@ -251,6 +251,58 @@ const gateAction = async (
     : { decision: "deny", message: result.message };
 };
 
+// I3 (Conectores audit): a conservative single-address email check (local@domain.tld,
+// no spaces/commas/newlines — newlines also block header injection). Not RFC-complete,
+// but it rejects the obviously-bogus / abusive targets the gate prose only described.
+const isValidEmailAddress = (raw: string): boolean => {
+  const s = raw.trim();
+  return /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]{2,}$/.test(s) && s.length <= 320;
+};
+
+// M2 (Conectores audit): a per-hour cap WITHOUT human approval, for side-effecting
+// actions that auto-run (e.g. a preview deploy). Production deploys consume a cap slot
+// via gateAction; previews skipped the gate entirely and so were unbounded — burning
+// Cloudflare build minutes. This counts a slot the same way (a decided approval row) so
+// the deploy_app cap spans preview + production. Returns false (with a message) when the
+// hourly cap is already hit.
+const enforceActionCapOnly = (
+  ctx: ToolContext,
+  toolName: string,
+  toolInput: Record<string, unknown>,
+): { ok: true } | { ok: false; message: string } => {
+  const cap = checkActionCap(ctx.db, {
+    companyId: ctx.companyId,
+    agentId: ctx.agentId,
+    toolName,
+    now: Date.now(),
+  });
+  if (cap.exceeded) {
+    createGuardrailAlert(ctx.db, {
+      companyId: ctx.companyId,
+      actorId: ctx.agentId,
+      title: "Limite de ações por hora atingido",
+      preview: `${toolName}: ${cap.count}/${cap.limit} por hora (${cap.scope === "company" ? "teto da empresa" : "limite do agente"})`,
+    });
+    return {
+      ok: false,
+      message: `Limite de ${cap.limit}/hora atingido para ${toolName}. Tente novamente mais tarde.`,
+    };
+  }
+  // Consume a slot so the cap actually bounds these auto-run actions.
+  try {
+    const approvals = createApprovalsRepository(ctx.db);
+    const a = approvals.create({
+      agentId: ctx.agentId,
+      kind: "tool_call",
+      payload: { tool_name: toolName, tool_input: toolInput, tool_use_id: randomUUID() },
+    });
+    approvals.decide(a.id, "approved", "system");
+  } catch (err) {
+    console.warn("[gate] failed to record auto action-cap slot", err);
+  }
+  return { ok: true };
+};
+
 // Polls for the result the MAIN-process `x.post` handler writes back (keyed by
 // postId) so post_to_x / reply_on_x return the tweet URL — or a clear error — to
 // the agent in the same turn. Mirrors waitForResolution's fence-file pattern.
@@ -1131,11 +1183,18 @@ export const toolDefinitions = [
       const windowMs = (input.days ?? 30) * 24 * 60 * 60_000;
       const since = Date.now() - windowMs;
       const repo = createStripePaymentsRepository(ctx.db);
-      const totals = repo.totalsByCompany(ctx.companyId);
+      // C3 (Conectores audit): count, currency totals and the recent list are all WINDOWED
+      // by `days` — previously the count/totals were lifetime while `recent` was windowed,
+      // so the CEO saw "30d, 47 payments, no revenue". Totals are net of refunds (I5).
+      const totals = repo.windowTotals(ctx.companyId, since);
+      const lifetime = repo.totalsByCompany(ctx.companyId);
       const recent = repo.listByCompany(ctx.companyId, since).slice(0, 20);
       return JSON.stringify({
+        windowDays: input.days ?? 30,
         totalPayments: totals.count,
         totalByCurrency: totals.amountByCurrency,
+        lifetimePayments: lifetime.count,
+        lifetimeByCurrency: lifetime.amountByCurrency,
         recent: recent.map((p) => ({ amount: p.amount, currency: p.currency, at: p.createdAt })),
       });
     },
@@ -1181,6 +1240,16 @@ export const toolDefinitions = [
         );
         if (outcome.decision !== "allow") {
           return JSON.stringify({ ok: false, status: outcome.decision, message: outcome.message });
+        }
+      } else {
+        // M2: a preview auto-runs (no approval) but still consumes the deploy_app cap so
+        // it can't be fired in an unbounded loop.
+        const capped = enforceActionCapOnly(ctx, "deploy_app", {
+          project_name: input.project_name,
+          mode: "preview",
+        });
+        if (!capped.ok) {
+          return JSON.stringify({ ok: false, status: "deny", message: capped.message });
         }
       }
       return runCloudflareDeploy(ctx, input);
@@ -1257,6 +1326,18 @@ export const toolDefinitions = [
       input: { to: string | string[]; subject: string; body: string; in_reply_to?: string },
       ctx: ToolContext,
     ): Promise<string> => {
+      // I3 (Conectores audit): validate every recipient is a syntactically real address
+      // before doing anything (no gate, no send). "Send to opted-in addresses, no bulk"
+      // was only prose; this enforces at least that the target is a well-formed mailbox,
+      // so the agent can't fire mail at arbitrary garbage / header-injection strings.
+      const recipients = Array.isArray(input.to) ? input.to : [input.to];
+      const bad = recipients.filter((r) => !isValidEmailAddress(r));
+      if (recipients.length === 0 || bad.length > 0) {
+        return JSON.stringify({
+          ok: false,
+          error: `Destinatário inválido: ${bad.join(", ") || "(vazio)"}. Use endereços de e-mail válidos.`,
+        });
+      }
       const toolInput: Record<string, unknown> = {
         to: input.to,
         subject: input.subject,
@@ -1289,15 +1370,15 @@ export const toolDefinitions = [
       const since = Date.now() - windowDays * 24 * 60 * 60_000;
       const cost = createCostsRepository(ctx.db).getCompanyTotalSince(ctx.companyId, since);
       const payments = createStripePaymentsRepository(ctx.db);
-      const revenueByCurrency: Record<string, number> = {};
-      for (const p of payments.listByCompany(ctx.companyId, since)) {
-        revenueByCurrency[p.currency] = (revenueByCurrency[p.currency] ?? 0) + p.amount;
-      }
+      // C3 (Conectores audit): revenue AND count are both windowed (and net of refunds —
+      // I5). Previously revenueByCurrency was windowed but the count was lifetime, so the
+      // "am I profitable?" read was internally inconsistent.
+      const windowed = payments.windowTotals(ctx.companyId, since);
       return JSON.stringify({
         windowDays,
         costUsd: cost.cents / 100,
-        revenueByCurrency,
-        revenueCount: payments.totalsByCompany(ctx.companyId).count,
+        revenueByCurrency: windowed.amountByCurrency,
+        revenueCount: windowed.count,
       });
     },
   },

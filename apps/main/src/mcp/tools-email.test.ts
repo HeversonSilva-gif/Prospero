@@ -74,6 +74,32 @@ describe("send_email", () => {
     expect(out).toEqual({ ok: true, messageId: "m1" });
   });
 
+  it("rejects a malformed recipient before gating (I3)", async () => {
+    const { db, dir } = setup();
+    const emit = vi.fn();
+    const out = JSON.parse(
+      await sendTool.run({ to: "not-an-email", subject: "s", body: "b" }, ctxFor(db, dir, emit)),
+    ) as { ok: boolean; error?: string };
+    expect(out.ok).toBe(false);
+    expect(out.error).toMatch(/destinat/i); // "destinatário inválido"
+    expect(emit).not.toHaveBeenCalled();
+    // no approval request was even created
+    expect(readdirSync(dir).some((n) => n.endsWith(".req.json"))).toBe(false);
+  });
+
+  it("rejects when one of several recipients is malformed (I3)", async () => {
+    const { db, dir } = setup();
+    const emit = vi.fn();
+    const out = JSON.parse(
+      await sendTool.run(
+        { to: ["ok@x.com", "broken@", "fine@y.com"], subject: "s", body: "b" },
+        ctxFor(db, dir, emit),
+      ),
+    ) as { ok: boolean; error?: string };
+    expect(out.ok).toBe(false);
+    expect(emit).not.toHaveBeenCalled();
+  });
+
   it("does NOT send when the gate rejects", async () => {
     const { db, dir } = setup();
     const emit = vi.fn();
