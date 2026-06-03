@@ -558,7 +558,7 @@ export const registerOrchestratorHandlers = (
     const plan = plansRepo.getById(planId);
     const goal = goalsRepo.getById(goalId);
     if (plan === null || goal === null || plan.status !== "critiquing") return;
-    const { vagueIssues } = await critiqueGoalPlan(
+    const { vagueIssues, coverageGaps } = await critiqueGoalPlan(
       { db, runDerivation: (i) => runDerivation({ runProcess: defaultRunProcess }, i) },
       {
         goalTitle: goal.title,
@@ -569,16 +569,31 @@ export const registerOrchestratorHandlers = (
       },
     );
     const attempts = goalPlanRevisions.get(goalId) ?? 0;
+    // I-cov (audit 2026-06-03): coverage gaps (goal requirements no issue
+    // delivers) count toward "needs revision" alongside vague issues — a plan
+    // that misses part of the goal would otherwise sail through and the goal
+    // could never be achieved.
     const outcome = decidePlanOutcome({
-      flaggedCount: vagueIssues.length,
+      flaggedCount: vagueIssues.length + coverageGaps.length,
       attempts,
       cap: GOAL_PLAN_REVISION_CAP,
     });
     if (outcome === "revise") {
       goalPlanRevisions.set(goalId, attempts + 1);
-      const feedback =
-        "Some issues are too vague (no concrete deliverable / done-when):\n" +
-        vagueIssues.map((v) => `- ${v.title}: ${v.feedback}`).join("\n");
+      const parts: string[] = [];
+      if (vagueIssues.length > 0) {
+        parts.push(
+          "Some issues are too vague (no concrete deliverable / done-when):\n" +
+            vagueIssues.map((v) => `- ${v.title}: ${v.feedback}`).join("\n"),
+        );
+      }
+      if (coverageGaps.length > 0) {
+        parts.push(
+          "The plan does not fully cover the goal — add issues for:\n" +
+            coverageGaps.map((g) => `- ${g}`).join("\n"),
+        );
+      }
+      const feedback = parts.join("\n\n");
       // Re-engage the CEO via the existing goal-plan feedback loop. The goal is
       // still 'planning' and the plan stays 'critiquing' (hidden) until resubmit.
       deliverSystemMessage(plan.proposedByAgentId, formatGoalPlanRequest(goal, feedback));

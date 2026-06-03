@@ -25,15 +25,22 @@ export const buildIssueCritiquePrompt = (
     '"done-when" — i.e. an engineer could not tell when it is finished, or it is',
     "an umbrella task hiding several jobs.",
     "",
+    "Also judge COVERAGE: taken together, do these issues cover everything the",
+    "goal requires? List any required outcome of the goal that NO issue delivers",
+    "(a missing piece of work). Completing every issue should achieve the goal.",
+    "",
     `Goal: ${goalTitle}`,
     goalDescription.trim() === "" ? "" : `Goal detail: ${goalDescription}`,
     "",
     "Issues:",
     ...issues.map((i, n) => `${n + 1}. ${i.title} — ${i.description}`),
     "",
-    'Reply with ONLY a JSON object: {"vagueIssues": [{"title": string, "feedback": string}]}.',
+    "Reply with ONLY a JSON object:",
+    '{"vagueIssues": [{"title": string, "feedback": string}], "coverageGaps": [string]}.',
     "feedback is one short sentence telling the author how to make that issue",
-    "concrete (scope + done-when). If every issue is concrete, return an empty array.",
+    "concrete (scope + done-when). coverageGaps is one short sentence per missing",
+    "piece of work. If every issue is concrete, vagueIssues is empty. If the set",
+    "fully covers the goal, coverageGaps is empty.",
   ].join("\n");
 
 const extractJson = (text: string): unknown => {
@@ -62,6 +69,13 @@ const coerce = (raw: unknown): VagueIssue[] => {
     .map((v) => ({ title: v.title, feedback: v.feedback }));
 };
 
+const coerceCoverage = (raw: unknown): string[] => {
+  if (raw === null || typeof raw !== "object") return [];
+  const arr = (raw as { coverageGaps?: unknown }).coverageGaps;
+  if (!Array.isArray(arr)) return [];
+  return arr.filter((g): g is string => typeof g === "string" && g.trim() !== "");
+};
+
 export type GoalPlanCritiqueDeps = {
   db: Database.Database;
   runDerivation: (input: {
@@ -82,7 +96,7 @@ export type GoalPlanCritiqueInput = {
 export const critiqueGoalPlan = async (
   deps: GoalPlanCritiqueDeps,
   input: GoalPlanCritiqueInput,
-): Promise<{ vagueIssues: VagueIssue[] }> => {
+): Promise<{ vagueIssues: VagueIssue[]; coverageGaps: string[] }> => {
   let result: RunDerivationResult;
   try {
     result = await deps.runDerivation({
@@ -91,7 +105,7 @@ export const critiqueGoalPlan = async (
       env: input.env,
     });
   } catch {
-    return { vagueIssues: [] };
+    return { vagueIssues: [], coverageGaps: [] };
   }
   if (input.companyId !== null) {
     createCostsRepository(deps.db).insert({
@@ -115,5 +129,6 @@ export const critiqueGoalPlan = async (
       occurredAt: Date.now(),
     });
   }
-  return { vagueIssues: coerce(extractJson(result.text)) };
+  const parsed = extractJson(result.text);
+  return { vagueIssues: coerce(parsed), coverageGaps: coerceCoverage(parsed) };
 };
