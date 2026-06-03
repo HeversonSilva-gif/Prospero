@@ -3,6 +3,29 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.3 — 2026-06-02
+
+O **novo visual "Estúdio"** chega ao app — junto com os guardrails e a medição de
+custo da v0.2.2, agora tudo na mesma versão. A interface inteira foi repaginada:
+paleta jade, tipografia IBM Plex, ícones Phosphor e telas mais calmas e diretas.
+
+### Mudado
+
+- **Interface redesenhada (Estúdio).** Início, Decisões, Equipe, Conversar, Ajustes e a
+  criação de empresa (Gênese) ganharam um visual coeso e mais legível — jade + IBM Plex
+  + Phosphor, sem emojis. Mesma lógica de antes, repaginada.
+
+### Incluído desde a v0.2.2
+
+- **Proteção contra injeção em e-mails** e **freio anti-disparada (limite de ações por
+  hora)** — os guardrails de segurança — além da **medição de custo de tokens**.
+
+### Corrigido
+
+- **CI volta ao verde nos três sistemas.** Dois problemas antigos de teste (caminhos
+  fixos de Windows que quebravam no Linux/macOS, e uma corrida num teste de socket que
+  travava no macOS) foram corrigidos. Sem efeito no app — só saúde do projeto.
+
 ## v0.2.2 — 2026-06-02
 
 Uma virada de **segurança e fundação de custo**: sem telas novas, mas com o agente
