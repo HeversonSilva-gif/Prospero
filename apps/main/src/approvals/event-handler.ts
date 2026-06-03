@@ -103,6 +103,22 @@ export const handleApprovalEvent = (event: ApprovalEventInput): void => {
       agentId: apv.agentId,
       payload: { approvalId, decision: status, decidedBy: event.agentId },
     });
+    if (status === "rejected") {
+      // #6 (audit 2026-06-03): also emit a distinct approval.rejected activity so
+      // the derivation dispatcher learns the org's preference — "what we don't
+      // want". Without it, the manager_request.decided audit row never triggered
+      // a job, and a whole class of rejections taught nothing. Scoped to the
+      // requester (apv.agentId); the dispatcher drops null-agent rows.
+      tryGetRecorder()?.recordActivity({
+        companyId: event.companyId,
+        actor: { kind: "agent", id: event.agentId },
+        action: "approval.rejected",
+        entityKind: "approval",
+        entityId: approvalId,
+        agentId: apv.agentId,
+        payload: { approvalId, note },
+      });
+    }
     return;
   }
 

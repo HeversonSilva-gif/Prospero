@@ -8,6 +8,8 @@ import {
   type ApprovalEngineBridge,
 } from "./index.js";
 import { handleApprovalEvent } from "./event-handler.js";
+import { createRecorder } from "../activity/recorder.js";
+import { _setRecorderForTest } from "../activity/index.js";
 import type { Agent } from "@prospero/shared";
 
 const ceo = { id: "ceo1", companyId: "c1", status: "idle", name: "CEO" } as unknown as Agent;
@@ -51,6 +53,7 @@ describe("handleApprovalEvent", () => {
   });
   afterEach(() => {
     __resetApprovalEngine();
+    _setRecorderForTest(null);
   });
 
   it("is a no-op when the engine bridge is unset", () => {
@@ -184,6 +187,57 @@ describe("handleApprovalEvent", () => {
     const after = repo.getById(apv.id);
     expect(after?.status).toBe("rejected");
     expect(bridge.createCeoDecisionCard).toHaveBeenCalledWith(apv.id, "rejected");
+  });
+
+  it("records an approval.rejected activity on a manager_request rejection so the org learns (#6)", () => {
+    const bridge = makeBridge(db);
+    setApprovalEngineBridge(bridge);
+    _setRecorderForTest(createRecorder(db, () => {}, { devMode: false }));
+    const repo = createApprovalsRepository(db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "manager_request",
+      payload: { topic: "hire", summary: "x", thread_id: "th1" },
+    });
+    repo.setRouted(apv.id, "ceo");
+    handleApprovalEvent({
+      kind: "approval.decided",
+      agentId: "ceo1",
+      companyId: "c1",
+      payload: { approvalId: apv.id, decision: "reject", note: "no", kind: "manager_request" },
+    });
+    const rows = db
+      .prepare("SELECT entity_id, agent_id FROM activity_events WHERE action = 'approval.rejected'")
+      .all() as { entity_id: string; agent_id: string | null }[];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.entity_id).toBe(apv.id);
+    // Scoped to the requester so the derivation dispatcher (agentId != null) fires.
+    expect(rows[0]?.agent_id).toBe("bot1");
+  });
+
+  it("does NOT record approval.rejected when the manager_request is approved (#6)", () => {
+    const bridge = makeBridge(db);
+    setApprovalEngineBridge(bridge);
+    _setRecorderForTest(createRecorder(db, () => {}, { devMode: false }));
+    const repo = createApprovalsRepository(db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "manager_request",
+      payload: { topic: "hire", summary: "x", thread_id: "th1" },
+    });
+    repo.setRouted(apv.id, "ceo");
+    handleApprovalEvent({
+      kind: "approval.decided",
+      agentId: "ceo1",
+      companyId: "c1",
+      payload: { approvalId: apv.id, decision: "approve", note: "ok", kind: "manager_request" },
+    });
+    const n = (
+      db
+        .prepare("SELECT COUNT(*) AS n FROM activity_events WHERE action = 'approval.rejected'")
+        .get() as { n: number }
+    ).n;
+    expect(n).toBe(0);
   });
 
   it("approval.decided manager_request is a no-op if already resolved", () => {
