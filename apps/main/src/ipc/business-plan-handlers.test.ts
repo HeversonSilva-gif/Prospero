@@ -32,6 +32,59 @@ const seed = () => {
   return p;
 };
 
+const makePlanOption = (
+  identity: { name: string; voice: string; proposedXHandle: string },
+  overrides: { recommended?: boolean; concept?: string; monetization?: string[] } = {},
+) => ({
+  concept: overrides.concept ?? "Default concept that is long enough.",
+  monetization: overrides.monetization ?? ["R$10/mo"],
+  marketing: { initialChannel: "x" as const, tactics: ["threads"], laterChannels: "later" },
+  identity,
+  dropped: [],
+  recommended: overrides.recommended ?? false,
+  whyRecommended: "best fit",
+  signals: { market: 70, virality: 60, community: 80, revenue12m: "R$ 2–6 mil/mês" },
+  projection: { month3: "R$300", month6: "R$600", month12: "R$1200", assumption: "steady growth" },
+});
+
+const seedWithOptions = () => {
+  const repo = createBusinessPlansRepository(db);
+  const options = [
+    makePlanOption(
+      { name: "Opção Zero", voice: "bold", proposedXHandle: "@op0" },
+      { recommended: true, concept: "Option 0 concept.", monetization: ["R$15/mo"] },
+    ),
+    makePlanOption(
+      { name: "Opção Um", voice: "casual", proposedXHandle: "@op1" },
+      { concept: "Option 1 concept.", monetization: ["R$20/mo"] },
+    ),
+    makePlanOption(
+      { name: "Opção Dois", voice: "professional", proposedXHandle: "@op2" },
+      { concept: "Option 2 concept.", monetization: ["R$25/mo"] },
+    ),
+  ];
+  const recommended = options[0]!;
+  const p = repo.insert({
+    companyId: "c1",
+    proposedByAgentId: "a1",
+    concept: recommended.concept,
+    monetization: recommended.monetization,
+    marketing: recommended.marketing,
+    identity: recommended.identity,
+    dropped: [],
+    options,
+  });
+  repo.markProposed(p.id);
+  return p;
+};
+
+const noopDeps = () => ({
+  runDerivation: () => Promise.reject(new Error("no telos in test")),
+  env: {} as Record<string, string>,
+  writeTelos: vi.fn(),
+  setTelosPath: vi.fn(),
+});
+
 describe("approveBusinessPlan (handler core)", () => {
   it("applies the plan and synthesizes TELOS (fail-soft) when the runner works", async () => {
     const p = seed();
@@ -60,5 +113,31 @@ describe("approveBusinessPlan (handler core)", () => {
       setTelosPath: vi.fn(),
     });
     expect(res.ok).toBe(true); // identity + rename still applied
+  });
+
+  // P4.2 — 3-options flow
+  describe("3-options flow", () => {
+    it("approving option 1 (non-recommended) builds company from option 1", async () => {
+      const p = seedWithOptions();
+      const res = await approveBusinessPlan(db, "/tmp", p.id, noopDeps(), 1);
+      expect(res.ok).toBe(true);
+      const plan = createBusinessPlansRepository(db).getById(p.id);
+      expect(plan?.status).toBe("approved");
+      expect(plan?.chosenIndex).toBe(1);
+      expect(plan?.identity.name).toBe("Opção Um");
+    });
+
+    it("out-of-range chosenIndex returns ok:false", async () => {
+      const p = seedWithOptions();
+      const res = await approveBusinessPlan(db, "/tmp", p.id, noopDeps(), 99);
+      expect(res.ok).toBe(false);
+    });
+
+    it("legacy plan (no options) with chosenIndex null still approves", async () => {
+      const p = seed();
+      const res = await approveBusinessPlan(db, "/tmp", p.id, noopDeps(), null);
+      expect(res.ok).toBe(true);
+      expect(createBusinessPlansRepository(db).getById(p.id)?.chosenIndex).toBeNull();
+    });
   });
 });

@@ -41,6 +41,12 @@ export type BusinessPlansRepository = {
   // in addition to setting status='approved'. Use instead of markApproved when
   // the genesis 3-options flow is active.
   markApprovedWithOption(id: string, chosenIndex: number): void;
+  // P4.2 — re-mirrors the flat columns (concept, monetization, pricing,
+  // marketing, identity, dropped, ownerProfile) from options[chosenIndex].
+  // Must be called BEFORE markApproved/markApprovedWithOption so that the
+  // flat columns reflect the chosen option at approval time.
+  // Returns false if the plan has no options or chosenIndex is out of range.
+  chooseOption(id: string, chosenIndex: number): boolean;
   markRejected(id: string, userFeedback: string | null): void;
   markProposed(id: string): void;
   supersedeActiveForCompany(companyId: string): void;
@@ -111,6 +117,18 @@ export const createBusinessPlansRepository = (db: Database.Database): BusinessPl
   const approveWithOptionStmt = db.prepare(
     "UPDATE business_plans SET status = 'approved', decided_at = ?, chosen_index = ? WHERE id = ?",
   );
+  const chooseOptionStmt = db.prepare(`
+    UPDATE business_plans
+    SET concept         = @concept,
+        monetization_json = @monetizationJson,
+        pricing_json    = @pricingJson,
+        research_json   = @researchJson,
+        owner_profile   = @ownerProfile,
+        marketing_json  = @marketingJson,
+        identity_json   = @identityJson,
+        dropped_json    = @droppedJson
+    WHERE id = @id
+  `);
   const rejectStmt = db.prepare(
     "UPDATE business_plans SET status = 'rejected', decided_at = ?, user_feedback = ? WHERE id = ?",
   );
@@ -160,6 +178,35 @@ export const createBusinessPlansRepository = (db: Database.Database): BusinessPl
     },
     markApprovedWithOption(id, chosenIndex) {
       approveWithOptionStmt.run(Date.now(), chosenIndex, id);
+    },
+    chooseOption(id, chosenIndex) {
+      const row = byIdStmt.get(id) as Row | undefined;
+      if (!row) return false;
+      if (row.options_json === null) return false;
+      const options = JSON.parse(row.options_json) as unknown[];
+      if (chosenIndex < 0 || chosenIndex >= options.length) return false;
+      const opt = options[chosenIndex] as {
+        concept: string;
+        monetization: string[];
+        pricing?: ChargeModel | null;
+        research?: BusinessResearch | null;
+        ownerProfile?: string | null;
+        marketing: BusinessPlanMarketing;
+        identity: BusinessPlanIdentity;
+        dropped: DroppedIdea[];
+      };
+      chooseOptionStmt.run({
+        id,
+        concept: opt.concept,
+        monetizationJson: JSON.stringify(opt.monetization),
+        pricingJson: opt.pricing != null ? JSON.stringify(opt.pricing) : null,
+        researchJson: opt.research != null ? JSON.stringify(opt.research) : null,
+        ownerProfile: opt.ownerProfile != null ? opt.ownerProfile : null,
+        marketingJson: JSON.stringify(opt.marketing),
+        identityJson: JSON.stringify(opt.identity),
+        droppedJson: JSON.stringify(opt.dropped),
+      });
+      return true;
     },
     markRejected(id, userFeedback) {
       rejectStmt.run(Date.now(), userFeedback, id);

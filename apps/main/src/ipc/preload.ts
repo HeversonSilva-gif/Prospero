@@ -472,8 +472,8 @@ contextBridge.exposeInMainWorld("prospero", {
   businessPlan: {
     getCurrent: () =>
       ipcRenderer.invoke(IPC.BUSINESS_PLAN_GET_CURRENT) as Promise<BusinessPlan | null>,
-    approve: (businessPlanId: string) =>
-      ipcRenderer.invoke(IPC.BUSINESS_PLAN_APPROVE, { businessPlanId }) as Promise<{
+    approve: (businessPlanId: string, chosenIndex: number | null = null) =>
+      ipcRenderer.invoke(IPC.BUSINESS_PLAN_APPROVE, { businessPlanId, chosenIndex }) as Promise<{
         ok: boolean;
         error?: string;
       }>,

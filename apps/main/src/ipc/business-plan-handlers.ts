@@ -32,11 +32,13 @@ export const approveBusinessPlan = async (
   userDataDir: string,
   businessPlanId: string,
   deps: ApproveBusinessPlanDeps,
+  chosenIndex: number | null = null,
 ): Promise<{ ok: boolean; error?: string }> => {
   const repo = createBusinessPlansRepository(db);
-  const plan = repo.getById(businessPlanId);
-  const applied = applyBusinessPlan(db, businessPlanId);
+  const applied = applyBusinessPlan(db, businessPlanId, chosenIndex);
   if (!applied.ok) return { ok: false, error: applied.error };
+  // Re-read the plan after apply so TELOS synthesis uses the chosen option's fields.
+  const plan = repo.getById(businessPlanId);
   if (plan !== null) {
     try {
       const draft = await synthesizeTelosWith(deps, db, plan);
@@ -74,15 +76,24 @@ export const registerBusinessPlanHandlers = (db: Database.Database): void => {
 
   ipcMain.handle(
     IPC.BUSINESS_PLAN_APPROVE,
-    async (_e, payload: { businessPlanId: string }): Promise<{ ok: boolean; error?: string }> => {
+    async (
+      _e,
+      payload: { businessPlanId: string; chosenIndex: number | null },
+    ): Promise<{ ok: boolean; error?: string }> => {
       const userDataDir = app.getPath("userData");
       const companies = createCompaniesRepository(db);
-      return approveBusinessPlan(db, userDataDir, payload.businessPlanId, {
-        runDerivation: (i) => runDerivation({ runProcess: defaultRunProcess }, i),
-        env: buildAuthEnv(db),
-        writeTelos: writeTelosFile,
-        setTelosPath: (companyId, telosPath) => companies.setTelosPath(companyId, telosPath),
-      });
+      return approveBusinessPlan(
+        db,
+        userDataDir,
+        payload.businessPlanId,
+        {
+          runDerivation: (i) => runDerivation({ runProcess: defaultRunProcess }, i),
+          env: buildAuthEnv(db),
+          writeTelos: writeTelosFile,
+          setTelosPath: (companyId, telosPath) => companies.setTelosPath(companyId, telosPath),
+        },
+        payload.chosenIndex,
+      );
     },
   );
 

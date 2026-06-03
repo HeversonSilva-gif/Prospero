@@ -31,7 +31,7 @@ export const useBusinessPlanStore = create<State>((set, get) => ({
   approve: async () => {
     const plan = get().plan;
     if (plan === null) throw new Error("no business plan loaded");
-    const result = await window.prospero.businessPlan.approve(plan.id);
+    const result = await window.prospero.businessPlan.approve(plan.id, get().chosenIndex);
     if (result.ok) set({ plan: null });
     return result;
   },

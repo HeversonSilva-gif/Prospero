@@ -343,7 +343,10 @@ declare global {
       };
       businessPlan: {
         getCurrent: () => Promise<BusinessPlan | null>;
-        approve: (businessPlanId: string) => Promise<{ ok: boolean; error?: string }>;
+        approve: (
+          businessPlanId: string,
+          chosenIndex?: number | null,
+        ) => Promise<{ ok: boolean; error?: string }>;
         reject: (businessPlanId: string, reason?: string) => Promise<{ ok: true }>;
       };
       activity: {

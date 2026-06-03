@@ -8,16 +8,31 @@ export type ApplyBusinessPlanResult =
 
 // Synchronous approval mutations. The slower, fail-soft TELOS synthesis runs in
 // the IPC handler after this returns (it needs the derivation runner + env).
+// `chosenIndex` — when non-null and the plan has options, re-mirrors
+// options[chosenIndex] into the flat columns before applying.
+// Pass null (or omit via legacy callers) for single-option legacy plans.
 export const applyBusinessPlan = (
   db: Database.Database,
   businessPlanId: string,
+  chosenIndex: number | null = null,
 ): ApplyBusinessPlanResult => {
   const plans = createBusinessPlansRepository(db);
-  const plan = plans.getById(businessPlanId);
+  let plan = plans.getById(businessPlanId);
   if (plan === null) return { ok: false, error: "business plan not found" };
   if (plan.status !== "proposed") {
     return { ok: false, error: `business plan is ${plan.status}, not proposed` };
   }
+
+  // P4.2 — re-mirror the chosen option into flat columns before applying.
+  if (chosenIndex !== null && plan.options !== null) {
+    const mirrored = plans.chooseOption(businessPlanId, chosenIndex);
+    if (!mirrored) {
+      return { ok: false, error: `chosenIndex ${chosenIndex} is out of range` };
+    }
+    // Re-read so the flat columns reflect the chosen option.
+    plan = plans.getById(businessPlanId)!;
+  }
+
   const companies = createCompaniesRepository(db);
   companies.rename(plan.companyId, plan.identity.name);
   companies.setBrandIdentity(plan.companyId, {
@@ -25,7 +40,13 @@ export const applyBusinessPlan = (
     proposedXHandle: plan.identity.proposedXHandle,
   });
   if (plan.ownerProfile !== null) companies.setOwnerProfile(plan.companyId, plan.ownerProfile);
-  plans.markApproved(businessPlanId);
+
+  if (chosenIndex !== null) {
+    plans.markApprovedWithOption(businessPlanId, chosenIndex);
+  } else {
+    plans.markApproved(businessPlanId);
+  }
+
   return {
     ok: true,
     companyId: plan.companyId,
