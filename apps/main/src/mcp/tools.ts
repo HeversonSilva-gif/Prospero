@@ -447,7 +447,10 @@ export const toolDefinitions = [
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (_input: unknown, ctx: ToolContext): Promise<string> => {
       const repo = createAgentsRepository(ctx.db, tryGetRecorder());
-      const agents = repo.listByCompany(ctx.companyId);
+      // Hide terminated agents: `terminatedAt` is the authoritative kill marker
+      // (a zombie row may have status reset to idle). The CEO must not see — and
+      // therefore cannot reassign work to — a corpse. Audit 2026-06-03 Facet 2 C1.
+      const agents = repo.listByCompany(ctx.companyId).filter((a) => a.terminatedAt === null);
       return JSON.stringify({
         agents: agents.map((a) => ({
           id: a.id,
@@ -815,8 +818,12 @@ export const toolDefinitions = [
       if (resolved === null) {
         return JSON.stringify({ ok: false, error: "issue not found" });
       }
+      // `terminated_at IS NULL`: never assign to a terminated agent — the issue
+      // would sit in `doing` with nobody working it, and the reconciler would
+      // wake the CEO to reassign it to the same corpse (invisible stall loop).
+      // Audit 2026-06-03 Facet 2 C1.
       const targetAgent = ctx.db
-        .prepare("SELECT id FROM agents WHERE id = ? AND company_id = ?")
+        .prepare("SELECT id FROM agents WHERE id = ? AND company_id = ? AND terminated_at IS NULL")
         .get(input.agent_id, ctx.companyId) as { id: string } | undefined;
       if (targetAgent === undefined) {
         return JSON.stringify({ ok: false, error: "agent not found" });
