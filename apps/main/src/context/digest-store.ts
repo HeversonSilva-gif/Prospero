@@ -120,3 +120,21 @@ export const bumpEntryAccess = <T extends { accessCount: number; lastAccessed: n
   entry: T,
   now: number,
 ): T => ({ ...entry, accessCount: entry.accessCount + 1, lastAccessed: now });
+
+// Audit 2026-06-03 Inteligência & Contexto I6: bump access on the map entries
+// actually injected into a prompt, mirroring bumpEntryAccess for deep-dives.
+// Reads the digest at `path`, increments accessCount + stamps lastAccessed on the
+// listed entry ids, and writes it back. No-op (no write) when ids is empty.
+export const bumpEntriesAtPath = (path: string, ids: string[], now: number): void => {
+  if (ids.length === 0) return;
+  const idSet = new Set(ids);
+  const digest = readDigestAt(path);
+  let changed = false;
+  const entries = digest.entries.map((e) => {
+    if (!idSet.has(e.id)) return e;
+    changed = true;
+    return bumpEntryAccess(e, now);
+  });
+  if (!changed) return;
+  writeDigestAt(path, { ...digest, entries });
+};

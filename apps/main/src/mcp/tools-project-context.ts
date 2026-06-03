@@ -2,11 +2,12 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { createAgentsRepository } from "../agents/repository.js";
 import {
-  readDigest,
-  writeDigest,
+  readDigestAt,
+  writeDigestAt,
   foldDeepDives,
   bumpEntryAccess,
 } from "../context/digest-store.js";
+import { projectDigestPath, agentDigestPath } from "../context/digest-dir.js";
 import type { DeepDive } from "@prospero/shared";
 import { sanitizeMemoryBody } from "../memory/sanitizer.js";
 import { createRateLimiter } from "./rate-limiter.js";
@@ -24,10 +25,20 @@ type Tool = {
 const noteLimiter = createRateLimiter(5, 120_000);
 const NOTE_MAX = 8_192;
 
-const soleProjectId = (ctx: ToolContext): string | null => {
+// Audit 2026-06-03 Inteligência & Contexto I10: resolve the digest these tools
+// operate on. A single-project agent uses that project's digest; a CEO /
+// multi-project agent (allowedProjects.length !== 1) has no single project to
+// fold into, so it reads and annotates its OWN agent-scoped digest — the exact
+// path compaction writes the CEO's durable knowledge to (agentDigestPath). This
+// gives the CEO a tool to inspect/correct the digest that was previously
+// inject-only. Returns the absolute digest.json path.
+const resolveDigestPath = (ctx: ToolContext): string => {
   const agent = createAgentsRepository(ctx.db).getById(ctx.agentId);
-  if (agent === null) return null;
-  return agent.allowedProjects.length === 1 ? agent.allowedProjects[0]! : null;
+  const soleProject =
+    agent !== null && agent.allowedProjects.length === 1 ? agent.allowedProjects[0]! : null;
+  return soleProject !== null
+    ? projectDigestPath(ctx.userDataDir, ctx.companyId, soleProject)
+    : agentDigestPath(ctx.userDataDir, ctx.companyId, ctx.agentId);
 };
 
 const projectContextRead: Tool = {
@@ -45,9 +56,8 @@ const projectContextRead: Tool = {
   // eslint-disable-next-line @typescript-eslint/require-await
   run: async (input, ctx) => {
     const { area } = projectContextRead.inputSchema.parse(input) as { area?: string };
-    const projectId = soleProjectId(ctx);
-    if (projectId === null) return JSON.stringify({ map: [], deepDive: null });
-    const digest = readDigest(ctx.userDataDir, ctx.companyId, projectId);
+    const digestPath = resolveDigestPath(ctx);
+    const digest = readDigestAt(digestPath);
     if (area === undefined) {
       return JSON.stringify({
         map: digest.entries.map((e) => ({ id: e.id, section: e.section, body: e.body })),
@@ -58,7 +68,7 @@ const projectContextRead: Tool = {
     if (idx < 0) return JSON.stringify({ deepDive: null });
     const bumped = bumpEntryAccess(digest.deepDives[idx]!, Date.now());
     digest.deepDives[idx] = bumped;
-    writeDigest(ctx.userDataDir, ctx.companyId, projectId, digest);
+    writeDigestAt(digestPath, digest);
     return JSON.stringify({ deepDive: { area: bumped.area, body: bumped.body } });
   },
 };
@@ -90,9 +100,10 @@ const projectContextNote: Tool = {
     if (!noteLimiter.tryConsume(ctx.agentId)) {
       throw new Error("project context write rate limit exceeded — try again shortly");
     }
-    const projectId = soleProjectId(ctx);
-    if (projectId === null) throw new Error("agent is not scoped to a single project");
-    const digest = readDigest(ctx.userDataDir, ctx.companyId, projectId);
+    // Audit 2026-06-03 Inteligência & Contexto I10: a CEO / multi-project agent
+    // annotates its own agent-scoped digest instead of throwing.
+    const digestPath = resolveDigestPath(ctx);
+    const digest = readDigestAt(digestPath);
     // A supersedes target that doesn't exist would silently no-op the trust
     // decay — surface it as an error so the caller knows nothing was lowered.
     if (supersedes !== undefined && !digest.entries.some((e) => e.id === supersedes)) {
@@ -115,7 +126,7 @@ const projectContextNote: Tool = {
             e.id === supersedes ? { ...e, trust: Math.max(0, e.trust - 0.3) } : e,
           )
         : digest.entries;
-    writeDigest(ctx.userDataDir, ctx.companyId, projectId, {
+    writeDigestAt(digestPath, {
       version: 1,
       entries: nextEntries,
       deepDives: foldDeepDives(digest.deepDives, [dive]),

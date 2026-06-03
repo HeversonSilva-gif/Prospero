@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DigestSection } from "@prospero/shared";
 import { DIGEST_SECTIONS } from "@prospero/shared";
-import { readDigest, readDigestAt } from "../context/digest-store.js";
-import { agentDigestPath } from "../context/digest-dir.js";
+import { readDigest, readDigestAt, bumpEntriesAtPath } from "../context/digest-store.js";
+import { agentDigestPath, projectDigestPath } from "../context/digest-dir.js";
 import { markFreshness, type FreshEntry } from "../context/freshness.js";
 import { decayFactor } from "../memory/decay.js";
 
@@ -28,10 +28,14 @@ const decayedTrust = (e: FreshEntry, now: number): number => {
 // Pure renderer — takes freshness-marked entries, returns the injected markdown
 // (or undefined if empty). Entries are rendered grouped by section, fresh first,
 // until the cap is hit. Exported for unit testing.
+// `renderedIds`, when passed, is filled with the ids of the entries actually
+// written into the block so the host-side caller can bump their access
+// (Audit 2026-06-03 Inteligência & Contexto I6).
 export const renderProjectContextBlock = (
   entries: FreshEntry[],
   cap: number,
   now: number = Date.now(),
+  renderedIds?: string[],
 ): string | undefined => {
   const liveEntries = entries.filter((e) => decayedTrust(e, now) >= MIN_DIGEST_TRUST);
   if (liveEntries.length === 0) return undefined;
@@ -44,13 +48,18 @@ export const renderProjectContextBlock = (
     if (inSection.length === 0) continue;
     const header = `\n## ${SECTION_TITLES[section]}\n\n`;
     let chunk = header;
+    const chunkIds: string[] = [];
     for (const e of inSection) {
       const flag = e.stale ? " _(possibly stale — verify before relying)_" : "";
       const line = `- ${e.body.trim()}${flag}\n`;
       if (body.length + chunk.length + line.length > cap) break;
       chunk += line;
+      chunkIds.push(e.id);
     }
-    if (chunk !== header) body += chunk; // only flush a section that got >=1 line
+    if (chunk !== header) {
+      body += chunk; // only flush a section that got >=1 line
+      if (renderedIds !== undefined) renderedIds.push(...chunkIds);
+    }
   }
   if (body.trim().length === 0) return undefined;
   return `\n---\n\n# Project context\n\nWhat matters about this project (distilled from prior readings). Trust it to skip re-reading, but verify anything marked stale.\n${body}`;
@@ -78,7 +87,21 @@ export const buildProjectContextBlock = (deps: BuildProjectContextDeps): string 
     return readFileSync(abs, "utf8");
   };
   const marked = digest.entries.map((e) => markFreshness(e, read));
-  return renderProjectContextBlock(marked, deps.cap ?? PROJECT_CONTEXT_CAP);
+  // Audit 2026-06-03 Inteligência & Contexto I6: bump access on the entries we
+  // actually inject so used facts don't decay at the base half-life and age out.
+  const renderedIds: string[] = [];
+  const block = renderProjectContextBlock(
+    marked,
+    deps.cap ?? PROJECT_CONTEXT_CAP,
+    Date.now(),
+    renderedIds,
+  );
+  bumpEntriesAtPath(
+    projectDigestPath(deps.userDataDir, deps.companyId, deps.projectId),
+    renderedIds,
+    Date.now(),
+  );
+  return block;
 };
 
 export type BuildAgentContextDeps = {
@@ -94,8 +117,19 @@ export type BuildAgentContextDeps = {
 // decay (age + accessCount) governs trust. Otherwise renders identically, so the
 // CEO gets its durable digest re-injected with the same freshness/decay/cap rules.
 export const buildAgentContextBlock = (deps: BuildAgentContextDeps): string | undefined => {
-  const digest = readDigestAt(agentDigestPath(deps.userDataDir, deps.companyId, deps.agentId));
+  const path = agentDigestPath(deps.userDataDir, deps.companyId, deps.agentId);
+  const digest = readDigestAt(path);
   if (digest.entries.length === 0) return undefined;
   const marked: FreshEntry[] = digest.entries.map((e) => ({ ...e, stale: false }));
-  return renderProjectContextBlock(marked, deps.cap ?? PROJECT_CONTEXT_CAP);
+  // Audit 2026-06-03 Inteligência & Contexto I6: same access bump as the project
+  // builder, so the CEO's injected agent-scoped facts don't age out unused.
+  const renderedIds: string[] = [];
+  const block = renderProjectContextBlock(
+    marked,
+    deps.cap ?? PROJECT_CONTEXT_CAP,
+    Date.now(),
+    renderedIds,
+  );
+  bumpEntriesAtPath(path, renderedIds, Date.now());
+  return block;
 };
