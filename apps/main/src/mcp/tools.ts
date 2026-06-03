@@ -1342,8 +1342,10 @@ export const toolDefinitions = [
           error: "only the issue's assignee or the CEO can record an artifact for it",
         });
       }
-      if (input.kind === "commit_sha" && !/^[a-f0-9]{40}$/i.test(input.ref)) {
-        return JSON.stringify({ ok: false, error: "commit_sha must be 40-char hex" });
+      // commit_sha accepts 7..64 hex (short SHA-1 through full SHA-256) — the
+      // old 40-only rule rejected short refs and SHA-256 repos. Audit 2026-06-03.
+      if (input.kind === "commit_sha" && !/^[a-f0-9]{7,64}$/i.test(input.ref)) {
+        return JSON.stringify({ ok: false, error: "commit_sha must be 7-64 hex chars" });
       }
       if (input.kind === "pr_url" && !/^https?:\/\//i.test(input.ref)) {
         return JSON.stringify({ ok: false, error: "pr_url must be http(s)" });

@@ -82,13 +82,23 @@ describe("MCP record_artifact", () => {
     expect(result.id.startsWith("art_")).toBe(true);
   });
 
-  it("rejects invalid commit_sha (not 40-char hex)", async () => {
+  it("rejects invalid commit_sha (too short / non-hex)", async () => {
     const { ctx, issueId } = setup();
     const result = JSON.parse(
       await tool("record_artifact").run({ issue_id: issueId, kind: "commit_sha", ref: "abc" }, ctx),
     ) as { ok: boolean; error?: string };
     expect(result.ok).toBe(false);
     expect(result.error ?? "").toMatch(/commit_sha/i);
+  });
+
+  it("accepts a short SHA and a 64-char SHA-256 commit ref (not just 40-hex)", async () => {
+    const { ctx, issueId } = setup();
+    for (const ref of ["abc1234", "a".repeat(64)]) {
+      const result = JSON.parse(
+        await tool("record_artifact").run({ issue_id: issueId, kind: "commit_sha", ref }, ctx),
+      ) as { id?: string };
+      expect(result.id?.startsWith("art_")).toBe(true);
+    }
   });
 
   it("rejects preview longer than 4096 chars", async () => {
