@@ -58,6 +58,12 @@ export type UpdateMemoryPatch = {
 export type MemorySearchOptions = {
   companyId?: string;
   agentId?: string;
+  /**
+   * When set, the search returns rows that are company-wide (agent_id IS NULL)
+   * OR owned by this specific agent. This is the correct filter for per-agent
+   * recall — use `agentId` (exact match) only when you want strictly private rows.
+   */
+  scopeToAgent?: string;
   limit?: number;
 };
 
@@ -193,6 +199,10 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
       if (opts.agentId !== undefined) {
         clauses.push("m.agent_id = ?");
         params.push(opts.agentId);
+      }
+      if (opts.scopeToAgent !== undefined) {
+        clauses.push("(m.agent_id IS NULL OR m.agent_id = ?)");
+        params.push(opts.scopeToAgent);
       }
       params.push(limit);
       const rows = db

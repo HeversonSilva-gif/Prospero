@@ -18,6 +18,11 @@ const newDb = (): Database.Database => {
        allowed_projects_json, mode, always_on, status, created_at, updated_at)
      VALUES ('a1','c1','Eng','engineer','sp','[]','[]','supervised',0,'idle',0,0)`,
   ).run();
+  db.prepare(
+    `INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json,
+       allowed_projects_json, mode, always_on, status, created_at, updated_at)
+     VALUES ('a2','c1','Design','designer','sp','[]','[]','supervised',0,'idle',0,0)`,
+  ).run();
   return db;
 };
 
@@ -258,6 +263,88 @@ describe("recallForIssue — memories", () => {
     });
     expect(hits.skills).toEqual([]);
     expect(hits.memories).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// recallForIssue — preference scoping (agent isolation)
+// ---------------------------------------------------------------------------
+
+describe("recallForIssue — preference scoping", () => {
+  let db: Database.Database;
+  beforeEach(() => {
+    db = newDb();
+  });
+
+  it("does NOT surface agent A's private memory in agent B's recall", () => {
+    const memRepo = createMemoriesRepository(db);
+    // Agent A's private preference
+    memRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      kind: "preference",
+      body: "docker deployment rollback procedure always required",
+    });
+
+    // Agent B recalls — should NOT see agent A's row
+    const hits = recallForIssue(db, {
+      companyId: "c1",
+      agentId: "a2",
+      issueText: "docker deployment rollback procedure",
+    });
+
+    expect(hits.memories).toHaveLength(0);
+  });
+
+  it("surfaces a company-wide memory for BOTH agents", () => {
+    const memRepo = createMemoriesRepository(db);
+    // Company-wide row (no agentId)
+    memRepo.create({
+      companyId: "c1",
+      agentId: null,
+      kind: "rule",
+      body: "docker images must be pinned to a digest for reproducibility",
+    });
+
+    const hitsA = recallForIssue(db, {
+      companyId: "c1",
+      agentId: "a1",
+      issueText: "docker images pinned digest reproducibility",
+    });
+    const hitsB = recallForIssue(db, {
+      companyId: "c1",
+      agentId: "a2",
+      issueText: "docker images pinned digest reproducibility",
+    });
+
+    expect(hitsA.memories.length).toBeGreaterThan(0);
+    expect(hitsB.memories.length).toBeGreaterThan(0);
+    expect(hitsA.memories[0]!.body).toContain("docker");
+    expect(hitsB.memories[0]!.body).toContain("docker");
+  });
+
+  it("agent A sees its own private memory but agent B does not", () => {
+    const memRepo = createMemoriesRepository(db);
+    memRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      kind: "preference",
+      body: "redis cache warmup strategy must be incremental",
+    });
+
+    const hitsA = recallForIssue(db, {
+      companyId: "c1",
+      agentId: "a1",
+      issueText: "redis cache warmup incremental strategy",
+    });
+    const hitsB = recallForIssue(db, {
+      companyId: "c1",
+      agentId: "a2",
+      issueText: "redis cache warmup incremental strategy",
+    });
+
+    expect(hitsA.memories.some((m) => m.body.includes("redis"))).toBe(true);
+    expect(hitsB.memories.some((m) => m.body.includes("redis"))).toBe(false);
   });
 });
 

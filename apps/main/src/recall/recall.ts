@@ -100,6 +100,7 @@ export const recallForIssue = (db: Database.Database, input: RecallInput): Recal
       const memRepo = createMemoriesRepository(db);
       const rows = memRepo.search(ftsExpr, {
         companyId: input.companyId,
+        scopeToAgent: input.agentId,
         limit,
       });
       memories = rows.map((m) => ({ body: m.body }));

@@ -12,6 +12,11 @@ const newDb = (): Database.Database => {
        allowed_projects_json, mode, always_on, status, created_at, updated_at)
      VALUES ('a1','c1','Eng','engineer','sp','[]','[]','supervised',0,'idle',0,0)`,
   ).run();
+  db.prepare(
+    `INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json,
+       allowed_projects_json, mode, always_on, status, created_at, updated_at)
+     VALUES ('a2','c1','Design','designer','sp','[]','[]','supervised',0,'idle',0,0)`,
+  ).run();
   return db;
 };
 
@@ -83,6 +88,41 @@ describe("memoriesRepository", () => {
     repo.create({ companyId: "c1", agentId: null, kind: "rule", body: "kafka company rule" });
     expect(repo.search("kafka", { agentId: "a1" }).length).toBe(1);
     expect(repo.search("kafka", { limit: 1 }).length).toBe(1);
+  });
+
+  it("search scopeToAgent returns company-wide rows AND the agent's own rows", () => {
+    const repo = createMemoriesRepository(db);
+    repo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "redis private note" });
+    repo.create({ companyId: "c1", agentId: null, kind: "rule", body: "redis company rule" });
+    repo.create({ companyId: "c1", agentId: "a2", kind: "rule", body: "redis other agent" });
+
+    const hits = repo.search("redis", { scopeToAgent: "a1" });
+    const bodies = hits.map((m) => m.body);
+    expect(bodies).toContain("redis private note");
+    expect(bodies).toContain("redis company rule");
+    expect(bodies).not.toContain("redis other agent");
+  });
+
+  it("search scopeToAgent does NOT leak another agent's private rows", () => {
+    const repo = createMemoriesRepository(db);
+    repo.create({ companyId: "c1", agentId: "a2", kind: "rule", body: "postgres secret tip" });
+    repo.create({ companyId: "c1", agentId: null, kind: "rule", body: "postgres global rule" });
+
+    const hits = repo.search("postgres", { scopeToAgent: "a1" });
+    const bodies = hits.map((m) => m.body);
+    expect(bodies).not.toContain("postgres secret tip");
+    expect(bodies).toContain("postgres global rule");
+  });
+
+  it("search without scopeToAgent retains existing behaviour (returns all rows for the company)", () => {
+    const repo = createMemoriesRepository(db);
+    repo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "nginx agent rule" });
+    repo.create({ companyId: "c1", agentId: null, kind: "rule", body: "nginx company rule" });
+    repo.create({ companyId: "c1", agentId: "a2", kind: "rule", body: "nginx other rule" });
+
+    // No scopeToAgent → all three rows returned
+    const hits = repo.search("nginx", { companyId: "c1" });
+    expect(hits.length).toBe(3);
   });
 });
 
