@@ -1337,9 +1337,12 @@ export const toolDefinitions = [
       }
       // Company isolation: the approval's requester must belong to this company,
       // so the CEO of company A cannot decide an approval raised in company B.
-      const requester = createAgentsRepository(ctx.db).getById(apv.agentId);
-      if (requester === null || requester.companyId !== ctx.companyId) {
-        return JSON.stringify({ ok: false, error: "not found" });
+      // Skipped when there is no requester id (e.g. a system-raised approval).
+      if (apv.agentId !== null) {
+        const requester = createAgentsRepository(ctx.db).getById(apv.agentId);
+        if (requester === null || requester.companyId !== ctx.companyId) {
+          return JSON.stringify({ ok: false, error: "not found" });
+        }
       }
 
       // This tool runs in the MCP child where the engine bridge/recorder are
@@ -1449,11 +1452,13 @@ export const toolDefinitions = [
           continue;
         }
         // Company isolation (mirrors decide_request): the approval's requester
-        // must belong to this company.
-        const requester = createAgentsRepository(ctx.db).getById(apv.agentId);
-        if (requester === null || requester.companyId !== ctx.companyId) {
-          errors.push({ approval_id: d.approval_id, error: "not found" });
-          continue;
+        // must belong to this company (skipped when there is no requester id).
+        if (apv.agentId !== null) {
+          const requester = createAgentsRepository(ctx.db).getById(apv.agentId);
+          if (requester === null || requester.companyId !== ctx.companyId) {
+            errors.push({ approval_id: d.approval_id, error: "not found" });
+            continue;
+          }
         }
 
         if (d.decision === "escalate") {
