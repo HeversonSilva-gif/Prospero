@@ -121,7 +121,10 @@ import { handleApprovalEvent } from "../approvals/event-handler.js";
 import { createApprovalsRepository } from "../approvals/repository.js";
 import { preapprovalKey, preapprovalPath } from "../approvals/deferred-approval.js";
 import { getPermissionsDir } from "../security/permissions-dir.js";
-import { createConnectionsRepository } from "../connections/connections-repository.js";
+import {
+  createConnectionsRepository,
+  listConnectedChannels,
+} from "../connections/connections-repository.js";
 import { handleXPostEvent } from "../connections/x-post-event.js";
 import { handleStripeSetupEvent } from "../connections/stripe-setup-event.js";
 import type { StripeChargeItem } from "../connections/stripe-monetization-executor.js";
@@ -491,7 +494,7 @@ export const registerOrchestratorHandlers = (
       parsedOptions !== null && parsedOptions.success
         ? await critiqueBusinessPlan(deps, {
             options: parsedOptions.data.options,
-            capabilityBoundary: buildCapabilityBoundary(["x"]),
+            capabilityBoundary: buildCapabilityBoundary(listConnectedChannels(db, companyId)),
             env: buildAuthEnv(db),
           })
         : await critiqueBusinessPlan(deps, {
@@ -503,7 +506,7 @@ export const registerOrchestratorHandlers = (
               identity: plan.identity,
               dropped: plan.dropped,
             },
-            capabilityBoundary: buildCapabilityBoundary(["x"]),
+            capabilityBoundary: buildCapabilityBoundary(listConnectedChannels(db, companyId)),
             env: buildAuthEnv(db),
           });
     const flagged = !verdict.feasible || !verdict.specific;

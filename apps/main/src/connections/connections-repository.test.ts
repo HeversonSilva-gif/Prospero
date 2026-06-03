@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations } from "../db/migrations.js";
-import { createConnectionsRepository, type Cipher } from "./connections-repository.js";
+import {
+  createConnectionsRepository,
+  listConnectedChannels,
+  type Cipher,
+} from "./connections-repository.js";
 
 // Reversible FAKE cipher — proves the repo actually encrypts (stored bytes != the
 // plaintext) without needing electron's safeStorage in a unit test. Production wires
@@ -26,6 +30,18 @@ describe("connections-repository", () => {
     const conn = repo.load("c1", "x");
     expect(conn?.payload).toEqual({ accessToken: "AT", refreshToken: "RT" });
     expect(conn?.metadata).toEqual({ handle: "@me" });
+    db.close();
+  });
+
+  it("listConnectedChannels returns this company's connected kinds (no decrypt, no cross-company)", () => {
+    const db = setup();
+    const repo = createConnectionsRepository(db, fakeCipher);
+    repo.save("c1", "x", { t: 1 }, {});
+    repo.save("c1", "email", { t: 2 }, {});
+    db.prepare("INSERT INTO companies (id, name, created_at) VALUES ('c2','Other',0)").run();
+    createConnectionsRepository(db, fakeCipher).save("c2", "stripe", { t: 3 }, {});
+    expect(listConnectedChannels(db, "c1")).toEqual(["email", "x"]); // ORDER BY kind
+    expect(listConnectedChannels(db, "c1")).not.toContain("stripe");
     db.close();
   });
 
