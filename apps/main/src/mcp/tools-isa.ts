@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { getIsaSection, getTelosSection } from "@prospero/shared";
+import { getIsaSection, getTelosSection, isCeoAgent } from "@prospero/shared";
 import type { ToolContext } from "./tools.js";
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
+import { createAgentsRepository } from "../agents/repository.js";
 import { readIsa } from "../goals/isa-store.js";
 import { checkOneCriterion, reevaluateGoalFromState } from "../verification/index.js";
 import { buildVerificationDeps } from "../verification/deps.js";
@@ -102,6 +103,18 @@ const criterionJudge: Tool = {
     }
     if (criterion.kind !== "judgment") {
       throw new Error(`criterion ${criterion_id} is not a judgment criterion`);
+    }
+    // Authority: the agent who did the work cannot certify it. The CEO may
+    // always judge (the CEO does not implement). A non-CEO caller is blocked if
+    // it is the assignee of any issue under this goal. Audit 2026-06-03 Facet 5 I4.
+    const caller = createAgentsRepository(ctx.db).getById(ctx.agentId);
+    if (caller === null || !isCeoAgent(caller)) {
+      const workedOn = ctx.db
+        .prepare("SELECT 1 FROM issues WHERE goal_id = ? AND assignee_id = ? LIMIT 1")
+        .get(criterion.goalId, ctx.agentId);
+      if (workedOn !== undefined) {
+        throw new Error("you cannot judge a criterion for a goal you worked on");
+      }
     }
     criteriaRepo.setJudgment(criterion_id, verdict, ctx.agentId);
     // M13 PR-F: ping the renderer (mirrors the B1 verifier broadcast) so the
