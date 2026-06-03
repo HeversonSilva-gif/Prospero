@@ -1773,6 +1773,31 @@
         "community": "Comunidade",
         "revenue12m": "12 meses"
       }
+    },
+    "review": {
+      "backToOptions": "← Voltar às opções",
+      "concept": "O negócio",
+      "howMonetizes": "Como faz dinheiro",
+      "marketingLabel": "Marketing — começa no X",
+      "competitionTitle": "Concorrência & diferenciação",
+      "differentialPrefix": "Diferencial:",
+      "droppedTitle": "Descartei (e por quê)",
+      "aboutYou": "Sobre você",
+      "signals": {
+        "market": "Tamanho de mercado",
+        "virality": "Potencial de viralização",
+        "community": "Comunidade",
+        "revenue": "Faturamento estimado"
+      },
+      "projection": {
+        "month3": "Mês 3",
+        "month6": "Mês 6",
+        "month12": "Mês 12"
+      },
+      "footerNote": "Aprovar monta a equipe. Você ainda aprova cada post e cada cobrança.",
+      "requestAdjustments": "Pedir ajustes",
+      "refinePlaceholder": "O que você quer ajustar no plano?",
+      "sendRefine": "Enviar para o CEO revisar"
     }
   },
   "decisoes": {
