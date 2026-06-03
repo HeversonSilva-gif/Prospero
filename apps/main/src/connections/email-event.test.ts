@@ -94,23 +94,33 @@ describe("handleEmailSendEvent", () => {
     expect(err.toLowerCase()).toContain("e-mail");
   });
 
-  it("I4 — threads the requestId as the idempotency key into the send", async () => {
-    let messageId: string | undefined;
-    await handleEmailSendEvent(
-      {
-        repo: repoWith(smtpConn),
-        emailDeps: emailDeps({
-          smtpSend: (_p, m) => {
-            messageId = m.headers?.["Message-ID"];
-            return Promise.resolve({ messageId: "m_9" });
-          },
-        }),
-        writeResult: () => undefined,
-      },
-      "c1",
-      { requestId: "req_stable_1", to: "a@b.com", subject: "s", body: "b" },
-    );
-    expect(messageId).toContain("req_stable_1");
+  it("I4 — idempotency key is content-stable across re-attempts (not the per-call requestId)", async () => {
+    const send = async (requestId: string, body: string): Promise<string | undefined> => {
+      let messageId: string | undefined;
+      await handleEmailSendEvent(
+        {
+          repo: repoWith(smtpConn),
+          emailDeps: emailDeps({
+            smtpSend: (_p, m) => {
+              messageId = m.headers?.["Message-ID"];
+              return Promise.resolve({ messageId: "m_9" });
+            },
+          }),
+          writeResult: () => undefined,
+        },
+        "c1",
+        { requestId, to: "a@b.com", subject: "s", body },
+      );
+      return messageId;
+    };
+    // Same logical send re-issued with a DIFFERENT requestId → SAME Message-ID (so a
+    // relay dedupes the duplicate). A different body → different Message-ID.
+    const first = await send("req_1", "b");
+    const reattempt = await send("req_2_different_uuid", "b");
+    const other = await send("req_3", "different body");
+    expect(first).toBeDefined();
+    expect(reattempt).toBe(first);
+    expect(other).not.toBe(first);
   });
 });
 
