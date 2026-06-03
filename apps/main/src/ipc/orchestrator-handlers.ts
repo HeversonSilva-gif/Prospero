@@ -750,7 +750,27 @@ export const registerOrchestratorHandlers = (
       // C6 (audit 2026-06-03): the MCP assign_issue tool can't call notifyAssignee
       // (no BrowserWindow in the child), so it emits this; MAIN wakes the assignee.
       const issue = createIssuesRepository(db).getById((payload as { issueId: string }).issueId);
-      if (issue !== null) notifyAssignee(db, eventsDir, issue);
+      if (issue !== null) {
+        // C1 (audit 2026-06-03 Inteligência & Contexto): the MCP child has no
+        // recorder, so assign_issue never wrote issue.assignee_changed → the
+        // recall observer never fired → the delegated agent woke with NO recall
+        // of past lessons (the autonomous path, the core of the product). Re-record
+        // it here in MAIN (recorder live) BEFORE waking — recordActivity runs the
+        // recall observer synchronously, so the recall seed is parked before
+        // notifyAssignee enqueues and consumes it.
+        if (issue.assigneeId !== null) {
+          tryGetRecorder()?.recordActivity({
+            companyId: issue.companyId,
+            actor: { kind: "agent", id: event.agentId },
+            action: "issue.assignee_changed",
+            entityKind: "issue",
+            entityId: issue.id,
+            agentId: issue.assigneeId,
+            payload: { from: null, to: issue.assigneeId },
+          });
+        }
+        notifyAssignee(db, eventsDir, issue);
+      }
     } else if (
       kind === "approval.route" ||
       kind === "approval.decided" ||
@@ -1227,11 +1247,6 @@ export const registerOrchestratorHandlers = (
           digestPath,
         });
 
-        // Always set the cooldown, regardless of whether the distill succeeded
-        // or was discarded. A failed/discarded distill must still back off so
-        // we don't retry on every subsequent turn (retry storm).
-        lastCompactedAt.set(compactionKey, Date.now());
-
         // The project digest_path marker is project-only (agent digests are
         // resolved purely from companyId + agentId, no DB row).
         if (proj !== null && shouldResetSession(distillKind)) {
@@ -1262,6 +1277,12 @@ export const registerOrchestratorHandlers = (
           );
         }
       } finally {
+        // I7 (audit 2026-06-03 Inteligência & Contexto): set the cooldown on
+        // EVERY outcome — success, discard, OR throw (distill 401/crash).
+        // Previously it was set only after a successful resolve, so a thrown
+        // distill skipped it and re-triggered on the next idle turn → a paid
+        // subprocess retry storm during an auth outage.
+        lastCompactedAt.set(compactionKey, Date.now());
         compactionInFlight.delete(compactionKey);
       }
     } catch (err) {
