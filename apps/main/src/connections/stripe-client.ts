@@ -218,3 +218,81 @@ export const listCharges = async (
     };
   });
 };
+
+// --- Finance panorama (v0.2.8): subscriptions feed MRR / churn / active customers ---
+
+export type StripeSubscription = {
+  id: string;
+  customer: string | null;
+  status: string;
+  created: number; // ms
+  canceledAt: number | null; // ms
+  productId: string | null;
+  productName: string | null;
+  amount: number; // primary price, smallest currency unit, per interval
+  currency: string;
+  interval: string; // month | year | week | day
+};
+
+type RawSubItem = {
+  price?: {
+    unit_amount?: number | null;
+    currency?: string;
+    recurring?: { interval?: string } | null;
+    product?: string | { id?: string; name?: string } | null;
+  };
+};
+
+export const listSubscriptions = async (
+  http: StripeHttp,
+  key: string,
+  opts: { limit?: number } = {},
+): Promise<StripeSubscription[]> => {
+  // status=all so we also see canceled subs (needed for churn). Expand the product so
+  // we get its display name for "top products" rather than a bare id.
+  const params = [
+    `limit=${String(opts.limit ?? 100)}`,
+    "status=all",
+    "expand%5B%5D=data.items.data.price.product",
+  ];
+  const res = await http(`https://api.stripe.com/v1/subscriptions?${params.join("&")}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${key}` },
+  });
+  const data = (await res.json()) as {
+    data?: Array<{
+      id: string;
+      customer?: string | null;
+      status: string;
+      created: number;
+      canceled_at?: number | null;
+      items?: { data?: RawSubItem[] };
+    }>;
+    error?: { message?: string };
+  };
+  if (res.status >= 400) {
+    throw new StripeApiError(
+      res.status,
+      data.error?.message ?? `Stripe API error ${String(res.status)}`,
+    );
+  }
+  return (data.data ?? []).map((s) => {
+    const price = s.items?.data?.[0]?.price;
+    const product = price?.product ?? null;
+    const productId = typeof product === "string" ? product : (product?.id ?? null);
+    const productName =
+      typeof product === "object" && product !== null ? (product.name ?? null) : null;
+    return {
+      id: s.id,
+      customer: typeof s.customer === "string" ? s.customer : null,
+      status: s.status,
+      created: s.created * 1000,
+      canceledAt: typeof s.canceled_at === "number" ? s.canceled_at * 1000 : null,
+      productId,
+      productName,
+      amount: price?.unit_amount ?? 0,
+      currency: price?.currency ?? "",
+      interval: price?.recurring?.interval ?? "month",
+    };
+  });
+};

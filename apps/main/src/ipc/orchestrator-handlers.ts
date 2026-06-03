@@ -147,13 +147,15 @@ import {
 } from "../connections/email-transports.js";
 import { safeStorageCipher, httpFetch } from "./connections-handlers.js";
 import { getUserMetrics, getTweetMetrics } from "../connections/x-client.js";
-import { listCharges } from "../connections/stripe-client.js";
+import { listCharges, listSubscriptions } from "../connections/stripe-client.js";
 import { createXPostsRepository } from "../connections/x-posts-repository.js";
 import { createXMetricsRepository } from "../connections/x-metrics-repository.js";
 import { createStripePaymentsRepository } from "../connections/stripe-payments-repository.js";
+import { createStripeSubscriptionsRepository } from "../connections/stripe-subscriptions-repository.js";
 import { reviewFinance } from "../connections/finance-review.js";
 import { collectXMetrics } from "../connections/collect-x-metrics.js";
 import { collectStripeSales } from "../connections/collect-stripe-sales.js";
+import { collectStripeSubscriptions } from "../connections/collect-stripe-subscriptions.js";
 import { startXMetricsPoller } from "../connections/x-metrics-poller.js";
 import { getValidXAccessToken } from "../connections/x-token-manager.js";
 import { reviewXGrowth } from "../connections/x-growth-review.js";
@@ -1087,6 +1089,35 @@ export const registerOrchestratorHandlers = (
     },
   });
   void stopStripeSalesPoller; // process-lifetime poller
+
+  // Finance panorama (v0.2.8): ingest the company's Stripe subscriptions so the
+  // Financeiro screen has real MRR / churn / active-customer data. Fail-soft, same
+  // cadence as the sales poller.
+  const stopStripeSubscriptionsPoller = startXMetricsPoller({
+    intervalMs: STRIPE_SALES_INTERVAL_MS,
+    run: () => {
+      const connections = createConnectionsRepository(db, safeStorageCipher());
+      const subscriptions = createStripeSubscriptionsRepository(db);
+      return collectStripeSubscriptions({
+        listCompaniesWithStripe: () =>
+          (
+            db
+              .prepare("SELECT DISTINCT company_id FROM connections WHERE kind = 'stripe'")
+              .all() as Array<{ company_id: string }>
+          ).map((r) => r.company_id),
+        getKey: (companyId) => {
+          const conn = connections.load(companyId, "stripe");
+          return conn !== null && typeof conn.payload.restrictedKey === "string"
+            ? conn.payload.restrictedKey
+            : null;
+        },
+        listSubscriptions: (key) => listSubscriptions(httpFetch, key),
+        record: (r) => subscriptions.record(r),
+        now: () => Date.now(),
+      });
+    },
+  });
+  void stopStripeSubscriptionsPoller; // process-lifetime poller
 
   // "Steal" #3: weekly finance review. When the business spends without earning, nudge the
   // CEO (inform only — no pause; hard budget caps live in enforce-budget). De-dup weekly.

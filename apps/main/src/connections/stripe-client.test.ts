@@ -6,6 +6,7 @@ import {
   createPrice,
   createPaymentLink,
   listCharges,
+  listSubscriptions,
   StripeApiError,
   type StripeHttp,
 } from "./stripe-client.js";
@@ -236,5 +237,92 @@ describe("stripe-client listCharges", () => {
     const err: StripeHttp = () =>
       Promise.resolve({ status: 401, json: () => Promise.resolve({ error: { message: "bad" } }) });
     await expect(listCharges(err, "bad")).rejects.toBeInstanceOf(StripeApiError);
+  });
+});
+
+describe("stripe-client listSubscriptions", () => {
+  it("requests all statuses with the product expanded, and maps the primary price", async () => {
+    let url = "";
+    const http: StripeHttp = (u) => {
+      url = u;
+      return Promise.resolve({
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: [
+              {
+                id: "sub_1",
+                customer: "cus_1",
+                status: "active",
+                created: 1000,
+                canceled_at: null,
+                items: {
+                  data: [
+                    {
+                      price: {
+                        unit_amount: 1000,
+                        currency: "brl",
+                        recurring: { interval: "month" },
+                        product: { id: "prod_1", name: "Plano Pro" },
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                id: "sub_2",
+                customer: "cus_2",
+                status: "canceled",
+                created: 2000,
+                canceled_at: 5000,
+                items: {
+                  data: [
+                    {
+                      price: {
+                        unit_amount: 12000,
+                        currency: "brl",
+                        recurring: { interval: "year" },
+                        product: "prod_2",
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+      });
+    };
+    const subs = await listSubscriptions(http, "rk_test_x");
+    expect(url).toContain("https://api.stripe.com/v1/subscriptions?");
+    expect(url).toContain("status=all");
+    expect(url).toContain("data.items.data.price.product");
+    expect(subs[0]).toEqual({
+      id: "sub_1",
+      customer: "cus_1",
+      status: "active",
+      created: 1_000_000,
+      canceledAt: null,
+      productId: "prod_1",
+      productName: "Plano Pro",
+      amount: 1000,
+      currency: "brl",
+      interval: "month",
+    });
+    expect(subs[1]).toMatchObject({
+      status: "canceled",
+      canceledAt: 5_000_000,
+      productId: "prod_2",
+      productName: null, // unexpanded product is just an id
+      interval: "year",
+    });
+  });
+
+  it("returns [] when empty and throws StripeApiError on error", async () => {
+    const empty: StripeHttp = () =>
+      Promise.resolve({ status: 200, json: () => Promise.resolve({ data: [] }) });
+    expect(await listSubscriptions(empty, "rk_test_x")).toEqual([]);
+    const err: StripeHttp = () =>
+      Promise.resolve({ status: 403, json: () => Promise.resolve({ error: { message: "no" } }) });
+    await expect(listSubscriptions(err, "bad")).rejects.toBeInstanceOf(StripeApiError);
   });
 });
