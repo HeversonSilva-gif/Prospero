@@ -59,4 +59,86 @@ describe("executeXPost", () => {
     const http: XHttp = () => Promise.reject(new Error("should not be called"));
     await expect(executeXPost(repo, http, "c1", "x", {}, () => 0)).rejects.toThrow(/conectad/i);
   });
+
+  it("refreshes the OAuth token and retries once when the post gets a 401 mid-flight", async () => {
+    // I8 (audit 2026-06-03 Conectores): X rotates/revokes the refresh token
+    // aggressively, so a stored access token can be valid-by-expiry yet rejected
+    // mid-flight. On a 401 from the write, refresh once and retry exactly once.
+    const repo = setupRepo();
+    repo.save(
+      "c1",
+      "x",
+      { accessToken: "STALE", refreshToken: "RT", expiresAt: 9_999_999_999 },
+      { clientId: "cid" },
+    );
+    const auths: (string | undefined)[] = [];
+    let call = 0;
+    const http: XHttp = (url, init) => {
+      auths.push(init.headers.Authorization);
+      call += 1;
+      if (url.includes("/oauth2/token")) {
+        // refresh succeeds with a brand-new access token
+        return Promise.resolve({
+          status: 200,
+          json: () =>
+            Promise.resolve({ access_token: "FRESH", refresh_token: "RT2", expires_in: 7200 }),
+        });
+      }
+      // first post 401s, the retry (after refresh) succeeds
+      if (call === 1) return Promise.resolve({ status: 401, json: () => Promise.resolve({}) });
+      return Promise.resolve({ status: 201, json: () => Promise.resolve({ data: { id: "888" } }) });
+    };
+    const res = await executeXPost(repo, http, "c1", "hello", {}, () => 0);
+    expect(res).toEqual({ id: "888", url: "https://x.com/i/status/888" });
+    // the retry used the freshly-refreshed token, and the new tokens were persisted
+    expect(auths).toContain("Bearer FRESH");
+    expect(repo.load("c1", "x")?.payload).toMatchObject({
+      accessToken: "FRESH",
+      refreshToken: "RT2",
+    });
+  });
+
+  it("does not retry more than once: a 401 on the retry surfaces the error", async () => {
+    const repo = setupRepo();
+    repo.save(
+      "c1",
+      "x",
+      { accessToken: "STALE", refreshToken: "RT", expiresAt: 9_999_999_999 },
+      { clientId: "cid" },
+    );
+    let posts = 0;
+    const http: XHttp = (url) => {
+      if (url.includes("/oauth2/token")) {
+        return Promise.resolve({
+          status: 200,
+          json: () => Promise.resolve({ access_token: "FRESH", expires_in: 7200 }),
+        });
+      }
+      posts += 1;
+      return Promise.resolve({ status: 401, json: () => Promise.resolve({}) });
+    };
+    await expect(executeXPost(repo, http, "c1", "x", {}, () => 0)).rejects.toMatchObject({
+      status: 401,
+    });
+    expect(posts).toBe(2); // original + exactly one retry, no more
+  });
+
+  it("surfaces the 401 when the token cannot be refreshed (no refresh token)", async () => {
+    const repo = setupRepo();
+    repo.save(
+      "c1",
+      "x",
+      { accessToken: "STALE", refreshToken: "", expiresAt: 9_999_999_999 },
+      { clientId: "cid" },
+    );
+    let posts = 0;
+    const http: XHttp = () => {
+      posts += 1;
+      return Promise.resolve({ status: 401, json: () => Promise.resolve({}) });
+    };
+    await expect(executeXPost(repo, http, "c1", "x", {}, () => 0)).rejects.toMatchObject({
+      status: 401,
+    });
+    expect(posts).toBe(1); // no refresh possible → no retry
+  });
 });

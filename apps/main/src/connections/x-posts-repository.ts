@@ -9,8 +9,10 @@ export type XPostsRepository = {
 };
 
 export const createXPostsRepository = (db: Database.Database): XPostsRepository => {
+  // OR IGNORE: tweet_id is UNIQUE (migration 0066) — a replayed record is a no-op
+  // rather than a constraint error or a duplicate row. M4 (audit 2026-06-03).
   const insertStmt = db.prepare(
-    `INSERT INTO x_posts (id, company_id, tweet_id, text, posted_at) VALUES (?, ?, ?, ?, ?)`,
+    `INSERT OR IGNORE INTO x_posts (id, company_id, tweet_id, text, posted_at) VALUES (?, ?, ?, ?, ?)`,
   );
   const recentStmt = db.prepare(
     `SELECT tweet_id, text, posted_at FROM x_posts

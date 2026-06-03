@@ -969,6 +969,10 @@ export const registerOrchestratorHandlers = (
         insertAccount: (i) => metrics.insertAccount(i),
         insertTweet: (i) => metrics.insertTweet(i),
         now: () => Date.now(),
+        // I8: X 429'd us — this tick ended early (Retry-After respected); the next
+        // daily tick resumes. No extra timer needed at this cadence.
+        onRateLimited: (backoffMs) =>
+          console.warn(`[x-metrics] X rate limit; skipping rest of tick (~${String(backoffMs)}ms)`),
       });
     },
   });
@@ -1050,6 +1054,7 @@ export const registerOrchestratorHandlers = (
         },
         listCharges: (key, sinceMs) => listCharges(httpFetch, key, { createdGte: sinceMs }),
         countExisting: (companyId) => payments.countByCompany(companyId),
+        lastCreatedAt: (companyId) => payments.lastCreatedAt(companyId),
         record: (i) => payments.record(i),
         onFirstSale: (companyId, charge) => {
           const label = `${charge.currency.toUpperCase()} ${(charge.amount / 100).toFixed(2)}`;

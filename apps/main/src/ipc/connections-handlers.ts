@@ -50,9 +50,14 @@ export const safeStorageCipher = (): Cipher => ({
 });
 
 // Adapts global fetch (Node 18+/Electron) to the connectors' injected XHttp shape.
+// `headers` is forwarded so the X client can read Retry-After on a 429 (I8).
 export const httpFetch: XHttp = async (url, init) => {
   const res = await fetch(url, init);
-  return { status: res.status, json: () => res.json() };
+  return {
+    status: res.status,
+    json: () => res.json(),
+    headers: { get: (name: string) => res.headers.get(name) },
+  };
 };
 
 type ConnectResult = { connected: boolean; handle?: string; error?: string };

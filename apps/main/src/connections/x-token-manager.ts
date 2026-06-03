@@ -37,6 +37,37 @@ export const getValidXAccessToken = async (
     return null; // expired and nothing to refresh with → not usable
   }
 
+  return refreshAndPersist(repo, http, companyId, conn.metadata, refreshToken, clientId, now);
+};
+
+// Forces a token refresh regardless of the stored expiry, persisting the rotated
+// tokens. Used when a write call gets a 401 mid-flight: X rotates/revokes the
+// refresh token aggressively, so a token that looks valid by `expiresAt` can be
+// rejected by the API. Returns the new access token, or null when there's nothing
+// to refresh with (no refresh token / clientId / connection). I8 (audit 2026-06-03).
+export const forceRefreshXAccessToken = async (
+  repo: ConnectionsRepository,
+  http: XHttp,
+  companyId: string,
+  now: () => number,
+): Promise<string | null> => {
+  const conn = repo.load(companyId, "x");
+  if (conn === null) return null;
+  const { refreshToken } = conn.payload as XPayload;
+  const clientId = (conn.metadata as { clientId?: string }).clientId;
+  if (refreshToken === undefined || refreshToken === "" || clientId === undefined) return null;
+  return refreshAndPersist(repo, http, companyId, conn.metadata, refreshToken, clientId, now);
+};
+
+const refreshAndPersist = async (
+  repo: ConnectionsRepository,
+  http: XHttp,
+  companyId: string,
+  metadata: Record<string, unknown>,
+  refreshToken: string,
+  clientId: string,
+  now: () => number,
+): Promise<string> => {
   const fresh = await refreshTokens(http, { clientId, refreshToken }, now);
   // X rotates the refresh token; keep the previous one if the response omitted it.
   const nextRefresh = fresh.refreshToken !== "" ? fresh.refreshToken : refreshToken;
@@ -44,7 +75,7 @@ export const getValidXAccessToken = async (
     companyId,
     "x",
     { accessToken: fresh.accessToken, refreshToken: nextRefresh, expiresAt: fresh.expiresAt },
-    conn.metadata,
+    metadata,
   );
   return fresh.accessToken;
 };
