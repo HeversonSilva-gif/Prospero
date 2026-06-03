@@ -73,6 +73,9 @@ export const executePlanAtomic = (
   const criteriaRepo = createGoalCriteriaRepository(db);
   const issueCriteriaRepo = createIssueCriteriaRepository(db);
   const linkIssueGoalStmt = db.prepare("UPDATE issues SET goal_id = ? WHERE id = ?");
+  const setOwnerStmt = db.prepare(
+    "UPDATE goals SET owner_agent_id = ? WHERE id = ? AND owner_agent_id IS NULL",
+  );
 
   try {
     return db.transaction((): ExecuteResult => {
@@ -180,6 +183,11 @@ export const executePlanAtomic = (
         indexToIssueId.set(issue.index, created.id);
       }
 
+      // C3 (audit 2026-06-03): give the goal an owner (the CEO, the accountable
+      // orchestrator) when it starts. Without this the main work path left
+      // owner_agent_id null, killing trust tracking AND the success retrospective
+      // (the dispatcher drops owner-less goal.status_changed activities).
+      setOwnerStmt.run(ceo.id, goal.id);
       plansRepo.markApproved(planId, { decidedBy: "user" });
       goalsRepo.updateStatus(goal.id, "approved");
       goalsRepo.updateStatus(goal.id, "in_progress");

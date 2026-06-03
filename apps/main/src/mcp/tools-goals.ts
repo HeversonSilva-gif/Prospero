@@ -494,6 +494,11 @@ const finalizeGoalExecution: Tool = {
       );
     }
 
+    // C3 (audit 2026-06-03): give the goal an owner (the CEO finalizing it) so
+    // trust + the success retrospective work — same as the atomic executor path.
+    ctx.db
+      .prepare("UPDATE goals SET owner_agent_id = ? WHERE id = ? AND owner_agent_id IS NULL")
+      .run(ctx.agentId, goalId);
     plansRepo.markApproved(plan.id, { decidedBy: "ceo-narrated" });
     goalsRepo.updateStatus(goalId, "in_progress");
     goalsRepo.setExecutionState(goalId, null);
