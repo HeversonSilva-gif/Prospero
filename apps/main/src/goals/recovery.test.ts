@@ -6,6 +6,7 @@ import {
   scanStuckNarrated,
   scanStrandedInProgress,
   scanProposedWithoutCard,
+  resumeStuckNarrated,
 } from "./recovery.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { createGoalsRepository } from "./repository.js";
@@ -212,6 +213,97 @@ describe("scanStuckNarrated", () => {
     goals.updateStatus(goal.id, "approved");
     const created = scanStuckNarrated(env.db);
     expect(created).toEqual([]);
+  });
+});
+
+describe("resumeStuckNarrated (I-narr, audit 2026-06-03)", () => {
+  const seedApproved = (env: ReturnType<typeof setup>): string => {
+    const goals = createGoalsRepository(env.db);
+    const goal = goals.create({ companyId: env.companyId, title: "Resume me" });
+    goals.updateStatus(goal.id, "planning");
+    goals.updateStatus(goal.id, "proposed");
+    goals.updateStatus(goal.id, "approved");
+    return goal.id;
+  };
+
+  it("re-enqueues the CEO execute-request for a stuck narrated goal (auto-resume)", () => {
+    const env = setup();
+    const goals = createGoalsRepository(env.db);
+    const plans = createGoalPlansRepository(env.db);
+    const goalId = seedApproved(env);
+    const plan = plans.insert({
+      goalId,
+      version: 1,
+      proposedByAgentId: env.ceoId,
+      summary: "Summary long enough to validate at twenty characters minimum.",
+      agentsToHire: [],
+      issuesToCreate: [],
+      estimatedTotalTokens: null,
+      estimatedDurationDays: null,
+      estimatedCostCents: null,
+      risks: [],
+    });
+    goals.setExecutionState(goalId, {
+      planId: plan.id,
+      mode: "narrated",
+      includeAgentIndexes: null,
+      includeIssueIndexes: null,
+      agentIndexToId: {},
+      issueIndexToId: {},
+      step: "hiring",
+      startedAt: Date.now(),
+      ceoId: env.ceoId,
+      threadId: "th_old",
+    });
+
+    const calls: { ceoId: string; prompt: string }[] = [];
+    const result = resumeStuckNarrated(env.db, {
+      enqueueExecuteRequest: (ceoId, prompt) => {
+        calls.push({ ceoId, prompt });
+        return { threadId: "th_new" };
+      },
+    });
+
+    expect(result.resumed).toEqual([goalId]);
+    expect(result.flagged).toEqual([]);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.ceoId).toBe(env.ceoId);
+    expect(calls[0]?.prompt).toContain("[GOAL_EXECUTE_REQUEST]");
+    expect(goals.getExecutionState(goalId)?.threadId).toBe("th_new");
+    const cards = createInboxRepository(env.db).listByCompany(env.companyId);
+    expect(cards.some((i) => i.kind === "goal_error")).toBe(false);
+  });
+
+  it("falls back to a goal_error card when it cannot resume (plan missing)", () => {
+    const env = setup();
+    const goals = createGoalsRepository(env.db);
+    const goalId = seedApproved(env);
+    goals.setExecutionState(goalId, {
+      planId: "p_missing",
+      mode: "narrated",
+      includeAgentIndexes: null,
+      includeIssueIndexes: null,
+      agentIndexToId: { 0: "ag_1" },
+      issueIndexToId: {},
+      step: "hiring",
+      startedAt: Date.now(),
+      ceoId: env.ceoId,
+      threadId: "th",
+    });
+
+    const calls: unknown[] = [];
+    const result = resumeStuckNarrated(env.db, {
+      enqueueExecuteRequest: (ceoId, prompt) => {
+        calls.push({ ceoId, prompt });
+        return { threadId: "x" };
+      },
+    });
+
+    expect(result.resumed).toEqual([]);
+    expect(result.flagged).toHaveLength(1);
+    expect(calls).toHaveLength(0);
+    const cards = createInboxRepository(env.db).listByCompany(env.companyId);
+    expect(cards.some((i) => i.kind === "goal_error")).toBe(true);
   });
 });
 

@@ -92,7 +92,7 @@ import { registerGoalsHandlers } from "./goals-handlers.js";
 import { registerNarratedHandlers } from "./goals-narrated-handlers.js";
 import {
   scanPlanningWithoutPlan,
-  scanStuckNarrated,
+  resumeStuckNarrated,
   scanStrandedInProgress,
   scanProposedWithoutCard,
 } from "../goals/recovery.js";
@@ -2661,13 +2661,18 @@ export const registerOrchestratorHandlers = (
     console.error("[goals] proposed-without-card scan failed", e);
   }
 
-  // M8.6 — Boot recovery for narrated executions halted mid-loop (CEO
-  // max-turns hit, app crash). Creates a goal_error inbox per stuck goal so
-  // the user can choose to resume or rollback via /inbox CTAs.
+  // M8.6 + I-narr (audit 2026-06-03): a narrated execution halted mid-loop (CEO
+  // max-turns, app crash) used to only file a goal_error card for the human to
+  // resume by hand — the loop just stopped. Since the per-plan tools are
+  // idempotent, auto-resume re-enqueues the CEO execute-request; only goals
+  // that genuinely can't resume fall back to a card.
   try {
-    const halted = scanStuckNarrated(db);
-    if (halted.length > 0) {
-      console.log(`[goals/narrated] flagged ${halted.length} stuck narrated execution(s)`);
+    const { resumed, flagged } = resumeStuckNarrated(db, { enqueueExecuteRequest });
+    if (resumed.length > 0) {
+      console.log(`[goals/narrated] auto-resumed ${resumed.length} stuck narrated execution(s)`);
+    }
+    if (flagged.length > 0) {
+      console.log(`[goals/narrated] flagged ${flagged.length} unresumable narrated execution(s)`);
       try {
         for (const win of BrowserWindow.getAllWindows()) {
           win.webContents.send(IPC.INBOX_UPDATE, {});

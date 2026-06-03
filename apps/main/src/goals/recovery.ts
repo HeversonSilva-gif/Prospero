@@ -7,6 +7,7 @@ import { createInboxRepository } from "../inbox/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
 import { runVerification, type RunVerificationDeps } from "../verification/index.js";
 import { formatGoalPlanRequest } from "./format-request.js";
+import { formatGoalExecuteRequest } from "./format-execute-request.js";
 
 export type RecoveryDeps = {
   deliverSystemMessage: (agentId: string, text: string) => void;
@@ -105,6 +106,60 @@ export const scanProposedWithoutCard = (db: Database.Database): string[] => {
     created.push(item.id);
   }
   return created;
+};
+
+export type NarratedResumeDeps = {
+  enqueueExecuteRequest: (ceoId: string, prompt: string) => { threadId: string };
+};
+
+// I-narr (audit 2026-06-03): a narrated execution interrupted before the CEO
+// called finalize_goal_execution left the goal `approved` with execution_state,
+// and boot only filed a goal_error card for the human to resume by hand. But
+// hire_agent_for_plan / create_issue_for_plan are idempotent (they return the
+// existing id for an already-instantiated index), so the loop can resume
+// itself: re-enqueue the [GOAL_EXECUTE_REQUEST] CEO turn and refresh the
+// thread. Goals that genuinely can't resume (no plan / no CEO / no state) fall
+// back to a goal_error card so nothing is silently lost. Returns the goal ids
+// resumed and the inbox item ids flagged.
+export const resumeStuckNarrated = (
+  db: Database.Database,
+  deps: NarratedResumeDeps,
+): { resumed: string[]; flagged: string[] } => {
+  const goalsRepo = createGoalsRepository(db);
+  const plansRepo = createGoalPlansRepository(db);
+  const agentsRepo = createAgentsRepository(db);
+  const inboxRepo = createInboxRepository(db);
+  const resumed: string[] = [];
+  const flagged: string[] = [];
+  for (const goal of goalsRepo.findStuckNarrated()) {
+    const state = goalsRepo.getExecutionState(goal.id);
+    const plan = state !== null ? plansRepo.getById(state.planId) : null;
+    const ceo = agentsRepo.listByCompany(goal.companyId).find(isCeoAgent);
+    if (state === null || plan === null || ceo === undefined) {
+      const hired = state ? Object.keys(state.agentIndexToId).length : 0;
+      const issues = state ? Object.keys(state.issueIndexToId).length : 0;
+      const item = inboxRepo.create({
+        companyId: goal.companyId,
+        kind: "goal_error",
+        title: `Plan execution halted for "${goal.title}"`,
+        preview: `Narrated loop could not auto-resume. ${hired} agents hired, ${issues} issues created.`,
+        payloadJson: JSON.stringify({
+          goalId: goal.id,
+          planId: state?.planId ?? null,
+          step: "narrated_halted",
+          hiredCount: hired,
+          issuesCount: issues,
+        }),
+        requiresAction: true,
+      });
+      flagged.push(item.id);
+      continue;
+    }
+    const { threadId } = deps.enqueueExecuteRequest(ceo.id, formatGoalExecuteRequest(goal, plan));
+    goalsRepo.setExecutionState(goal.id, { ...state, threadId });
+    resumed.push(goal.id);
+  }
+  return { resumed, flagged };
 };
 
 // C2 (audit 2026-06-03): safety-net for goals stranded `in_progress` with every
