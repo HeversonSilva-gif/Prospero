@@ -67,10 +67,10 @@ export const BusinessSignalSchema = z.object({
 });
 
 export const RevenueProjectionSchema = z.object({
-  month3: z.string(),
-  month6: z.string(),
-  month12: z.string(),
-  assumption: z.string(),
+  month3: z.string().min(1).max(200),
+  month6: z.string().min(1).max(200),
+  month12: z.string().min(1).max(200),
+  assumption: z.string().min(1).max(500),
 });
 
 export const BusinessPlanOptionSchema = BusinessPlanPayloadSchema.extend({

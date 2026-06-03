@@ -84,6 +84,16 @@ describe("BusinessPlanOptionSchema", () => {
     const bad = { ...optionA, whyRecommended: "" };
     expect(BusinessPlanOptionSchema.safeParse(bad).success).toBe(false);
   });
+
+  it("rejects an empty projection month string", () => {
+    const bad = { ...optionA, projection: { ...projection, month3: "" } };
+    expect(BusinessPlanOptionSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it("rejects an empty projection assumption string", () => {
+    const bad = { ...optionA, projection: { ...projection, assumption: "" } };
+    expect(BusinessPlanOptionSchema.safeParse(bad).success).toBe(false);
+  });
 });
 
 describe("BusinessPlanOptionsPayloadSchema", () => {
