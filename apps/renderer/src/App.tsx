@@ -38,6 +38,7 @@ import { RouteErrorBoundary } from "./components/RouteErrorBoundary.js";
 
 const Activity = lazy(() => import("./routes/Activity.js").then((m) => ({ default: m.Activity })));
 const Costs = lazy(() => import("./routes/Costs.js"));
+const Financeiro = lazy(() => import("./routes/Financeiro.js"));
 const Goals = lazy(() => import("./routes/Goals.js"));
 const PedirAlgo = lazy(() => import("./routes/PedirAlgo.js"));
 const NovaEmpresaWizard = lazy(() => import("./routes/NovaEmpresaWizard.js"));
@@ -408,6 +409,20 @@ export const App = () => {
                     <Layout>
                       <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
                         <Costs />
+                      </Suspense>
+                    </Layout>
+                  ) : (
+                    <Navigate to="/setup" replace />
+                  )
+                }
+              />
+              <Route
+                path="/financeiro"
+                element={
+                  appReady ? (
+                    <Layout>
+                      <Suspense fallback={<div className="p-8 text-sm text-ink-muted">…</div>}>
+                        <Financeiro />
                       </Suspense>
                     </Layout>
                   ) : (
