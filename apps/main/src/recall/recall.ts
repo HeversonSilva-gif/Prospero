@@ -103,6 +103,7 @@ export const recallForIssue = (db: Database.Database, input: RecallInput): Recal
         scopeToAgent: input.agentId,
         limit,
       });
+      memRepo.recordAccess(rows.map((m) => m.id));
       memories = rows.map((m) => ({ body: m.body }));
     } catch {
       // FTS errors (e.g. invalid query on edge-case input) must never crash the observer.

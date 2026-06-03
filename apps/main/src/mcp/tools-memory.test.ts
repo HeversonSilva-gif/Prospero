@@ -8,6 +8,7 @@ import { applyMigrations } from "../db/migrations.js";
 import { memoryToolDefinitions } from "./tools-memory.js";
 import type { ToolContext } from "./tools.js";
 import { createSkillsRepository } from "../memory/skills-repository.js";
+import { createMemoriesRepository } from "../memory/memories-repository.js";
 
 const tool = (name: string) => {
   const def = memoryToolDefinitions.find((t) => t.name === name);
@@ -224,6 +225,100 @@ describe("algorithm bundled skill fallbacks", () => {
     await expect(
       tool("skill_create").run({ name: "algorithm", description: "x", body: "x" }, ctx),
     ).rejects.toThrow(/reserved/);
+  });
+});
+
+describe("memory_read records access", () => {
+  it("bumps last_accessed and access_count after memory_read", async () => {
+    const ctx = newCtx();
+    const repo = createMemoriesRepository(ctx.db);
+    const m = repo.create({
+      companyId: ctx.companyId,
+      agentId: ctx.agentId,
+      kind: "rule",
+      body: "lint before commit",
+    });
+
+    expect(m.lastAccessed).toBeNull();
+    expect(m.accessCount).toBe(0);
+
+    const before = Date.now();
+    await tool("memory_read").run({}, ctx);
+    const after = Date.now();
+
+    const updated = repo.getById(m.id)!;
+    expect(updated.lastAccessed).toBeGreaterThanOrEqual(before);
+    expect(updated.lastAccessed).toBeLessThanOrEqual(after);
+    expect(updated.accessCount).toBe(1);
+  });
+
+  it("only bumps access for rows that pass the kind filter", async () => {
+    const ctx = newCtx();
+    const repo = createMemoriesRepository(ctx.db);
+    const ruleM = repo.create({
+      companyId: ctx.companyId,
+      agentId: ctx.agentId,
+      kind: "rule",
+      body: "run tests",
+    });
+    const prefM = repo.create({
+      companyId: ctx.companyId,
+      agentId: ctx.agentId,
+      kind: "preference",
+      body: "prefer tabs",
+    });
+
+    await tool("memory_read").run({ kind: "rule" }, ctx);
+
+    expect(repo.getById(ruleM.id)!.accessCount).toBe(1);
+    expect(repo.getById(prefM.id)!.accessCount).toBe(0);
+  });
+});
+
+describe("memory_search records access", () => {
+  it("bumps last_accessed and access_count for matched memories", async () => {
+    const ctx = newCtx();
+    const repo = createMemoriesRepository(ctx.db);
+    const m = repo.create({
+      companyId: ctx.companyId,
+      agentId: ctx.agentId,
+      kind: "rule",
+      body: "staging deploy uses docker compose",
+    });
+
+    expect(m.lastAccessed).toBeNull();
+    expect(m.accessCount).toBe(0);
+
+    const before = Date.now();
+    await tool("memory_search").run({ query: "docker" }, ctx);
+    const after = Date.now();
+
+    const updated = repo.getById(m.id)!;
+    expect(updated.lastAccessed).toBeGreaterThanOrEqual(before);
+    expect(updated.lastAccessed).toBeLessThanOrEqual(after);
+    expect(updated.accessCount).toBe(1);
+  });
+
+  it("does not bump access for memories that do NOT match the query", async () => {
+    const ctx = newCtx();
+    const repo = createMemoriesRepository(ctx.db);
+    const matched = repo.create({
+      companyId: ctx.companyId,
+      agentId: ctx.agentId,
+      kind: "rule",
+      body: "staging deploy uses docker compose",
+    });
+    const unmatched = repo.create({
+      companyId: ctx.companyId,
+      agentId: ctx.agentId,
+      kind: "rule",
+      body: "postgres vacuum schedule is weekly",
+    });
+
+    await tool("memory_search").run({ query: "docker" }, ctx);
+
+    expect(repo.getById(matched.id)!.accessCount).toBe(1);
+    expect(repo.getById(unmatched.id)!.accessCount).toBe(0);
   });
 });
 

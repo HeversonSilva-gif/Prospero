@@ -126,6 +126,71 @@ describe("memoriesRepository", () => {
   });
 });
 
+describe("memories-repository — recordAccess", () => {
+  it("recordAccess bumps last_accessed and access_count for the given ids", () => {
+    const db = newDb();
+    const repo = createMemoriesRepository(db);
+    const m1 = repo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "note one" });
+    const m2 = repo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "note two" });
+
+    expect(m1.lastAccessed).toBeNull();
+    expect(m1.accessCount).toBe(0);
+
+    const before = Date.now();
+    repo.recordAccess([m1.id, m2.id]);
+    const after = Date.now();
+
+    const updated1 = repo.getById(m1.id)!;
+    const updated2 = repo.getById(m2.id)!;
+
+    expect(updated1.lastAccessed).toBeGreaterThanOrEqual(before);
+    expect(updated1.lastAccessed).toBeLessThanOrEqual(after);
+    expect(updated1.accessCount).toBe(1);
+
+    expect(updated2.lastAccessed).toBeGreaterThanOrEqual(before);
+    expect(updated2.lastAccessed).toBeLessThanOrEqual(after);
+    expect(updated2.accessCount).toBe(1);
+  });
+
+  it("recordAccess does not touch rows that are NOT in the ids list", () => {
+    const db = newDb();
+    const repo = createMemoriesRepository(db);
+    const m1 = repo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "touched" });
+    const m2 = repo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "untouched" });
+
+    repo.recordAccess([m1.id]);
+
+    const untouched = repo.getById(m2.id)!;
+    expect(untouched.lastAccessed).toBeNull();
+    expect(untouched.accessCount).toBe(0);
+  });
+
+  it("recordAccess on an empty array is a no-op", () => {
+    const db = newDb();
+    const repo = createMemoriesRepository(db);
+    const m = repo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "noop test" });
+
+    // Must not throw
+    repo.recordAccess([]);
+
+    const unchanged = repo.getById(m.id)!;
+    expect(unchanged.lastAccessed).toBeNull();
+    expect(unchanged.accessCount).toBe(0);
+  });
+
+  it("calling recordAccess twice increments access_count to 2", () => {
+    const db = newDb();
+    const repo = createMemoriesRepository(db);
+    const m = repo.create({ companyId: "c1", agentId: "a1", kind: "rule", body: "double access" });
+
+    repo.recordAccess([m.id]);
+    repo.recordAccess([m.id]);
+
+    const updated = repo.getById(m.id)!;
+    expect(updated.accessCount).toBe(2);
+  });
+});
+
 describe("memories-repository — decay support", () => {
   it("listDecayCandidates returns active, non-pinned, non-identity memories across companies", () => {
     const db = newDb();

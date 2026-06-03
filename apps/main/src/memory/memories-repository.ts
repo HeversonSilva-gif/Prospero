@@ -81,6 +81,9 @@ export type MemoriesRepository = {
   listDecayCandidates(): Memory[];
   // M11 PR-F1: atomically add `delta` to trust, clamped to [0, 1].
   bumpTrust(id: string, delta: number): Memory;
+  // v0.2.4: record that the given memory ids were surfaced (read/recalled).
+  // Updates last_accessed and increments access_count. No-op on empty array.
+  recordAccess(ids: string[]): void;
 };
 
 export const createMemoriesRepository = (db: Database.Database): MemoriesRepository => {
@@ -187,6 +190,19 @@ export const createMemoriesRepository = (db: Database.Database): MemoriesReposit
       const updated = getById(id);
       if (updated === null) throw new Error(`memory not found: ${id}`);
       return updated;
+    },
+    recordAccess(ids) {
+      if (ids.length === 0) return;
+      const now = Date.now();
+      const tx = db.transaction(() => {
+        const stmt = db.prepare(
+          "UPDATE memories SET last_accessed = ?, access_count = access_count + 1 WHERE id = ?",
+        );
+        for (const id of ids) {
+          stmt.run(now, id);
+        }
+      });
+      tx();
     },
     search(query, opts = {}) {
       const limit = opts.limit ?? 50;

@@ -349,6 +349,65 @@ describe("recallForIssue — preference scoping", () => {
 });
 
 // ---------------------------------------------------------------------------
+// recallForIssue — recordAccess side-effect
+// ---------------------------------------------------------------------------
+
+describe("recallForIssue — records access on surfaced memories", () => {
+  it("bumps last_accessed and access_count for a recalled memory", () => {
+    const db = newDb();
+    const memRepo = createMemoriesRepository(db);
+    const m = memRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      kind: "rule",
+      body: "kafka consumer lag must be monitored",
+    });
+
+    expect(m.lastAccessed).toBeNull();
+    expect(m.accessCount).toBe(0);
+
+    const before = Date.now();
+    recallForIssue(db, {
+      companyId: "c1",
+      agentId: "a1",
+      issueText: "kafka consumer lag monitoring",
+    });
+    const after = Date.now();
+
+    const updated = memRepo.getById(m.id)!;
+    expect(updated.lastAccessed).toBeGreaterThanOrEqual(before);
+    expect(updated.lastAccessed).toBeLessThanOrEqual(after);
+    expect(updated.accessCount).toBe(1);
+  });
+
+  it("does not bump access for memories that were NOT surfaced", () => {
+    const db = newDb();
+    const memRepo = createMemoriesRepository(db);
+    const matched = memRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      kind: "rule",
+      body: "kafka consumer lag must be monitored",
+    });
+    const unmatched = memRepo.create({
+      companyId: "c1",
+      agentId: "a1",
+      kind: "rule",
+      body: "postgres vacuum schedule is weekly",
+    });
+
+    recallForIssue(db, {
+      companyId: "c1",
+      agentId: "a1",
+      issueText: "kafka consumer lag monitoring",
+    });
+
+    expect(memRepo.getById(matched.id)!.accessCount).toBe(1);
+    expect(memRepo.getById(unmatched.id)!.accessCount).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // formatRecallSeed
 // ---------------------------------------------------------------------------
 

@@ -232,9 +232,14 @@ const memoryRead: Tool = {
     const repo = createMemoriesRepository(ctx.db);
     const rows =
       scope === "company" ? repo.listCompanyWide(ctx.companyId) : repo.listByAgent(ctx.agentId);
-    const memories = rows
-      .filter((m) => kind === undefined || m.kind === kind)
-      .map((m) => ({ id: m.id, kind: m.kind, body: m.body, importance: m.importance }));
+    const filtered = rows.filter((m) => kind === undefined || m.kind === kind);
+    repo.recordAccess(filtered.map((m) => m.id));
+    const memories = filtered.map((m) => ({
+      id: m.id,
+      kind: m.kind,
+      body: m.body,
+      importance: m.importance,
+    }));
     return JSON.stringify({ memories });
   },
 };
@@ -302,10 +307,12 @@ const memorySearch: Tool = {
       query: string;
       limit?: number;
     };
-    const rows = createMemoriesRepository(ctx.db).search(query, {
+    const repo = createMemoriesRepository(ctx.db);
+    const rows = repo.search(query, {
       agentId: ctx.agentId,
       ...(limit !== undefined ? { limit } : {}),
     });
+    repo.recordAccess(rows.map((m) => m.id));
     return JSON.stringify({
       memories: rows.map((m) => ({ id: m.id, kind: m.kind, body: m.body })),
     });
