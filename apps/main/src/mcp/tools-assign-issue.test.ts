@@ -85,7 +85,7 @@ describe("assign_issue / list_agents — terminated agents", () => {
     const issue = makeIssue(db); // created as 'todo'
     createIssuesRepository(db).update(
       issue.id,
-      { status: "doing" },
+      { status: "doing", assigneeId: "live1" },
       {
         actorKind: "agent",
         actorId: "live1",
@@ -128,7 +128,7 @@ describe("assign_issue / list_agents — terminated agents", () => {
     const issue = makeIssue(db);
     createIssuesRepository(db).update(
       issue.id,
-      { status: "review" },
+      { status: "review", assigneeId: "live1" },
       {
         actorKind: "agent",
         actorId: "live1",
@@ -138,6 +138,30 @@ describe("assign_issue / list_agents — terminated agents", () => {
       status?: string;
     };
     expect(out.status).toBe("done");
+  });
+
+  it("update_issue refuses done on an issue assigned to someone else (C8 authz)", async () => {
+    // Audit 2026-06-03 C8/I-authz: any company agent could close another's
+    // issue. With a falsifiable artifact this is trust laundering. Only the
+    // assignee (or the CEO, who approves review) may mark done.
+    const { db, ctx } = setup(); // ctx.agentId = live1 (engineer, not CEO)
+    db.prepare(
+      `INSERT INTO agents (id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,model,adapter_name,terminated_at,created_at,updated_at)
+       VALUES ('other1','c1','Other','engineer','','[]','[]','supervised',0,'idle','claude-sonnet-4-6','claude-oauth-local',NULL,?,?)`,
+    ).run(Date.now(), Date.now());
+    const issue = makeIssue(db);
+    createIssuesRepository(db).update(
+      issue.id,
+      { status: "doing", assigneeId: "other1" },
+      { actorKind: "agent", actorId: "other1" },
+    );
+    const out = JSON.parse(await updateTool.run({ id: issue.id, status: "done" }, ctx)) as {
+      ok?: boolean;
+      error?: string;
+    };
+    expect(out.ok).toBe(false);
+    expect(out.error).toMatch(/assignee|CEO/i);
+    expect(createIssuesRepository(db).getById(issue.id)?.status).toBe("doing");
   });
 
   it("list_agents excludes terminated agents", async () => {

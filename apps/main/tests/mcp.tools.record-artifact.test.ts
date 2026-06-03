@@ -36,7 +36,9 @@ const setup = () => {
     projectId: project.id,
     title: "T",
     description: null,
-    assigneeId: null,
+    // Assigned to the caller (ag_1) so record_artifact's assignee authz (C8)
+    // passes for the happy-path tests.
+    assigneeId: "ag_1",
     priority: "medium",
     parentId: null,
     createdBy: "ag_1",
@@ -122,6 +124,28 @@ describe("MCP record_artifact", () => {
       ),
     ) as { ok: boolean };
     expect(result.ok).toBe(false);
+  });
+
+  it("refuses an artifact from an agent who is not the assignee or CEO (C8 authz)", async () => {
+    // Audit 2026-06-03 C8/I-authz: fabricating another agent's delivery is
+    // trust laundering. Only the assignee or the CEO may record an artifact.
+    const { db, issueId } = setup(); // issue assigned to ag_1
+    const intruderCtx: ToolContext = {
+      agentId: "intruder",
+      companyId: "co_1",
+      db,
+      permissionsDir: "C:/tmp",
+      userDataDir: "/tmp/userdata",
+      emit: () => {},
+    };
+    const result = JSON.parse(
+      await tool("record_artifact").run(
+        { issue_id: issueId, kind: "output_text", ref: "o1" },
+        intruderCtx,
+      ),
+    ) as { ok: boolean; error?: string };
+    expect(result.ok).toBe(false);
+    expect(result.error ?? "").toMatch(/assignee|CEO/i);
   });
 });
 

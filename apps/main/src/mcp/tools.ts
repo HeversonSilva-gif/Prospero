@@ -793,6 +793,16 @@ export const toolDefinitions = [
           error: `cannot move issue to 'done' from '${existing.status}' — move it to 'doing' while you work it, then to 'done' (or 'review'). No jumping straight to done.`,
         });
       }
+      // C8 (audit 2026-06-03): only the issue's assignee or the CEO (who
+      // approves work in `review`) may close it. Otherwise any company agent
+      // could close another's issue — with a falsifiable artifact that is trust
+      // laundering (verified work the agent never did).
+      if (input.status === "done" && existing.assigneeId !== ctx.agentId && !callerIsCeo(ctx)) {
+        return JSON.stringify({
+          ok: false,
+          error: "only the issue's assignee or the CEO can mark it done",
+        });
+      }
       const patch: Parameters<typeof issues.update>[1] = {};
       if (input.status !== undefined) patch.status = input.status;
       if (input.description !== undefined) patch.description = input.description;
@@ -1322,6 +1332,15 @@ export const toolDefinitions = [
       const resolvedId = resolveIssueIdOrIdentifier(ctx.db, input.issue_id, ctx.companyId);
       if (resolvedId === null) {
         return JSON.stringify({ ok: false, error: "issue not found" });
+      }
+      // C8 (audit 2026-06-03): only the issue's assignee or the CEO may attach a
+      // deliverable. Fabricating another agent's artifact is trust laundering.
+      const artifactIssue = createIssuesRepository(ctx.db).getById(resolvedId);
+      if (artifactIssue !== null && artifactIssue.assigneeId !== ctx.agentId && !callerIsCeo(ctx)) {
+        return JSON.stringify({
+          ok: false,
+          error: "only the issue's assignee or the CEO can record an artifact for it",
+        });
       }
       if (input.kind === "commit_sha" && !/^[a-f0-9]{40}$/i.test(input.ref)) {
         return JSON.stringify({ ok: false, error: "commit_sha must be 40-char hex" });
