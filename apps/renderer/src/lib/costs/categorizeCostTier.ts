@@ -13,6 +13,9 @@ const TIER_BY_MODEL: Record<string, CostTier> = {
   "claude-haiku-4-5-20251001": "cheap",
   "claude-sonnet-4-6": "medium",
   "claude-opus-4-7": "expensive",
+  // Audit 2026-06-03 Inteligência & Contexto M3: Opus 4.8 (the CEO model) had
+  // no chip entry → the most expensive model showed the weakest cost signal.
+  "claude-opus-4-8": "expensive",
 };
 
 const SYMBOL_BY_TIER: Record<CostTier, CostTierInfo["symbol"]> = {

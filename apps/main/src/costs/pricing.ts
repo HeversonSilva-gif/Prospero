@@ -20,6 +20,9 @@ export type ModelPricing = {
 
 export const MODEL_PRICING: Record<string, ModelPricing> = {
   "claude-opus-4-7": { in: 1500, out: 7500, cacheCreate: 1875, cacheRead: 150 },
+  // Audit 2026-06-03 Inteligência & Contexto C2: Opus 4.8 (the CEO model) was
+  // absent → unknown model → $0 in the ledger. Same Opus tier as 4.7.
+  "claude-opus-4-8": { in: 1500, out: 7500, cacheCreate: 1875, cacheRead: 150 },
   "claude-sonnet-4-6": { in: 300, out: 1500, cacheCreate: 375, cacheRead: 30 },
   "claude-haiku-4-5-20251001": { in: 100, out: 500, cacheCreate: 125, cacheRead: 10 },
 };
