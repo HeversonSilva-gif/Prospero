@@ -115,15 +115,12 @@ describe("createDerivationWorker", () => {
     expect(createSkillCandidatesRepository(db).listPending("c1")).toHaveLength(0);
   });
 
-  it("skips the run when the daily cap is already reached", async () => {
-    const insert = db.prepare(
-      `INSERT INTO cost_events (id, company_id, agent_id, project_id, issue_id, adapter_name,
-         model, session_id, input_tokens, output_tokens, cache_creation_tokens,
-         cache_read_tokens, cost_cents_estimate, occurred_at)
-       VALUES (?, 'c1', 'a1', NULL, NULL, 'derivation', 'claude-sonnet-4-6', NULL,
-         1, 1, 0, 0, 0, ?)`,
-    );
-    for (let i = 0; i < 3; i++) insert.run(`ce_${i}`, 1000);
+  it("skips the run when the daily cap is already reached (based on attempt count)", async () => {
+    // Seed derivation_attempts to simulate 3 attempts already consumed today.
+    // The default cap is 3 (from AppSettingsSchema), so the 4th call must be skipped.
+    db.prepare(
+      `INSERT INTO derivation_attempts (agent_id, day_utc, count) VALUES ('a1', 0, 3)`,
+    ).run();
     let ran = false;
     const worker = createDerivationWorker({
       db,
@@ -137,6 +134,41 @@ describe("createDerivationWorker", () => {
     await worker.processJob(issueJob);
     expect(ran).toBe(false);
     expect(createSkillCandidatesRepository(db).listPending("c1")).toHaveLength(0);
+  });
+
+  it("counts a failing attempt toward the daily cap so N failures block the (N+1)th run", async () => {
+    // Cap = 3 (default). Run 3 jobs that all fail (runner throws). Each failure
+    // should record an attempt. The 4th job must be skipped without running.
+    const failingWorker = createDerivationWorker({
+      db,
+      runDerivation: () => Promise.reject(new Error("auth outage")),
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    await failingWorker.processJob(issueJob);
+    await failingWorker.processJob(issueJob);
+    await failingWorker.processJob(issueJob);
+
+    // All 3 failures should have been swallowed (never throws).
+    let ran = false;
+    const worker = createDerivationWorker({
+      db,
+      runDerivation: () => {
+        ran = true;
+        return Promise.resolve(skillOutput("x"));
+      },
+      now: () => 1000,
+      authEnv: () => ({}),
+    });
+    await worker.processJob(issueJob);
+    expect(ran).toBe(false);
+    expect(createSkillCandidatesRepository(db).listPending("c1")).toHaveLength(0);
+
+    // Verify the attempt counter records 3 attempts (one per failing run).
+    const row = db.prepare(`SELECT count FROM derivation_attempts WHERE agent_id = 'a1'`).get() as {
+      count: number;
+    };
+    expect(row.count).toBe(3);
   });
 
   it("never throws when the runner fails", async () => {

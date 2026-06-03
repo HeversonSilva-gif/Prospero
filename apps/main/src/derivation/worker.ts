@@ -74,9 +74,21 @@ const startOfDayUtc = (ms: number): number => {
 
 export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWorker => {
   const { db } = deps;
+  // Cap is now based on derivation_attempts (counts every attempt, success or
+  // failure) so a burst of failing derivations during an auth outage cannot
+  // spawn unbounded subprocesses. The old cost_events query only counted
+  // successful runs.
   const capCountStmt = db.prepare(
-    `SELECT COUNT(*) AS n FROM cost_events
-      WHERE agent_id = ? AND adapter_name = 'derivation' AND occurred_at >= ?`,
+    `SELECT COALESCE(SUM(count), 0) AS n FROM derivation_attempts
+      WHERE agent_id = ? AND day_utc = ?`,
+  );
+  // Upsert: insert with count=1 on first attempt of the day; increment on
+  // subsequent attempts. Executed BEFORE runDerivation so failures consume
+  // budget too.
+  const recordAttemptStmt = db.prepare(
+    `INSERT INTO derivation_attempts (agent_id, day_utc, count)
+     VALUES (?, ?, 1)
+     ON CONFLICT(agent_id, day_utc) DO UPDATE SET count = count + 1`,
   );
 
   const log = (msg: string): void => {
@@ -86,7 +98,8 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
   const processJob = async (job: DerivationJob): Promise<void> => {
     try {
       const cap = createSettingsRepository(db).read().derivationsPerDayPerAgent;
-      const used = (capCountStmt.get(job.agentId, startOfDayUtc(deps.now())) as { n: number }).n;
+      const dayUtc = startOfDayUtc(deps.now());
+      const used = (capCountStmt.get(job.agentId, dayUtc) as { n: number }).n;
       if (used >= cap) {
         log(`cap reached for agent ${job.agentId} (${used}/${cap}) — skipping`);
         return;
@@ -156,6 +169,10 @@ export const createDerivationWorker = (deps: DerivationWorkerDeps): DerivationWo
         log(`unknown trigger: ${String(unknown)} — skipping`);
         return;
       }
+
+      // Record the attempt BEFORE running so that failures (auth outage, etc.)
+      // still consume a daily-cap slot and prevent unbounded retry storms.
+      recordAttemptStmt.run(job.agentId, dayUtc);
 
       const result = await deps.runDerivation({
         prompt,
