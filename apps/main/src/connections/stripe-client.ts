@@ -72,9 +72,13 @@ export const getAccount = async (http: StripeHttp, key: string): Promise<StripeA
 
 const FORM_CT = "application/x-www-form-urlencoded";
 
-const postHeaders = (key: string): Record<string, string> => ({
+const postHeaders = (key: string, idempotencyKey?: string): Record<string, string> => ({
   Authorization: `Bearer ${key}`,
   "Content-Type": FORM_CT,
+  // I6 (Conectores audit): a stable key lets Stripe dedupe a retried setup so a
+  // re-run / deferred-approval re-attempt doesn't litter the account with duplicate
+  // products/prices/links. Omitted entirely when absent (no empty header).
+  ...(idempotencyKey !== undefined ? { "Idempotency-Key": idempotencyKey } : {}),
 });
 
 const encodeForm = (params: Record<string, string | number>): string =>
@@ -93,10 +97,11 @@ export const createProduct = async (
   http: StripeHttp,
   key: string,
   input: { name: string; description: string },
+  idempotencyKey?: string,
 ): Promise<{ id: string }> => {
   const res = await http("https://api.stripe.com/v1/products", {
     method: "POST",
-    headers: postHeaders(key),
+    headers: postHeaders(key, idempotencyKey),
     body: encodeForm({ name: input.name, description: input.description }),
   });
   const data = (await res.json()) as { id?: string; error?: { message?: string } };
@@ -107,6 +112,7 @@ export const createPrice = async (
   http: StripeHttp,
   key: string,
   input: { product: string; unitAmount: number; currency: string; interval?: "month" | "year" },
+  idempotencyKey?: string,
 ): Promise<{ id: string }> => {
   const params: Record<string, string | number> = {
     product: input.product,
@@ -116,7 +122,7 @@ export const createPrice = async (
   if (input.interval !== undefined) params["recurring[interval]"] = input.interval;
   const res = await http("https://api.stripe.com/v1/prices", {
     method: "POST",
-    headers: postHeaders(key),
+    headers: postHeaders(key, idempotencyKey),
     body: encodeForm(params),
   });
   const data = (await res.json()) as { id?: string; error?: { message?: string } };
@@ -127,6 +133,7 @@ export const createPaymentLink = async (
   http: StripeHttp,
   key: string,
   input: { lineItems: { price: string; quantity: number }[] },
+  idempotencyKey?: string,
 ): Promise<{ id: string; url: string }> => {
   const params: Record<string, string | number> = {};
   input.lineItems.forEach((li, i) => {
@@ -135,7 +142,7 @@ export const createPaymentLink = async (
   });
   const res = await http("https://api.stripe.com/v1/payment_links", {
     method: "POST",
-    headers: postHeaders(key),
+    headers: postHeaders(key, idempotencyKey),
     body: encodeForm(params),
   });
   const data = (await res.json()) as { id?: string; url?: string; error?: { message?: string } };
@@ -154,6 +161,12 @@ export type StripeCharge = {
   currency: string;
   created: number; // ms (Stripe returns seconds; we convert)
   status: string;
+  // I5 (Conectores audit): a refunded/disputed charge stays status:"succeeded".
+  // amountRefunded is the smallest currency unit refunded; a dispute (chargeback) is
+  // surfaced as a full refund so net revenue = amount - amountRefunded never overcounts.
+  amountRefunded: number;
+  disputed: boolean;
+  customer: string | null;
 };
 
 export const listCharges = async (
@@ -171,7 +184,16 @@ export const listCharges = async (
     headers: { Authorization: `Bearer ${key}` },
   });
   const data = (await res.json()) as {
-    data?: Array<{ id: string; amount: number; currency: string; created: number; status: string }>;
+    data?: Array<{
+      id: string;
+      amount: number;
+      amount_refunded?: number;
+      disputed?: boolean;
+      customer?: string | null;
+      currency: string;
+      created: number;
+      status: string;
+    }>;
     error?: { message?: string };
   };
   if (res.status >= 400) {
@@ -180,11 +202,19 @@ export const listCharges = async (
       data.error?.message ?? `Stripe API error ${String(res.status)}`,
     );
   }
-  return (data.data ?? []).map((c) => ({
-    id: c.id,
-    amount: c.amount,
-    currency: c.currency,
-    created: c.created * 1000,
-    status: c.status,
-  }));
+  return (data.data ?? []).map((c) => {
+    const disputed = c.disputed === true;
+    // A dispute removes the whole charge; record it as a full refund so net = 0.
+    const amountRefunded = disputed ? c.amount : (c.amount_refunded ?? 0);
+    return {
+      id: c.id,
+      amount: c.amount,
+      currency: c.currency,
+      created: c.created * 1000,
+      status: c.status,
+      amountRefunded,
+      disputed,
+      customer: typeof c.customer === "string" ? c.customer : null,
+    };
+  });
 };

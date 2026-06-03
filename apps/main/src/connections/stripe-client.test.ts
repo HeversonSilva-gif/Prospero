@@ -88,6 +88,26 @@ describe("stripe-client createProduct / createPrice / createPaymentLink", () => 
     expect(r).toEqual({ id: "prod_1" });
   });
 
+  it("sends an Idempotency-Key header when one is provided (I6)", async () => {
+    let captured: { url: string; init: Init } | undefined;
+    const http: StripeHttp = (url, init) => {
+      captured = { url, init };
+      return Promise.resolve({ status: 200, json: () => Promise.resolve({ id: "prod_1" }) });
+    };
+    await createProduct(http, "rk_test_x", { name: "Plano", description: "x" }, "idem-abc");
+    expect(captured?.init.headers["Idempotency-Key"]).toBe("idem-abc");
+  });
+
+  it("omits the Idempotency-Key header when none is provided", async () => {
+    let captured: { url: string; init: Init } | undefined;
+    const http: StripeHttp = (url, init) => {
+      captured = { url, init };
+      return Promise.resolve({ status: 200, json: () => Promise.resolve({ id: "prod_1" }) });
+    };
+    await createProduct(http, "rk_test_x", { name: "Plano", description: "x" });
+    expect(captured?.init.headers["Idempotency-Key"]).toBeUndefined();
+  });
+
   it("POSTs a one-time price (no recurring) ", async () => {
     let body: string | undefined;
     const http: StripeHttp = (_url, init) => {
@@ -167,7 +187,46 @@ describe("stripe-client listCharges", () => {
       currency: "brl",
       created: 1_000_000,
       status: "succeeded",
+      amountRefunded: 0,
+      disputed: false,
+      customer: null,
     });
+  });
+
+  it("maps amount_refunded, dispute (as full refund) and customer (I5)", async () => {
+    const http: StripeHttp = () =>
+      Promise.resolve({
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: [
+              // partial refund
+              {
+                id: "ch_r",
+                amount: 1000,
+                amount_refunded: 400,
+                currency: "brl",
+                created: 1000,
+                status: "succeeded",
+                customer: "cus_1",
+              },
+              // disputed: treated as a full refund (net 0)
+              {
+                id: "ch_d",
+                amount: 2000,
+                amount_refunded: 0,
+                disputed: true,
+                currency: "brl",
+                created: 2000,
+                status: "succeeded",
+                customer: null,
+              },
+            ],
+          }),
+      });
+    const charges = await listCharges(http, "rk_test_x");
+    expect(charges[0]).toMatchObject({ amountRefunded: 400, customer: "cus_1", disputed: false });
+    expect(charges[1]).toMatchObject({ amountRefunded: 2000, disputed: true, customer: null });
   });
 
   it("returns [] when there is no data and throws on error", async () => {
