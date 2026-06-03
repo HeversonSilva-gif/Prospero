@@ -835,6 +835,11 @@ export const toolDefinitions = [
       );
       if (next === null) return JSON.stringify({ ok: false, error: "issue not found" });
       ctx.emit({ kind: "issue.updated", payload: { issueId: next.id } });
+      // C6 (audit 2026-06-03): wake the new assignee. The MCP child can't call
+      // notifyAssignee (no BrowserWindow); MAIN turns this into the wake event.
+      // Without it a delegated issue just sat idle (= the dead recall-seed
+      // diferido #7 too — the seed is only consumed once the agent is woken).
+      ctx.emit({ kind: "issue.assigned", payload: { issueId: next.id } });
       return JSON.stringify({ id: next.id, assignee: next.assigneeId });
     },
   },

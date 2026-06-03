@@ -708,6 +708,11 @@ export const registerOrchestratorHandlers = (
           });
         }
       }
+    } else if (kind === "issue.assigned" && typeof payload === "object" && payload !== null) {
+      // C6 (audit 2026-06-03): the MCP assign_issue tool can't call notifyAssignee
+      // (no BrowserWindow in the child), so it emits this; MAIN wakes the assignee.
+      const issue = createIssuesRepository(db).getById((payload as { issueId: string }).issueId);
+      if (issue !== null) notifyAssignee(db, eventsDir, issue);
     } else if (
       kind === "approval.route" ||
       kind === "approval.decided" ||

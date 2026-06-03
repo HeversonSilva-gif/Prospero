@@ -63,6 +63,22 @@ describe("assign_issue / list_agents — terminated agents", () => {
     expect(out.assignee).toBe("live1");
   });
 
+  it("emits issue.assigned so MAIN wakes the new assignee (agent delegation wasn't waking anyone)", async () => {
+    const { db } = setup();
+    const issue = makeIssue(db);
+    const events: { kind: string; payload: unknown }[] = [];
+    const ctx2: ToolContext = {
+      agentId: "live1",
+      companyId: "c1",
+      db,
+      permissionsDir: "/tmp/perm",
+      userDataDir: "/tmp/perm",
+      emit: (e) => events.push(e),
+    };
+    await assignTool.run({ issue_id: issue.id, agent_id: "live1" }, ctx2);
+    expect(events.map((e) => e.kind)).toContain("issue.assigned");
+  });
+
   it("list_agents excludes terminated agents", async () => {
     const { ctx } = setup();
     const out = JSON.parse(await listAgentsTool.run({}, ctx)) as { agents: { id: string }[] };
