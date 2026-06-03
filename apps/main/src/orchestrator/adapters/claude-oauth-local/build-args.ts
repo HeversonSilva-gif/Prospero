@@ -23,6 +23,10 @@ export const buildClaudeArgs = (
     instructionsBlock?: string;
     telosBlock?: string;
     projectContextBlock?: string;
+    // The capability-boundary prose, pre-built host-side from the company's real
+    // connected channels (build-args has no DB access). Audit 2026-06-03 Facet 3
+    // C1 — CEO-prompt side. Falls back to the x-only default when absent.
+    capabilityBoundary?: string;
   } = {},
 ): string[] => {
   const allowedTools = applyRunPolicy(resolveCapabilityTools(agent.capabilities), {
@@ -43,9 +47,13 @@ export const buildClaudeArgs = (
             goalsBlock:
               goalsSystemPromptBlock +
               orgArchitectSystemPromptBlock +
-              // X is the system's first marketing channel; the boundary reaches
-              // the CEO so it only proposes what the AI can build/run/maintain.
-              buildGenesisSystemPromptBlock(buildCapabilityBoundary(["x"])),
+              // The boundary reaches the CEO so it only proposes what the AI
+              // can build/run/maintain. Prefer the host-built boundary (grounded
+              // in the company's real connectors); fall back to the x-only
+              // default when the host didn't pass one. Audit 2026-06-03 Facet 3 C1.
+              buildGenesisSystemPromptBlock(
+                opts.capabilityBoundary ?? buildCapabilityBoundary(["x"]),
+              ),
           }
         : {}),
       ...(narratedBlock !== undefined ? { narratedBlock } : {}),
