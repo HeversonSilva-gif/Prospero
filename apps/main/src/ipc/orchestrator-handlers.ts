@@ -90,7 +90,11 @@ import {
 import { getEventsDir } from "../orchestrator/events-dir.js";
 import { registerGoalsHandlers } from "./goals-handlers.js";
 import { registerNarratedHandlers } from "./goals-narrated-handlers.js";
-import { scanPlanningWithoutPlan, scanStuckNarrated } from "../goals/recovery.js";
+import {
+  scanPlanningWithoutPlan,
+  scanStuckNarrated,
+  scanStrandedInProgress,
+} from "../goals/recovery.js";
 import { createSettingsRepository } from "../settings/repository.js";
 import {
   startEventsWatcher,
@@ -2605,6 +2609,17 @@ export const registerOrchestratorHandlers = (
     }
   } catch (e) {
     console.error("[goals] recovery scan failed", e);
+  }
+
+  // C2 (audit 2026-06-03): recover goals stranded `in_progress` with every issue
+  // terminal (pre-fix leftovers, or a dropped issue.updated event). Idempotent.
+  try {
+    const recoveredGoals = scanStrandedInProgress(db, buildVerificationDeps());
+    if (recoveredGoals.length > 0) {
+      console.log(`[goals] recovered ${recoveredGoals.length} stranded in_progress goal(s)`);
+    }
+  } catch (e) {
+    console.error("[goals] stranded in_progress scan failed", e);
   }
 
   // M8.6 — Boot recovery for narrated executions halted mid-loop (CEO

@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations } from "../db/migrations.js";
-import { scanPlanningWithoutPlan, scanStuckNarrated } from "./recovery.js";
+import { scanPlanningWithoutPlan, scanStuckNarrated, scanStrandedInProgress } from "./recovery.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { createGoalsRepository } from "./repository.js";
+import { createGoalCriteriaRepository } from "./criteria-repository.js";
+import { createIssuesRepository } from "../issues/repository.js";
+import type { RunVerificationDeps } from "../verification/index.js";
 import { createGoalPlansRepository } from "./plans-repository.js";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
@@ -144,5 +147,63 @@ describe("scanStuckNarrated", () => {
     goals.updateStatus(goal.id, "approved");
     const created = scanStuckNarrated(env.db);
     expect(created).toEqual([]);
+  });
+});
+
+describe("scanStrandedInProgress", () => {
+  const deps: RunVerificationDeps = {
+    sandboxRootFor: () => process.cwd(),
+    callMetricTool: () => Promise.resolve({}),
+    runCommand: () => Promise.resolve({ exitCode: 0, stdout: "", stderr: "", timedOut: false }),
+  };
+  const toInProgress = (db: Database.Database, companyId: string, owner: string): string => {
+    const goals = createGoalsRepository(db);
+    const g = goals.create({ companyId, title: "G", ownerAgentId: owner });
+    for (const s of ["planning", "proposed", "approved", "in_progress"] as const) {
+      goals.updateStatus(g.id, s);
+    }
+    return g.id;
+  };
+  const addIssue = (
+    db: Database.Database,
+    companyId: string,
+    goalId: string,
+    status: string,
+  ): void => {
+    const issue = createIssuesRepository(db).create({
+      companyId,
+      title: "I",
+      projectId: null,
+      description: null,
+      assigneeId: null,
+      priority: "medium",
+      parentId: null,
+      createdBy: null,
+    });
+    db.prepare("UPDATE issues SET goal_id = ?, status = ? WHERE id = ?").run(
+      goalId,
+      status,
+      issue.id,
+    );
+  };
+
+  it("recovers an in_progress goal whose issues are ALL terminal (the stranded-goal safety-net)", () => {
+    const env = setup();
+    const goalId = toInProgress(env.db, env.companyId, env.ceoId);
+    // pending judgment criterion keeps it in `verifying` after the gate (deterministic)
+    createGoalCriteriaRepository(env.db).create({ goalId, statement: "x", kind: "judgment" });
+    addIssue(env.db, env.companyId, goalId, "done");
+
+    const triggered = scanStrandedInProgress(env.db, deps);
+
+    expect(triggered).toContain(goalId);
+    expect(createGoalsRepository(env.db).getById(goalId)?.status).toBe("verifying");
+  });
+
+  it("ignores an in_progress goal that still has a non-terminal issue", () => {
+    const env = setup();
+    const goalId = toInProgress(env.db, env.companyId, env.ceoId);
+    addIssue(env.db, env.companyId, goalId, "doing");
+    expect(scanStrandedInProgress(env.db, deps)).toEqual([]);
   });
 });
