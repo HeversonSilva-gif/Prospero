@@ -48,10 +48,21 @@ describe("createMcpListener", () => {
   it(
     "writes host data into the connected bridge",
     async () => {
-      const listener = await createMcpListener("agent_2", { notify: () => {} });
+      let opened = false;
+      const listener = await createMcpListener("agent_2", {
+        notify: (method) => {
+          if (method === "mcp-open") opened = true;
+        },
+      });
       const client: Socket = connect(listener.port, "127.0.0.1");
       await once(client, "connect");
       client.setEncoding("utf8");
+      // Wait until the SERVER has accepted + registered the bridge socket (mcp-open)
+      // before writing. The client-side "connect" event can fire before the server's
+      // connection handler runs, which would leave writeToBridge with a null bridge —
+      // the write is silently dropped and the client never receives "data". That race
+      // is benign on Linux/Windows but hung the test on the macOS CI runner.
+      await waitFor(() => opened);
       listener.writeToBridge('{"jsonrpc":"2.0","result":{}}\n');
       const [chunk] = (await once(client, "data")) as [string];
       expect(chunk).toBe('{"jsonrpc":"2.0","result":{}}\n');
