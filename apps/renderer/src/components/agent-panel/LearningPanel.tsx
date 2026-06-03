@@ -1,5 +1,6 @@
 import { useEffect, useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import type { Skill, Memory, SessionSearchHit, SkillCandidate } from "@prospero/shared";
 import { TabBar, EmptyState, LoadingState } from "../ui/index.js";
 
@@ -15,7 +16,13 @@ const SUB_TABS: SubTab[] = ["skills", "memory", "history", "candidates"];
 
 export const LearningPanel: FC<Props> = ({ agentId, skills, memories }) => {
   const { t } = useTranslation();
-  const [sub, setSub] = useState<SubTab>("skills");
+  const [searchParams] = useSearchParams();
+  // A deep-link (e.g. the Inbox skill-candidate "Revisar →") may pre-select a
+  // sub-tab via ?sub=candidates.
+  const requestedSub = searchParams.get("sub");
+  const [sub, setSub] = useState<SubTab>(
+    SUB_TABS.includes(requestedSub as SubTab) ? (requestedSub as SubTab) : "skills",
+  );
 
   return (
     <>

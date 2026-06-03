@@ -248,6 +248,22 @@ export const Inbox: FC = () => {
                           </button>
                         );
                       })()}
+                    {item.kind === "skill_candidate_pending" &&
+                      item.readAt === null &&
+                      item.actorId !== null && (
+                        // #9 (audit 2026-06-03): a learned-skill candidate had no
+                        // action in the Inbox. Deep-link to the agent's Habilidades
+                        // › Candidatos panel (accept/edit/dismiss live there).
+                        <Link
+                          to={`/agents/${item.actorId}/ajustar?tab=habilidades&sub=candidates`}
+                          onClick={() => {
+                            if (item.readAt === null) void markRead(item.id);
+                          }}
+                          className="text-xs text-brand hover:underline font-semibold mt-2 inline-block"
+                        >
+                          {t("inbox.skillCandidate.review")} →
+                        </Link>
+                      )}
                     {item.kind === "verification_failed" &&
                       (() => {
                         const goalId = extractGoalId(item.payloadJson);

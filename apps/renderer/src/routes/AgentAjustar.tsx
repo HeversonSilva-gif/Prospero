@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { Skill, Memory } from "@prospero/shared";
 import { useAgentsStore } from "../stores/agents.js";
@@ -30,10 +30,15 @@ const TABS: AjustarTab[] = [
 export const AgentAjustar = () => {
   const { t } = useTranslation();
   const { id: agentId } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const agent = useAgentsStore((s) => s.agents.find((a) => a.id === agentId));
   const [skills, setSkills] = useState<Skill[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [ajustarTab, setAjustarTab] = useState<AjustarTab>("identidade");
+  // A deep-link (e.g. the Inbox skill-candidate card) may pre-select a tab.
+  const requestedTab = searchParams.get("tab");
+  const [ajustarTab, setAjustarTab] = useState<AjustarTab>(
+    TABS.includes(requestedTab as AjustarTab) ? (requestedTab as AjustarTab) : "identidade",
+  );
   const [showAssignTask, setShowAssignTask] = useState(false);
 
   useEffect(() => {

@@ -996,6 +996,9 @@
       "manager_request": "Manager requests",
       "ceo_decision": "CEO decisions"
     },
+    "skillCandidate": {
+      "review": "Review"
+    },
     "skillPromotion": {
       "review": "Review",
       "title": "Promote skill to the company",

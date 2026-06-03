@@ -996,6 +996,9 @@
       "manager_request": "Pedidos ao gestor",
       "ceo_decision": "Decisões do CEO"
     },
+    "skillCandidate": {
+      "review": "Revisar"
+    },
     "skillPromotion": {
       "review": "Revisar",
       "title": "Promover skill para a empresa",
