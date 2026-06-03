@@ -7,7 +7,11 @@ import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
 import { buildMemoryBlock } from "./system-prompt-memory.js";
 import { buildTelosBlock } from "./system-prompt-telos.js";
-import { buildProjectContextBlock } from "./system-prompt-project-context.js";
+import {
+  buildProjectContextBlock,
+  buildAgentContextBlock,
+} from "./system-prompt-project-context.js";
+import { compactionTarget } from "../context/compaction-target.js";
 import { composeInstructions } from "../agents/instruction-bundle.js";
 import { resolveAdapterCredentials } from "./adapter-credentials.js";
 import { loadDecryptedToken } from "../auth/token-storage.js";
@@ -145,12 +149,15 @@ export const createRespawnFn = (deps: RespawnDeps): RespawnFn => {
       agentTemplateId: agent.templateId,
     });
 
-    // Memória de Contexto de Projeto: inject the per-project digest map when the
-    // agent is scoped to exactly one project (so the digest target is unambiguous).
+    // Memória de Contexto de Projeto: inject the digest map for the agent's
+    // compaction target. Single-project agents get that project's digest (verified
+    // against the live repo). The CEO / multi-project agents (allowedProjects=[]
+    // or several) get their AGENT-scoped digest — so the CEO both compacts AND
+    // gets its durable digest re-injected, instead of never seeing one.
     let projectContextBlock: string | undefined;
-    const ctxProjectIds = agent.allowedProjects;
-    if (ctxProjectIds.length === 1) {
-      const proj = createProjectsRepository(deps.db).getById(ctxProjectIds[0]!);
+    const ctxTarget = compactionTarget(agent);
+    if (ctxTarget.kind === "project") {
+      const proj = createProjectsRepository(deps.db).getById(ctxTarget.projectId);
       if (proj !== null) {
         projectContextBlock = buildProjectContextBlock({
           userDataDir: app.getPath("userData"),
@@ -159,6 +166,12 @@ export const createRespawnFn = (deps: RespawnDeps): RespawnFn => {
           projectPath: proj.path,
         });
       }
+    } else {
+      projectContextBlock = buildAgentContextBlock({
+        userDataDir: app.getPath("userData"),
+        companyId: agent.companyId,
+        agentId: ctxTarget.agentId,
+      });
     }
 
     const opts: EnsureAdapterOptions = {

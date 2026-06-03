@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import type { ProjectDigest, DigestEntry, DeepDive } from "@prospero/shared";
 import { emptyDigest } from "@prospero/shared";
 import { getProjectDigestDir, projectDigestPath } from "./digest-dir.js";
@@ -40,12 +41,14 @@ const normDeep = (d: Record<string, unknown>): DeepDive => {
   };
 };
 
-export const readDigest = (
-  userDataDir: string,
-  companyId: string,
-  projectId: string,
-): ProjectDigest => {
-  const path = projectDigestPath(userDataDir, companyId, projectId);
+// --- Path-based core (target-agnostic) ---------------------------------------
+// readDigest/writeDigest below resolve a PROJECT path and delegate to these. The
+// compaction worker + respawn injection (v0.2.4) call these directly with an
+// already-resolved path so they can target either a project digest OR an
+// agent-scoped digest (CEO / multi-project agents) with one code path.
+
+// Read a digest from an absolute path. Missing/corrupt → empty digest (never throws).
+export const readDigestAt = (path: string): ProjectDigest => {
   if (!existsSync(path)) return emptyDigest();
   try {
     const parsed = JSON.parse(readFileSync(path, "utf8")) as ProjectDigest;
@@ -63,6 +66,18 @@ export const readDigest = (
   }
 };
 
+// Write a digest to an absolute path, creating its parent directory.
+export const writeDigestAt = (path: string, digest: ProjectDigest): void => {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, JSON.stringify(digest, null, 2), "utf8");
+};
+
+export const readDigest = (
+  userDataDir: string,
+  companyId: string,
+  projectId: string,
+): ProjectDigest => readDigestAt(projectDigestPath(userDataDir, companyId, projectId));
+
 export const writeDigest = (
   userDataDir: string,
   companyId: string,
@@ -70,11 +85,7 @@ export const writeDigest = (
   digest: ProjectDigest,
 ): void => {
   getProjectDigestDir(userDataDir, companyId, projectId); // ensure dir
-  writeFileSync(
-    projectDigestPath(userDataDir, companyId, projectId),
-    JSON.stringify(digest, null, 2),
-    "utf8",
-  );
+  writeDigestAt(projectDigestPath(userDataDir, companyId, projectId), digest);
 };
 
 // Two entries describe "the same thing" when they share a section and the exact
