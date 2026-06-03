@@ -5,6 +5,7 @@
 import type Database from "better-sqlite3";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { createSkillsRepository } from "../memory/skills-repository.js";
+import { createAgentsRepository } from "../agents/repository.js";
 
 // ---------------------------------------------------------------------------
 // Tokenise
@@ -112,10 +113,13 @@ export const recallForIssue = (db: Database.Database, input: RecallInput): Recal
   }
 
   // --- Skills (keyword scoring) ---------------------------------------------
+  // #13 (audit 2026-06-03): scope shared skills to the agent's role (+ globals)
+  // instead of every role's skills, matching the system-prompt's role filter.
   const skillRepo = createSkillsRepository(db);
+  const role = createAgentsRepository(db).getById(input.agentId)?.role ?? null;
   const pool = [
     ...skillRepo.listByAgent(input.agentId),
-    ...skillRepo.listCompanyShared(input.companyId),
+    ...skillRepo.listSharedForRole(input.companyId, role),
   ];
 
   // Deduplicate by id (a shared skill can appear in both lists)

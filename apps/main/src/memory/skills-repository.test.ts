@@ -89,6 +89,31 @@ describe("skillsRepository", () => {
     expect(repo.listForRole("c1", "designer").length).toBe(0);
   });
 
+  it("listSharedForRole returns role-global + this role's skills, not other roles' (#13)", () => {
+    const repo = createSkillsRepository(db);
+    const mk = (name: string, appliesToRole: string | null): void => {
+      repo.create({
+        companyId: "c1",
+        agentId: null,
+        name,
+        bodyPath: "p",
+        description: "d",
+        source: "user_authored",
+        ...(appliesToRole !== null ? { appliesToRole } : {}),
+      });
+    };
+    mk("global", null); // applies to everyone
+    mk("eng-only", "engineer"); // engineer-scoped
+    mk("design-only", "designer"); // another role — must NOT leak
+    const eng = repo
+      .listSharedForRole("c1", "engineer")
+      .map((s) => s.name)
+      .sort();
+    expect(eng).toEqual(["eng-only", "global"]);
+    // A roleless agent sees only the role-global skills.
+    expect(repo.listSharedForRole("c1", null).map((s) => s.name)).toEqual(["global"]);
+  });
+
   it("update bumps the version", () => {
     const repo = createSkillsRepository(db);
     const s = repo.create({

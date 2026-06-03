@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createMemoriesRepository } from "../memory/memories-repository.js";
+import { createAgentsRepository } from "../agents/repository.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { getAgentMemoryDir, skillBodyPath } from "../memory/memory-dir.js";
 import { sanitizeMemoryBody } from "../memory/sanitizer.js";
@@ -47,7 +48,10 @@ const skillSearch: Tool = {
     const { query } = skillSearch.inputSchema.parse(input) as { query: string };
     const repo = createSkillsRepository(ctx.db);
     const q = query.toLowerCase();
-    const pool = [...repo.listByAgent(ctx.agentId), ...repo.listCompanyShared(ctx.companyId)];
+    // #13 (audit 2026-06-03): shared skills are scoped to the agent's role
+    // (+ globals), not every role's, matching the system-prompt filter.
+    const role = createAgentsRepository(ctx.db).getById(ctx.agentId)?.role ?? null;
+    const pool = [...repo.listByAgent(ctx.agentId), ...repo.listSharedForRole(ctx.companyId, role)];
     const skills = pool
       .filter((s) => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q))
       .map((s) => ({
