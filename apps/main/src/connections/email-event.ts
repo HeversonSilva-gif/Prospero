@@ -11,6 +11,7 @@ import { detectInjection } from "../security/injection-detector.js";
 import { createGuardrailAlert } from "../security/guardrail-alert.js";
 import { broadcastInboxUpdate } from "../ipc/inbox-handlers.js";
 import { tryGetRecorder } from "../activity/index.js";
+import { redactString } from "../auth/token-redact.js";
 
 // Side-channel events the send_email / read_emails MCP tools emit (in the MCP child) so
 // MAIN — the only side holding the safeStorage cipher to decrypt the mailbox credentials —
@@ -23,6 +24,8 @@ export type EmailSendEventPayload = {
   subject: string;
   body: string;
   inReplyTo?: string;
+  // Prior reference chain of the thread being replied to (so References accumulates — M6).
+  references?: string;
 };
 export type EmailSendEventResult = { ok: true; messageId: string } | { ok: false; error: string };
 
@@ -42,6 +45,24 @@ const loadEmailPayload = (repo: ConnectionsRepository, companyId: string): Email
 };
 
 const NOT_CONNECTED = "E-mail não conectado para esta empresa (conecte em Ajustes › Conta).";
+
+// Sanitizes a transport error before it crosses the boundary back to the agent and into
+// the result file (I7). Raw SMTP/IMAP/Resend errors can carry host/port/SMTP user/server
+// banner — never expose those to the LLM channel. Returns a generic, categorized message;
+// the redacted detail is logged (locally) for the operator.
+const sanitizeEmailError = (e: unknown, op: "send" | "read"): string => {
+  const raw = e instanceof Error ? e.message : String(e);
+  // The "not connected" guard is our own safe, actionable text — surface it verbatim.
+  if (raw === NOT_CONNECTED) return raw;
+  // Even the LOCAL operator log gets the credential shapes scrubbed. token-redact covers
+  // the known API-key/Bearer shapes; also mask any pass/password=… an SMTP/IMAP transport
+  // error might echo so a mailbox password never lands in a log line.
+  const logged = redactString(raw).replace(/\b(pass(?:word)?)=\S+/gi, "$1=[REDACTED]");
+  console.warn(`[email] ${op} failed:`, logged);
+  return op === "send"
+    ? "Falha ao enviar o e-mail (erro de transporte). Verifique a conexão de e-mail em Ajustes › Conta."
+    : "Falha ao ler e-mails (erro de transporte). Verifique a conexão de e-mail em Ajustes › Conta.";
+};
 
 // Scans each email's subject+snippet for prompt injection. allow → unchanged;
 // flag → prepend a "treat as data" marker to the snippet; block → neutralize the
@@ -92,12 +113,16 @@ export const handleEmailSendEvent = async (
       subject: payload.subject,
       text: payload.body,
       ...(payload.inReplyTo !== undefined ? { inReplyTo: payload.inReplyTo } : {}),
+      ...(payload.references !== undefined ? { references: payload.references } : {}),
+      // The requestId is stable across a deferred re-attempt / 60s-timeout retry of the
+      // SAME approved send, so it is the natural idempotency key (I4).
+      idempotencyKey: payload.requestId,
     });
     deps.writeResult(payload.requestId, { ok: true, messageId: r.messageId });
   } catch (e) {
     deps.writeResult(payload.requestId, {
       ok: false,
-      error: e instanceof Error ? e.message : String(e),
+      error: sanitizeEmailError(e, "send"),
     });
   }
 };
@@ -149,7 +174,7 @@ export const handleEmailReadEvent = async (
   } catch (e) {
     deps.writeResult(payload.requestId, {
       ok: false,
-      error: e instanceof Error ? e.message : String(e),
+      error: sanitizeEmailError(e, "read"),
     });
   }
 };
