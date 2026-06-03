@@ -107,6 +107,38 @@ describe("goalsToolDefinitions — read tools", () => {
     );
   });
 
+  it("update_goal_status refuses to set 'achieved' directly (must go through verification)", async () => {
+    // Audit 2026-06-03: the transition table allows in_progress -> achieved, so
+    // the CEO could mark a goal done without any criteria being checked — the
+    // same trust-laundering hole as C4/C8. Achievement must come from the gate.
+    const goalsRepo = createGoalsRepository(env.ctx.db);
+    const g = goalsRepo.create({ companyId: env.companyId, title: "X" });
+    goalsRepo.updateStatus(g.id, "planning");
+    goalsRepo.updateStatus(g.id, "proposed");
+    goalsRepo.updateStatus(g.id, "approved");
+    goalsRepo.updateStatus(g.id, "in_progress");
+    const tool = findTool("update_goal_status");
+    await expect(tool.run({ id: g.id, status: "achieved" }, env.ctx)).rejects.toThrow(
+      /verification|cannot.*achieved/i,
+    );
+    // The goal must be untouched.
+    expect(goalsRepo.getById(g.id)?.status).toBe("in_progress");
+  });
+
+  it("update_goal_status still allows cancelling and moving to verifying", async () => {
+    const goalsRepo = createGoalsRepository(env.ctx.db);
+    const g = goalsRepo.create({ companyId: env.companyId, title: "X" });
+    goalsRepo.updateStatus(g.id, "planning");
+    goalsRepo.updateStatus(g.id, "proposed");
+    goalsRepo.updateStatus(g.id, "approved");
+    goalsRepo.updateStatus(g.id, "in_progress");
+    const tool = findTool("update_goal_status");
+    const out = JSON.parse(await tool.run({ id: g.id, status: "verifying" }, env.ctx)) as {
+      status: string;
+    };
+    expect(out.status).toBe("verifying");
+  });
+
   it("record_subgoal creates child goal under in_progress parent", async () => {
     const goalsRepo = createGoalsRepository(env.ctx.db);
     const parent = goalsRepo.create({ companyId: env.companyId, title: "Parent" });

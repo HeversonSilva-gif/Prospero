@@ -86,6 +86,16 @@ const updateGoalStatus: Tool = {
     if (!before || before.companyId !== ctx.companyId) {
       throw new Error(`goal ${id} not found`);
     }
+    // Audit 2026-06-03: 'achieved' is reachable from in_progress in the
+    // transition table, but an agent must never jump there directly — that
+    // bypasses the verification gate (no criteria checked = trust laundering).
+    // Achievement only comes from applyVerificationReport. Route the CEO to
+    // 'verifying' instead.
+    if (status === "achieved") {
+      throw new Error(
+        "cannot set a goal to 'achieved' directly — achievement only comes from the verification gate. Move it to 'verifying' so its acceptance criteria are checked.",
+      );
+    }
     const after = repo.updateStatus(id, status as GoalStatus, reason ?? null);
     tryGetRecorder()?.recordActivity({
       companyId: ctx.companyId,
