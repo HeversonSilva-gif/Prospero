@@ -42,6 +42,7 @@ export const NovaEmpresaWizard: FC = () => {
   );
 
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [orgPlanProposed, setOrgPlanProposed] = useState(false);
   const [businessPlanProposed, setBusinessPlanProposed] = useState(false);
   const seededFor = useRef<string | null>(null);
@@ -58,6 +59,7 @@ export const NovaEmpresaWizard: FC = () => {
     if (ceo === null) return;
     const all = await window.prospero.messages.listByAgent(ceo.id);
     setMessages(all);
+    setLoaded(true);
   }, [ceo]);
 
   useEffect(() => {
@@ -68,19 +70,22 @@ export const NovaEmpresaWizard: FC = () => {
   // it off with an opening instruction (idempotent per company — only if the
   // thread is still empty after the first load). The message is tailored to the
   // door the user picked: "ajuda" (no idea) vs "ideia" (has an idea).
+  //
+  // The `loaded` flag ensures we only evaluate `messages.length` after the
+  // authoritative DB load has settled, eliminating the TOCTOU race that caused
+  // a double-seed when the component remounted (e.g. after navigating back from
+  // the "Refinar" flow).
   useEffect(() => {
     if (ceo === null || companyId === undefined || company === null) return;
     if (seededFor.current === companyId) return;
-    if (messages.length > 0) {
-      seededFor.current = companyId; // already has history — never seed
-      return;
-    }
+    if (!loaded) return; // wait for the authoritative thread load to settle
     seededFor.current = companyId;
+    if (messages.length > 0) return; // thread already has content — never seed
     const seedKey = door === "ideia" ? "genesis.seed.idea" : "genesis.seed.help";
     void window.prospero.agents
       .sendMessage({ agentId: ceo.id, content: t(seedKey) })
       .then(() => reload());
-  }, [ceo, companyId, company, door, messages.length, t, reload]);
+  }, [ceo, companyId, company, door, loaded, messages.length, t, reload]);
 
   // Live append (same pattern as Pedir algo — avoids refetching the whole list).
   useEffect(() => {
