@@ -34,9 +34,19 @@ describe("buildGenesisSystemPromptBlock", () => {
     expect(block).toContain("SaaS");
     expect(block.toLowerCase()).toContain("cannot");
   });
-  it("interviews then proposes ONE business", () => {
+  it("interviews then proposes 3 businesses (3-options flow)", () => {
     expect(block.toLowerCase()).toContain("interview");
-    expect(block.toLowerCase()).toContain("one");
+    expect(block).toContain("3 businesses");
+    expect(block).toContain("options");
+    expect(block).toContain("recommended");
+  });
+  it("requires signals and projection on every option", () => {
+    expect(block).toContain("signals");
+    expect(block).toContain("projection");
+    expect(block).toContain("whyRecommended");
+  });
+  it("requires exactly one recommended option", () => {
+    expect(block).toContain("EXACTLY ONE");
   });
   it("handles [BUSINESS_PLAN_FEEDBACK] by resubmitting", () => {
     expect(block).toContain("[BUSINESS_PLAN_FEEDBACK]");

@@ -6,13 +6,45 @@ import { genesisToolDefinitions } from "./tools-genesis.js";
 
 const tool = genesisToolDefinitions.find((t) => t.name === "submit_business_plan")!;
 
-const payload = {
+// A single valid business option (missing recommended/whyRecommended/signals/projection
+// — those are added per-test as needed).
+const baseOption = {
   concept: "Cozinha de 15 — a SaaS recipe assistant for people who work all day.",
   monetization: ["R$9/mo via Stripe"],
   marketing: { initialChannel: "x", tactics: ["5-step recipe threads"], laterChannels: "later" },
   identity: { name: "Cozinha de 15", voice: "friendly", proposedXHandle: "@c15" },
   dropped: [{ idea: "e-book", reason: "needs design" }],
+  recommended: false,
+  whyRecommended: "n/a",
+  signals: { market: 70, virality: 50, community: 60, revenue12m: "R$2 000–R$5 000/mês" },
+  projection: {
+    month3: "R$500",
+    month6: "R$2 000",
+    month12: "R$5 000",
+    assumption: "10 paying users at month 3",
+  },
 };
+
+const option2 = {
+  ...baseOption,
+  concept: "Finanças Simples — a personal-finance newsletter + SaaS for self-employed Brazilians.",
+  identity: { name: "Finanças Simples", voice: "calm", proposedXHandle: "@finsimp" },
+};
+
+const option3 = {
+  ...baseOption,
+  concept:
+    "Dev em Dia — a daily newsletter + community for Brazilian junior developers seeking their first job.",
+  identity: { name: "Dev em Dia", voice: "motivating", proposedXHandle: "@devemdia" },
+  signals: { market: 80, virality: 65, community: 85, revenue12m: "R$3 000–R$8 000/mês" },
+};
+
+// Valid 3-option payload: option at index 1 is recommended.
+const validOptions = [
+  { ...baseOption, recommended: false },
+  { ...option2, recommended: true, whyRecommended: "Best fit for the owner's finance background" },
+  { ...option3, recommended: false },
+];
 
 let db: Database.Database;
 const emitted: { kind: string; payload: unknown }[] = [];
@@ -37,9 +69,11 @@ beforeEach(() => {
   ).run();
 });
 
-describe("submit_business_plan", () => {
+describe("submit_business_plan (3-options)", () => {
   it("stores a critiquing plan and emits business_plan.proposed", async () => {
-    const out = JSON.parse(await tool.run({ plan: payload }, ctx())) as { businessPlanId: string };
+    const out = JSON.parse(await tool.run({ options: validOptions }, ctx())) as {
+      businessPlanId: string;
+    };
     const stored = createBusinessPlansRepository(db).getById(out.businessPlanId);
     expect(stored?.status).toBe("critiquing");
     expect(emitted).toEqual([
@@ -47,16 +81,70 @@ describe("submit_business_plan", () => {
     ]);
   });
 
-  it("accepts the plan as a stringified JSON object", async () => {
-    const out = JSON.parse(await tool.run({ plan: JSON.stringify(payload) }, ctx())) as {
+  it("persists options_json with all 3 options", async () => {
+    const out = JSON.parse(await tool.run({ options: validOptions }, ctx())) as {
+      businessPlanId: string;
+    };
+    const stored = createBusinessPlansRepository(db).getById(out.businessPlanId);
+    expect(stored?.options).toHaveLength(3);
+    expect(stored?.chosenIndex).toBeNull();
+  });
+
+  it("mirrors the recommended option into legacy flat columns (backward compat)", async () => {
+    const out = JSON.parse(await tool.run({ options: validOptions }, ctx())) as {
+      businessPlanId: string;
+    };
+    const stored = createBusinessPlansRepository(db).getById(out.businessPlanId);
+    // option at index 1 (option2) is recommended
+    expect(stored?.concept).toBe(option2.concept);
+    expect(stored?.identity.name).toBe(option2.identity.name);
+  });
+
+  it("accepts options as a stringified JSON array", async () => {
+    const out = JSON.parse(await tool.run({ options: JSON.stringify(validOptions) }, ctx())) as {
       businessPlanId: string;
     };
     expect(out.businessPlanId).toMatch(/^bizplan_/);
   });
 
-  it("rejects an invalid payload", async () => {
-    await expect(tool.run({ plan: { concept: "too short" } }, ctx())).rejects.toThrow(
+  it("rejects 0 recommended options (none marked true)", async () => {
+    const noRec = validOptions.map((o) => ({ ...o, recommended: false }));
+    await expect(tool.run({ options: noRec }, ctx())).rejects.toThrow(/invalid_business_plan/);
+  });
+
+  it("rejects 2 recommended options (ambiguous)", async () => {
+    const twoRec = validOptions.map((o) => ({ ...o, recommended: true }));
+    await expect(tool.run({ options: twoRec }, ctx())).rejects.toThrow(/invalid_business_plan/);
+  });
+
+  it("rejects only 1 option (below minimum of 2)", async () => {
+    const oneOption = [{ ...baseOption, recommended: true }];
+    await expect(tool.run({ options: oneOption }, ctx())).rejects.toThrow(/invalid_business_plan/);
+  });
+
+  it("rejects 4 options (above maximum of 3)", async () => {
+    const fourOptions = [
+      ...validOptions,
+      {
+        ...baseOption,
+        concept: "Extra negócio — a fourth SaaS idea that exceeds the allowed count.",
+        recommended: false,
+      },
+    ];
+    await expect(tool.run({ options: fourOptions }, ctx())).rejects.toThrow(
       /invalid_business_plan/,
     );
+  });
+
+  it("rejects an option with missing required signals fields", async () => {
+    const badOptions = [
+      {
+        ...baseOption,
+        recommended: true,
+        signals: { market: 70 } /* missing virality/community/revenue12m */,
+      },
+      { ...option2, recommended: false },
+    ];
+    await expect(tool.run({ options: badOptions }, ctx())).rejects.toThrow(/invalid_business_plan/);
   });
 });

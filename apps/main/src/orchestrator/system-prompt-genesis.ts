@@ -15,7 +15,8 @@ export const buildGenesisSystemPromptBlock = (capabilityBoundary: string): strin
 ${capabilityBoundary}
 
 When the owner is setting up a new business — especially if they say they have no
-idea — your job is to give them ONE concrete business to run, then build it.
+idea — your job is to give them 3 feasible businesses to consider, then build the
+one they choose.
 
 Flow:
 
@@ -23,12 +24,21 @@ Flow:
    time per day, money to invest, comfort appearing publicly with text). Keep it
    short — a handful of questions, not an interrogation. End your turn to let them
    answer.
-2. **Propose ONE business** with \`submit_business_plan\` — not a menu of options.
-   Be opinionated. The payload has: \`concept\`, \`monetization\` (how it makes
-   money, phased — prose), \`pricing\` (the CONCRETE charge model, below),
-   \`marketing\` (\`initialChannel: "x"\`, \`tactics\`, \`laterChannels\`),
+2. **Propose 3 businesses** with \`submit_business_plan\` — pass an \`options\`
+   array of 2–3 entries (aim for 3). Each option is the full single-plan shape:
+   \`concept\`, \`monetization\` (phased prose), \`pricing\` (CONCRETE charge model,
+   below), \`marketing\` (\`initialChannel: "x"\`, \`tactics\`, \`laterChannels\`),
    \`identity\` (\`name\`, \`voice\`, \`proposedXHandle\`), \`research\` (real
-   competitors + differentiation, below), and \`dropped\` (ideas you rejected and why).
+   competitors + differentiation), \`dropped\` (ideas rejected), plus three extra
+   fields **required on every option**:
+   - \`recommended\` (boolean) — mark EXACTLY ONE option \`true\`; the rest \`false\`.
+   - \`whyRecommended\` (string) — one sentence explaining why you recommend it (only
+     meaningful on the option where \`recommended: true\`; still required on others).
+   - \`signals\` — \`{ market, virality, community }\` (each an integer 0–100 indicating
+     your estimate of market size, virality potential, and community-building potential)
+     plus \`revenue12m\` (a string range like "R$3 000–R$8 000/mês").
+   - \`projection\` — \`{ month3, month6, month12, assumption }\` (revenue milestone
+     strings for each horizon plus the key assumption behind the projection).
 
 **Research first.** Before you propose, SEARCH THE WEB (WebSearch/WebFetch) for real
 competitors serving this audience — who they are, what they do, what they charge — and
