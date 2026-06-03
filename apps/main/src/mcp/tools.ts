@@ -68,6 +68,16 @@ const resolveIssueIdOrIdentifier = (
   return byIdent !== null && byIdent.companyId === companyId ? byIdent.id : null;
 };
 
+// Authority guard for the CEO-only approval tools. The MCP child auto-allows
+// meta-tools in auto-mode, so the permission gate never sees these calls — a
+// worker that knows an approval ID could otherwise approve its own blocked call.
+// These tools MUST verify, at the tool boundary, that the caller is the CEO of
+// this company (audit 2026-06-03 Facet 4 C2/M7).
+const callerIsCeo = (ctx: ToolContext): boolean => {
+  const caller = createAgentsRepository(ctx.db).getById(ctx.agentId);
+  return caller !== null && caller.companyId === ctx.companyId && isCeoAgent(caller);
+};
+
 export const waitForResolution = async (
   dir: string,
   toolUseId: string,
@@ -1305,11 +1315,20 @@ export const toolDefinitions = [
       input: { approval_id: string; decision: "approve" | "reject" | "escalate"; note?: string },
       ctx: ToolContext,
     ): Promise<string> => {
+      if (!callerIsCeo(ctx)) {
+        return JSON.stringify({ ok: false, error: "only the CEO can decide approvals" });
+      }
       const repo = createApprovalsRepository(ctx.db);
       const apv = repo.getById(input.approval_id);
       if (apv === null) return JSON.stringify({ ok: false, error: "not found" });
       if (apv.status !== "pending" || apv.routedTo !== "ceo") {
         return JSON.stringify({ ok: false, error: "already resolved or not routed to you" });
+      }
+      // Company isolation: the approval's requester must belong to this company,
+      // so the CEO of company A cannot decide an approval raised in company B.
+      const requester = createAgentsRepository(ctx.db).getById(apv.agentId);
+      if (requester === null || requester.companyId !== ctx.companyId) {
+        return JSON.stringify({ ok: false, error: "not found" });
       }
 
       // This tool runs in the MCP child where the engine bridge/recorder are

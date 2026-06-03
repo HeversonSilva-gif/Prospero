@@ -13,12 +13,14 @@ function setup() {
   const db = new Database(":memory:");
   applyMigrations(db);
   db.prepare("INSERT INTO companies (id,name,created_at) VALUES ('c1','Acme',?)").run(Date.now());
-  for (const id of ["ceo1", "bot1"]) {
+  const seedAgent = (id: string, role: string): void => {
     db.prepare(
       `INSERT INTO agents (id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,model,adapter_name,created_at,updated_at)
-       VALUES (?,?,?,'engineer','','[]','[]','supervised',0,'idle','claude-sonnet-4-6','claude-oauth-local',?,?)`,
-    ).run(id, "c1", id, Date.now(), Date.now());
-  }
+       VALUES (?,?,?,?,'','[]','[]','supervised',0,'idle','claude-sonnet-4-6','claude-oauth-local',?,?)`,
+    ).run(id, "c1", id, role, Date.now(), Date.now());
+  };
+  seedAgent("ceo1", "ceo"); // real CEO — passes the new callerIsCeo guard
+  seedAgent("bot1", "engineer"); // worker — must be rejected by the guard
   const dir = mkdtempSync(join(tmpdir(), "perm-"));
   // The CEO-side tools now EMIT events instead of touching the engine bridge
   // directly (the bridge is null in the MCP child). Capture emitted events so
@@ -144,6 +146,26 @@ describe("decide_request", () => {
         note: "ok",
       }),
     });
+  });
+
+  it("rejects a non-CEO caller (a worker cannot approve its own blocked call)", async () => {
+    const repo = createApprovalsRepository(env.db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "tool_call",
+      payload: { tool_name: "Write", tool_input: {}, tool_use_id: "tuW" },
+    });
+    repo.setRouted(apv.id, "ceo");
+    const out = JSON.parse(
+      await decideTool.run(
+        { approval_id: apv.id, decision: "approve" },
+        { ...env.ctx, agentId: "bot1" },
+      ),
+    ) as { ok: boolean; error?: string };
+    expect(out.ok).toBe(false);
+    expect(out.error).toMatch(/CEO/i);
+    expect(existsSync(join(env.dir, "tuW.res.json"))).toBe(false);
+    expect(repo.getById(apv.id)?.status).toBe("pending");
   });
 });
 
