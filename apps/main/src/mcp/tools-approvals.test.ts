@@ -169,6 +169,53 @@ describe("decide_request", () => {
   });
 });
 
+const decideBatchTool = toolDefinitions.find((t) => t.name === "decide_batch")!;
+
+describe("decide_batch", () => {
+  let env: ReturnType<typeof setup>;
+  beforeEach(() => {
+    env = setup();
+  });
+
+  it("rejects every decision when the caller is not the CEO", async () => {
+    const repo = createApprovalsRepository(env.db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "tool_call",
+      payload: { tool_name: "Write", tool_input: {}, tool_use_id: "tuB" },
+    });
+    repo.setRouted(apv.id, "ceo");
+    const out = JSON.parse(
+      await decideBatchTool.run(
+        { decisions: [{ approval_id: apv.id, decision: "approve" }] },
+        { ...env.ctx, agentId: "bot1" },
+      ),
+    ) as { ok: boolean; decided: number; errors: { approval_id: string; error: string }[] };
+    expect(out.decided).toBe(0);
+    expect(out.errors[0]?.error).toMatch(/CEO/i);
+    expect(existsSync(join(env.dir, "tuB.res.json"))).toBe(false);
+    expect(repo.getById(apv.id)?.status).toBe("pending");
+  });
+
+  it("decides for a CEO caller (regression)", async () => {
+    const repo = createApprovalsRepository(env.db);
+    const apv = repo.create({
+      agentId: "bot1",
+      kind: "tool_call",
+      payload: { tool_name: "Write", tool_input: {}, tool_use_id: "tuB2" },
+    });
+    repo.setRouted(apv.id, "ceo");
+    const out = JSON.parse(
+      await decideBatchTool.run(
+        { decisions: [{ approval_id: apv.id, decision: "approve" }] },
+        env.ctx,
+      ),
+    ) as { ok: boolean; decided: number };
+    expect(out.decided).toBe(1);
+    expect(existsSync(join(env.dir, "tuB2.res.json"))).toBe(true);
+  });
+});
+
 const reqPermTool = toolDefinitions.find((t) => t.name === "request_permission")!;
 
 describe("request_permission — deferred (slot reclaim)", () => {

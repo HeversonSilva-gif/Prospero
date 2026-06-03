@@ -1410,6 +1410,16 @@ export const toolDefinitions = [
       },
       ctx: ToolContext,
     ): Promise<string> => {
+      if (!callerIsCeo(ctx)) {
+        return JSON.stringify({
+          ok: false,
+          decided: 0,
+          errors: input.decisions.map((d) => ({
+            approval_id: d.approval_id,
+            error: "only the CEO can decide approvals",
+          })),
+        });
+      }
       const repo = createApprovalsRepository(ctx.db);
       const errors: { approval_id: string; error: string }[] = [];
       let decided = 0;
@@ -1425,6 +1435,13 @@ export const toolDefinitions = [
             approval_id: d.approval_id,
             error: "already resolved or not routed to you",
           });
+          continue;
+        }
+        // Company isolation (mirrors decide_request): the approval's requester
+        // must belong to this company.
+        const requester = createAgentsRepository(ctx.db).getById(apv.agentId);
+        if (requester === null || requester.companyId !== ctx.companyId) {
+          errors.push({ approval_id: d.approval_id, error: "not found" });
           continue;
         }
 
