@@ -84,6 +84,29 @@ describe("collectTrackRecord", () => {
     expect(r.iscFirstPassRate).toBeCloseTo(1 / 3, 5);
   });
 
+  it("excludes ISC results outside the window so old flakiness can't block autonomo forever", () => {
+    const { db, now } = setup();
+    seedGoal(db, "g1", "a1", "achieved", now);
+    // Old flaky failure (>30d ago) must NOT stay in the denominator forever.
+    seedCriterion(db, "cold", "g1", "failed", 2, now - DEFAULT_WINDOW_MS - 60_000);
+    seedCriterion(db, "cnew", "g1", "passed", 1, now); // recent clean first pass
+    const r = collectTrackRecord(db, "a1", { now });
+    expect(r.iscFirstPassRate).toBe(1); // only the recent criterion counts
+  });
+
+  it("excludes judgment criteria from the first-pass rate (they never reach attempts=1)", () => {
+    const { db, now } = setup();
+    seedGoal(db, "g1", "a1", "achieved", now);
+    seedCriterion(db, "cd", "g1", "passed", 1, now); // deterministic first pass
+    // Judgment criterion: passed via setJudgment, attempts stays 0 → it would
+    // otherwise sit in the denominator but never the numerator, depressing the rate.
+    db.prepare(
+      "INSERT INTO goal_criteria (id, goal_id, sort_order, statement, kind, status, attempts, created_at, updated_at) VALUES ('cj','g1',1,'on brand','judgment','passed',0,?,?)",
+    ).run(now, now);
+    const r = collectTrackRecord(db, "a1", { now });
+    expect(r.iscFirstPassRate).toBe(1); // judgment excluded; only the deterministic pass counts
+  });
+
   it("counts verification failures from goal_criteria with status=failed in window", () => {
     const { db, now } = setup();
     seedGoal(db, "g1", "a1", "in_progress", now);

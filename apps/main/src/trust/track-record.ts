@@ -42,9 +42,16 @@ export const collectTrackRecord = (
          SUM(CASE WHEN gc.status IN ('passed','failed') THEN 1 ELSE 0 END)         AS terminal
        FROM goal_criteria gc
        JOIN goals g ON g.id = gc.goal_id
-       WHERE g.owner_agent_id = ?`,
+       WHERE g.owner_agent_id = ?
+         -- Only DETERMINISTIC criteria: judgment ISCs are set via setJudgment
+         -- (attempts stays 0) so they can never be a "first pass" and would
+         -- otherwise depress the rate (audit 2026-06-03 #11).
+         AND gc.kind = 'deterministic'
+         -- Windowed (audit 2026-06-03 #4): old flakiness must not keep an agent
+         -- below the autonomo bar forever. Mirrors verificationFailures below.
+         AND gc.updated_at >= ?`,
     )
-    .get(agentId) as { first_pass: number | null; terminal: number | null };
+    .get(agentId, since) as { first_pass: number | null; terminal: number | null };
   const firstPass = isc.first_pass ?? 0;
   const terminal = isc.terminal ?? 0;
   const iscFirstPassRate = terminal === 0 ? 0 : firstPass / terminal;
