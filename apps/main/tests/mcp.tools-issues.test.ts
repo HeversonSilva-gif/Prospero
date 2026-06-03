@@ -63,16 +63,17 @@ describe("MCP tools — issues", () => {
   });
 
   it("update_issue with status=done writes Inbox completed", async () => {
-    const { ctx, tool, db } = setup();
+    const { ctx, tool, db, agentId } = setup();
     const created = JSON.parse(
       await (tool("create_issue").run as (i: unknown, c: unknown) => Promise<string>)(
         { project: "Web", title: "Bug" },
         ctx,
       ),
     ) as { id: string };
-    // done is only reachable from doing/review (I-sm guard) — move there first.
+    // done is only reachable from doing/review (I-sm) and only by the assignee
+    // or CEO (C8) — move to doing and assign it to the caller first.
     await (tool("update_issue").run as (i: unknown, c: unknown) => Promise<string>)(
-      { id: created.id, status: "doing" },
+      { id: created.id, status: "doing", assignee: agentId },
       ctx,
     );
     await (tool("update_issue").run as (i: unknown, c: unknown) => Promise<string>)(
