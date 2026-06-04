@@ -286,7 +286,6 @@ export const scanApprovedBusinessWithoutTeam = (
 ): string[] => {
   const agentsRepo = createAgentsRepository(db, tryGetRecorder());
   const bizRepo = createBusinessPlansRepository(db);
-  const orgRepo = createOrgPlansRepository(db);
   const reengaged: string[] = [];
 
   const approvedRows = db
@@ -302,16 +301,15 @@ export const scanApprovedBusinessWithoutTeam = (
       if (ceo === undefined) continue;
       const hasTeam = roster.some((a) => a.terminatedAt === null && !isCeoAgent(a));
       if (hasTeam) continue;
-      // An org plan in flight (proposed/critiquing) or already approved means the
-      // handoff is underway/done — don't re-nudge. getCurrentForCompany returns
-      // only 'proposed'; check 'critiquing'/'approved' directly too.
-      if (orgRepo.getCurrentForCompany(companyId) !== null) continue;
-      const inFlightOrg = db
-        .prepare(
-          "SELECT 1 FROM org_plans WHERE company_id = ? AND status IN ('critiquing','approved') LIMIT 1",
-        )
+      // I10 catches the C3 dead-end: an approved business whose CEO never proposed a
+      // team. If ANY org plan exists for the company — in flight, approved, OR already
+      // rejected/superseded — the CEO has proposed at least once (orphaned-critiquing
+      // is handled by scanCritiquingPlans; a rejected plan is the owner's call), so we
+      // must NOT re-nudge every boot. (review 2026-06-04)
+      const anyOrgPlan = db
+        .prepare("SELECT 1 FROM org_plans WHERE company_id = ? LIMIT 1")
         .get(companyId);
-      if (inFlightOrg !== undefined) continue;
+      if (anyOrgPlan !== undefined) continue;
 
       deps.deliverSystemMessage(ceo.id, formatProposeTeamRequest(plan.identity.name));
       reengaged.push(companyId);

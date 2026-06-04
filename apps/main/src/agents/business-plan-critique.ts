@@ -186,8 +186,18 @@ export async function critiqueBusinessPlan(
       feedback: criticFeedback,
     };
   } catch {
-    // Fail-open on runner errors so a critic hiccup never deadlocks genesis —
-    // even when the ownerProfile is missing (a human still gates approval).
+    // Fail-open on runner errors so a critic hiccup never deadlocks genesis. But an
+    // empty ownerProfile is a DETERMINISTIC signal that doesn't depend on the critic
+    // call, so keep its teeth even when the runner threw — surfaced for revision, not
+    // a deadlock (a human still gates approval). (review 2026-06-04)
+    if (ownerMissing) {
+      return {
+        feasible: false,
+        specific: false,
+        feedback:
+          "The ownerProfile is missing or too short — the owner interview was not captured. Interview the owner and fill ownerProfile on every option.",
+      };
+    }
     return { feasible: true, specific: true, feedback: "" };
   }
 }

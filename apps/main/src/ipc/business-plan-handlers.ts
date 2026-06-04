@@ -1,7 +1,8 @@
 import { app, ipcMain } from "electron";
 import type Database from "better-sqlite3";
-import { IPC, type BusinessPlan } from "@prospero/shared";
+import { IPC, findActiveCeo, type BusinessPlan } from "@prospero/shared";
 import { createBusinessPlansRepository } from "../agents/business-plans-repository.js";
+import { createAgentsRepository } from "../agents/repository.js";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createSettingsRepository } from "../settings/repository.js";
 import { applyBusinessPlan } from "../agents/apply-business-plan.js";
@@ -38,15 +39,17 @@ export const formatProposeTeamRequest = (brandName: string): string =>
     "precisa. Nada é criado até o dono revisar e aprovar a proposta.",
   ].join("\n");
 
-// I4 — the system message that flags a TELOS synthesis failure. A deterministic
-// fallback TELOS is written so the company is not purpose-less, but the artifact
-// should be regenerated; this nudges the CEO to retry.
+// I4 — informational FYI that TELOS synthesis failed. A deterministic fallback is
+// already written, so the company is not purpose-less. The CEO has NO tool to rewrite
+// the TELOS (only the owner can, via the purpose screen), so this is a no-action notice
+// — it must NOT ask the CEO to "generate a better TELOS" (it would burn a turn trying
+// to use a tool that doesn't exist). (review 2026-06-04)
 export const formatTelosRetryRequest = (brandName: string): string =>
   [
-    "[TELOS_RETRY]",
-    `A síntese do propósito (TELOS) de "${brandName}" falhou e foi preenchida com`,
-    "um rascunho mínimo a partir do plano. Quando puder, gere uma versão melhor do",
-    "TELOS para a empresa (o dono pode revisar e salvar pela tela de propósito).",
+    "[TELOS_AVISO]",
+    `A síntese do propósito (TELOS) de "${brandName}" falhou e foi preenchida com um`,
+    "rascunho mínimo a partir do plano. Você não precisa fazer nada — o dono pode",
+    "revisar e salvar o propósito final pela tela de Propósito. Siga com o trabalho.",
   ].join("\n");
 
 export type ApproveBusinessPlanDeps = {
@@ -78,7 +81,13 @@ export const approveBusinessPlan = async (
   if (!applied.ok) return { ok: false, error: applied.error };
   // Re-read the plan after apply so TELOS synthesis uses the chosen option's fields.
   const plan = repo.getById(businessPlanId);
+  // Route re-engagement to the ACTIVE CEO, not the stored author — the author may have
+  // been terminated mid-genesis, in which case its thread is dead and the message would
+  // be lost. Fall back to the stored author id if no active CEO is found. (review 2026-06-04)
+  let teamCeoId = applied.ceoAgentId;
   if (plan !== null) {
+    const activeCeo = findActiveCeo(createAgentsRepository(db).listByCompany(plan.companyId));
+    if (activeCeo !== null) teamCeoId = activeCeo.id;
     const answers = businessPlanToTelosAnswers(plan);
     try {
       const result = await synthesizeTelos(
@@ -109,7 +118,7 @@ export const approveBusinessPlan = async (
         console.warn(
           `[telos] synthesis failed for ${plan.companyId}; wrote fallback TELOS: ${String(e)}`,
         );
-        deliver(deps, plan.proposedByAgentId, formatTelosRetryRequest(plan.identity.name));
+        deliver(deps, teamCeoId, formatTelosRetryRequest(plan.identity.name));
       } catch (fe) {
         console.warn(
           `[telos] fallback TELOS write also failed for ${plan.companyId}: ${String(fe)}`,
@@ -117,9 +126,9 @@ export const approveBusinessPlan = async (
       }
     }
   }
-  // C3 — fulfill the genesis promise: re-engage the author CEO to propose the
+  // C3 — fulfill the genesis promise: re-engage the (active) CEO to propose the
   // team now that the business is approved. Done regardless of TELOS outcome.
-  deliver(deps, applied.ceoAgentId, formatProposeTeamRequest(applied.brandName));
+  deliver(deps, teamCeoId, formatProposeTeamRequest(applied.brandName));
   return { ok: true };
 };
 

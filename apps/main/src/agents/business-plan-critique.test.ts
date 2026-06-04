@@ -250,10 +250,22 @@ describe("critiqueBusinessPlan — owner-profile emptiness teeth (I6)", () => {
     expect(v.feasible).toBe(false);
   });
 
-  it("still fails OPEN when the runner throws, even with no ownerProfile (never deadlock)", async () => {
+  it("keeps the owner-profile teeth even when the runner throws (flag, but never deadlock)", async () => {
+    // review 2026-06-04: an empty ownerProfile is a deterministic signal independent of
+    // the critic call, so it stays flagged through a runner error — surfaced for
+    // revision, not a deadlock (it returns a verdict; a human still gates approval).
     const v = await critiqueBusinessPlan(
       { runDerivation: () => Promise.reject(new Error("boom")) },
       { plan: planNoOwner, capabilityBoundary: "b", env: {} },
+    );
+    expect(v.feasible).toBe(false);
+    expect(v.specific).toBe(false);
+  });
+
+  it("still fails OPEN when the runner throws and the ownerProfile is present (never deadlock)", async () => {
+    const v = await critiqueBusinessPlan(
+      { runDerivation: () => Promise.reject(new Error("boom")) },
+      { plan, capabilityBoundary: "b", env: {} },
     );
     expect(v.feasible).toBe(true);
     expect(v.specific).toBe(true);

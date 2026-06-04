@@ -34,7 +34,7 @@ const submitBusinessPlan: Tool = {
     // for every agent, so a worker holding the `delegation` capability could
     // otherwise forge a plan.
     const caller = createAgentsRepository(ctx.db).getById(ctx.agentId);
-    if (caller === null || !isCeoAgent(caller)) {
+    if (caller === null || caller.companyId !== ctx.companyId || !isCeoAgent(caller)) {
       return JSON.stringify({
         ok: false,
         error: "only the CEO may submit a business plan",
@@ -87,6 +87,9 @@ const submitBusinessPlan: Tool = {
       const fields: Array<[string, string]> = [
         ["identity.name", opt.identity.name],
         ["identity.voice", opt.identity.voice],
+        // proposedXHandle reaches the same charter prompts via gatherBusinessContext
+        // ("Publishes on X as ..."), so it must be sanitized too (review 2026-06-04).
+        ["identity.proposedXHandle", opt.identity.proposedXHandle],
         ["concept", opt.concept],
         ["ownerProfile", opt.ownerProfile],
       ];
