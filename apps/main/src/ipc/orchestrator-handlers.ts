@@ -113,6 +113,7 @@ import { createCostsRepository } from "../costs/repository.js";
 import { createBudgetsRepository } from "../costs/budgets-repository.js";
 import { createCostRecorder, type CostsBroadcast } from "../costs/recorder.js";
 import { checkAndPause, type EnforceBudgetDeps } from "../costs/enforce-budget.js";
+import { periodKey } from "../costs/period.js";
 import { rollUpYesterdayIfNeeded } from "../costs/day-summary.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { tryGetRoutinesEngine } from "../routines/index.js";
@@ -170,6 +171,8 @@ import { hashSources } from "../context/freshness.js";
 import { relativeDigestPath, projectDigestPath, agentDigestPath } from "../context/digest-dir.js";
 import { compactionTarget } from "../context/compaction-target.js";
 import { shouldResetSession } from "../context/compaction-decision.js";
+import { readSessionTranscript } from "../context/session-transcript.js";
+import { getAgentConfigDir } from "../orchestrator/util/paths.js";
 import { estimateCostCents } from "../costs/pricing.js";
 import { createOrgPlansRepository } from "../agents/org-plans-repository.js";
 import { gatherBusinessContext } from "../agents/business-context.js";
@@ -330,6 +333,11 @@ export const registerOrchestratorHandlers = (
   // after MAX it stays visible in `error` instead of looping. Cleared on a clean
   // (code 0) exit. See healErroredAgents() near the drain.
   const autoHealAttempts = new Map<string, number>();
+  // Dedup for the CEO-over-budget heads-up: keys are `${agentId}:${reason}:${dayKey}`
+  // so the human gets at most one card per CEO per cap per day. In-memory by
+  // design — re-alerting once after a restart is harmless (vs. a card every turn
+  // the CEO stays over budget). See enforceDeps.notifyCeoOverBudget.
+  const ceoOverBudgetAlerted = new Set<string>();
   const MAX_AUTO_HEALS = 3;
 
   // Boot recovery: agents left in a transient/error state by a crash, an app
@@ -454,6 +462,24 @@ export const registerOrchestratorHandlers = (
         requiresAction: false,
       });
     },
+    notifyCeoOverBudget: (input) => {
+      // Deduped heads-up: the CEO went over a cap but was NOT paused (pausing it
+      // would freeze the org). At most one card per CEO per cap per day.
+      const dedupKey = `${input.agentId}:${input.reason}:${periodKey("daily", new Date())}`;
+      if (ceoOverBudgetAlerted.has(dedupKey)) return;
+      ceoOverBudgetAlerted.add(dedupKey);
+      const fmt = (v: number): string =>
+        input.metric === "usd" ? `$${(v / 100).toFixed(2)}` : `${String(v)} tokens`;
+      inbox.create({
+        companyId: input.companyId,
+        kind: "security_alert",
+        actorId: input.agentId,
+        title: "CEO acima do orçamento — seguindo mesmo assim",
+        preview: `O CEO passou do limite (${fmt(input.tokens)} de ${fmt(input.limit)}) mas continua rodando para não congelar a empresa. O limite do Max continua sendo o teto final.`,
+        payloadJson: JSON.stringify(input),
+        requiresAction: false,
+      });
+    },
   };
 
   const currentActionDebouncer: CurrentActionDebouncer = createCurrentActionDebouncer(
@@ -539,6 +565,10 @@ export const registerOrchestratorHandlers = (
     requestDrain: () => {
       drainScheduler();
     },
+    // Durable copy of the parked compaction seed so a restart before the agent's
+    // next turn doesn't lose "[CONTEXT COMPACTED] where you left off" (audit I8).
+    // Re-armed at spawn (see ensureAgentRunner).
+    persistSeed: (agentId, seed) => agents.setPendingSeed(agentId, seed),
   });
 
   // P2 peça 2 — org-plan charter critic. Cap of 1 auto-revision per company: a
@@ -1351,9 +1381,23 @@ export const registerOrchestratorHandlers = (
       if (Date.now() - last < COMPACTION_COOLDOWN_MS) return;
       compactionInFlight.add(compactionKey);
       try {
-        const trail = buildRecoveryTrail(db, agent.id, 200);
-        if (trail === null || trail.messages.length === 0) return;
-        const transcript = trail.messages.map((m) => `${m.sender}: ${m.content}`).join("\n");
+        // Prefer the REAL claude session transcript (tool calls, file reads,
+        // results, reasoning outcomes) — the chat-messages trail captures only
+        // inter-agent/user chatter, so the digest distilled from it was thin
+        // (audit 2026-06-04, prompt-C3). Fall back to the trail when the session
+        // JSONL is missing/unparseable so compaction never silently degrades.
+        const sessionTranscript =
+          live.claudeSessionId !== null
+            ? readSessionTranscript(getAgentConfigDir(userDataDir, agent.id), live.claudeSessionId)
+            : null;
+        let transcript: string;
+        if (sessionTranscript !== null) {
+          transcript = sessionTranscript;
+        } else {
+          const trail = buildRecoveryTrail(db, agent.id, 200);
+          if (trail === null || trail.messages.length === 0) return;
+          transcript = trail.messages.map((m) => `${m.sender}: ${m.content}`).join("\n");
+        }
 
         const worker = createCompactionWorker({
           runDistill: ({ prompt, model }) =>
@@ -1603,6 +1647,9 @@ export const registerOrchestratorHandlers = (
               companyId: agent.companyId,
               agentId: agent.id,
               issueId: null,
+              // The CEO is never budget-paused (it would freeze the org); it gets
+              // a deduped alert instead. See enforce-budget.ts overCap.
+              isCeo: isCeoAgent(agent),
             });
             const activityRec = tryGetRecorder();
             if (activityRec !== undefined) {
@@ -1864,6 +1911,13 @@ export const registerOrchestratorHandlers = (
     spawning.add(agent.id);
     void respawnAgent(agent.id)
       .then(() => {
+        // Re-arm a durable compaction seed (audit I8): a restart between a
+        // compaction and the agent's next turn wiped the router's in-RAM seed,
+        // so the respawn started blind. Prime it from the persisted column
+        // (no-op once already parked in RAM, or once consumed → column null).
+        // Must run BEFORE deliverQueued so the seed rides the first held message.
+        const seed = agents.getPendingSeed(agent.id);
+        if (seed !== null) router.setPendingSeedIfAbsent(agent.id, seed);
         // Eager per-spawn `thisSpawn` capture happens inside createRespawnFn
         // (spawnState.adapter is set right after ensureAdapter resolves,
         // before any callback can fire). Here we just deliver any message
@@ -2751,7 +2805,14 @@ export const registerOrchestratorHandlers = (
       return out;
     };
     const reconcileLastWakeByCeo = new Map<string, number>();
-    const RECONCILE_DEBOUNCE_MS = 3 * 60_000;
+    // How long after a reconciler-driven CEO wake we suppress another one. This ONLY
+    // throttles the board-reconciliation safety net (idle CEO + work waiting); event-driven
+    // wakes — a worker messaging the CEO, an approval routing to it — are never throttled
+    // here. Each safety-net wake reboots a full Opus turn that re-reads the CEO's large
+    // cached prompt (the "98% cache_read" cost, v0.2.10 token audit). Raised 3→10 min: a
+    // pure latency-vs-token-volume trade (the CEO reviews the board a few minutes later, with
+    // identical reasoning), cutting reconciler-driven CEO wakes ~3x under steady review traffic.
+    const RECONCILE_DEBOUNCE_MS = 10 * 60_000;
     const reconcileTick = (): void => {
       // Don't reconcile while the team is parked on a Max rate-limit window.
       const rlUntil = settingsRepo.read().rateLimitedUntil;

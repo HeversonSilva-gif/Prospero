@@ -16,6 +16,11 @@ export const tokenjuiceConfig = {
   maxArrayItems: 20,
   minSize: 512,
   minReductionRatio: 0.05, // skip clamping if it would save < 5%
+  // Tools whose output is CONTROL-PLANE, not information the agent reads, and so
+  // must pass through byte-identical. `request_permission` returns `updatedInput`
+  // — the gated tool's ACTUAL input under claude code's --permission-prompt-tool
+  // protocol; clamping it would silently truncate a file write / email / tweet.
+  passthroughTools: new Set<string>(["request_permission"]),
 };
 
 export const budgetFor = (toolName: string): number =>

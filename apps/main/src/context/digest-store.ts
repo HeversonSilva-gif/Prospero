@@ -1,5 +1,12 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  renameSync,
+  unlinkSync,
+} from "node:fs";
+import { dirname, basename, join } from "node:path";
 import type { ProjectDigest, DigestEntry, DeepDive } from "@prospero/shared";
 import { emptyDigest } from "@prospero/shared";
 import { getProjectDigestDir, projectDigestPath } from "./digest-dir.js";
@@ -66,10 +73,51 @@ export const readDigestAt = (path: string): ProjectDigest => {
   }
 };
 
-// Write a digest to an absolute path, creating its parent directory.
+// Per-process counter so two concurrent writers in THIS process never pick the same
+// temp name (combined with the pid it is also unique across processes).
+let tmpSeq = 0;
+
+// Renames `from` over `to`, retrying a few times on the transient Windows lock errors
+// that happen when a concurrent reader (MAIN vs the MCP child) has the target open for a
+// fast readFileSync. The competing read is microseconds, so immediate retries clear it.
+const renameWithRetry = (from: string, to: string): void => {
+  const MAX = 5;
+  for (let i = 0; i < MAX; i += 1) {
+    try {
+      renameSync(from, to);
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (i < MAX - 1 && (code === "EPERM" || code === "EBUSY" || code === "EACCES")) continue;
+      throw err;
+    }
+  }
+};
+
+// Audit 2026-06-03 Inteligência & Contexto (review backlog): MAIN and the MCP child both
+// read-modify-write the SAME digest.json (compaction worker, bumpEntriesAtPath). A plain
+// writeFileSync can be observed half-written by the other side (torn read → corrupt JSON →
+// the whole digest is dropped for that spawn). Write to a sibling temp file then rename
+// over the target: rename is atomic, so a concurrent reader sees either the old file or the
+// new one, never a partial. Fail-safe: if the atomic path fails outright (e.g. Windows held
+// the target locked through every retry), fall back to a direct write so a digest update is
+// never silently lost — no worse than the pre-atomic behavior.
 export const writeDigestAt = (path: string, digest: ProjectDigest): void => {
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, JSON.stringify(digest, null, 2), "utf8");
+  const dir = dirname(path);
+  mkdirSync(dir, { recursive: true });
+  const data = JSON.stringify(digest, null, 2);
+  const tmp = join(dir, `.${basename(path)}.${String(process.pid)}.${String(tmpSeq++)}.tmp`);
+  try {
+    writeFileSync(tmp, data, "utf8");
+    renameWithRetry(tmp, path);
+  } catch {
+    try {
+      unlinkSync(tmp);
+    } catch {
+      // temp never created / already gone — nothing to clean up.
+    }
+    writeFileSync(path, data, "utf8");
+  }
 };
 
 export const readDigest = (
@@ -96,14 +144,39 @@ const sameTarget = (a: DigestEntry, b: DigestEntry): boolean =>
   a.sourceFiles.length === b.sourceFiles.length &&
   [...a.sourceFiles].sort().join("|") === [...b.sourceFiles].sort().join("|");
 
+// Generous cap on the number of digest entries kept on disk. Injection is
+// already bounded to ~6144 chars (~30-50 entries) by trust decay, so this cap is
+// far above what is ever surfaced — it only stops the JSON from growing
+// unbounded across many compactions. Pruning above it can't lose knowledge that
+// would have been injected.
+const DIGEST_ENTRY_CAP = 300;
+
+// Value ranking for pruning: trust dominates, then how often the entry has
+// proven useful (accessCount), then how recently it was derived (freshness).
+// Mirrors the spirit of the injection ranking without needing a clock.
+const byValueDesc = (a: DigestEntry, b: DigestEntry): number =>
+  b.trust - a.trust || b.accessCount - a.accessCount || b.derivedAt - a.derivedAt;
+
 export const foldEntries = (base: DigestEntry[], incoming: DigestEntry[]): DigestEntry[] => {
   const out = [...base];
+  const freshIds = new Set<string>();
   for (const inc of incoming) {
     const idx = out.findIndex((e) => sameTarget(e, inc));
     if (idx >= 0) out[idx] = inc;
-    else out.push(inc);
+    else {
+      out.push(inc);
+      freshIds.add(inc.id);
+    }
   }
-  return out;
+  if (out.length <= DIGEST_ENTRY_CAP) return out;
+  // Over the cap: ALWAYS keep this batch's freshly-appended entries (just-learned
+  // knowledge must land), then fill the remaining slots with the highest-value
+  // older entries and drop the rest. Result preserves the original order.
+  const older = out.filter((e) => !freshIds.has(e.id)).sort(byValueDesc);
+  const keepOlder = new Set(
+    older.slice(0, Math.max(0, DIGEST_ENTRY_CAP - freshIds.size)).map((e) => e.id),
+  );
+  return out.filter((e) => freshIds.has(e.id) || keepOlder.has(e.id));
 };
 
 export const foldDeepDives = (base: DeepDive[], incoming: DeepDive[]): DeepDive[] => {

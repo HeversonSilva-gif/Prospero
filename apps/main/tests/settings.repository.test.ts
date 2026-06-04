@@ -24,7 +24,7 @@ describe("settings repository", () => {
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
       derivationsPerDayPerAgent: 3,
-      compactionCacheReadThreshold: 300000,
+      compactionCacheReadThreshold: 75000,
       rateLimitedUntil: null,
       remoteExecution: {
         enabled: false,
@@ -50,7 +50,7 @@ describe("settings repository", () => {
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
       derivationsPerDayPerAgent: 3,
-      compactionCacheReadThreshold: 300000,
+      compactionCacheReadThreshold: 75000,
       rateLimitedUntil: null,
       remoteExecution: {
         enabled: false,
@@ -76,7 +76,7 @@ describe("settings repository", () => {
       defaultAgentMode: "supervised",
       defaultAlwaysOn: false,
       derivationsPerDayPerAgent: 3,
-      compactionCacheReadThreshold: 300000,
+      compactionCacheReadThreshold: 75000,
       rateLimitedUntil: null,
       remoteExecution: {
         enabled: false,

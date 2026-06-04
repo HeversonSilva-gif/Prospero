@@ -31,6 +31,16 @@ type Tool = {
   run: (input: unknown, ctx: ToolContext) => Promise<string>;
 };
 
+// Goal management (status changes, sub-goals) is delegation-tier authority: the CEO or a
+// delegation-capable manager (e.g. a product-manager role). Enforced IN CODE — not only via
+// the `delegation` --allowedTools entry — so a plain worker that reaches the tool through the
+// permission-gate path can't cancel goals or spam sub-goals. (v0.2.10 toolbox audit C2.)
+const callerMayManageGoals = (ctx: ToolContext): boolean => {
+  const caller = createAgentsRepository(ctx.db).getById(ctx.agentId);
+  if (caller === null || caller.companyId !== ctx.companyId) return false;
+  return isCeoAgent(caller) || caller.capabilities.includes("delegation");
+};
+
 const listGoals: Tool = {
   name: "list_goals",
   description: "List goals in the current company, optionally filtered by status.",
@@ -82,6 +92,9 @@ const updateGoalStatus: Tool = {
       status: string;
       reason?: string;
     };
+    if (!callerMayManageGoals(ctx)) {
+      throw new Error("only the CEO or a delegation-capable manager may change goal status");
+    }
     const repo = createGoalsRepository(ctx.db);
     const before = repo.getById(id);
     if (!before || before.companyId !== ctx.companyId) {
@@ -127,6 +140,9 @@ const recordSubgoal: Tool = {
       description?: string;
       level?: GoalLevel;
     };
+    if (!callerMayManageGoals(ctx)) {
+      throw new Error("only the CEO or a delegation-capable manager may record sub-goals");
+    }
     const repo = createGoalsRepository(ctx.db);
     const parent = repo.getById(args.parentId);
     if (!parent || parent.companyId !== ctx.companyId) {

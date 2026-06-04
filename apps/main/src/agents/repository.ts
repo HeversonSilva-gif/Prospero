@@ -25,6 +25,7 @@ type Row = {
   always_on: number;
   reports_to: string | null;
   claude_session_id: string | null;
+  pending_seed: string | null;
   status: string;
   current_action: string | null;
   model: string;
@@ -107,6 +108,10 @@ export type AgentsRepository = {
   updateStatus(id: string, patch: { status: AgentStatus; currentAction: string | null }): void;
   setSessionId(id: string, sessionId: string): void;
   clearSessionId(id: string): void;
+  /** Durable copy of the router's parked compaction seed so it survives a restart
+   *  (audit I8). Written when parked, null when consumed, re-armed at spawn. */
+  getPendingSeed(id: string): string | null;
+  setPendingSeed(id: string, seed: string | null): void;
   setAllowedProjects(id: string, projectIds: string[]): void;
   setModel(id: string, model: string): void;
   setAdapterName(id: string, adapterName: string): void;
@@ -171,6 +176,10 @@ export const createAgentsRepository = (
   const clearSessionStmt = db.prepare(
     "UPDATE agents SET claude_session_id = NULL, updated_at = ? WHERE id = ?",
   );
+  const getPendingSeedStmt = db.prepare("SELECT pending_seed FROM agents WHERE id = ?");
+  const setPendingSeedStmt = db.prepare(
+    "UPDATE agents SET pending_seed = ?, updated_at = ? WHERE id = ?",
+  );
 
   return {
     create(input) {
@@ -221,6 +230,13 @@ export const createAgentsRepository = (
     },
     clearSessionId(id) {
       clearSessionStmt.run(Date.now(), id);
+    },
+    getPendingSeed(id) {
+      const row = getPendingSeedStmt.get(id) as { pending_seed: string | null } | undefined;
+      return row?.pending_seed ?? null;
+    },
+    setPendingSeed(id, seed) {
+      setPendingSeedStmt.run(seed, Date.now(), id);
     },
     setAllowedProjects(id, projectIds) {
       const row = byId.get(id) as Row | undefined;

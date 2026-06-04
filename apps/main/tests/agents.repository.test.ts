@@ -29,6 +29,23 @@ describe("agents repository", () => {
     expect(agents.getById(ceo.id)?.name).toBe("CEO");
   });
 
+  it("getPendingSeed/setPendingSeed round-trips and clears (audit I8)", () => {
+    const { agents, companyId } = setup();
+    const a = agents.create({
+      companyId,
+      name: "Worker",
+      role: "Engineer",
+      systemPrompt: "x",
+      mode: "supervised",
+      alwaysOn: false,
+    });
+    expect(agents.getPendingSeed(a.id)).toBeNull(); // default: no seed
+    agents.setPendingSeed(a.id, "[CONTEXT COMPACTED] where you left off");
+    expect(agents.getPendingSeed(a.id)).toBe("[CONTEXT COMPACTED] where you left off");
+    agents.setPendingSeed(a.id, null); // consumed
+    expect(agents.getPendingSeed(a.id)).toBeNull();
+  });
+
   it("setReportsTo rejects a manager from another company", () => {
     const db = new Database(":memory:");
     applyMigrations(db);

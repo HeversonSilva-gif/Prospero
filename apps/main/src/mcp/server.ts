@@ -39,6 +39,7 @@ import { memoryToolDefinitions } from "./tools-memory.js";
 import { isaToolDefinitions } from "./tools-isa.js";
 import { projectContextToolDefinitions } from "./tools-project-context.js";
 import { genesisToolDefinitions } from "./tools-genesis.js";
+import { visibleToolNames } from "./tool-visibility.js";
 import { processToolResult } from "../tokenjuice/index.js";
 
 const agentId = process.env["AGENT_ID"];
@@ -117,7 +118,37 @@ const allToolDefinitions = [
   ...projectContextToolDefinitions,
 ];
 
-for (const def of allToolDefinitions) {
+// Advertise only the tools THIS agent can reach, instead of all ~60, so a worker doesn't
+// pay to cache the CEO's planning/connector schemas on every turn (v0.2.10 token audit,
+// prompt C1). FAIL-OPEN: if the agent row can't be read/parsed, register everything — the
+// filter is a cache optimization, never the security boundary (--allowedTools is), so a
+// resolution failure must never strand an agent without tools.
+let registerDefs = allToolDefinitions;
+try {
+  const row = db
+    .prepare("SELECT capabilities_json, can_hire, can_assign FROM agents WHERE id = ?")
+    .get(agentId) as
+    | { capabilities_json: string; can_hire: number; can_assign: number }
+    | undefined;
+  if (row !== undefined) {
+    const capabilities = JSON.parse(row.capabilities_json) as string[];
+    const visible = visibleToolNames(
+      allToolDefinitions.map((d) => d.name),
+      { capabilities, canHire: row.can_hire === 1, canAssign: row.can_assign === 1 },
+    );
+    registerDefs = allToolDefinitions.filter((d) => visible.has(d.name));
+    slog(
+      `tool visibility: registering ${String(registerDefs.length)}/${String(allToolDefinitions.length)} for caps=[${capabilities.join(",")}]`,
+    );
+  } else {
+    slog(`tool visibility: agent ${agentId} not found; registering all (fail-open)`);
+  }
+} catch (e) {
+  registerDefs = allToolDefinitions;
+  slog(`tool visibility resolution failed (${(e as Error).message}); registering all (fail-open)`);
+}
+
+for (const def of registerDefs) {
   register(
     def.name,
     { description: def.description, inputSchema: def.inputSchema.shape },
@@ -132,7 +163,7 @@ for (const def of allToolDefinitions) {
   );
 }
 
-slog(`registered ${allToolDefinitions.length} tools; connecting transport`);
+slog(`registered ${registerDefs.length} tools; connecting transport`);
 const transport = new StdioServerTransport();
 void server.connect(transport).then(
   () => slog(`transport connected`),

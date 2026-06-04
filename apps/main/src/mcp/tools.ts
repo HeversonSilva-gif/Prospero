@@ -78,6 +78,20 @@ const callerIsCeo = (ctx: ToolContext): boolean => {
   return caller !== null && caller.companyId === ctx.companyId && isCeoAgent(caller);
 };
 
+// hire/fire authority enforced AT THE TOOL BOUNDARY (v0.2.10 toolbox audit C1). The MCP
+// server registers these for any agent and only the `--allowedTools` capability list +
+// can_hire run-policy gate them — but a tool not in --allowedTools is still reachable via
+// the permission-gate path, so authority must also be checked here. Allowed: the CEO always
+// (the org architect — its capabilities may be empty/legacy, so never require the cap of it),
+// OR an agent the CEO explicitly granted the `delegation` capability with can_hire set (e.g.
+// a product-manager role that legitimately builds out its team). A plain worker can never
+// hire/fire even if it reaches the tool. Mirrors applyRunPolicy's (delegation + canHire) rule.
+const callerMayHireFire = (ctx: ToolContext): boolean => {
+  const caller = createAgentsRepository(ctx.db).getById(ctx.agentId);
+  if (caller === null || caller.companyId !== ctx.companyId) return false;
+  return isCeoAgent(caller) || (caller.capabilities.includes("delegation") && caller.canHire);
+};
+
 export const waitForResolution = async (
   dir: string,
   toolUseId: string,
@@ -470,7 +484,13 @@ const waitForEmailResult = async (
 
 const runEmailSend = async (
   ctx: ToolContext,
-  input: { to: string | string[]; subject: string; body: string; in_reply_to?: string },
+  input: {
+    to: string | string[];
+    subject: string;
+    body: string;
+    in_reply_to?: string;
+    references?: string;
+  },
 ): Promise<string> => {
   const requestId = randomUUID();
   ctx.emit({
@@ -481,6 +501,8 @@ const runEmailSend = async (
       subject: input.subject,
       body: input.body,
       ...(input.in_reply_to !== undefined ? { inReplyTo: input.in_reply_to } : {}),
+      // Forward the parent's reference chain so References accumulates across hops (M6).
+      ...(input.references !== undefined ? { references: input.references } : {}),
     },
   });
   return waitForEmailResult(ctx.permissionsDir, requestId, 60_000);
@@ -574,6 +596,14 @@ export const toolDefinitions = [
     inputSchema: HIRE_AGENT_INPUT_SCHEMA,
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (input: HireAgentInput, ctx: ToolContext): Promise<string> => {
+      // Authority in code: only the CEO (or a delegation-capable manager with can_hire)
+      // may hire — never a plain worker that reached the tool via the gate. (Audit C1.)
+      if (!callerMayHireFire(ctx)) {
+        return JSON.stringify({
+          ok: false,
+          error: "only the CEO or a delegation-capable manager may hire agents",
+        });
+      }
       const agents = createAgentsRepository(ctx.db, tryGetRecorder());
       const messages = createMessagesRepository(ctx.db);
       const settings = createSettingsRepository(ctx.db).read();
@@ -623,13 +653,27 @@ export const toolDefinitions = [
     inputSchema: z.object({ agent_id: z.string() }),
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (input: { agent_id: string }, ctx: ToolContext): Promise<string> => {
+      // Authority in code: only the CEO (or a delegation-capable manager) may fire. (Audit C1.)
+      if (!callerMayHireFire(ctx)) {
+        return JSON.stringify({
+          ok: false,
+          error: "only the CEO or a delegation-capable manager may fire agents",
+        });
+      }
       const target = ctx.db
-        .prepare("SELECT id, company_id FROM agents WHERE id = ?")
-        .get(input.agent_id) as { id: string; company_id: string } | undefined;
+        .prepare("SELECT id, company_id, role, template_id FROM agents WHERE id = ?")
+        .get(input.agent_id) as
+        | { id: string; company_id: string; role: string; template_id: string | null }
+        | undefined;
       // Company scope: only fire agents in the caller's own company — never
       // kill/delete another company's agent. Audit 2026-06-03 Facet 4 C1.
       if (target === undefined || target.company_id !== ctx.companyId) {
         return JSON.stringify({ ok: false, error: "agent not found" });
+      }
+      // Never let a non-CEO fire the CEO — the org's sole orchestrator. A delegation manager
+      // can build/trim its own team but cannot decapitate the company. (v0.2.10 audit C1.)
+      if (isCeoAgent({ role: target.role, templateId: target.template_id }) && !callerIsCeo(ctx)) {
+        return JSON.stringify({ ok: false, error: "only the CEO can remove the CEO" });
       }
       ctx.emit({ kind: "agent.kill", payload: { agentId: input.agent_id } });
       ctx.db
@@ -1320,15 +1364,22 @@ export const toolDefinitions = [
   {
     name: "send_email",
     description:
-      "Send an email from the company's connected mailbox: deliver a product/access to a buyer after a sale, reply to a customer, or follow up an opted-in lead. Gated for approval first (auto once trusted). `to` is one or a few recipients — there is NO bulk/cold campaign. Pass in_reply_to (a Message-Id) to thread a reply. Returns the message id, or a clear error if email isn't connected / was rejected.",
+      "Send an email from the company's connected mailbox: deliver a product/access to a buyer after a sale, reply to a customer, or follow up an opted-in lead. Gated for approval first (auto once trusted). `to` is one or a few recipients — there is NO bulk/cold campaign. To thread a reply, pass in_reply_to (the message_id of the email you're replying to) AND references (that email's `references` field from read_emails) so the conversation stays grouped across multiple replies. Returns the message id, or a clear error if email isn't connected / was rejected.",
     inputSchema: z.object({
       to: z.union([z.string().min(3).max(320), z.array(z.string().min(3).max(320)).min(1).max(20)]),
       subject: z.string().min(1).max(300),
       body: z.string().min(1).max(20000),
       in_reply_to: z.string().max(998).optional(),
+      references: z.string().max(4096).optional(),
     }),
     run: async (
-      input: { to: string | string[]; subject: string; body: string; in_reply_to?: string },
+      input: {
+        to: string | string[];
+        subject: string;
+        body: string;
+        in_reply_to?: string;
+        references?: string;
+      },
       ctx: ToolContext,
     ): Promise<string> => {
       // I3 (Conectores audit): validate every recipient is a syntactically real address
@@ -1348,6 +1399,7 @@ export const toolDefinitions = [
         subject: input.subject,
         body: input.body,
         ...(input.in_reply_to !== undefined ? { in_reply_to: input.in_reply_to } : {}),
+        ...(input.references !== undefined ? { references: input.references } : {}),
       };
       const outcome = await gateAction(ctx, "send_email", toolInput, randomUUID());
       if (outcome.decision !== "allow") {

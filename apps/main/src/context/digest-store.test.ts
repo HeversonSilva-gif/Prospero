@@ -1,14 +1,16 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   readDigest,
   writeDigest,
+  writeDigestAt,
   foldEntries,
   foldDeepDives,
   bumpEntryAccess,
 } from "./digest-store.js";
+import { projectDigestPath } from "./digest-dir.js";
 import type { DigestEntry, DeepDive } from "@prospero/shared";
 
 let dir: string;
@@ -40,6 +42,28 @@ describe("digest-store", () => {
     expect(d.entries[0]?.body).toBe("It is an Electron monorepo.");
   });
 
+  it("overwrites an existing digest in place (atomic rename replaces the target)", () => {
+    writeDigest(dir, "co_1", "pr_1", {
+      version: 1,
+      entries: [entry({ body: "first" })],
+      deepDives: [],
+    });
+    writeDigest(dir, "co_1", "pr_1", {
+      version: 1,
+      entries: [entry({ body: "second" })],
+      deepDives: [],
+    });
+    expect(readDigest(dir, "co_1", "pr_1").entries[0]?.body).toBe("second");
+  });
+
+  it("leaves no .tmp residue in the digest directory after a write", () => {
+    const path = projectDigestPath(dir, "co_1", "pr_1");
+    writeDigestAt(path, { version: 1, entries: [entry()], deepDives: [] });
+    writeDigestAt(path, { version: 1, entries: [entry({ body: "again" })], deepDives: [] });
+    const leftover = readdirSync(join(path, "..")).filter((f) => f.endsWith(".tmp"));
+    expect(leftover).toEqual([]);
+  });
+
   it("foldEntries replaces an entry with the same section+sourceFiles", () => {
     const base = [entry({ id: "old", body: "old", contentHash: "h1" })];
     const incoming = [entry({ id: "new", body: "new", contentHash: "h2" })];
@@ -53,6 +77,29 @@ describe("digest-store", () => {
     const base = [entry({ sourceFiles: ["a.ts"] })];
     const incoming = [entry({ id: "e2", sourceFiles: ["b.ts"] })];
     expect(foldEntries(base, incoming)).toHaveLength(2);
+  });
+
+  it("foldEntries caps the digest, dropping the lowest-value older entries", () => {
+    const base: DigestEntry[] = [];
+    for (let i = 0; i < 300; i += 1) {
+      base.push(entry({ id: `b${String(i)}`, sourceFiles: [`f${String(i)}.ts`], trust: i / 300 }));
+    }
+    const incoming = [entry({ id: "fresh", sourceFiles: ["new.ts"], trust: 0.5, derivedAt: 999 })];
+    const merged = foldEntries(base, incoming);
+    expect(merged).toHaveLength(300);
+    expect(merged.some((e) => e.id === "fresh")).toBe(true); // fresh knowledge kept
+    expect(merged.some((e) => e.id === "b0")).toBe(false); // lowest-trust (0) dropped
+  });
+
+  it("foldEntries never drops a freshly-appended entry, even at the lowest trust", () => {
+    const base: DigestEntry[] = [];
+    for (let i = 0; i < 300; i += 1) {
+      base.push(entry({ id: `b${String(i)}`, sourceFiles: [`f${String(i)}.ts`], trust: 0.9 }));
+    }
+    const incoming = [entry({ id: "fresh", sourceFiles: ["new.ts"], trust: 0.01 })];
+    const merged = foldEntries(base, incoming);
+    expect(merged).toHaveLength(300);
+    expect(merged.some((e) => e.id === "fresh")).toBe(true); // survives despite lowest trust
   });
 
   it("readDigest fills missing trust/accessCount/deepDives defaults", () => {

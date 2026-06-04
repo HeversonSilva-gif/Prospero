@@ -39,6 +39,11 @@ export type InboundEmail = {
   snippet: string;
   date: string;
   messageId: string;
+  // The parent's own References chain (space-separated Message-Ids), captured from the
+  // inbound headers. When the agent replies it passes this back as `references` so the
+  // new thread keeps accumulating instead of resetting after the first hop (M6). Empty
+  // string when the message carried no References header (a thread root).
+  references: string;
 };
 
 export type EmailHttp = (
@@ -83,6 +88,22 @@ const toArray = (to: string | string[]): string[] => (Array.isArray(to) ? to : [
 export const extractBodySnippet = (raw: unknown, maxBytes = 4096): string => {
   if (typeof raw !== "string" || raw === "") return "";
   return raw.slice(0, maxBytes);
+};
+
+// Extracts the References header value from a raw header block (e.g. an IMAP
+// `headers: ["references"]` fetch). Folded continuation lines (RFC 5322 — lines starting
+// with whitespace) are unfolded and runs of whitespace collapsed to single spaces, so the
+// result is the clean space-separated Message-Id chain. Returns "" when absent / unparseable
+// so a thread root (no References) simply contributes nothing to the next reply's chain (M6).
+export const extractReferencesHeader = (raw: unknown): string => {
+  if (typeof raw !== "string" || raw === "") return "";
+  // Match the "References:" line plus any folded continuation lines (each starts with
+  // whitespace). `m` is needed so `^` anchors the header at a line start even when it
+  // isn't the first header; we avoid a `$`-terminated capture because under `m` the `$`
+  // matches at every line break (between \r and \n) and would cut the chain off after one hop.
+  const m = /^references:[ \t]*(.*(?:\r?\n[ \t]+.*)*)/im.exec(raw);
+  if (m === null || m[1] === undefined) return "";
+  return m[1].replace(/\s+/g, " ").trim();
 };
 
 // Builds threading headers. References must ACCUMULATE the chain (prior references +

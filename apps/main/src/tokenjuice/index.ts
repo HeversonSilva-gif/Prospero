@@ -43,7 +43,11 @@ export const compressToolResult = (input: CompressInput): CompressOutput => {
       };
     };
 
-    if (!tokenjuiceConfig.enabled || result.length < tokenjuiceConfig.minSize) {
+    if (
+      !tokenjuiceConfig.enabled ||
+      result.length < tokenjuiceConfig.minSize ||
+      tokenjuiceConfig.passthroughTools.has(toolName) // control-plane output — never touch
+    ) {
       return mk(result, "passthrough", false);
     }
 

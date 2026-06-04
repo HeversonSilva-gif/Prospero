@@ -25,6 +25,12 @@ export type RouterOptions = {
   /** Called when a message is held for an agent with no live adapter, so the
    *  scheduler can spawn/drain immediately instead of waiting for the next tick. */
   requestDrain?: () => void;
+  /** Persist a durable copy of the agent's parked compaction seed (or null to
+   *  clear it on consume) so it survives a process restart. The router's `states`
+   *  map is in-RAM, so without this a restart after a compaction loses the
+   *  "[CONTEXT COMPACTED] where you left off" seed and the respawn starts blind
+   *  (audit I8). Optional — omitted in tests / non-persisting contexts. */
+  persistSeed?: (agentId: string, seed: string | null) => void;
 };
 
 export type Router = {
@@ -67,7 +73,7 @@ export const createRouter = (opts: RouterOptions): Router => {
   };
 
   // Prepends and consumes a parked seed (first) and nudge, if any.
-  const consumePending = (s: State, content: string): string => {
+  const consumePending = (agentId: string, s: State, content: string): string => {
     let out = content;
     if (s.pendingNudge !== null) {
       out = `${s.pendingNudge}\n\n${out}`;
@@ -76,6 +82,7 @@ export const createRouter = (opts: RouterOptions): Router => {
     if (s.pendingSeed !== null) {
       out = `${s.pendingSeed}\n\n${out}`;
       s.pendingSeed = null;
+      opts.persistSeed?.(agentId, null); // consumed → clear the durable copy
     }
     return out;
   };
@@ -86,7 +93,7 @@ export const createRouter = (opts: RouterOptions): Router => {
       const formatted = formatSender(sender, content);
       if (s.currentTurnThreadId === null && opts.hasLiveAdapter(agentId)) {
         s.currentTurnThreadId = threadId;
-        opts.writeStdin(agentId, consumePending(s, formatted), messageId);
+        opts.writeStdin(agentId, consumePending(agentId, s, formatted), messageId);
       } else {
         s.queue.push({ threadId, content: formatted, sender, messageId });
         if (!opts.hasLiveAdapter(agentId)) opts.requestDrain?.();
@@ -97,7 +104,7 @@ export const createRouter = (opts: RouterOptions): Router => {
       if (s.currentTurnThreadId === null && s.queue.length > 0 && opts.hasLiveAdapter(agentId)) {
         const next = s.queue.shift()!;
         s.currentTurnThreadId = next.threadId;
-        opts.writeStdin(agentId, consumePending(s, next.content), next.messageId);
+        opts.writeStdin(agentId, consumePending(agentId, s, next.content), next.messageId);
       }
     },
     hasPendingWork(agentId) {
@@ -121,7 +128,7 @@ export const createRouter = (opts: RouterOptions): Router => {
         s.currentTurnThreadId = null;
       } else {
         s.currentTurnThreadId = next.threadId;
-        opts.writeStdin(agentId, consumePending(s, next.content), next.messageId);
+        opts.writeStdin(agentId, consumePending(agentId, s, next.content), next.messageId);
       }
     },
     getCurrentThread(agentId) {
@@ -132,11 +139,13 @@ export const createRouter = (opts: RouterOptions): Router => {
     },
     setPendingSeed(agentId, seed) {
       ensure(agentId).pendingSeed = seed;
+      opts.persistSeed?.(agentId, seed);
     },
     setPendingSeedIfAbsent(agentId, seed) {
       const s = ensure(agentId);
       if (s.pendingSeed === null) {
         s.pendingSeed = seed;
+        opts.persistSeed?.(agentId, seed);
       }
     },
   };

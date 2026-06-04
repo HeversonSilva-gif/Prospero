@@ -155,6 +155,13 @@ describe("mcp tools (M3 mocks)", () => {
   it("fire_agent emits agent.kill control event + deletes from DB", async () => {
     const ctx = makeCtx();
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
+    // The caller (makeCtx agentId 'a') must be the CEO — fire_agent is gated in code to the
+    // CEO / a delegation manager (v0.2.10 toolbox audit C1).
+    ctx.db
+      .prepare(
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','CEO','ceo','sp','[]','[]','supervised',0,'idle',1,1)`,
+      )
+      .run();
     ctx.db
       .prepare(
         `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('victim','c','x','y','sp','[]','[]','supervised',0,'idle',1,1)`,
@@ -298,7 +305,7 @@ describe("mcp tools (M3 mocks)", () => {
     ctx.db.prepare(`INSERT INTO companies(id,name,created_at) VALUES('c','Acme',1)`).run();
     ctx.db
       .prepare(
-        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','Caller','C','sp','[]','[]','supervised',0,'idle',1,1)`,
+        `INSERT INTO agents(id,company_id,name,role,system_prompt,capabilities_json,allowed_projects_json,mode,always_on,status,created_at,updated_at) VALUES('a','c','Caller','ceo','sp','[]','[]','supervised',0,'idle',1,1)`,
       )
       .run();
 

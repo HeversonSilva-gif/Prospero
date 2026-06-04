@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import { ImapFlow } from "imapflow";
 import {
   extractBodySnippet,
+  extractReferencesHeader,
   type SmtpPayload,
   type SmtpMessage,
   type InboundEmail,
@@ -91,7 +92,12 @@ export const defaultImapFetch: ImapFetchFn = async (p, limit) => {
       if (total > 0) {
         const start = Math.max(1, total - limit + 1);
         const seqs: number[] = [];
-        for await (const msg of client.fetch(`${String(start)}:*`, { envelope: true })) {
+        // Pull the References header alongside the envelope (one fetch) so a reply can
+        // accumulate the thread chain instead of resetting it after one hop (M6).
+        for await (const msg of client.fetch(`${String(start)}:*`, {
+          envelope: true,
+          headers: ["references"],
+        })) {
           const env = msg.envelope;
           seqs.push(msg.seq);
           out.push({
@@ -101,6 +107,9 @@ export const defaultImapFetch: ImapFetchFn = async (p, limit) => {
             snippet: "",
             date: env?.date?.toISOString() ?? "",
             messageId: env?.messageId ?? "",
+            references: extractReferencesHeader(
+              msg.headers !== undefined ? msg.headers.toString("utf8") : "",
+            ),
           });
         }
         // Download bodies AFTER the envelope iterator drains (imapflow forbids a second

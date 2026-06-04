@@ -29,7 +29,19 @@ const makeDeps = (overrides: Partial<EnforceBudgetDeps> = {}): EnforceBudgetDeps
   getBudgetState: vi.fn().mockReturnValue(null),
   notifyBudgetWarning: vi.fn(),
   markBudgetWarned: vi.fn(),
+  notifyCeoOverBudget: vi.fn(),
   ...overrides,
+});
+
+// A costsRepo whose daily total is over the 1000-token test cap.
+const overDailyCosts = () => ({
+  getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
+  insert: vi.fn(),
+  getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 1500, billableTokens: 1500, cents: 5 }),
+  getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+  hasAgentRowsForDay: vi.fn().mockReturnValue(false),
+  listRunsByAgent: vi.fn().mockReturnValue([]),
+  getAgentPeriodTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
 });
 
 const ctx = { companyId: "co_1", agentId: "agent_x", issueId: null as string | null };
@@ -290,6 +302,106 @@ describe("checkAndPause — per-agent budget", () => {
     }
     expect(deps.pauseAgent).toHaveBeenCalledTimes(1); // exactly one pause
     expect(deps.notifySecurityAlert).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("checkAndPause — CEO exemption (never freeze the org)", () => {
+  // Pausing the CEO on budget freezes the whole org (the reconciler won't wake a
+  // paused CEO), and under the Max plan the cap is phantom anyway. So the CEO is
+  // never paused on budget — it gets a deduped alert and keeps running. The Max
+  // rate-limit remains the ultimate backstop.
+  const ceoCtx = {
+    companyId: "co_1",
+    agentId: "agent_ceo",
+    issueId: null as string | null,
+    isCeo: true,
+  };
+
+  it("alerts but does NOT pause the CEO when the daily cap is exceeded", () => {
+    const deps = makeDeps({ costsRepo: overDailyCosts() });
+    const r = checkAndPause(deps, ceoCtx);
+    expect(r.paused).toBe(false);
+
+    expect(deps.pauseAgent).not.toHaveBeenCalled();
+
+    expect(deps.recordPauseActivity).not.toHaveBeenCalled();
+
+    expect(deps.notifySecurityAlert).not.toHaveBeenCalled();
+
+    expect(deps.notifyCeoOverBudget).toHaveBeenCalledTimes(1);
+
+    expect(deps.notifyCeoOverBudget).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "budget_exceeded_daily", agentId: "agent_ceo" }),
+    );
+  });
+
+  it("alerts but does NOT pause the CEO when the per-agent cap is exceeded", () => {
+    const deps = makeDeps({
+      getBudgetState: vi.fn().mockReturnValue({
+        tokensLimit: 1000,
+        usdLimit: null,
+        period: "daily",
+        warnedPeriod: null,
+        adapterName: "claude-oauth-local",
+      }),
+      costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
+        insert: vi.fn(),
+        getAgentDailyTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+        hasAgentRowsForDay: vi.fn().mockReturnValue(false),
+        listRunsByAgent: vi.fn().mockReturnValue([]),
+        getAgentPeriodTotal: vi
+          .fn()
+          .mockReturnValue({ tokens: 1000, billableTokens: 1000, cents: 0 }),
+      },
+    });
+    const r = checkAndPause(deps, ceoCtx);
+    expect(r.paused).toBe(false);
+
+    expect(deps.pauseAgent).not.toHaveBeenCalled();
+
+    expect(deps.notifyCeoOverBudget).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "budget_exceeded_agent" }),
+    );
+  });
+
+  it("alerts the CEO only once even when multiple caps are exceeded (daily short-circuits)", () => {
+    const deps = makeDeps({
+      getBudgetState: vi.fn().mockReturnValue({
+        tokensLimit: 1000,
+        usdLimit: null,
+        period: "daily",
+        warnedPeriod: null,
+        adapterName: "claude-oauth-local",
+      }),
+      costsRepo: {
+        getCompanyTotalSince: vi.fn().mockReturnValue({ cents: 0 }),
+        insert: vi.fn(),
+        getAgentDailyTotal: vi
+          .fn()
+          .mockReturnValue({ tokens: 1500, billableTokens: 1500, cents: 5 }),
+        getIssueTotal: vi.fn().mockReturnValue({ tokens: 0, billableTokens: 0, cents: 0 }),
+        hasAgentRowsForDay: vi.fn().mockReturnValue(false),
+        listRunsByAgent: vi.fn().mockReturnValue([]),
+        getAgentPeriodTotal: vi
+          .fn()
+          .mockReturnValue({ tokens: 1000, billableTokens: 1000, cents: 0 }),
+      },
+    });
+    checkAndPause(deps, ceoCtx);
+
+    expect(deps.notifyCeoOverBudget).toHaveBeenCalledTimes(1);
+  });
+
+  it("a NON-CEO over the daily cap still pauses (exemption is CEO-only)", () => {
+    const deps = makeDeps({ costsRepo: overDailyCosts() });
+    const r = checkAndPause(deps, { ...ctx, isCeo: false });
+    expect(r.paused).toBe(true);
+
+    expect(deps.pauseAgent).toHaveBeenCalledWith("agent_x", "budget_exceeded_daily");
+
+    expect(deps.notifyCeoOverBudget).not.toHaveBeenCalled();
   });
 });
 

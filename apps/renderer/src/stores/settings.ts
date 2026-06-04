@@ -38,7 +38,7 @@ export const useSettingsStore = create<State>((set, get) => ({
     defaultAgentMode: "supervised",
     defaultAlwaysOn: false,
     derivationsPerDayPerAgent: 3,
-    compactionCacheReadThreshold: 300_000,
+    compactionCacheReadThreshold: 75_000,
     rateLimitedUntil: null,
     remoteExecution: {
       enabled: false,
