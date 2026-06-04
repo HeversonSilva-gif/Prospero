@@ -35,13 +35,26 @@ describe("estimateCostCents", () => {
   });
 
   it("estimates opus 4.7 cost correctly", () => {
+    // Opus oficial 2026-06: $5/MTok input (500 cents). O valor antigo 1500
+    // ($15) era a tarifa do Opus 4.1/4 DEPRECADO — overcharge 3x (iss_3dfd6d0d).
     const cents = estimateCostCents("claude-opus-4-7", {
       input: 1_000_000,
       output: 0,
       cache_creation: 0,
       cache_read: 0,
     });
-    expect(cents).toBe(1500);
+    expect(cents).toBe(500);
+  });
+
+  it("estimates opus 4.8 (modelo do CEO) cost correctly — $5/$25", () => {
+    // Trava 4.8 explicitamente: era o modelo em produção cobrado 3x a mais.
+    const cents = estimateCostCents("claude-opus-4-8", {
+      input: 1_000_000,
+      output: 1_000_000,
+      cache_creation: 0,
+      cache_read: 0,
+    });
+    expect(cents).toBe(500 + 2500);
   });
 
   it("includes cache creation + cache read tokens", () => {
