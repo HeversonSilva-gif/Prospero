@@ -101,6 +101,45 @@ describe("createRouter — pending seed", () => {
   });
 });
 
+describe("createRouter — pending seed durability (persistSeed)", () => {
+  it("persists the seed when parked and clears the persisted copy when consumed", () => {
+    const persisted: Array<{ id: string; seed: string | null }> = [];
+    const router = createRouter({
+      writeStdin: () => {},
+      hasLiveAdapter: () => true,
+      persistSeed: (id, seed) => persisted.push({ id, seed }),
+    });
+    router.setPendingSeed("ag", "SEED");
+    expect(persisted).toContainEqual({ id: "ag", seed: "SEED" });
+    // delivering the next turn consumes the seed → the durable copy is cleared
+    router.enqueue("ag", "th", "hi", { kind: "user", id: null, name: "User" }, null);
+    expect(persisted).toContainEqual({ id: "ag", seed: null });
+  });
+
+  it("setPendingSeedIfAbsent does NOT persist when a seed is already parked", () => {
+    const persisted: Array<{ id: string; seed: string | null }> = [];
+    const router = createRouter({
+      writeStdin: () => {},
+      hasLiveAdapter: () => true,
+      persistSeed: (id, seed) => persisted.push({ id, seed }),
+    });
+    router.setPendingSeed("ag", "FIRST");
+    router.setPendingSeedIfAbsent("ag", "SECOND"); // already parked → no-op
+    expect(persisted).toEqual([{ id: "ag", seed: "FIRST" }]);
+  });
+
+  it("setPendingSeedIfAbsent persists when nothing is parked (restart re-arm)", () => {
+    const persisted: Array<{ id: string; seed: string | null }> = [];
+    const router = createRouter({
+      writeStdin: () => {},
+      hasLiveAdapter: () => true,
+      persistSeed: (id, seed) => persisted.push({ id, seed }),
+    });
+    router.setPendingSeedIfAbsent("ag", "REARMED");
+    expect(persisted).toContainEqual({ id: "ag", seed: "REARMED" });
+  });
+});
+
 describe("createRouter — hasLiveAdapter guard (message-hold)", () => {
   it("holds message in queue when hasLiveAdapter returns false", () => {
     const { router, writes } = makeRouter(new Set()); // no live adapters

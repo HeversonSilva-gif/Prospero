@@ -565,6 +565,10 @@ export const registerOrchestratorHandlers = (
     requestDrain: () => {
       drainScheduler();
     },
+    // Durable copy of the parked compaction seed so a restart before the agent's
+    // next turn doesn't lose "[CONTEXT COMPACTED] where you left off" (audit I8).
+    // Re-armed at spawn (see ensureAgentRunner).
+    persistSeed: (agentId, seed) => agents.setPendingSeed(agentId, seed),
   });
 
   // P2 peça 2 — org-plan charter critic. Cap of 1 auto-revision per company: a
@@ -1907,6 +1911,13 @@ export const registerOrchestratorHandlers = (
     spawning.add(agent.id);
     void respawnAgent(agent.id)
       .then(() => {
+        // Re-arm a durable compaction seed (audit I8): a restart between a
+        // compaction and the agent's next turn wiped the router's in-RAM seed,
+        // so the respawn started blind. Prime it from the persisted column
+        // (no-op once already parked in RAM, or once consumed → column null).
+        // Must run BEFORE deliverQueued so the seed rides the first held message.
+        const seed = agents.getPendingSeed(agent.id);
+        if (seed !== null) router.setPendingSeedIfAbsent(agent.id, seed);
         // Eager per-spawn `thisSpawn` capture happens inside createRespawnFn
         // (spawnState.adapter is set right after ensureAdapter resolves,
         // before any callback can fire). Here we just deliver any message
