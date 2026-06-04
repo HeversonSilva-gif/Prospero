@@ -2751,7 +2751,14 @@ export const registerOrchestratorHandlers = (
       return out;
     };
     const reconcileLastWakeByCeo = new Map<string, number>();
-    const RECONCILE_DEBOUNCE_MS = 3 * 60_000;
+    // How long after a reconciler-driven CEO wake we suppress another one. This ONLY
+    // throttles the board-reconciliation safety net (idle CEO + work waiting); event-driven
+    // wakes — a worker messaging the CEO, an approval routing to it — are never throttled
+    // here. Each safety-net wake reboots a full Opus turn that re-reads the CEO's large
+    // cached prompt (the "98% cache_read" cost, v0.2.10 token audit). Raised 3→10 min: a
+    // pure latency-vs-token-volume trade (the CEO reviews the board a few minutes later, with
+    // identical reasoning), cutting reconciler-driven CEO wakes ~3x under steady review traffic.
+    const RECONCILE_DEBOUNCE_MS = 10 * 60_000;
     const reconcileTick = (): void => {
       // Don't reconcile while the team is parked on a Max rate-limit window.
       const rlUntil = settingsRepo.read().rateLimitedUntil;
