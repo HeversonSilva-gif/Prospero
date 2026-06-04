@@ -384,6 +384,93 @@ describe("submit_goal_plan", () => {
   });
 });
 
+describe("create_goal", () => {
+  let env: ReturnType<typeof setup>;
+  beforeEach(() => {
+    env = setup();
+  });
+
+  it("creates a company goal in 'planning' status and returns its id (CEO)", async () => {
+    const out = JSON.parse(
+      await findTool("create_goal").run(
+        { title: "Lançar o MVP", description: "Colocar a primeira versão no ar" },
+        env.ctx,
+      ),
+    ) as { ok: boolean; goalId: string; status: string };
+    expect(out.ok).toBe(true);
+    expect(out.goalId).toMatch(/^goal_/);
+    expect(out.status).toBe("planning"); // ready for submit_goal_plan
+    const goal = createGoalsRepository(env.ctx.db).getById(out.goalId);
+    expect(goal?.title).toBe("Lançar o MVP");
+    expect(goal?.level).toBe("company");
+    expect(goal?.status).toBe("planning");
+    expect(goal?.companyId).toBe(env.companyId);
+  });
+
+  it("emits goal.created so MAIN can record + broadcast", async () => {
+    const out = JSON.parse(
+      await findTool("create_goal").run({ title: "X", description: "y" }, env.ctx),
+    ) as { goalId: string };
+    const ev = env.emitted.find((e) => e.kind === "goal.created");
+    expect(ev).toBeDefined();
+    expect((ev?.payload as { goalId: string }).goalId).toBe(out.goalId);
+  });
+
+  it("the new goal can immediately receive a plan via submit_goal_plan", async () => {
+    const plan = {
+      summary: "Sample plan summary spanning at least twenty characters of text.",
+      agentsToHire: [],
+      issuesToCreate: [
+        {
+          index: 0,
+          title: "Do the work",
+          description: "",
+          priority: "medium" as const,
+          assigneeIndex: "CEO" as const,
+          estimatedTokens: 1000,
+          dependsOnIndexes: [] as number[],
+          rationale: "core deliverable",
+        },
+      ],
+      estimatedTotalTokens: 5000,
+      estimatedDurationDays: 1,
+      estimatedCostCents: 25,
+      risks: [],
+    };
+    const created = JSON.parse(
+      await findTool("create_goal").run({ title: "Z", description: "z" }, env.ctx),
+    ) as { goalId: string };
+    const result = JSON.parse(
+      await findTool("submit_goal_plan").run({ goalId: created.goalId, plan }, env.ctx),
+    ) as { planId: string };
+    expect(result.planId).toMatch(/^plan_/);
+  });
+
+  it("rejects a non-CEO caller", async () => {
+    const worker = createAgentsRepository(env.ctx.db).create({
+      companyId: env.companyId,
+      name: "Worker",
+      role: "engineer",
+      systemPrompt: "x",
+      mode: "supervised",
+      alwaysOn: false,
+      model: "sonnet-4",
+      capabilities: ["delegation"],
+      templateId: "engineer",
+    });
+    const out = JSON.parse(
+      await findTool("create_goal").run(
+        { title: "X", description: "y" },
+        { ...env.ctx, agentId: worker.id },
+      ),
+    ) as { ok: boolean; error?: string };
+    expect(out.ok).toBe(false);
+    expect(out.error).toMatch(/ceo/i);
+    // No goal created.
+    expect(createGoalsRepository(env.ctx.db).listByCompany(env.companyId)).toEqual([]);
+  });
+});
+
 describe("submit_goal_plan — acceptance criteria are persisted (I1)", () => {
   let env: ReturnType<typeof setup>;
   beforeEach(() => {

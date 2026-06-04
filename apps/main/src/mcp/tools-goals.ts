@@ -124,6 +124,55 @@ const updateGoalStatus: Tool = {
   },
 };
 
+// Create a brand-new company goal. This is the missing first-class capability
+// (Bug 1, 2026-06-04): previously the CEO could only PLAN a goal that already
+// existed (submit_goal_plan requires `planning` status), and goals were born only
+// from the user's "Pedir algo" UI — so when the user asked the CEO in chat to
+// pursue something new, the CEO had no tool and created goal-less issues instead,
+// bypassing the goal→plan→verify→learn loop. Creating a goal does NOT bypass the
+// human gate: the PLAN the CEO then submits still surfaces for the user to
+// approve. CEO-only, mirroring submit_goal_plan.
+const createGoal: Tool = {
+  name: "create_goal",
+  description:
+    "Create a new company goal (objective) — use when the user asks you to pursue something new. " +
+    "Creates it in 'planning' status and returns its goalId; then call submit_goal_plan to propose " +
+    "the plan, which the user reviews and approves before any work starts. Only the CEO may create goals.",
+  inputSchema: z.object({ title: z.string().min(1), description: z.string().optional() }),
+  // eslint-disable-next-line @typescript-eslint/require-await -- sync DB work; Tool.run is async
+  run: async (input, ctx) => {
+    const { title, description } = createGoal.inputSchema.parse(input) as {
+      title: string;
+      description?: string;
+    };
+    const caller = createAgentsRepository(ctx.db).getById(ctx.agentId);
+    if (caller === null || caller.companyId !== ctx.companyId || !isCeoAgent(caller)) {
+      return JSON.stringify({ ok: false, error: "only the CEO may create goals" });
+    }
+    const repo = createGoalsRepository(ctx.db);
+    const goal = repo.create({
+      companyId: ctx.companyId,
+      title,
+      description: description ?? "",
+      level: "company",
+    });
+    // Born 'draft'; move to 'planning' so submit_goal_plan can run on it next.
+    repo.updateStatus(goal.id, "planning");
+    // MAIN records goal.created (observability) + broadcasts goals:changed so the
+    // renderer's goal list refreshes live (the child has no window to broadcast to).
+    ctx.emit({
+      kind: "goal.created",
+      payload: { goalId: goal.id, companyId: ctx.companyId, title },
+    });
+    return JSON.stringify({
+      ok: true,
+      goalId: goal.id,
+      status: "planning",
+      next: "Call submit_goal_plan with this goalId to propose the plan for the user to approve.",
+    });
+  },
+};
+
 const recordSubgoal: Tool = {
   name: "record_subgoal",
   description: "Record a sub-goal under an in_progress parent goal. Used by CEO during execution.",
@@ -627,6 +676,7 @@ const finalizeGoalExecution: Tool = {
 export const goalsToolDefinitions: Tool[] = [
   listGoals,
   getGoal,
+  createGoal,
   updateGoalStatus,
   recordSubgoal,
   listRoleTemplates,

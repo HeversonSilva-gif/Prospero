@@ -1085,6 +1085,22 @@ export const registerOrchestratorHandlers = (
     } else if (kind === "goal.plan_proposed" && typeof payload === "object" && payload !== null) {
       const p = payload as { goalId: string; planId: string };
       void handleGoalPlanProposed(p.goalId, p.planId);
+    } else if (kind === "goal.created" && typeof payload === "object" && payload !== null) {
+      // The CEO's create_goal tool runs in the MCP child (no recorder, no window):
+      // record the activity and refresh the renderer's goal list here in MAIN.
+      const p = payload as { goalId: string; companyId: string; title: string };
+      tryGetRecorder()?.recordActivity({
+        companyId: p.companyId,
+        actor: { kind: "agent", id: event.agentId ?? null },
+        action: "goal.created",
+        entityKind: "goal",
+        entityId: p.goalId,
+        agentId: event.agentId ?? null,
+        payload: { title: p.title },
+      });
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send("goals:changed", { companyId: p.companyId });
+      }
     }
   };
 
