@@ -49,6 +49,9 @@ export const buildBusinessPlanCritiquePrompt = (
     "  If a `research` block is present, the competitors must be REAL and concrete (named",
     "  businesses, not 'various competitors') and the differentiation specific to this",
     "  business. Vague, empty, or invented research counts as not specific.",
+    "  The `ownerProfile` must reflect a real owner interview (how the owner communicates,",
+    "  what they value, time, risk appetite). An absent, empty, or trivially short",
+    "  ownerProfile means the interview was skipped — flag it as not specific.",
     "",
     "The plan:",
     JSON.stringify(plan, null, 2),
@@ -83,6 +86,9 @@ export const buildBusinessPlanOptionsCritiquePrompt = (
     "  `currency`, a `model` matching its `items`, and a rationale that fits the business.",
     "  If a `research` block is present, competitors must be REAL named businesses (not 'various",
     "  competitors') and differentiation must be specific.",
+    "  EVERY option's `ownerProfile` must reflect a real owner interview. An absent, empty,",
+    "  or trivially short ownerProfile on ANY option means the interview was skipped — flag",
+    "  the set as not specific.",
     "  The option marked RECOMMENDED must be defensibly the best of the set — its rationale",
     "  (`whyRecommended`) must be coherent and distinguishing.",
     "  Signals (market/virality/community, 0-100) must be realistic — a set where every signal",
@@ -114,8 +120,29 @@ const extractJson = (text: string): unknown => {
   }
 };
 
-// Fail-open: any error (runner throw, non-JSON, missing fields) yields a passing
-// verdict so a critic hiccup never blocks genesis.
+// I6 (audit 2026-06-04) — minimum length below which an ownerProfile is treated
+// as "the interview did not capture the owner". A real profile is a sentence or
+// two; anything shorter is effectively empty.
+const MIN_OWNER_PROFILE_LEN = 20;
+
+const ownerProfileMissing = (profile: string | null | undefined): boolean =>
+  profile === null || profile === undefined || profile.trim().length < MIN_OWNER_PROFILE_LEN;
+
+// I6 — deterministic emptiness check. Returns true if any plan/option lacks a
+// real ownerProfile. The LLM critic is advisory; this runs regardless so an
+// empty owner profile is ALWAYS flagged (the interview was skipped), and a
+// garbled verdict (missing `feasible`) cannot launder it through.
+const anyOwnerProfileMissing = (
+  input: BusinessPlanCritiqueInput | BusinessPlanOptionsCritiqueInput,
+): boolean =>
+  "options" in input
+    ? input.options.some((o) => ownerProfileMissing(o.ownerProfile))
+    : ownerProfileMissing(input.plan.ownerProfile);
+
+// Fail-open on RUNNER errors (a runner throw never blocks genesis) but with
+// teeth on emptiness: an absent/trivial ownerProfile is flagged deterministically
+// (not feasible + not specific), and a missing/garbled `feasible` field is treated
+// as NOT feasible for that dimension rather than silently passing.
 export async function critiqueBusinessPlan(
   deps: BusinessPlanCritiqueDeps,
   input: BusinessPlanCritiqueInput,
@@ -128,6 +155,7 @@ export async function critiqueBusinessPlan(
   deps: BusinessPlanCritiqueDeps,
   input: BusinessPlanCritiqueInput | BusinessPlanOptionsCritiqueInput,
 ): Promise<BusinessPlanVerdict> {
+  const ownerMissing = anyOwnerProfileMissing(input);
   try {
     const prompt =
       "options" in input
@@ -139,12 +167,37 @@ export async function critiqueBusinessPlan(
       env: input.env,
     });
     const parsed = (extractJson(result.text) ?? {}) as Partial<BusinessPlanVerdict>;
+    const criticFeedback = typeof parsed.feedback === "string" ? parsed.feedback : "";
+    if (ownerMissing) {
+      // Deterministic teeth: the interview did not capture the owner. Treat a
+      // missing/garbled `feasible` as NOT feasible for this dimension, and force
+      // not-specific so the plan is surfaced for revision instead of passing.
+      const ownerNote =
+        "The ownerProfile is missing or too short — the owner interview was not captured. Interview the owner and fill ownerProfile on every option.";
+      return {
+        feasible: parsed.feasible === true,
+        specific: false,
+        feedback: criticFeedback === "" ? ownerNote : `${criticFeedback} ${ownerNote}`,
+      };
+    }
     return {
       feasible: parsed.feasible !== false,
       specific: parsed.specific !== false,
-      feedback: typeof parsed.feedback === "string" ? parsed.feedback : "",
+      feedback: criticFeedback,
     };
   } catch {
+    // Fail-open on runner errors so a critic hiccup never deadlocks genesis. But an
+    // empty ownerProfile is a DETERMINISTIC signal that doesn't depend on the critic
+    // call, so keep its teeth even when the runner threw — surfaced for revision, not
+    // a deadlock (a human still gates approval). (review 2026-06-04)
+    if (ownerMissing) {
+      return {
+        feasible: false,
+        specific: false,
+        feedback:
+          "The ownerProfile is missing or too short — the owner interview was not captured. Interview the owner and fill ownerProfile on every option.",
+      };
+    }
     return { feasible: true, specific: true, feedback: "" };
   }
 }

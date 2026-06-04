@@ -106,4 +106,31 @@ describe("submit_org_plan", () => {
     };
     await expect(tool("submit_org_plan").run({ plan: bad }, ctx)).rejects.toThrow(/sanitiz/i);
   });
+
+  it("rejects a non-CEO caller (C1: caller authorization)", async () => {
+    // Genesis/Planning audit C1: any agent with the `delegation` capability could
+    // forge an org plan. The tool must verify the caller is the CEO.
+    ctx.db
+      .prepare(
+        `INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json,
+           allowed_projects_json, mode, always_on, status, created_at, updated_at)
+         VALUES ('worker','c1','Worker','engineer','sp','["delegation"]','[]','supervised',0,'idle',0,0)`,
+      )
+      .run();
+    const out = JSON.parse(
+      await tool("submit_org_plan").run({ plan: validPayload }, { ...ctx, agentId: "worker" }),
+    ) as { ok: boolean; error?: string };
+    expect(out.ok).toBe(false);
+    expect(out.error).toMatch(/ceo/i);
+    // Nothing was stored.
+    const plans = ctx.db.prepare("SELECT id FROM org_plans WHERE company_id = 'c1'").all();
+    expect(plans).toEqual([]);
+  });
+
+  it("allows the CEO caller to proceed (C1)", async () => {
+    const out = JSON.parse(await tool("submit_org_plan").run({ plan: validPayload }, ctx)) as {
+      orgPlanId: string;
+    };
+    expect(out.orgPlanId).toMatch(/^orgplan_/);
+  });
 });

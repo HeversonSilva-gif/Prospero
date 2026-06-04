@@ -136,6 +136,33 @@ describe("hire_agent_for_plan", () => {
     );
   });
 
+  it("resolves an abstract model preset to a real claude-* id (I2)", async () => {
+    // Genesis/Planning audit I2: the narrated hire passed agentSpec.model raw, so
+    // an abstract preset like "opus-4" was stored and spawned as `--model opus-4`
+    // (unrecognized). The atomic + org paths resolve it; the narrated path must too.
+    const env = setup();
+    env.db.prepare("UPDATE goal_plans SET agents_to_hire_json = ? WHERE id = ?").run(
+      JSON.stringify([
+        {
+          index: 0,
+          name: "Sarah",
+          roleTemplateId: "role-engineer",
+          model: "opus-4",
+          personaSummary: "lead",
+          capabilities: ["shell"],
+          reportsToIndex: "CEO",
+          rationale: "x",
+        },
+      ]),
+      env.plan.id,
+    );
+    const result = JSON.parse(
+      await findTool("hire_agent_for_plan").run({ planIndex: 0 }, env.ctx),
+    ) as { agentId: string };
+    const agent = createAgentsRepository(env.db).getById(result.agentId);
+    expect(agent?.model).toBe("claude-opus-4-8");
+  });
+
   it("works when reports_to chain is satisfied", async () => {
     const env = setup();
     const tool = findTool("hire_agent_for_plan");

@@ -5,6 +5,7 @@ import { BusinessPlanOptionsPayloadSchema, BusinessPlanOptionSchema } from "./bu
 const basePlan = {
   concept: "Cozinha de 15 — a SaaS recipe assistant for people who work all day and cannot cook.",
   monetization: ["Subscription R$9/mo via Stripe"],
+  ownerProfile: "Cozinheiro amador, valoriza praticidade e tem 1h por dia.",
   marketing: {
     initialChannel: "x",
     tactics: ["5-step recipe threads daily"],
@@ -92,6 +93,19 @@ describe("BusinessPlanOptionSchema", () => {
 
   it("rejects an empty projection assumption string", () => {
     const bad = { ...optionA, projection: { ...projection, assumption: "" } };
+    expect(BusinessPlanOptionSchema.safeParse(bad).success).toBe(false);
+  });
+
+  // Genesis audit I9 — ownerProfile is now REQUIRED so a plan with no captured
+  // owner context fails validation, structurally forcing the CEO to interview.
+  it("rejects an option with no ownerProfile (interview not captured)", () => {
+    const withoutOwner: Record<string, unknown> = { ...optionA };
+    delete withoutOwner.ownerProfile;
+    expect(BusinessPlanOptionSchema.safeParse(withoutOwner).success).toBe(false);
+  });
+
+  it("rejects an option with an empty ownerProfile string", () => {
+    const bad = { ...optionA, ownerProfile: "" };
     expect(BusinessPlanOptionSchema.safeParse(bad).success).toBe(false);
   });
 });

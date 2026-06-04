@@ -1803,6 +1803,7 @@
       "whyPrefix": "Por que recomendo:",
       "seePlan": "Ver plano completo",
       "chooseAria": "Escolher {{name}}",
+      "droppedToggle": "Descartei {{count}} ideia(s)",
       "disclaimer": "Estimativas do CEO com base na pesquisa de mercado — direção, não garantia.",
       "signals": {
         "market": "Mercado",

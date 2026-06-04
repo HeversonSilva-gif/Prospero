@@ -183,6 +183,10 @@ import {
 import { formatBusinessPlanFeedback } from "../agents/format-business-plan-feedback.js";
 import { buildCapabilityBoundary } from "../agents/genesis/capability-boundary.js";
 import { BusinessPlanOptionsPayloadSchema } from "../schemas/businessPlan.js";
+import {
+  setBusinessPlanDeliverBridge,
+  formatProposeTeamRequest,
+} from "./business-plan-handlers.js";
 
 const broadcast = (event: AgentEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -205,6 +209,115 @@ const olog = (msg: string): void => {
   } catch {
     /* best-effort — never let logging break the orchestrator */
   }
+};
+
+// C4 (audit 2026-06-04) — boot recovery for genesis/plan artifacts. business /
+// org / goal plans are inserted as `critiquing` (hidden from card/banner/review)
+// and only flip to `proposed` when the critique handler consumes the emitted
+// event. The events-watcher discards boot-time event files (cleanupOrphans +
+// ignoreInitial), so a crash between the insert and the critique strands the row
+// in `critiquing` forever — no card, and (for goal plans) the goal stuck
+// `planning`. Since the watcher already cleaned the event file, ANY `critiquing`
+// row present at boot is genuinely stranded and safe to re-drive. Re-driving
+// re-invokes the SAME handler the live event would (handleBusinessPlanProposed /
+// handleOrgProposed / handleGoalPlanProposed), which is idempotent: it re-reads
+// status and no-ops if the row already moved on. Fail-soft per row.
+export const scanCritiquingPlans = (
+  db: Database.Database,
+  deps: {
+    redriveBusinessPlan: (businessPlanId: string, companyId: string) => void;
+    redriveOrgPlan: (orgPlanId: string, companyId: string) => void;
+    redriveGoalPlan: (goalId: string, planId: string) => void;
+  },
+): { business: string[]; org: string[]; goal: string[] } => {
+  const business: string[] = [];
+  const org: string[] = [];
+  const goal: string[] = [];
+
+  const bizRows = db
+    .prepare("SELECT id, company_id FROM business_plans WHERE status = 'critiquing'")
+    .all() as { id: string; company_id: string }[];
+  for (const row of bizRows) {
+    try {
+      deps.redriveBusinessPlan(row.id, row.company_id);
+      business.push(row.id);
+    } catch (e) {
+      console.error(`[genesis-recovery] business plan ${row.id} re-drive failed`, e);
+    }
+  }
+
+  const orgRows = db
+    .prepare("SELECT id, company_id FROM org_plans WHERE status = 'critiquing'")
+    .all() as { id: string; company_id: string }[];
+  for (const row of orgRows) {
+    try {
+      deps.redriveOrgPlan(row.id, row.company_id);
+      org.push(row.id);
+    } catch (e) {
+      console.error(`[genesis-recovery] org plan ${row.id} re-drive failed`, e);
+    }
+  }
+
+  const goalRows = db
+    .prepare("SELECT id, goal_id FROM goal_plans WHERE status = 'critiquing'")
+    .all() as { id: string; goal_id: string }[];
+  for (const row of goalRows) {
+    try {
+      deps.redriveGoalPlan(row.goal_id, row.id);
+      goal.push(row.id);
+    } catch (e) {
+      console.error(`[genesis-recovery] goal plan ${row.id} re-drive failed`, e);
+    }
+  }
+
+  return { business, org, goal };
+};
+
+// I10 (audit 2026-06-04) — boot recovery for "approved business plan but no
+// team" (doubles with C3: if the approval crashed before the propose-team
+// message was delivered, the company is renamed but team-less and nothing
+// re-engages the CEO). For each company with an approved business plan, zero
+// non-CEO non-terminated agents, and no org plan in flight (proposed /
+// critiquing / approved), re-deliver the propose-team message to the CEO.
+// Fail-soft per company. Returns the company ids re-engaged.
+export const scanApprovedBusinessWithoutTeam = (
+  db: Database.Database,
+  deps: { deliverSystemMessage: (agentId: string, text: string) => void },
+): string[] => {
+  const agentsRepo = createAgentsRepository(db, tryGetRecorder());
+  const bizRepo = createBusinessPlansRepository(db);
+  const reengaged: string[] = [];
+
+  const approvedRows = db
+    .prepare("SELECT DISTINCT company_id FROM business_plans WHERE status = 'approved'")
+    .all() as { company_id: string }[];
+
+  for (const { company_id: companyId } of approvedRows) {
+    try {
+      const plan = bizRepo.getLatestApprovedForCompany(companyId);
+      if (plan === null) continue;
+      const roster = agentsRepo.listByCompany(companyId);
+      const ceo = roster.find((a) => a.terminatedAt === null && isCeoAgent(a));
+      if (ceo === undefined) continue;
+      const hasTeam = roster.some((a) => a.terminatedAt === null && !isCeoAgent(a));
+      if (hasTeam) continue;
+      // I10 catches the C3 dead-end: an approved business whose CEO never proposed a
+      // team. If ANY org plan exists for the company — in flight, approved, OR already
+      // rejected/superseded — the CEO has proposed at least once (orphaned-critiquing
+      // is handled by scanCritiquingPlans; a rejected plan is the owner's call), so we
+      // must NOT re-nudge every boot. (review 2026-06-04)
+      const anyOrgPlan = db
+        .prepare("SELECT 1 FROM org_plans WHERE company_id = ? LIMIT 1")
+        .get(companyId);
+      if (anyOrgPlan !== undefined) continue;
+
+      deps.deliverSystemMessage(ceo.id, formatProposeTeamRequest(plan.identity.name));
+      reengaged.push(companyId);
+    } catch (e) {
+      console.error(`[genesis-recovery] approved-without-team scan failed for ${companyId}`, e);
+    }
+  }
+  return reengaged;
 };
 
 export const registerOrchestratorHandlers = (
@@ -517,7 +630,11 @@ export const registerOrchestratorHandlers = (
               // competitors / vague differentiation (the prompt judges `research`
               // when present). Audit 2026-06-03 Facet 6 C1.
               ...(plan.research !== null ? { research: plan.research } : {}),
-              ...(plan.ownerProfile !== null ? { ownerProfile: plan.ownerProfile } : {}),
+              // Critique input requires a string ownerProfile; the stored row is
+              // nullable, so coerce null→"" — the critic's owner-profile teeth (I6)
+              // flag an empty/short profile as a skipped interview. (pricing/research
+              // stay conditional — they're optional keys.)
+              ownerProfile: plan.ownerProfile ?? "",
               marketing: plan.marketing,
               identity: plan.identity,
               dropped: plan.dropped,
@@ -2580,6 +2697,12 @@ export const registerOrchestratorHandlers = (
     router.enqueue(agent.id, thread.id, text, { kind: "user", id: null, name: "System" }, null);
   };
 
+  // C3/I4 (audit 2026-06-04) — publish deliverSystemMessage so the business-plan
+  // approval IPC (registered in handlers.ts, without the orchestrator closure)
+  // can re-engage the author CEO to propose the team / retry TELOS. Same bridge
+  // pattern as setApprovalEngineBridge / setRecoveryBroadcastFn.
+  setBusinessPlanDeliverBridge(deliverSystemMessage);
+
   // M8.6 — Narrated execution. Enqueue a system-actor turn carrying the
   // [GOAL_EXECUTE_REQUEST] payload and return the thread id so executor can
   // persist it in goals.execution_state_json.
@@ -2755,6 +2878,43 @@ export const registerOrchestratorHandlers = (
     }
   } catch (e) {
     console.error("[goals/narrated] recovery scan failed", e);
+  }
+
+  // C4 (audit 2026-06-04): re-drive genesis/plan artifacts stranded in
+  // `critiquing` at boot (crash between insert and the critique — the
+  // events-watcher already discarded the boot-time event file). Each re-drive
+  // re-invokes the SAME live handler (idempotent: it re-reads status and no-ops
+  // if the row moved on). Fail-soft.
+  try {
+    const { business, org, goal } = scanCritiquingPlans(db, {
+      redriveBusinessPlan: (businessPlanId, companyId) =>
+        void handleBusinessPlanProposed(businessPlanId, companyId),
+      redriveOrgPlan: (orgPlanId, companyId) => void handleOrgProposed(orgPlanId, companyId),
+      redriveGoalPlan: (goalId, planId) => void handleGoalPlanProposed(goalId, planId),
+    });
+    const total = business.length + org.length + goal.length;
+    if (total > 0) {
+      console.log(
+        `[genesis-recovery] re-drove ${total} stranded critiquing plan(s) ` +
+          `(business=${business.length} org=${org.length} goal=${goal.length})`,
+      );
+    }
+  } catch (e) {
+    console.error("[genesis-recovery] critiquing-plan scan failed", e);
+  }
+
+  // I10 (audit 2026-06-04): re-engage the CEO for any company with an approved
+  // business plan but no team and no org plan in flight (doubles with C3 if the
+  // approval crashed before the propose-team message was delivered). Fail-soft.
+  try {
+    const reengaged = scanApprovedBusinessWithoutTeam(db, { deliverSystemMessage });
+    if (reengaged.length > 0) {
+      console.log(
+        `[genesis-recovery] re-engaged CEO to propose the team for ${reengaged.length} company(ies)`,
+      );
+    }
+  } catch (e) {
+    console.error("[genesis-recovery] approved-without-team scan failed", e);
   }
 
   // Boot drain: after all recovery scans have re-enqueued pending messages,

@@ -29,7 +29,8 @@ Flow:
    \`concept\`, \`monetization\` (phased prose), \`pricing\` (CONCRETE charge model,
    below), \`marketing\` (\`initialChannel: "x"\`, \`tactics\`, \`laterChannels\`),
    \`identity\` (\`name\`, \`voice\`, \`proposedXHandle\`), \`research\` (real
-   competitors + differentiation), \`dropped\` (ideas rejected), plus three extra
+   competitors + differentiation), \`ownerProfile\` (REQUIRED — see "Know the owner"
+   below), \`dropped\` (ideas rejected), plus three extra
    fields **required on every option**:
    - \`recommended\` (boolean) — mark EXACTLY ONE option \`true\`; the rest \`false\`.
    - \`whyRecommended\` (string) — one sentence explaining why you recommend it (only
@@ -46,9 +47,12 @@ for the gap you can fill. Fill \`research.competitors\` (real names + what they 
 \`price\` when you find it) and a concrete \`research.differentiation\` (why this business
 wins). Do NOT invent competitors; cite what you actually found.
 
-**Know the owner.** From the interview, write a short \`ownerProfile\`: how the OWNER
-communicates, what they value, their risk appetite, and their interests — about the PERSON,
-distinct from the brand voice. The team uses it to keep its work personalized to them.
+**Know the owner.** \`ownerProfile\` is **required on every option** and must reflect
+the answers the owner gave in the interview — you cannot fabricate it, so interview
+the owner first. Write a short profile (at least a sentence or two): how the OWNER
+communicates, what they value, their risk appetite, and their interests — about the
+PERSON, distinct from the brand voice. The team uses it to keep its work personalized
+to them. A plan with a missing or empty \`ownerProfile\` is rejected by validation.
 
 **Pricing** decides how the business charges, right here at genesis. Set
 \`pricing.model\` to \`one_time\`, \`subscription\`, or \`combo\`, and list

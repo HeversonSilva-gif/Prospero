@@ -1803,6 +1803,7 @@
       "whyPrefix": "Why I recommend this:",
       "seePlan": "See full plan",
       "chooseAria": "Choose {{name}}",
+      "droppedToggle": "Discarded {{count}} idea(s)",
       "disclaimer": "CEO estimates based on market research — direction, not a guarantee.",
       "signals": {
         "market": "Market",

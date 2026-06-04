@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { IPC } from "@prospero/shared";
+import { IPC, isCeoAgent } from "@prospero/shared";
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalPlansRepository } from "../goals/plans-repository.js";
 import { createRoleTemplatesRepository } from "../agents/role-templates-repository.js";
@@ -8,6 +8,7 @@ import { createAgentsRepository } from "../agents/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
 import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
 import { createIssueCriteriaRepository } from "../goals/issue-criteria-repository.js";
+import { resolveModelPreset } from "../agents/model-presets.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { getCostBaseline } from "../costs/baseline.js";
 import { GoalPlanPayloadSchema, type GoalPlanPayload } from "../schemas/goalPlan.js";
@@ -201,6 +202,16 @@ const submitGoalPlan: Tool = {
     plan: z.unknown(),
   }),
   run: async (input, ctx) => {
+    // C1 (Genesis/Planning audit 2026-06-04): authorize the caller. As with
+    // submit_org_plan, the MCP server registers this for every agent and only
+    // the `delegation` capability gates it — so any agent that can be hired with
+    // `delegation` could otherwise forge a goal plan. Only the CEO may. Mirrors
+    // tools-isa.ts criterion_judge and tools.ts callerIsCeo.
+    const caller = createAgentsRepository(ctx.db).getById(ctx.agentId);
+    if (caller === null || caller.companyId !== ctx.companyId || !isCeoAgent(caller)) {
+      return JSON.stringify({ ok: false, error: "only the CEO may submit a goal plan" });
+    }
+
     const parsedShell = submitGoalPlan.inputSchema.parse(input) as {
       goalId: string;
       plan: unknown;
@@ -240,6 +251,45 @@ const submitGoalPlan: Tool = {
     }
     const payload: GoalPlanPayload = parsed.data;
 
+    // I1 (Genesis/Planning audit 2026-06-04): persist the acceptance criteria
+    // the plan references so verification has substance on the autonomous path.
+    // ISA_GENERATE only RETURNS proposed criteria to the renderer — they become
+    // real goal_criteria rows only when a human clicks ISA_CRITERION_CREATE. In a
+    // CEO-only flow no human does that, so the executor's `advancesCriteria` ids
+    // resolve to nothing, the goal ends with zero criteria, and runGoalVerification
+    // returns allPassed:true trivially. Here the goal plan GENERATES-OR-CREATES
+    // the criteria it references: each advancesCriteria entry that is already a
+    // real criterion for THIS goal is kept verbatim (the human ISA-editor path);
+    // any other entry (a bare statement the CEO named) is created as a new
+    // goal_criteria row, and the issue's reference is rewritten to that row's id
+    // so the executor (executor.ts / create_issue_for_plan) links it. A statement
+    // with no checkSpec lands as a JUDGMENT criterion (criteria-repository C7b
+    // invariant) — a real row the verification engine reads (status 'pending'
+    // until judged), never a checkSpec:null deterministic no-op.
+    const criteriaRepo = createGoalCriteriaRepository(ctx.db);
+    const resolvedCriterionId = new Map<string, string>();
+    const issuesToCreate: IssueToCreate[] = payload.issuesToCreate.map((issue) => {
+      const refs = issue.advancesCriteria ?? [];
+      if (refs.length === 0) return issue as IssueToCreate;
+      const advancesCriteria = refs.map((ref) => {
+        const cached = resolvedCriterionId.get(ref);
+        if (cached !== undefined) return cached;
+        const existing = criteriaRepo.getById(ref);
+        if (existing !== null && existing.goalId === goal.id) {
+          resolvedCriterionId.set(ref, ref);
+          return ref;
+        }
+        const created = criteriaRepo.create({
+          goalId: goal.id,
+          statement: ref,
+          kind: "judgment",
+        });
+        resolvedCriterionId.set(ref, created.id);
+        return created.id;
+      });
+      return { ...issue, advancesCriteria };
+    });
+
     plansRepo.supersedeActiveForGoal(goal.id);
 
     const version = plansRepo.nextVersion(goal.id);
@@ -251,8 +301,10 @@ const submitGoalPlan: Tool = {
       agentsToHire: payload.agentsToHire,
       // zod infers optional fields as `T | undefined`; under
       // exactOptionalPropertyTypes that is not assignable to IssueToCreate — the
-      // cast is the standard bridge (the value is already zod-validated).
-      issuesToCreate: payload.issuesToCreate as IssueToCreate[],
+      // cast is the standard bridge (the value is already zod-validated). The
+      // issues carry the persisted criterion ids (I1) so the stored plan
+      // references real rows the executor links.
+      issuesToCreate,
       estimatedTotalTokens: payload.estimatedTotalTokens ?? null,
       estimatedDurationDays: payload.estimatedDurationDays ?? null,
       estimatedCostCents: payload.estimatedCostCents ?? null,
@@ -328,7 +380,11 @@ const hireAgentForPlan: Tool = {
       systemPrompt: agentSpec.personaSummary,
       mode: "supervised",
       alwaysOn: false,
-      model: agentSpec.model,
+      // I2 (Genesis/Planning audit 2026-06-04): resolve the ABSTRACT preset
+      // (e.g. "opus-4") to a real claude-* id, as the atomic (executor.ts) and
+      // org (apply-org-plan.ts) paths do. Storing the preset raw spawns
+      // `--model opus-4`, which the CLI does not recognize.
+      model: resolveModelPreset(agentSpec.model),
       capabilities: agentSpec.capabilities,
       templateId: agentSpec.roleTemplateId,
     });

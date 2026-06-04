@@ -37,7 +37,10 @@ export const BusinessPlanPayloadSchema = z.object({
   monetization: z.array(z.string().min(1).max(500)).min(1).max(8),
   pricing: ChargeModelSchema.optional(),
   research: ResearchSchema.optional(),
-  ownerProfile: z.string().min(1).max(1500).optional(),
+  // Genesis audit I9 — REQUIRED (no longer .optional()): a plan with no captured
+  // owner context fails validation, structurally forcing the CEO to interview the
+  // owner before proposing. Min length keeps a blank string from passing.
+  ownerProfile: z.string().min(20).max(1500),
   marketing: z.object({
     initialChannel: z.literal("x"),
     tactics: z.array(z.string().min(1).max(300)).min(1).max(10),

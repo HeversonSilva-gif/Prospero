@@ -3,6 +3,50 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.9 — 2026-06-04
+
+Auditoria completa do pilar **Gênese & Planejamento de Negócio** (a entrevista do
+CEO → propor o negócio → virar empresa viva com time e primeira ação; e o
+planejamento de organização/metas). O caminho com você no controle já era forte; o
+que faltava era o motor fechar o ciclo sozinho e algumas travas de segurança. Feita
+com agentes em paralelo + um pente-fino multi-agente antes de soltar.
+
+### O negócio nasce e anda sozinho
+
+- **Aprovar o plano agora chama o time.** Antes, aprovar o negócio renomeava a
+  empresa e definia o propósito — e parava ali; o CEO só voltava a agir se você
+  mandasse outra mensagem. Agora a aprovação reengaja o CEO para propor o time
+  (organograma) automaticamente. Fechar a aba não deixa mais uma empresa sem equipe.
+- **Planos não ficam mais presos.** Se o app fechava no meio da crítica de um plano
+  (negócio/organização/meta), ele ficava invisível pra sempre. Agora, ao iniciar, o
+  sistema recupera e retoma esses planos.
+- **A "prova" das metas deixa de ser vazia.** No modo autônomo, os critérios de
+  aceitação que o CEO definia no plano não viravam verificação de verdade — a meta
+  "passava" sem checar nada. Agora os critérios são persistidos e a meta só conclui
+  quando eles são de fato julgados.
+
+### Travas de segurança e qualidade
+
+- **Só o CEO cria/altera planos.** Propor o plano de negócio, a organização ou uma
+  meta agora exige ser o CEO (antes era só uma instrução no texto — um agente com a
+  permissão de delegação podia forjar).
+- **Re-rodar a gênese numa empresa viva exige confirmação** explícita (não rebranda
+  o negócio em operação por engano).
+- **O texto da entrevista é higienizado** antes de virar nome/voz/@/propósito da
+  empresa (fecha uma porta de injeção de prompt nos charters do time).
+- **A síntese do propósito (TELOS) não falha mais em silêncio:** se a geração falha,
+  a empresa nasce com um rascunho a partir do plano (você refina na tela de
+  Propósito) em vez de ficar sem propósito nenhum.
+- **O filtro de viabilidade reflete as conexões reais** (só promete hospedar/enviar
+  e-mail/cobrar quando o conector correspondente está conectado) e o aplicar do plano
+  virou atômico (sem empresa meio-configurada).
+
+### Tela
+
+- **Os descartados ficam à vista.** No comparador de opções da gênese, cada opção
+  agora mostra um "Descartei N ideias" que expande para o que o CEO cortou e por quê
+  — o sinal de confiança do filtro de viabilidade no momento da escolha.
+
 ## v0.2.8 — 2026-06-03
 
 Auditoria completa do pilar **Conectores Externos** (a ponte com o mundo real: X,

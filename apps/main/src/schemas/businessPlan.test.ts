@@ -4,6 +4,7 @@ import { BusinessPlanPayloadSchema } from "./businessPlan.js";
 const valid = {
   concept: "Cozinha de 15 — a SaaS recipe assistant for people who work all day and cannot cook.",
   monetization: ["Subscription R$9/mo via Stripe", "Free tier converts to paid"],
+  ownerProfile: "Cozinheiro amador, valoriza praticidade e tem 1h por dia.",
   marketing: {
     initialChannel: "x",
     tactics: ["5-step recipe threads daily", "weekly shopping list"],
@@ -57,13 +58,19 @@ describe("BusinessPlanPayloadSchema", () => {
     };
     expect(BusinessPlanPayloadSchema.safeParse(withPricing).success).toBe(true);
   });
-  it("accepts an optional ownerProfile string", () => {
+  it("accepts a captured ownerProfile string", () => {
     expect(
       BusinessPlanPayloadSchema.safeParse({
         ...valid,
         ownerProfile: "Direto, valoriza simplicidade.",
       }).success,
     ).toBe(true);
+  });
+  // Genesis audit I9 — ownerProfile is now REQUIRED (structural interview gate).
+  it("rejects a plan with no ownerProfile (interview not captured)", () => {
+    const withoutOwner: Record<string, unknown> = { ...valid };
+    delete withoutOwner.ownerProfile;
+    expect(BusinessPlanPayloadSchema.safeParse(withoutOwner).success).toBe(false);
   });
   it("accepts an optional research block with real competitors", () => {
     const withResearch = {

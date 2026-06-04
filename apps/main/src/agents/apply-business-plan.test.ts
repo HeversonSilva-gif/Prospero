@@ -224,4 +224,74 @@ describe("applyBusinessPlan", () => {
       expect(createCompaniesRepository(db).getById("c1")?.name).toBe("Cozinha de 15");
     });
   });
+
+  // I3 (audit 2026-06-04) — transactional + server-side idempotency.
+  describe("idempotency + atomicity", () => {
+    it("applying twice returns ok:false the second time (already applied, not re-applied)", () => {
+      const p = seedProposed();
+      const first = applyBusinessPlan(db, p.id);
+      expect(first.ok).toBe(true);
+
+      const second = applyBusinessPlan(db, p.id);
+      expect(second.ok).toBe(false);
+      if (second.ok) throw new Error("unreachable");
+      expect(second.error).toMatch(/approved|not proposed/i);
+
+      // decided_at must reflect the FIRST approval — the second call must not
+      // re-stamp it (which would prove a second UPDATE ran).
+      const row = db
+        .prepare("SELECT status, decided_at FROM business_plans WHERE id = ?")
+        .get(p.id) as { status: string; decided_at: number };
+      expect(row.status).toBe("approved");
+    });
+
+    it("does not re-rename the company on a double-apply", () => {
+      const p = seedProposed();
+      applyBusinessPlan(db, p.id);
+      // Simulate the company drifting after approval (e.g. a later rename).
+      createCompaniesRepository(db).rename("c1", "Renamed Later");
+      // A second (racing) apply must NOT clobber it back to the plan's name.
+      const second = applyBusinessPlan(db, p.id);
+      expect(second.ok).toBe(false);
+      expect(createCompaniesRepository(db).getById("c1")?.name).toBe("Renamed Later");
+    });
+
+    it("the four writes are atomic — a failure on a later mutation rolls back the rename", () => {
+      // Plan with an ownerProfile so setOwnerProfile (the 3rd mutation) runs.
+      const repo = createBusinessPlansRepository(db);
+      const p = repo.insert({
+        companyId: "c1",
+        proposedByAgentId: "a1",
+        concept: "A SaaS recipe assistant.",
+        monetization: ["R$9/mo"],
+        ownerProfile: "Pragmático.",
+        marketing: { initialChannel: "x", tactics: ["threads"], laterChannels: "later" },
+        identity: { name: "Cozinha de 15", voice: "friendly", proposedXHandle: "@c15" },
+        dropped: [],
+      });
+      repo.markProposed(p.id);
+
+      // A trigger that aborts the owner_profile UPDATE — the 3rd of the 4 writes.
+      // rename (1st) + setBrandIdentity (2nd) run first; the failure must roll the
+      // whole batch back if applyBusinessPlan is transactional.
+      db.prepare(
+        `CREATE TRIGGER fail_owner BEFORE UPDATE OF owner_profile ON companies
+         BEGIN SELECT RAISE(ABORT, 'boom'); END`,
+      ).run();
+
+      expect(() => applyBusinessPlan(db, p.id)).toThrow();
+
+      const company = db
+        .prepare("SELECT name, brand_voice AS v FROM companies WHERE id = 'c1'")
+        .get() as { name: string; v: string | null };
+      // RED on the non-transactional code: rename already committed → "Cozinha de 15".
+      // GREEN once wrapped in a transaction: rename rolled back → original name.
+      expect(company.name).toBe("Novo negócio");
+      expect(company.v).toBeNull();
+      // Plan stays proposed (markApproved rolled back) so it can be retried.
+      expect(repo.getById(p.id)?.status).toBe("proposed");
+
+      db.prepare("DROP TRIGGER fail_owner").run();
+    });
+  });
 });
