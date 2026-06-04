@@ -47,6 +47,28 @@ export const buildTelosSynthesisPrompt = (answers: TelosInterviewAnswers): strin
   ].join("\n");
 };
 
+// I4 (audit 2026-06-04) — a deterministic, no-model fallback TELOS built straight
+// from the interview answers. Used when the LLM synthesis fails (401 / rate-limit
+// / empty / sanitizer-reject) so the company is never born without a purpose
+// artifact. The 5 answers map 1:1 onto the 5 canonical TELOS sections. The
+// assembled body is sanitized (the answers can carry un-sanitized genesis free
+// text — audit I5); if it trips the sanitizer we degrade to the bare skeleton,
+// which always validates and is always safe.
+export const buildFallbackTelos = (answers: TelosInterviewAnswers): string => {
+  const bodies: Record<(typeof TELOS_SECTIONS)[number], string> = {
+    Mission: answers.purpose,
+    "Long-term Goals": answers.growth,
+    Principles: answers.principles,
+    "Ideal State": answers.idealState,
+    "Non-goals": answers.nonGoals,
+  };
+  const candidate =
+    ["# Company TELOS", ...TELOS_SECTIONS.map((s) => `## ${s}\n\n${bodies[s].trim()}`)].join(
+      "\n\n",
+    ) + "\n";
+  return sanitizeMemoryBody(candidate).ok ? candidate : TELOS_SKELETON;
+};
+
 // Removes a wrapping ```...``` fence if the model added one despite the prompt.
 const stripCodeFence = (text: string): string => {
   const trimmed = text.trim();

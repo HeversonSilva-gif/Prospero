@@ -6,12 +6,48 @@ import { createCompaniesRepository } from "../companies/repository.js";
 import { createSettingsRepository } from "../settings/repository.js";
 import { applyBusinessPlan } from "../agents/apply-business-plan.js";
 import { businessPlanToTelosAnswers } from "../agents/genesis/business-plan-to-telos.js";
-import { synthesizeTelos } from "../companies/telos-synthesis.js";
+import { synthesizeTelos, buildFallbackTelos } from "../companies/telos-synthesis.js";
 import { writeTelos as writeTelosFile } from "../companies/telos-store.js";
 import { companyTelosPath } from "../companies/telos-dir.js";
 import type { RunDerivationResult } from "../derivation/runner.js";
 import { runDerivation, defaultRunProcess } from "../derivation/runner.js";
 import { buildAuthEnv } from "../derivation/index.js";
+
+// C3/I4 (audit 2026-06-04) — MAIN-side bridge for re-engaging the author CEO
+// after a business plan is approved. registerBusinessPlanHandlers runs inside
+// handlers.ts WITHOUT access to the orchestrator's deliverSystemMessage closure,
+// so the orchestrator publishes it here at boot (mirrors setApprovalEngineBridge
+// / setRecoveryBroadcastFn). Null until the orchestrator is registered (which
+// always happens before this handler can fire an IPC).
+let deliverSystemMessageBridge: ((agentId: string, text: string) => void) | null = null;
+export const setBusinessPlanDeliverBridge = (fn: (agentId: string, text: string) => void): void => {
+  deliverSystemMessageBridge = fn;
+};
+
+// C3 — the system message that re-engages the CEO to propose the team. The
+// genesis system prompt already promises "you will be asked to propose the team
+// (submit_org_plan)"; this is the code that finally fulfills it.
+export const formatProposeTeamRequest = (brandName: string): string =>
+  [
+    "[PROPOSE_TEAM]",
+    `O dono aprovou o negócio "${brandName}". Agora proponha o time.`,
+    "",
+    "Desenhe a organização que este negócio precisa — papéis (cada um com um",
+    "charter completo), agentes e a hierarquia — e envie com a ferramenta",
+    "submit_org_plan. Mantenha enxuto: só os papéis que o negócio realmente",
+    "precisa. Nada é criado até o dono revisar e aprovar a proposta.",
+  ].join("\n");
+
+// I4 — the system message that flags a TELOS synthesis failure. A deterministic
+// fallback TELOS is written so the company is not purpose-less, but the artifact
+// should be regenerated; this nudges the CEO to retry.
+export const formatTelosRetryRequest = (brandName: string): string =>
+  [
+    "[TELOS_RETRY]",
+    `A síntese do propósito (TELOS) de "${brandName}" falhou e foi preenchida com`,
+    "um rascunho mínimo a partir do plano. Quando puder, gere uma versão melhor do",
+    "TELOS para a empresa (o dono pode revisar e salvar pela tela de propósito).",
+  ].join("\n");
 
 export type ApproveBusinessPlanDeps = {
   // Must return RunDerivationResult so it is assignable to synthesizeTelos's deps.
@@ -23,6 +59,9 @@ export type ApproveBusinessPlanDeps = {
   env: Record<string, string>;
   writeTelos: (userDataDir: string, companyId: string, body: string) => void;
   setTelosPath: (companyId: string, telosPath: string) => void;
+  // C3/I4 — re-engage the author CEO (propose-the-team + TELOS-retry signals).
+  // Optional so legacy/unit callers that only test apply+TELOS can omit it.
+  deliverSystemMessage?: (agentId: string, text: string) => void;
 };
 
 // Testable core: apply the plan synchronously, then synthesize the TELOS
@@ -40,29 +79,55 @@ export const approveBusinessPlan = async (
   // Re-read the plan after apply so TELOS synthesis uses the chosen option's fields.
   const plan = repo.getById(businessPlanId);
   if (plan !== null) {
+    const answers = businessPlanToTelosAnswers(plan);
     try {
-      const draft = await synthesizeTelosWith(deps, db, plan);
-      if (draft !== null) {
-        deps.writeTelos(userDataDir, plan.companyId, draft);
+      const result = await synthesizeTelos(
+        { db, runDerivation: deps.runDerivation },
+        { answers, env: deps.env, companyId: plan.companyId },
+      );
+      // I4 — surface (log) the partial-TELOS validation warnings that were
+      // previously discarded; the body is still usable so we persist it.
+      if (result.error !== undefined && result.error.length > 0) {
+        console.warn(
+          `[telos] synthesized TELOS for ${plan.companyId} has issues: ${result.error.join("; ")}`,
+        );
+      }
+      if (result.telos !== null) {
+        deps.writeTelos(userDataDir, plan.companyId, result.telos);
         deps.setTelosPath(plan.companyId, companyTelosPath(userDataDir, plan.companyId));
       }
-    } catch {
-      /* fail-soft: identity + rename already applied */
+    } catch (e) {
+      // I4 — synthesis failed (401 / rate-limit / empty / sanitizer-reject). Do
+      // NOT leave the company purpose-less: write a deterministic fallback TELOS
+      // built from the plan and set the path, then signal the CEO to retry. All
+      // of this is itself fail-soft — a fallback-write error must not block the
+      // approval (rename + identity already committed).
+      try {
+        const fallback = buildFallbackTelos(answers);
+        deps.writeTelos(userDataDir, plan.companyId, fallback);
+        deps.setTelosPath(plan.companyId, companyTelosPath(userDataDir, plan.companyId));
+        console.warn(
+          `[telos] synthesis failed for ${plan.companyId}; wrote fallback TELOS: ${String(e)}`,
+        );
+        deliver(deps, plan.proposedByAgentId, formatTelosRetryRequest(plan.identity.name));
+      } catch (fe) {
+        console.warn(
+          `[telos] fallback TELOS write also failed for ${plan.companyId}: ${String(fe)}`,
+        );
+      }
     }
   }
+  // C3 — fulfill the genesis promise: re-engage the author CEO to propose the
+  // team now that the business is approved. Done regardless of TELOS outcome.
+  deliver(deps, applied.ceoAgentId, formatProposeTeamRequest(applied.brandName));
   return { ok: true };
 };
 
-const synthesizeTelosWith = async (
-  deps: ApproveBusinessPlanDeps,
-  db: Database.Database,
-  plan: BusinessPlan,
-): Promise<string | null> => {
-  const result = await synthesizeTelos(
-    { db, runDerivation: deps.runDerivation },
-    { answers: businessPlanToTelosAnswers(plan), env: deps.env, companyId: plan.companyId },
-  );
-  return result.telos;
+// Routes a re-engagement message through the injected dep (tests) or the
+// MAIN bridge (production). No-op if neither is wired (fail-soft).
+const deliver = (deps: ApproveBusinessPlanDeps, agentId: string, text: string): void => {
+  const fn = deps.deliverSystemMessage ?? deliverSystemMessageBridge;
+  if (fn !== null && fn !== undefined) fn(agentId, text);
 };
 
 export const registerBusinessPlanHandlers = (db: Database.Database): void => {
