@@ -113,6 +113,7 @@ import { createCostsRepository } from "../costs/repository.js";
 import { createBudgetsRepository } from "../costs/budgets-repository.js";
 import { createCostRecorder, type CostsBroadcast } from "../costs/recorder.js";
 import { checkAndPause, type EnforceBudgetDeps } from "../costs/enforce-budget.js";
+import { periodKey } from "../costs/period.js";
 import { rollUpYesterdayIfNeeded } from "../costs/day-summary.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { tryGetRoutinesEngine } from "../routines/index.js";
@@ -332,6 +333,11 @@ export const registerOrchestratorHandlers = (
   // after MAX it stays visible in `error` instead of looping. Cleared on a clean
   // (code 0) exit. See healErroredAgents() near the drain.
   const autoHealAttempts = new Map<string, number>();
+  // Dedup for the CEO-over-budget heads-up: keys are `${agentId}:${reason}:${dayKey}`
+  // so the human gets at most one card per CEO per cap per day. In-memory by
+  // design — re-alerting once after a restart is harmless (vs. a card every turn
+  // the CEO stays over budget). See enforceDeps.notifyCeoOverBudget.
+  const ceoOverBudgetAlerted = new Set<string>();
   const MAX_AUTO_HEALS = 3;
 
   // Boot recovery: agents left in a transient/error state by a crash, an app
@@ -452,6 +458,24 @@ export const registerOrchestratorHandlers = (
         actorId: input.agentId,
         title: `Orçamento ${periodLabel} do agente em 80%`,
         preview: `Uso: ${fmt(input.used)} de ${fmt(input.limit)}`,
+        payloadJson: JSON.stringify(input),
+        requiresAction: false,
+      });
+    },
+    notifyCeoOverBudget: (input) => {
+      // Deduped heads-up: the CEO went over a cap but was NOT paused (pausing it
+      // would freeze the org). At most one card per CEO per cap per day.
+      const dedupKey = `${input.agentId}:${input.reason}:${periodKey("daily", new Date())}`;
+      if (ceoOverBudgetAlerted.has(dedupKey)) return;
+      ceoOverBudgetAlerted.add(dedupKey);
+      const fmt = (v: number): string =>
+        input.metric === "usd" ? `$${(v / 100).toFixed(2)}` : `${String(v)} tokens`;
+      inbox.create({
+        companyId: input.companyId,
+        kind: "security_alert",
+        actorId: input.agentId,
+        title: "CEO acima do orçamento — seguindo mesmo assim",
+        preview: `O CEO passou do limite (${fmt(input.tokens)} de ${fmt(input.limit)}) mas continua rodando para não congelar a empresa. O limite do Max continua sendo o teto final.`,
         payloadJson: JSON.stringify(input),
         requiresAction: false,
       });
@@ -1619,6 +1643,9 @@ export const registerOrchestratorHandlers = (
               companyId: agent.companyId,
               agentId: agent.id,
               issueId: null,
+              // The CEO is never budget-paused (it would freeze the org); it gets
+              // a deduped alert instead. See enforce-budget.ts overCap.
+              isCeo: isCeoAgent(agent),
             });
             const activityRec = tryGetRecorder();
             if (activityRec !== undefined) {

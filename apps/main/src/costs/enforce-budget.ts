@@ -42,12 +42,28 @@ export type EnforceBudgetDeps = {
   getBudgetState: (agentId: string) => AgentBudgetState | null;
   notifyBudgetWarning: (input: BudgetWarningInput) => void;
   markBudgetWarned: (agentId: string, periodKey: string) => void;
+  // The CEO is exempt from budget PAUSES (a pause freezes the whole org). When a
+  // cap is hit on the CEO this fires instead — a heads-up that the CEO went over
+  // budget but kept running. Dedup is the implementation's responsibility.
+  notifyCeoOverBudget: (input: {
+    companyId: string;
+    agentId: string;
+    reason: PauseReason;
+    metric: "tokens" | "usd";
+    tokens: number;
+    limit: number;
+    issueId: string | null;
+  }) => void;
 };
 
 export type EnforceBudgetContext = {
   companyId: string;
   agentId: string;
   issueId: string | null;
+  // True when this agent is the company CEO. The CEO is never budget-PAUSED —
+  // freezing it freezes the org (the reconciler won't wake a paused CEO) — so a
+  // cap hit alerts (notifyCeoOverBudget) instead. Defaults to false.
+  isCeo?: boolean;
 };
 
 export type EnforceBudgetResult =
@@ -63,51 +79,68 @@ export const checkAndPause = (
   // long-context agents like the CEO; counting it would false-trip the cap.
   const budgets = deps.budgetsRepo.read();
 
-  // --- M8 global daily cap ---
-  const daily = deps.costsRepo.getAgentDailyTotal(ctx.agentId, new Date());
-  if (daily.billableTokens > budgets.maxTokensPerDayPerAgent) {
-    const reason: PauseReason = "budget_exceeded_daily";
+  // Either pause the offender (normal) or — for the CEO — alert and keep going.
+  // The CEO must never be frozen by a budget cap: a paused CEO is not re-woken by
+  // the reconciler, so the whole org stalls until a human intervenes; and under
+  // the Max plan the cap is phantom (the real ceiling is the session rate-limit,
+  // which already pauses + auto-resumes everything). Returning {paused:false}
+  // short-circuits checkAndPause so the CEO is alerted at most once per call.
+  const overCap = (
+    reason: PauseReason,
+    metric: "tokens" | "usd",
+    tokens: number,
+    limit: number,
+    issueId: string | null,
+  ): EnforceBudgetResult => {
+    if (ctx.isCeo === true) {
+      deps.notifyCeoOverBudget({
+        companyId: ctx.companyId,
+        agentId: ctx.agentId,
+        reason,
+        metric,
+        tokens,
+        limit,
+        issueId,
+      });
+      return { paused: false };
+    }
     deps.pauseAgent(ctx.agentId, reason);
     deps.notifySecurityAlert({
       companyId: ctx.companyId,
       agentId: ctx.agentId,
       reason,
-      metric: "tokens",
-      tokens: daily.billableTokens,
-      limit: budgets.maxTokensPerDayPerAgent,
-      issueId: null,
+      metric,
+      tokens,
+      limit,
+      issueId,
     });
     deps.recordPauseActivity({ companyId: ctx.companyId, agentId: ctx.agentId, reason });
-    return {
-      paused: true,
-      reason,
-      tokens: daily.billableTokens,
-      limit: budgets.maxTokensPerDayPerAgent,
-    };
+    return { paused: true, reason, tokens, limit };
+  };
+
+  // --- M8 global daily cap ---
+  const daily = deps.costsRepo.getAgentDailyTotal(ctx.agentId, new Date());
+  if (daily.billableTokens > budgets.maxTokensPerDayPerAgent) {
+    return overCap(
+      "budget_exceeded_daily",
+      "tokens",
+      daily.billableTokens,
+      budgets.maxTokensPerDayPerAgent,
+      null,
+    );
   }
 
   // --- M8 global per-issue cap ---
   if (ctx.issueId !== null) {
     const issueTotal = deps.costsRepo.getIssueTotal(ctx.issueId);
     if (issueTotal.billableTokens > budgets.maxTokensPerIssue) {
-      const reason: PauseReason = "budget_exceeded_issue";
-      deps.pauseAgent(ctx.agentId, reason);
-      deps.notifySecurityAlert({
-        companyId: ctx.companyId,
-        agentId: ctx.agentId,
-        reason,
-        metric: "tokens",
-        tokens: issueTotal.billableTokens,
-        limit: budgets.maxTokensPerIssue,
-        issueId: ctx.issueId,
-      });
-      deps.recordPauseActivity({ companyId: ctx.companyId, agentId: ctx.agentId, reason });
-      return {
-        paused: true,
-        reason,
-        tokens: issueTotal.billableTokens,
-        limit: budgets.maxTokensPerIssue,
-      };
+      return overCap(
+        "budget_exceeded_issue",
+        "tokens",
+        issueTotal.billableTokens,
+        budgets.maxTokensPerIssue,
+        ctx.issueId,
+      );
     }
   }
 
@@ -122,21 +155,9 @@ export const checkAndPause = (
     const tokenOver = budget.tokensLimit !== null && total.billableTokens >= budget.tokensLimit;
     const usdOver = costBearing && budget.usdLimit !== null && total.cents >= budget.usdLimit;
     if (tokenOver || usdOver) {
-      const reason: PauseReason = "budget_exceeded_agent";
       const tokens = tokenOver ? total.billableTokens : total.cents;
       const limit = tokenOver ? budget.tokensLimit! : budget.usdLimit!;
-      deps.pauseAgent(ctx.agentId, reason);
-      deps.notifySecurityAlert({
-        companyId: ctx.companyId,
-        agentId: ctx.agentId,
-        reason,
-        metric: tokenOver ? "tokens" : "usd",
-        tokens,
-        limit,
-        issueId: null,
-      });
-      deps.recordPauseActivity({ companyId: ctx.companyId, agentId: ctx.agentId, reason });
-      return { paused: true, reason, tokens, limit };
+      return overCap("budget_exceeded_agent", tokenOver ? "tokens" : "usd", tokens, limit, null);
     }
 
     // 80% — one Inbox warning per period, deduped via budget_warned_period.
