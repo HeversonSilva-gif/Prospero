@@ -3,6 +3,37 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.11 — 2026-06-04
+
+Correção de dois bugs que você encontrou testando: criar metas e o CEO que às
+vezes não reagia. Investigados a fundo (no banco do app de verdade) antes de
+qualquer correção — os dois eram a mesma raiz por trás de "o trabalho não fecha e
+o negócio não aprende".
+
+### O CEO volta a reagir
+
+- **Agente que termina/espera não fica mais largado.** Antes, se um agente ficava
+  preso "aguardando" (uma decisão que já tinha sido tomada mas não chegou de volta
+  a ele), ele ficava travado até reiniciar o app — e ainda fazia o CEO achar que o
+  time inteiro estava ocupado, então o CEO não acordava para cuidar dos outros.
+  Agora esse agente é destravado sozinho em segundos.
+- **O CEO passa a orquestrar mesmo com o time parcialmente ocupado.** Antes ele só
+  era acordado quando o time inteiro parava. Se um agente terminava (ou era
+  destravado) e ficava ocioso enquanto outro ainda trabalhava, a tarefa dele ficava
+  parada e o CEO não vinha. Agora, havendo tarefa a fazer e uma mão livre, o CEO é
+  chamado para distribuir/cobrar — sem incomodar quando todos já estão ocupados.
+
+### Criar metas
+
+- **O CEO agora consegue criar metas.** Antes ele só sabia *planejar* uma meta que
+  já existia; quando você pedia no chat "crie uma meta para X", ele criava tarefas
+  soltas e o ciclo de meta → plano → verificação → aprendizado nunca acontecia.
+  Agora ele cria a meta de verdade a partir do seu pedido. Isso não pula sua
+  aprovação: o plano que ele propõe em seguida ainda passa por você.
+- **Suas metas ficam visíveis e fáceis de criar.** Adicionado um item **"Metas"** no
+  menu lateral, que abre a lista das suas metas com o botão "+ Nova meta" (a tela
+  existia, mas não estava no menu).
+
 ## v0.2.10 — 2026-06-04
 
 Manutenção de fundação com três focos: **gastar menos token sem perder
