@@ -1,6 +1,15 @@
-import { type FC } from "react";
+import { type FC, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Star, ChartBar, Lightning, Users, CurrencyDollar } from "@phosphor-icons/react";
+import {
+  Star,
+  ChartBar,
+  Lightning,
+  Users,
+  CurrencyDollar,
+  CaretRight,
+  CaretDown,
+  X as XIcon,
+} from "@phosphor-icons/react";
 import type { BusinessPlanOption } from "@prospero/shared";
 import { useBusinessPlanStore } from "../stores/businessPlan.js";
 import { signalToPercent, signalLabel } from "./businessPlanOptions.helpers.js";
@@ -65,11 +74,29 @@ type OptionCardProps = {
 const OptionCard: FC<OptionCardProps> = ({ option, index, position, onChoose }) => {
   const { t } = useTranslation();
   const isRec = option.recommended;
+  // INV-2: the discard reasoning ("what I cut and why") is surfaced right on the
+  // chooser, folded, so it's a trust signal at the moment of choice without crowding
+  // the comparison. Expand state is local to each card.
+  const [droppedOpen, setDroppedOpen] = useState(false);
+  const dropped = option.dropped ?? []; // defensive: legacy/hand-edited rows may omit it
+
+  // The card is a div+role=button (NOT a <button>) so the disclosure toggle below can
+  // be a real <button> — interactive content nested in a <button> is invalid HTML.
+  const choose = (): void => onChoose(index);
 
   return (
-    <button
-      type="button"
-      onClick={() => onChoose(index)}
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={choose}
+      onKeyDown={(e) => {
+        // Only the card itself triggers choose — keystrokes on the inner disclosure
+        // toggle (a real <button>) must not also select the option.
+        if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          choose();
+        }
+      }}
       className={[
         "flex-1 min-w-[225px] text-left bg-surface-card border rounded-2xl p-[17px] cursor-pointer transition-all duration-150 flex flex-col gap-3",
         "hover:-translate-y-0.5 hover:shadow-[0_10px_26px_-12px_rgba(15,118,110,.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
@@ -135,6 +162,41 @@ const OptionCard: FC<OptionCardProps> = ({ option, index, position, onChoose }) 
         </div>
       )}
 
+      {/* INV-2: discarded ideas + why, folded — the viability filter as a trust signal */}
+      {dropped.length > 0 && (
+        <div className="border-t border-surface-soft pt-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDroppedOpen((v) => !v);
+            }}
+            aria-expanded={droppedOpen}
+            className="flex items-center gap-1 text-[11px] font-medium text-ink-soft hover:text-ink"
+          >
+            {droppedOpen ? (
+              <CaretDown size={12} aria-hidden />
+            ) : (
+              <CaretRight size={12} aria-hidden />
+            )}
+            {t("businessPlan.options.droppedToggle", { count: dropped.length })}
+          </button>
+          {droppedOpen && (
+            <ul className="mt-1.5 flex flex-col gap-1">
+              {dropped.map((d, di) => (
+                <li key={di} className="flex gap-1.5 items-start text-[11px] text-ink-muted">
+                  <XIcon size={12} className="text-[#c0726a] mt-0.5 flex-shrink-0" aria-hidden />
+                  <span>
+                    <span className="font-semibold text-ink">{d.idea}</span>
+                    {d.reason.trim() !== "" && <span> — {d.reason}</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       {/* CTA button */}
       <div
         className={[
@@ -144,7 +206,7 @@ const OptionCard: FC<OptionCardProps> = ({ option, index, position, onChoose }) 
       >
         {t("businessPlan.options.seePlan")}
       </div>
-    </button>
+    </div>
   );
 };
 
