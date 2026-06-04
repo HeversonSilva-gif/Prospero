@@ -1,14 +1,16 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   readDigest,
   writeDigest,
+  writeDigestAt,
   foldEntries,
   foldDeepDives,
   bumpEntryAccess,
 } from "./digest-store.js";
+import { projectDigestPath } from "./digest-dir.js";
 import type { DigestEntry, DeepDive } from "@prospero/shared";
 
 let dir: string;
@@ -38,6 +40,28 @@ describe("digest-store", () => {
     writeDigest(dir, "co_1", "pr_1", { version: 1, entries: [entry()], deepDives: [] });
     const d = readDigest(dir, "co_1", "pr_1");
     expect(d.entries[0]?.body).toBe("It is an Electron monorepo.");
+  });
+
+  it("overwrites an existing digest in place (atomic rename replaces the target)", () => {
+    writeDigest(dir, "co_1", "pr_1", {
+      version: 1,
+      entries: [entry({ body: "first" })],
+      deepDives: [],
+    });
+    writeDigest(dir, "co_1", "pr_1", {
+      version: 1,
+      entries: [entry({ body: "second" })],
+      deepDives: [],
+    });
+    expect(readDigest(dir, "co_1", "pr_1").entries[0]?.body).toBe("second");
+  });
+
+  it("leaves no .tmp residue in the digest directory after a write", () => {
+    const path = projectDigestPath(dir, "co_1", "pr_1");
+    writeDigestAt(path, { version: 1, entries: [entry()], deepDives: [] });
+    writeDigestAt(path, { version: 1, entries: [entry({ body: "again" })], deepDives: [] });
+    const leftover = readdirSync(join(path, "..")).filter((f) => f.endsWith(".tmp"));
+    expect(leftover).toEqual([]);
   });
 
   it("foldEntries replaces an entry with the same section+sourceFiles", () => {
