@@ -4,6 +4,7 @@ import {
   readRecentEmails,
   verifyConnection,
   extractBodySnippet,
+  extractReferencesHeader,
   EmailError,
   type EmailDeps,
   type SmtpPayload,
@@ -118,6 +119,7 @@ describe("readRecentEmails", () => {
               snippet: "...",
               date: "2026-06-01",
               messageId: "<1>",
+              references: "",
             },
           ]),
       }),
@@ -242,6 +244,25 @@ describe("threading References (M6 — chain must accumulate)", () => {
       { to: "a@b.com", subject: "re", text: "hi", inReplyTo: "<c@x>" },
     );
     expect(body?.headers?.References).toBe("<c@x>");
+  });
+});
+
+describe("extractReferencesHeader (M6 — parse the inbound chain)", () => {
+  it("pulls the chain from a single-line References header", () => {
+    expect(extractReferencesHeader("References: <a@x> <b@x>\r\n")).toBe("<a@x> <b@x>");
+  });
+  it("unfolds a header wrapped across continuation lines and collapses whitespace", () => {
+    const raw = "References: <a@x>\r\n <b@x>\r\n\t<c@x>\r\n";
+    expect(extractReferencesHeader(raw)).toBe("<a@x> <b@x> <c@x>");
+  });
+  it("is case-insensitive and stops at the next header", () => {
+    const raw = "Subject: hi\r\nreferences: <a@x> <b@x>\r\nDate: today\r\n";
+    expect(extractReferencesHeader(raw)).toBe("<a@x> <b@x>");
+  });
+  it("returns empty for a thread root (no References header) or non-string input", () => {
+    expect(extractReferencesHeader("Subject: hi\r\n")).toBe("");
+    expect(extractReferencesHeader("")).toBe("");
+    expect(extractReferencesHeader(undefined)).toBe("");
   });
 });
 
