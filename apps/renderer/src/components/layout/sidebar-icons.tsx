@@ -9,10 +9,12 @@ import {
   UsersThree,
   Gear,
   ChartLineUp,
+  Target,
 } from "@phosphor-icons/react";
 
 export const HomeIcon = House;
 export const SparklesIcon = ChatCircle; // "Pedir algo"
+export const GoalsIcon = Target; // "Metas" → /goals
 export const DecisionsIcon = CheckCircle; // "Decisões" → /inbox
 export const FolderIcon = Folder;
 export const UsersIcon = UsersThree;
