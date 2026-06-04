@@ -6,6 +6,7 @@ import { SidebarFooter } from "../SidebarFooter.js";
 import {
   HomeIcon,
   SparklesIcon,
+  GoalsIcon,
   DecisionsIcon,
   FolderIcon,
   UsersIcon,
@@ -26,6 +27,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { to: "/briefing", labelKey: "nav.inicio", Icon: HomeIcon },
   { to: "/goals/new", labelKey: "nav.pedirAlgo", Icon: SparklesIcon },
+  { to: "/goals", labelKey: "nav.metas", Icon: GoalsIcon, end: true },
   { to: "/inbox", labelKey: "nav.decisoes", Icon: DecisionsIcon },
   { to: "/projects", labelKey: "nav.projetos", Icon: FolderIcon },
   { to: "/financeiro", labelKey: "nav.financeiro", Icon: FinanceIcon },

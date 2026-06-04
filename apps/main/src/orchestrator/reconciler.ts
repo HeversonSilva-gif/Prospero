@@ -31,6 +31,12 @@ export type ReconcileInput = {
   ceoEngaged: boolean;
   /** Any non-CEO agent currently running or with queued work. */
   anyWorkerEngaged: boolean;
+  /** Any non-CEO, non-terminated agent that is idle (free capacity). Lets the
+   *  reconciler wake the CEO when there is unstarted `todo` work AND a free hand
+   *  to do it, even though the team isn't fully stalled — the partial-idle gap
+   *  (Bug 2, 2026-06-04) where a finished/unstuck worker leaves its todo unworked
+   *  while another worker is still busy. */
+  anyWorkerIdle: boolean;
   counts: ReconcileCounts;
   /** Goals that failed verification and returned to in_progress with all issues done. */
   verificationFailedGoals: VerificationFailedGoal[];
@@ -47,6 +53,7 @@ export const computeReconcileDecision = (input: ReconcileInput): ReconcileDecisi
     ceoId,
     ceoEngaged,
     anyWorkerEngaged,
+    anyWorkerIdle,
     counts,
     verificationFailedGoals,
     ceoLastWakeAt,
@@ -61,19 +68,34 @@ export const computeReconcileDecision = (input: ReconcileInput): ReconcileDecisi
   const stalled = !anyWorkerEngaged; // whole team idle but work remains
   const reviewPending = counts.review > 0; // CEO must review (human only at goal close)
   const verificationFailedPending = failedCount > 0;
+  // Unstarted work with a free hand to do it: a worker is idle but `todo` work
+  // sits unworked (its assignee went idle / was just unstuck). The team isn't
+  // fully stalled, but the CEO must orchestrate — assign/poke the idle worker.
+  const idleWithUnstartedWork = counts.todo > 0 && anyWorkerIdle;
   // Workers are progressing and nothing is waiting on the CEO → leave them be.
-  if (!stalled && !reviewPending && !verificationFailedPending) return { wake: false };
+  if (!stalled && !reviewPending && !verificationFailedPending && !idleWithUnstartedWork) {
+    return { wake: false };
+  }
   if (ceoLastWakeAt !== null && now - ceoLastWakeAt < debounceMs) return { wake: false };
   return {
     wake: true,
     ceoId,
-    summary: buildSummary(counts, stalled, reviewPending, verificationFailedGoals),
+    // Head reflects the REAL stall state; the assign/poke block shows whenever the
+    // team is stalled OR there is a free hand and unstarted work.
+    summary: buildSummary(
+      counts,
+      stalled,
+      stalled || idleWithUnstartedWork,
+      reviewPending,
+      verificationFailedGoals,
+    ),
   };
 };
 
 const buildSummary = (
   counts: ReconcileCounts,
   stalled: boolean,
+  needsAssign: boolean,
   reviewPending: boolean,
   verificationFailedGoals: VerificationFailedGoal[],
 ): string => {
@@ -87,7 +109,7 @@ const buildSummary = (
       "Revise cada tarefa em 'review': se estiver boa, aprove movendo para 'done' com update_issue; se faltar algo, devolva ao responsavel com message_agent explicando o ajuste. Voce decide a revisao — nao escale ao humano.",
     );
   }
-  if (stalled) {
+  if (needsAssign) {
     actions.push(
       "Atribua o trabalho pendente com assign_issue e acorde o responsavel com message_agent. Se algum agente travou, destrave-o.",
     );

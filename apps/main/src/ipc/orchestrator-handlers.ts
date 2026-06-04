@@ -56,6 +56,7 @@ import {
   setUserDataDir,
 } from "../auth/credential-recovery.js";
 import { computeLaneSchedule } from "../orchestrator/scheduler.js";
+import { stuckWaitingAgentIds } from "../orchestrator/stuck-waiting.js";
 import { startSchedulerTick } from "../orchestrator/scheduler-tick.js";
 import {
   computeReconcileDecision,
@@ -1084,6 +1085,22 @@ export const registerOrchestratorHandlers = (
     } else if (kind === "goal.plan_proposed" && typeof payload === "object" && payload !== null) {
       const p = payload as { goalId: string; planId: string };
       void handleGoalPlanProposed(p.goalId, p.planId);
+    } else if (kind === "goal.created" && typeof payload === "object" && payload !== null) {
+      // The CEO's create_goal tool runs in the MCP child (no recorder, no window):
+      // record the activity and refresh the renderer's goal list here in MAIN.
+      const p = payload as { goalId: string; companyId: string; title: string };
+      tryGetRecorder()?.recordActivity({
+        companyId: p.companyId,
+        actor: { kind: "agent", id: event.agentId ?? null },
+        action: "goal.created",
+        entityKind: "goal",
+        entityId: p.goalId,
+        agentId: event.agentId ?? null,
+        payload: { title: p.title },
+      });
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send("goals:changed", { companyId: p.companyId });
+      }
     }
   };
 
@@ -2047,6 +2064,33 @@ export const registerOrchestratorHandlers = (
     }
   };
 
+  // Runtime heal for stuck `waiting` zombies (Bug 2, 2026-06-04): an agent that
+  // went `waiting` on an approval but never resumed after the decision landed
+  // (lost RAM delivery / wiped on restart) would sit `waiting` until the next app
+  // restart (resetStuckAgents is boot-only). It also masks the reconciler's
+  // "team stalled" signal, so the CEO is never re-woken. Once its blocker is
+  // resolved (no pending approval) and it has waited past a grace period, reset
+  // it to idle so the scheduler/reconciler can re-engage it. Runs each drain tick
+  // AFTER reengageDeferredApprovals (so a fresh decision is delivered first).
+  const STUCK_WAITING_GRACE_MS = 3 * 60_000;
+  const healStuckWaitingAgents = (): void => {
+    const waiting = agents.listWaitingAgents();
+    if (waiting.length === 0) return;
+    const pending = new Set(createApprovalsRepository(db).pendingAgentIds());
+    const ids = stuckWaitingAgentIds({
+      waiting,
+      pendingApprovalAgentIds: pending,
+      now: Date.now(),
+      staleMs: STUCK_WAITING_GRACE_MS,
+    });
+    for (const id of ids) {
+      if (getAdapter(id)?.isAlive() === true) continue; // a live turn owns it — not stuck
+      agents.updateStatus(id, { status: "idle", currentAction: null });
+      broadcast({ kind: "status-changed", agentId: id, status: "idle", updatedAt: Date.now() });
+      olog(`auto-heal agent=${id} waiting→idle (approval resolved; was stranded)`);
+    }
+  };
+
   const drainScheduler = (): void => {
     // Max rate-limit gate. While active, spawn nothing. When the window resets,
     // clear the gate and resume the parked team so each agent continues from
@@ -2074,6 +2118,7 @@ export const registerOrchestratorHandlers = (
     };
     healErroredAgents();
     reengageDeferredApprovals();
+    healStuckWaitingAgents();
     const running = listAdapterAgentIds().map((id) => {
       const status = agents.getById(id)?.status ?? "idle";
       return {
@@ -2828,6 +2873,12 @@ export const registerOrchestratorHandlers = (
           ceoEngaged: ceo !== null ? isEngaged(ceo) : false,
           anyWorkerEngaged: roster.some(
             (a) => a.terminatedAt === null && !isCeoAgent(a) && isEngaged(a),
+          ),
+          // A non-CEO worker with free capacity (idle, not engaged): lets the CEO
+          // be woken to assign/poke unstarted `todo` work even when the team is
+          // not fully stalled (Bug 2 partial-idle gap).
+          anyWorkerIdle: roster.some(
+            (a) => a.terminatedAt === null && !isCeoAgent(a) && !isEngaged(a),
           ),
           counts: {
             todo: issuesRepo.list({ companyId, status: "todo" }).length,

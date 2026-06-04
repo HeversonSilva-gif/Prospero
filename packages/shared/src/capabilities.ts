@@ -77,6 +77,7 @@ export const CAPABILITY_CATALOG: Record<CapabilityId, CapabilityDef> = {
       "mcp__dashboard__list_role_templates",
       // Goal planning + execution (M8.5). Without these the planning CEO hit the
       // permission gate on every call and froze.
+      "mcp__dashboard__create_goal",
       "mcp__dashboard__submit_goal_plan",
       "mcp__dashboard__get_goal",
       "mcp__dashboard__list_goals",

@@ -5,6 +5,7 @@ const base: ReconcileInput = {
   ceoId: "ceo-1",
   ceoEngaged: false,
   anyWorkerEngaged: false,
+  anyWorkerIdle: false,
   counts: { todo: 0, doing: 0, review: 0 },
   verificationFailedGoals: [],
   ceoLastWakeAt: null,
@@ -63,6 +64,33 @@ describe("computeReconcileDecision", () => {
     ).toEqual({ wake: false });
   });
 
+  it("wakes the CEO when there is unstarted todo work AND an idle worker, even if another worker is busy", () => {
+    // Bug 2 (2026-06-04): an assigned-but-idle worker (e.g. one that finished /
+    // was unstuck) leaves its todo unworked while a different worker is busy.
+    // The team isn't fully stalled, but there is free capacity and unstarted
+    // work — the CEO must orchestrate (poke/reassign).
+    const d = computeReconcileDecision({
+      ...base,
+      anyWorkerEngaged: true,
+      anyWorkerIdle: true,
+      counts: { todo: 3, doing: 1, review: 0 },
+    });
+    expect(d.wake).toBe(true);
+    if (d.wake) expect(d.summary).toContain("assign_issue");
+  });
+
+  it("does NOT wake when todos exist but every worker is busy (no idle capacity)", () => {
+    // All workers engaged → their todos are queued to them; don't nag the CEO.
+    expect(
+      computeReconcileDecision({
+        ...base,
+        anyWorkerEngaged: true,
+        anyWorkerIdle: false,
+        counts: { todo: 4, doing: 2, review: 0 },
+      }),
+    ).toEqual({ wake: false });
+  });
+
   it("respects the debounce after a recent wake", () => {
     expect(
       computeReconcileDecision({
@@ -87,6 +115,7 @@ describe("computeReconcileDecision", () => {
       ceoId: "ceo1",
       ceoEngaged: false,
       anyWorkerEngaged: true,
+      anyWorkerIdle: false,
       counts: { todo: 0, doing: 0, review: 0 },
       verificationFailedGoals: [{ id: "g1", title: "Ship X", failedCriteria: ["tests pass"] }],
       ceoLastWakeAt: null,
@@ -102,6 +131,7 @@ describe("computeReconcileDecision", () => {
       ceoId: "ceo1",
       ceoEngaged: false,
       anyWorkerEngaged: true,
+      anyWorkerIdle: false,
       counts: { todo: 0, doing: 0, review: 0 },
       verificationFailedGoals: [],
       ceoLastWakeAt: null,
@@ -116,6 +146,7 @@ describe("computeReconcileDecision", () => {
       ceoId: "ceo1",
       ceoEngaged: false,
       anyWorkerEngaged: true,
+      anyWorkerIdle: false,
       counts: { todo: 0, doing: 0, review: 0 },
       verificationFailedGoals: [{ id: "g1", title: "X", failedCriteria: [] }],
       ceoLastWakeAt: 1000,
