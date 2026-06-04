@@ -170,6 +170,8 @@ import { hashSources } from "../context/freshness.js";
 import { relativeDigestPath, projectDigestPath, agentDigestPath } from "../context/digest-dir.js";
 import { compactionTarget } from "../context/compaction-target.js";
 import { shouldResetSession } from "../context/compaction-decision.js";
+import { readSessionTranscript } from "../context/session-transcript.js";
+import { getAgentConfigDir } from "../orchestrator/util/paths.js";
 import { estimateCostCents } from "../costs/pricing.js";
 import { createOrgPlansRepository } from "../agents/org-plans-repository.js";
 import { gatherBusinessContext } from "../agents/business-context.js";
@@ -1351,9 +1353,23 @@ export const registerOrchestratorHandlers = (
       if (Date.now() - last < COMPACTION_COOLDOWN_MS) return;
       compactionInFlight.add(compactionKey);
       try {
-        const trail = buildRecoveryTrail(db, agent.id, 200);
-        if (trail === null || trail.messages.length === 0) return;
-        const transcript = trail.messages.map((m) => `${m.sender}: ${m.content}`).join("\n");
+        // Prefer the REAL claude session transcript (tool calls, file reads,
+        // results, reasoning outcomes) — the chat-messages trail captures only
+        // inter-agent/user chatter, so the digest distilled from it was thin
+        // (audit 2026-06-04, prompt-C3). Fall back to the trail when the session
+        // JSONL is missing/unparseable so compaction never silently degrades.
+        const sessionTranscript =
+          live.claudeSessionId !== null
+            ? readSessionTranscript(getAgentConfigDir(userDataDir, agent.id), live.claudeSessionId)
+            : null;
+        let transcript: string;
+        if (sessionTranscript !== null) {
+          transcript = sessionTranscript;
+        } else {
+          const trail = buildRecoveryTrail(db, agent.id, 200);
+          if (trail === null || trail.messages.length === 0) return;
+          transcript = trail.messages.map((m) => `${m.sender}: ${m.content}`).join("\n");
+        }
 
         const worker = createCompactionWorker({
           runDistill: ({ prompt, model }) =>

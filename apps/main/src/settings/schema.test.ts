@@ -71,9 +71,9 @@ describe("AppSettingsSchema", () => {
     expect(() => AppSettingsSchema.parse({ derivationsPerDayPerAgent: -1 })).toThrow();
   });
 
-  it("defaults compactionCacheReadThreshold to 300000", () => {
+  it("defaults compactionCacheReadThreshold to 75000", () => {
     const parsed = AppSettingsSchema.parse({});
-    expect(parsed.compactionCacheReadThreshold).toBe(300_000);
+    expect(parsed.compactionCacheReadThreshold).toBe(75_000);
   });
 
   it("accepts an explicit compactionCacheReadThreshold", () => {

@@ -25,7 +25,13 @@ export const AppSettingsSchema = z.object({
   defaultAgentMode: z.enum(["supervised", "auto"]).default("supervised"),
   defaultAlwaysOn: z.boolean().default(false),
   derivationsPerDayPerAgent: z.number().int().min(0).default(3),
-  compactionCacheReadThreshold: z.number().int().min(0).default(300_000),
+  // Per-turn cache_read tokens above which a finished, idle turn triggers
+  // compaction. Lowered 300k→75k (2026-06-04): at 300k the CEO's turns never
+  // crossed it, so the session grew unbounded and the full prompt was re-read
+  // every turn (the "98% cache_read"). Now that compaction distills the REAL
+  // session transcript (session-transcript.ts), a lower threshold is safe and
+  // is the direct lever on re-read volume. 0 disables compaction.
+  compactionCacheReadThreshold: z.number().int().min(0).default(75_000),
   // Epoch ms until which the Max account is rate-limited; the team auto-resumes after. null = not limited.
   rateLimitedUntil: z.number().int().nullable().default(null),
   remoteExecution: RemoteExecutionSettingsSchema.default({
