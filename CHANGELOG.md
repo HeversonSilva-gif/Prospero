@@ -3,6 +3,58 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.10 — 2026-06-04
+
+Manutenção de fundação com três focos: **gastar menos token sem perder
+inteligência** (pra o negócio rodar mais tempo dentro dos limites do seu plano),
+**não deixar a empresa congelar**, e fechar pontas soltas das auditorias
+anteriores. Quase tudo é por baixo do capô — você sente como "anda mais longe
+sozinho e trava menos".
+
+### Menos token, mesma cabeça
+
+- **Cada agente só recebe as ferramentas que pode usar.** Antes, todo agente
+  carregava a descrição das ~60 ferramentas a cada passo, mesmo as que nunca
+  chamaria. Agora só enxerga as que o papel dele alcança — corta uma fatia grande
+  do custo de cada turno, sem mudar nada do que ele consegue fazer.
+- **A "memória de trabalho" do CEO finalmente é compactada.** O resumo que evita
+  reler tudo a cada passo (a) passou a destilar o que o agente *fez de verdade*
+  (arquivos lidos, ações, resultados), não só o bate-papo, e (b) dispara na hora
+  certa em vez de quase nunca. É o golpe direto no "relê o contexto inteiro toda
+  vez". Se o formato interno mudar numa atualização do motor, ele cai no modo
+  antigo — nunca piora em silêncio.
+- **O CEO é acordado com menos frequência** para trabalho mecânico (a rede de
+  segurança que o cutuca passou de ~3 em 3 min para ~10 em 10 min).
+- **A "memória durável" do projeto parou de inchar** — fica limitada às anotações
+  mais valiosas, sem nunca descartar as recém-aprendidas.
+- **TokenJuice fase 2:** ler uma conversa longa entre agentes agora mantém as
+  mensagens recentes inteiras e resume as antigas (antes, o corte automático
+  jogava fora justamente as recentes). E uma correção: o canal interno de permissão
+  deixou de ser comprimido — ele carrega o conteúdo real da ação (um e-mail, um
+  arquivo, um post), que não pode ser cortado.
+
+### A empresa não congela e não perde o fio
+
+- **O CEO nunca mais é pausado por orçamento.** Pausar o CEO congelava a empresa
+  inteira (ninguém mais era acordado). Agora, se ele passa do teto, segue rodando e
+  você recebe um aviso — o limite do seu plano continua sendo o teto real.
+- **Reiniciar o app não apaga mais "onde o agente parou".** O lembrete de retomada
+  que o sistema cria depois de compactar a memória agora sobrevive a um restart
+  (o auto-update reinicia o app duas vezes) — o agente volta de onde estava.
+
+### Travas de segurança
+
+- **Contratar/demitir e mexer em metas exige autoridade de verdade.** Antes era só
+  uma instrução no texto; agora o código garante que só o CEO (ou um gerente com
+  delegação) faça isso — e ninguém demite o CEO.
+
+### Pontas soltas
+
+- A cadeia de respostas de e-mail (assunto/thread) é mantida de ponta a ponta, e o
+  endereço do servidor saiu do log local.
+- O resumo do projeto é gravado de forma atômica (sem risco de arquivo
+  meio-escrito).
+
 ## v0.2.9 — 2026-06-04
 
 Auditoria completa do pilar **Gênese & Planejamento de Negócio** (a entrevista do
