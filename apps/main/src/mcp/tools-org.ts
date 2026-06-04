@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { isCeoAgent } from "@prospero/shared";
 import { createOrgPlansRepository } from "../agents/org-plans-repository.js";
+import { createAgentsRepository } from "../agents/repository.js";
 import { sanitizeMemoryBody } from "../memory/sanitizer.js";
 import { OrgPlanPayloadSchema, type OrgPlanPayload } from "../schemas/orgPlan.js";
 import type { ToolContext } from "./tools.js";
@@ -18,6 +20,17 @@ const submitOrgPlan: Tool = {
   inputSchema: z.object({ plan: z.unknown() }),
   // eslint-disable-next-line @typescript-eslint/require-await
   run: async (input, ctx) => {
+    // C1 (Genesis/Planning audit 2026-06-04): authorize the caller. The MCP
+    // server registers this tool for every agent and only --allowedTools (the
+    // `delegation` capability) gates it — and `delegation` is hireable via an
+    // org plan that names it. Without this check any such agent could forge the
+    // org design. Only the CEO of this company may propose it. Mirrors
+    // tools-isa.ts criterion_judge and tools.ts callerIsCeo.
+    const caller = createAgentsRepository(ctx.db).getById(ctx.agentId);
+    if (caller === null || caller.companyId !== ctx.companyId || !isCeoAgent(caller)) {
+      return JSON.stringify({ ok: false, error: "only the CEO may submit an org plan" });
+    }
+
     const { plan: rawPlan } = submitOrgPlan.inputSchema.parse(input) as { plan: unknown };
 
     // The model frequently passes `plan` as a stringified JSON object rather than
