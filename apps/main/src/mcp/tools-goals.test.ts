@@ -144,6 +144,26 @@ describe("goalsToolDefinitions — read tools", () => {
     expect(out.status).toBe("verifying");
   });
 
+  it("update_goal_status rejects a plain worker (no delegation) — authority C2", async () => {
+    const goalsRepo = createGoalsRepository(env.ctx.db);
+    const g = goalsRepo.create({ companyId: env.companyId, title: "X" });
+    const worker = createAgentsRepository(env.ctx.db).create({
+      companyId: env.companyId,
+      name: "Eng",
+      role: "engineer",
+      systemPrompt: "sp",
+      mode: "supervised",
+      alwaysOn: false,
+      model: "sonnet-4",
+      capabilities: ["shell", "fs-write"],
+    });
+    const workerCtx = { ...env.ctx, agentId: worker.id };
+    const tool = findTool("update_goal_status");
+    await expect(tool.run({ id: g.id, status: "cancelled" }, workerCtx)).rejects.toThrow(
+      /CEO|delegation|manager/i,
+    );
+  });
+
   it("record_subgoal creates child goal under in_progress parent", async () => {
     const goalsRepo = createGoalsRepository(env.ctx.db);
     const parent = goalsRepo.create({ companyId: env.companyId, title: "Parent" });

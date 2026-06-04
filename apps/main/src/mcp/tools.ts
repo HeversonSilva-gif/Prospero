@@ -78,6 +78,20 @@ const callerIsCeo = (ctx: ToolContext): boolean => {
   return caller !== null && caller.companyId === ctx.companyId && isCeoAgent(caller);
 };
 
+// hire/fire authority enforced AT THE TOOL BOUNDARY (v0.2.10 toolbox audit C1). The MCP
+// server registers these for any agent and only the `--allowedTools` capability list +
+// can_hire run-policy gate them — but a tool not in --allowedTools is still reachable via
+// the permission-gate path, so authority must also be checked here. Allowed: the CEO always
+// (the org architect — its capabilities may be empty/legacy, so never require the cap of it),
+// OR an agent the CEO explicitly granted the `delegation` capability with can_hire set (e.g.
+// a product-manager role that legitimately builds out its team). A plain worker can never
+// hire/fire even if it reaches the tool. Mirrors applyRunPolicy's (delegation + canHire) rule.
+const callerMayHireFire = (ctx: ToolContext): boolean => {
+  const caller = createAgentsRepository(ctx.db).getById(ctx.agentId);
+  if (caller === null || caller.companyId !== ctx.companyId) return false;
+  return isCeoAgent(caller) || (caller.capabilities.includes("delegation") && caller.canHire);
+};
+
 export const waitForResolution = async (
   dir: string,
   toolUseId: string,
@@ -582,6 +596,14 @@ export const toolDefinitions = [
     inputSchema: HIRE_AGENT_INPUT_SCHEMA,
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (input: HireAgentInput, ctx: ToolContext): Promise<string> => {
+      // Authority in code: only the CEO (or a delegation-capable manager with can_hire)
+      // may hire — never a plain worker that reached the tool via the gate. (Audit C1.)
+      if (!callerMayHireFire(ctx)) {
+        return JSON.stringify({
+          ok: false,
+          error: "only the CEO or a delegation-capable manager may hire agents",
+        });
+      }
       const agents = createAgentsRepository(ctx.db, tryGetRecorder());
       const messages = createMessagesRepository(ctx.db);
       const settings = createSettingsRepository(ctx.db).read();
@@ -631,13 +653,27 @@ export const toolDefinitions = [
     inputSchema: z.object({ agent_id: z.string() }),
     // eslint-disable-next-line @typescript-eslint/require-await
     run: async (input: { agent_id: string }, ctx: ToolContext): Promise<string> => {
+      // Authority in code: only the CEO (or a delegation-capable manager) may fire. (Audit C1.)
+      if (!callerMayHireFire(ctx)) {
+        return JSON.stringify({
+          ok: false,
+          error: "only the CEO or a delegation-capable manager may fire agents",
+        });
+      }
       const target = ctx.db
-        .prepare("SELECT id, company_id FROM agents WHERE id = ?")
-        .get(input.agent_id) as { id: string; company_id: string } | undefined;
+        .prepare("SELECT id, company_id, role, template_id FROM agents WHERE id = ?")
+        .get(input.agent_id) as
+        | { id: string; company_id: string; role: string; template_id: string | null }
+        | undefined;
       // Company scope: only fire agents in the caller's own company — never
       // kill/delete another company's agent. Audit 2026-06-03 Facet 4 C1.
       if (target === undefined || target.company_id !== ctx.companyId) {
         return JSON.stringify({ ok: false, error: "agent not found" });
+      }
+      // Never let a non-CEO fire the CEO — the org's sole orchestrator. A delegation manager
+      // can build/trim its own team but cannot decapitate the company. (v0.2.10 audit C1.)
+      if (isCeoAgent({ role: target.role, templateId: target.template_id }) && !callerIsCeo(ctx)) {
+        return JSON.stringify({ ok: false, error: "only the CEO can remove the CEO" });
       }
       ctx.emit({ kind: "agent.kill", payload: { agentId: input.agent_id } });
       ctx.db
