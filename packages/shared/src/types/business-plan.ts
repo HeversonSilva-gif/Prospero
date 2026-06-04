@@ -70,6 +70,10 @@ export type BusinessPlanOption = {
   monetization: string[];
   pricing: ChargeModel | null;
   research: BusinessResearch | null;
+  // Genesis audit I9 — REQUIRED at submit time (the Zod BusinessPlanOptionSchema
+  // enforces a non-empty min length so the CEO must capture it from the interview).
+  // Stays `| null` on this read/persisted shape because old rows and edited plans
+  // may legitimately have none; freshly submitted options always carry it.
   ownerProfile: string | null;
   marketing: BusinessPlanMarketing;
   identity: BusinessPlanIdentity;

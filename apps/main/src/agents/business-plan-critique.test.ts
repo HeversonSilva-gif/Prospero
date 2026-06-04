@@ -10,6 +10,7 @@ import type { BusinessPlanOption, BusinessPlanPayload } from "../schemas/busines
 const plan: BusinessPlanPayload = {
   concept: "A SaaS recipe assistant for people who work all day.",
   monetization: ["R$9/mo"],
+  ownerProfile: "Cozinheiro amador, valoriza praticidade e tem 1h por dia, topa risco baixo.",
   marketing: { initialChannel: "x", tactics: ["threads"], laterChannels: "later" },
   identity: { name: "Cozinha de 15", voice: "friendly", proposedXHandle: "@c15" },
   dropped: [],
@@ -79,6 +80,7 @@ const baseOption = (
 ): BusinessPlanOption => ({
   concept: "A SaaS newsletter-writing assistant for busy founders.",
   monetization: ["R$29/mo per seat"],
+  ownerProfile: "Founder ocupado, valoriza velocidade, escreve bem e topa aparecer no X.",
   marketing: { initialChannel: "x", tactics: ["weekly threads"], laterChannels: "later SEO" },
   identity: { name: "Carta Rápida", voice: "crisp", proposedXHandle: "@cartarapida" },
   dropped: [],
@@ -175,6 +177,93 @@ describe("critiqueBusinessPlan — options path", () => {
       { options: solidOptions, capabilityBoundary: "b", env: {} },
     );
     expect(v.feasible).toBe(true);
+  });
+});
+
+// Genesis audit I6 — the critic is fail-open on RUNNER errors (never deadlock
+// genesis) but must have teeth on owner-profile emptiness: a plan whose
+// ownerProfile is absent / trivially short is flagged (the interview did not
+// capture the owner), and a missing/garbled `feasible` field is treated as NOT
+// feasible for the emptiness/owner-profile dimension.
+describe("critiqueBusinessPlan — owner-profile emptiness teeth (I6)", () => {
+  const planNoOwner: BusinessPlanPayload = { ...plan, ownerProfile: "" }; // owner not captured
+
+  it("flags a single plan with no ownerProfile even when the critic approves", async () => {
+    const v = await critiqueBusinessPlan(
+      depsReturning('{"feasible":true,"specific":true,"feedback":""}'),
+      { plan: planNoOwner, capabilityBoundary: "boundary", env: {} },
+    );
+    expect(v.specific).toBe(false);
+    expect(v.feedback.toLowerCase()).toContain("owner");
+  });
+
+  it("flags a single plan with a trivially short ownerProfile", async () => {
+    const v = await critiqueBusinessPlan(
+      depsReturning('{"feasible":true,"specific":true,"feedback":""}'),
+      {
+        plan: { ...plan, ownerProfile: "ok" },
+        capabilityBoundary: "boundary",
+        env: {},
+      },
+    );
+    expect(v.specific).toBe(false);
+    expect(v.feedback.toLowerCase()).toContain("owner");
+  });
+
+  it("does NOT flag a plan that has a real ownerProfile when the critic approves", async () => {
+    const v = await critiqueBusinessPlan(
+      depsReturning('{"feasible":true,"specific":true,"feedback":""}'),
+      {
+        plan: {
+          ...plan,
+          ownerProfile: "Direto, valoriza dados, tem 2h por dia e topa risco médio.",
+        },
+        capabilityBoundary: "boundary",
+        env: {},
+      },
+    );
+    expect(v.specific).toBe(true);
+  });
+
+  it("flags an option set when ANY option has an empty ownerProfile", async () => {
+    const optionsWithEmptyOwner = solidOptions.map((o, i) =>
+      i === 1
+        ? { ...o, ownerProfile: "" }
+        : { ...o, ownerProfile: "Real owner profile here, with detail." },
+    );
+    const v = await critiqueBusinessPlan(
+      depsReturning('{"feasible":true,"specific":true,"feedback":""}'),
+      { options: optionsWithEmptyOwner, capabilityBoundary: "boundary", env: {} },
+    );
+    expect(v.specific).toBe(false);
+    expect(v.feedback.toLowerCase()).toContain("owner");
+  });
+
+  it("treats a garbled (missing feasible) verdict as not feasible when ownerProfile is empty", async () => {
+    // Runner returned JSON but with no `feasible` field; combined with an empty
+    // ownerProfile this must NOT pass.
+    const v = await critiqueBusinessPlan(depsReturning('{"specific":true,"feedback":""}'), {
+      plan: planNoOwner,
+      capabilityBoundary: "boundary",
+      env: {},
+    });
+    expect(v.feasible).toBe(false);
+  });
+
+  it("still fails OPEN when the runner throws, even with no ownerProfile (never deadlock)", async () => {
+    const v = await critiqueBusinessPlan(
+      { runDerivation: () => Promise.reject(new Error("boom")) },
+      { plan: planNoOwner, capabilityBoundary: "b", env: {} },
+    );
+    expect(v.feasible).toBe(true);
+    expect(v.specific).toBe(true);
+  });
+});
+
+describe("buildBusinessPlanOptionsCritiquePrompt — owner-profile instruction (I6)", () => {
+  it("instructs the critic to flag an absent or empty ownerProfile", () => {
+    const prompt = buildBusinessPlanOptionsCritiquePrompt(solidOptions, "boundary").toLowerCase();
+    expect(prompt).toContain("ownerprofile");
   });
 });
 

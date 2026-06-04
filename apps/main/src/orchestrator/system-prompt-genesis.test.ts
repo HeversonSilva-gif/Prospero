@@ -28,6 +28,14 @@ describe("buildGenesisSystemPromptBlock", () => {
   it("instructs an owner profile (P-steal #4)", () => {
     expect(block).toContain("ownerProfile");
   });
+  // Genesis audit I9 — the prompt must state ownerProfile is REQUIRED and must
+  // reflect the interview answers, mirroring the now-required Zod field.
+  it("states ownerProfile is required and reflects the interview (I9)", () => {
+    expect(block.toLowerCase()).toContain("required");
+    expect(block.toLowerCase()).toContain("interview");
+    // The owner-profile instruction sits in the same prose that says "required".
+    expect(block).toMatch(/ownerProfile[\s\S]{0,400}required|required[\s\S]{0,400}interview/i);
+  });
   it("embeds the capability boundary so its limit reaches the CEO (INV-2)", () => {
     // The boundary prose ("cannot" do design, etc.) must be present in the block,
     // not just referenced — otherwise "the capability section above" is dangling.
