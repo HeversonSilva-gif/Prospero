@@ -144,14 +144,39 @@ const sameTarget = (a: DigestEntry, b: DigestEntry): boolean =>
   a.sourceFiles.length === b.sourceFiles.length &&
   [...a.sourceFiles].sort().join("|") === [...b.sourceFiles].sort().join("|");
 
+// Generous cap on the number of digest entries kept on disk. Injection is
+// already bounded to ~6144 chars (~30-50 entries) by trust decay, so this cap is
+// far above what is ever surfaced — it only stops the JSON from growing
+// unbounded across many compactions. Pruning above it can't lose knowledge that
+// would have been injected.
+const DIGEST_ENTRY_CAP = 300;
+
+// Value ranking for pruning: trust dominates, then how often the entry has
+// proven useful (accessCount), then how recently it was derived (freshness).
+// Mirrors the spirit of the injection ranking without needing a clock.
+const byValueDesc = (a: DigestEntry, b: DigestEntry): number =>
+  b.trust - a.trust || b.accessCount - a.accessCount || b.derivedAt - a.derivedAt;
+
 export const foldEntries = (base: DigestEntry[], incoming: DigestEntry[]): DigestEntry[] => {
   const out = [...base];
+  const freshIds = new Set<string>();
   for (const inc of incoming) {
     const idx = out.findIndex((e) => sameTarget(e, inc));
     if (idx >= 0) out[idx] = inc;
-    else out.push(inc);
+    else {
+      out.push(inc);
+      freshIds.add(inc.id);
+    }
   }
-  return out;
+  if (out.length <= DIGEST_ENTRY_CAP) return out;
+  // Over the cap: ALWAYS keep this batch's freshly-appended entries (just-learned
+  // knowledge must land), then fill the remaining slots with the highest-value
+  // older entries and drop the rest. Result preserves the original order.
+  const older = out.filter((e) => !freshIds.has(e.id)).sort(byValueDesc);
+  const keepOlder = new Set(
+    older.slice(0, Math.max(0, DIGEST_ENTRY_CAP - freshIds.size)).map((e) => e.id),
+  );
+  return out.filter((e) => freshIds.has(e.id) || keepOlder.has(e.id));
 };
 
 export const foldDeepDives = (base: DeepDive[], incoming: DeepDive[]): DeepDive[] => {

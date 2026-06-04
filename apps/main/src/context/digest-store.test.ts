@@ -79,6 +79,29 @@ describe("digest-store", () => {
     expect(foldEntries(base, incoming)).toHaveLength(2);
   });
 
+  it("foldEntries caps the digest, dropping the lowest-value older entries", () => {
+    const base: DigestEntry[] = [];
+    for (let i = 0; i < 300; i += 1) {
+      base.push(entry({ id: `b${String(i)}`, sourceFiles: [`f${String(i)}.ts`], trust: i / 300 }));
+    }
+    const incoming = [entry({ id: "fresh", sourceFiles: ["new.ts"], trust: 0.5, derivedAt: 999 })];
+    const merged = foldEntries(base, incoming);
+    expect(merged).toHaveLength(300);
+    expect(merged.some((e) => e.id === "fresh")).toBe(true); // fresh knowledge kept
+    expect(merged.some((e) => e.id === "b0")).toBe(false); // lowest-trust (0) dropped
+  });
+
+  it("foldEntries never drops a freshly-appended entry, even at the lowest trust", () => {
+    const base: DigestEntry[] = [];
+    for (let i = 0; i < 300; i += 1) {
+      base.push(entry({ id: `b${String(i)}`, sourceFiles: [`f${String(i)}.ts`], trust: 0.9 }));
+    }
+    const incoming = [entry({ id: "fresh", sourceFiles: ["new.ts"], trust: 0.01 })];
+    const merged = foldEntries(base, incoming);
+    expect(merged).toHaveLength(300);
+    expect(merged.some((e) => e.id === "fresh")).toBe(true); // survives despite lowest trust
+  });
+
   it("readDigest fills missing trust/accessCount/deepDives defaults", () => {
     writeDigest(dir, "co_1", "pr_x", {
       version: 1,
