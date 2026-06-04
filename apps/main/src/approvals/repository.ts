@@ -63,6 +63,10 @@ export type ApprovalsRepository = {
   incrementBounceCount(id: string): void;
   listPendingRoutedToUserForBounce(cutoffCreatedAt: number): Approval[];
   setCoalescedWith(id: string, headId: string): void;
+  /** Distinct agent ids that have at least one still-pending approval. Used by
+   *  the stuck-`waiting` heal to tell a legitimately-blocked agent apart from a
+   *  zombie whose blocker already resolved. */
+  pendingAgentIds(): string[];
 };
 
 export const createApprovalsRepository = (db: Database.Database): ApprovalsRepository => {
@@ -101,6 +105,9 @@ export const createApprovalsRepository = (db: Database.Database): ApprovalsRepos
       ORDER BY created_at ASC`,
   );
   const setCoalescedWithStmt = db.prepare("UPDATE approvals SET coalesced_with = ? WHERE id = ?");
+  const pendingAgentIdsStmt = db.prepare(
+    "SELECT DISTINCT agent_id FROM approvals WHERE status = 'pending' AND agent_id IS NOT NULL",
+  );
 
   return {
     create(input) {
@@ -141,6 +148,9 @@ export const createApprovalsRepository = (db: Database.Database): ApprovalsRepos
     },
     setCoalescedWith(id, headId) {
       setCoalescedWithStmt.run(headId, id);
+    },
+    pendingAgentIds() {
+      return (pendingAgentIdsStmt.all() as Array<{ agent_id: string }>).map((r) => r.agent_id);
     },
   };
 };

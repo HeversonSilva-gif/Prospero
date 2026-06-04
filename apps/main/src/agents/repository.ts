@@ -152,6 +152,10 @@ export type AgentsRepository = {
    *  the scheduler re-enable a stuck agent WITHOUT an app restart (boot-heal only
    *  runs at startup). Used with a per-agent retry cap to avoid respawn storms. */
   listErroredAgentIds(): string[];
+  /** Runtime heal input: non-terminated agents currently in `waiting` (id +
+   *  updatedAt). A `waiting` agent whose blocking approval already resolved is a
+   *  stuck zombie; see stuck-waiting.ts. */
+  listWaitingAgents(): Array<{ id: string; updatedAt: number }>;
 };
 
 // `recorder` is optional so existing test setups (`createAgentsRepository(db)`)
@@ -582,6 +586,15 @@ export const createAgentsRepository = (
           .prepare("SELECT id FROM agents WHERE status = 'error' AND terminated_at IS NULL")
           .all() as Array<{ id: string }>
       ).map((r) => r.id);
+    },
+    listWaitingAgents() {
+      return (
+        db
+          .prepare(
+            "SELECT id, updated_at FROM agents WHERE status = 'waiting' AND terminated_at IS NULL",
+          )
+          .all() as Array<{ id: string; updated_at: number }>
+      ).map((r) => ({ id: r.id, updatedAt: r.updated_at }));
     },
     setRole(id, roleTemplateId, opts) {
       const role = db
