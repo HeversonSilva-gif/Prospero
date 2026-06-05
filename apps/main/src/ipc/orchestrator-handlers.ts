@@ -57,6 +57,7 @@ import {
 } from "../auth/credential-recovery.js";
 import { computeLaneSchedule } from "../orchestrator/scheduler.js";
 import { stuckWaitingAgentIds } from "../orchestrator/stuck-waiting.js";
+import { computeIdleAssigneesToWake } from "../orchestrator/idle-assignee-wake.js";
 import { startSchedulerTick } from "../orchestrator/scheduler-tick.js";
 import {
   computeReconcileDecision,
@@ -2850,6 +2851,27 @@ export const registerOrchestratorHandlers = (
       return out;
     };
     const reconcileLastWakeByCeo = new Map<string, number>();
+    // Per-worker last direct-wake timestamp (issue-board re-engagement, below).
+    // In-RAM: a restart promptly re-engages all assigned work (the desired heal).
+    const reengageLastWakeByWorker = new Map<string, number>();
+    // Re-wake debounce for an idle assignee that already owns open work. The first
+    // detection is prompt (no entry → woken within one 60s tick); this only bounds
+    // RE-wakes so a worker that can't progress doesn't burn a turn every minute. A
+    // productive wake is told to clear ALL its open issues in one turn, so this is
+    // mostly a storm-guard for the genuinely-stuck case.
+    const WORKER_REENGAGE_DEBOUNCE_MS = 5 * 60_000;
+    // Builds the re-engage nudge for an idle assignee, naming up to 3 of its open
+    // issues so the worker can act without first calling list_issues.
+    const buildReengageMessage = (titles: string[]): string => {
+      const shown = titles.slice(0, 3).map((t) => `- ${t}`);
+      const more = titles.length > 3 ? `\n(+${String(titles.length - 3)} outra(s))` : "";
+      return [
+        "[CONTINUAR TRABALHO] Você tem tarefas atribuídas em aberto que ninguém está tocando:",
+        shown.join("\n") + more,
+        "",
+        "Trabalhe em TODAS elas nesta sessão (não só uma): use check_status / list_issues para revê-las e update_issue para avançar cada uma. Mova para 'review' (ou 'done' se não exigir revisão) ao concluir. Se estiver realmente bloqueado em alguma, comente nela com comment_on_issue e siga para a próxima.",
+      ].join("\n");
+    };
     // How long after a reconciler-driven CEO wake we suppress another one. This ONLY
     // throttles the board-reconciliation safety net (idle CEO + work waiting); event-driven
     // wakes — a worker messaging the CEO, an approval routing to it — are never throttled
@@ -2894,6 +2916,45 @@ export const registerOrchestratorHandlers = (
           deliverSystemMessage(decision.ceoId, decision.summary);
           reconcileLastWakeByCeo.set(decision.ceoId, Date.now());
           console.log(`[reconcile] woke CEO ${decision.ceoId} for company ${companyId}`);
+        }
+
+        // Issue-board-driven worker re-engagement (the cure for the recurring
+        // freeze). The CEO above is the orchestrator for review/new-assignment;
+        // this directly wakes idle workers that ALREADY own open work so it never
+        // stalls behind an unreliable CEO. Group the company's open (todo/doing)
+        // issues by assignee in one pass, then wake each eligible idle assignee.
+        const openByAssignee = new Map<string, string[]>();
+        for (const iss of [
+          ...issuesRepo.list({ companyId, status: "todo" }),
+          ...issuesRepo.list({ companyId, status: "doing" }),
+        ]) {
+          if (iss.assigneeId === null) continue;
+          const arr = openByAssignee.get(iss.assigneeId) ?? [];
+          arr.push(iss.title);
+          openByAssignee.set(iss.assigneeId, arr);
+        }
+        const pendingApprovalIds = new Set(createApprovalsRepository(db).pendingAgentIds());
+        const workers = roster
+          .filter((a) => a.terminatedAt === null && !isCeoAgent(a) && a.status === "idle")
+          .map((a) => ({
+            id: a.id,
+            engaged: isEngaged(a),
+            blockedOnApproval: pendingApprovalIds.has(a.id),
+            actionableIssueCount: (openByAssignee.get(a.id) ?? []).length,
+          }));
+        const toWake = computeIdleAssigneesToWake({
+          workers,
+          lastWakeAt: reengageLastWakeByWorker,
+          now: Date.now(),
+          debounceMs: WORKER_REENGAGE_DEBOUNCE_MS,
+        });
+        for (const id of toWake) {
+          const titles = openByAssignee.get(id) ?? [];
+          deliverSystemMessage(id, buildReengageMessage(titles));
+          reengageLastWakeByWorker.set(id, Date.now());
+          console.log(
+            `[reconcile] re-engaged idle assignee ${id} (${String(titles.length)} open issue(s)) for company ${companyId}`,
+          );
         }
       }
     };
