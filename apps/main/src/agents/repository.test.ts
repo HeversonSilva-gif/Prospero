@@ -327,6 +327,40 @@ describe("resetStuckAgents", () => {
   });
 });
 
+describe("clearStalePauseReasons", () => {
+  it("clears pause_reason on non-paused rows; leaves paused and terminated alone", () => {
+    const db = setupDb();
+    const repo = createAgentsRepository(db);
+    const now = Date.now();
+    const insertAgent = (
+      id: string,
+      status: string,
+      pauseReason: string | null,
+      terminatedAt: number | null = null,
+    ) => {
+      db.prepare(
+        `INSERT INTO agents (id, company_id, name, role, system_prompt, capabilities_json, allowed_projects_json, mode, always_on, status, pause_reason, terminated_at, created_at, updated_at)
+         VALUES (?, 'c1', ?, 'tester', 'p', '[]', '[]', 'supervised', 0, ?, ?, ?, ?, ?)`,
+      ).run(id, id, status, pauseReason, terminatedAt, now, now);
+    };
+
+    insertAgent("ghost-idle", "idle", "auth"); // the bug: idle + stale reason → clear
+    insertAgent("ghost-waiting", "waiting", "auth"); // also stale → clear
+    insertAgent("clean-idle", "idle", null); // nothing to do
+    insertAgent("really-paused", "paused", "auth"); // legitimately paused → keep
+    insertAgent("terminated", "idle", "auth", now); // terminated → leave alone
+
+    const count = repo.clearStalePauseReasons();
+
+    expect(count).toBe(2); // ghost-idle + ghost-waiting
+    expect(repo.getById("ghost-idle")?.pauseReason).toBeNull();
+    expect(repo.getById("ghost-waiting")?.pauseReason).toBeNull();
+    expect(repo.getById("clean-idle")?.pauseReason).toBeNull();
+    expect(repo.getById("really-paused")?.pauseReason).toBe("auth");
+    expect(repo.getById("terminated")?.pauseReason).toBe("auth");
+  });
+});
+
 describe("trust tier (M14 PR-A)", () => {
   it("rowToAgent reads trust_tier — defaults to novato for a fresh hire", () => {
     const db = setupDb();

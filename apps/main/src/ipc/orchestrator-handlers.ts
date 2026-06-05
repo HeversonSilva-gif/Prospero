@@ -348,6 +348,14 @@ export const registerOrchestratorHandlers = (
   const stuckReset = agents.resetStuckAgents();
   if (stuckReset > 0) console.warn(`[boot] reset ${String(stuckReset)} stuck agent(s) to idle`);
 
+  // Boot heal: enforce "pause_reason is set only while status='paused'". A paused
+  // agent re-spawned by the (now-guarded) drain/agent.deliver paths was flipped
+  // thinking→idle without clearing its reason, leaving an "idle + pause_reason=auth"
+  // ghost that confused the runtime. Clears any such stale reason. See Wave 2.
+  const reasonsCleared = agents.clearStalePauseReasons();
+  if (reasonsCleared > 0)
+    console.warn(`[boot] cleared ${String(reasonsCleared)} stale pause_reason(s)`);
+
   // Boot heal: a terminated agent whose status drifted to idle (the pre-fix
   // resume bug) is a "zombie" — it shows in the status-filtered roster and
   // silently swallows user messages. Force status back to 'terminated'.
@@ -1909,6 +1917,16 @@ export const registerOrchestratorHandlers = (
     // marker; a zombie row whose status was reset to 'idle' must stay dead.
     if (agent.terminatedAt !== null) return;
 
+    // Never spawn a paused agent. Pause (budget / rate-limit / auth-breaker /
+    // manual) is authoritative — a deliberate "do not run". This is the single
+    // chokepoint every spawn flows through, so it honors a pause regardless of
+    // the caller (drain, agent.deliver from message_agent, reconciler wake).
+    // Resuming (manual, or the rate-limit window reset) flips status→idle FIRST,
+    // so legitimate re-engagement is unaffected. Without this a paused agent with
+    // a queued message gets re-spawned, un-pausing itself + stranding a stale
+    // pause_reason (the idle+auth ghost). Audit 2026-06-05 Wave 2 (B2).
+    if (agent.status === "paused") return;
+
     // A spawn for this agent is already in flight — bail (see `spawning` above).
     if (spawning.has(agent.id)) return;
 
@@ -2138,8 +2156,15 @@ export const registerOrchestratorHandlers = (
       .listPendingAgentIds()
       // pending work but no live adapter, AND not itself blocked on an approval
       // (a parked agent has nothing to do until its approval is decided — don't
-      // re-spawn it into the slot we just reclaimed; the re-engage sweep wakes it).
-      .filter((id) => !runningSet.has(id) && (agents.getById(id)?.status ?? "idle") !== "waiting")
+      // re-spawn it into the slot we just reclaimed; the re-engage sweep wakes it),
+      // AND not paused (a deliberate "do not run" — ensureAgentRunner refuses it
+      // too, but excluding it here avoids evicting a live agent to free a slot the
+      // paused one will never use). Audit 2026-06-05 Wave 2 (B2).
+      .filter((id) => {
+        if (runningSet.has(id)) return false;
+        const st = agents.getById(id)?.status ?? "idle";
+        return st !== "waiting" && st !== "paused";
+      })
       .map((id) => ({ id, isCeo: isCeoId(id), hasWork: true }));
     if (running.length === 0 && waiting.length === 0) return; // short-circuit common idle case
     // Lane-aware: reserve one slot so the CEO can always spawn to decide approvals.
