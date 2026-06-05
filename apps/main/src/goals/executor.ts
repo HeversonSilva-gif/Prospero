@@ -3,6 +3,7 @@ import { resolveModelPreset } from "../agents/model-presets.js";
 import { createGoalsRepository } from "./repository.js";
 import { createGoalPlansRepository } from "./plans-repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
+import { resolveRoleTitle } from "../agents/role-title.js";
 import { createIssuesRepository } from "../issues/repository.js";
 import { createGoalCriteriaRepository } from "./criteria-repository.js";
 import { createIssueCriteriaRepository } from "./issue-criteria-repository.js";
@@ -126,7 +127,9 @@ export const executePlanAtomic = (
         const created = agentsRepo.create({
           companyId: goal.companyId,
           name: a.name,
-          role: a.roleTemplateId,
+          // Human role title, NOT the raw template id — matches applyOrgPlan and
+          // prevents confusing "role_xxxx" duplicate-looking rows (audit Wave 4).
+          role: resolveRoleTitle(db, a.roleTemplateId),
           systemPrompt: a.personaSummary,
           mode: "supervised",
           alwaysOn: false,

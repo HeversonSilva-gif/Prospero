@@ -59,6 +59,7 @@ import {
 import { computeLaneSchedule } from "../orchestrator/scheduler.js";
 import { stuckWaitingAgentIds } from "../orchestrator/stuck-waiting.js";
 import { computeIdleAssigneesToWake } from "../orchestrator/idle-assignee-wake.js";
+import { staleApprovalIdsToExpire } from "../approvals/stale-sweep.js";
 import { startSchedulerTick } from "../orchestrator/scheduler-tick.js";
 import {
   computeReconcileDecision,
@@ -2928,10 +2929,43 @@ export const registerOrchestratorHandlers = (
     // pure latency-vs-token-volume trade (the CEO reviews the board a few minutes later, with
     // identical reasoning), cutting reconciler-driven CEO wakes ~3x under steady review traffic.
     const RECONCILE_DEBOUNCE_MS = 10 * 60_000;
+    // An orphaned pending approval (the agent moved on but the decision was lost)
+    // keeps that agent in pendingAgentIds() forever, so the idle-assignee
+    // re-engagement treats it as "blocked on a decision" and never wakes it
+    // (observed 2026-06-05: a 20h-old approval for an idle agent). Expire orphans
+    // past this TTL whose agent is NOT currently waiting on them. Generous so a
+    // slow-but-legitimate human decision (agent IS waiting → excluded anyway) and
+    // the fresh create→waiting race are both safe. Audit 2026-06-05 Wave 4.
+    const STALE_APPROVAL_TTL_MS = 2 * 60 * 60_000;
+    const sweepStaleApprovals = (): void => {
+      const apvRepo = createApprovalsRepository(db);
+      const waitingIds = new Set(agents.listWaitingAgents().map((w) => w.id));
+      const stale = staleApprovalIdsToExpire({
+        pending: apvRepo.listPendingForStaleSweep(),
+        waitingAgentIds: waitingIds,
+        now: Date.now(),
+        ttlMs: STALE_APPROVAL_TTL_MS,
+      });
+      for (const id of stale) {
+        apvRepo.decide(
+          id,
+          "expired",
+          "system:stale-sweep",
+          "auto-expired: pending past TTL while the assignee was not waiting on it",
+        );
+      }
+      if (stale.length > 0) {
+        console.warn(`[reconcile] expired ${String(stale.length)} orphaned approval(s)`);
+      }
+    };
+
     const reconcileTick = (): void => {
       // Don't reconcile while the team is parked on a Max rate-limit window.
       const rlUntil = settingsRepo.read().rateLimitedUntil;
       if (rlUntil !== null && Date.now() < rlUntil) return;
+      // Clear orphaned approvals FIRST so a freshly-unblocked agent is eligible for
+      // re-engagement in this same tick.
+      sweepStaleApprovals();
       const companyRows = db.prepare("SELECT id FROM companies").all() as { id: string }[];
       for (const { id: companyId } of companyRows) {
         const roster = agents.listByCompany(companyId);

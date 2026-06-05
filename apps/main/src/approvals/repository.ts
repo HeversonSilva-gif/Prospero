@@ -67,6 +67,10 @@ export type ApprovalsRepository = {
    *  the stuck-`waiting` heal to tell a legitimately-blocked agent apart from a
    *  zombie whose blocker already resolved. */
   pendingAgentIds(): string[];
+  /** All still-pending approvals that have an agent, as (id, agentId, createdAt).
+   *  Feeds the stale-approval sweep (stale-sweep.ts), which expires orphans so a
+   *  lost decision can't keep an idle agent flagged "blocked" forever. */
+  listPendingForStaleSweep(): Array<{ id: string; agentId: string; createdAt: number }>;
 };
 
 export const createApprovalsRepository = (db: Database.Database): ApprovalsRepository => {
@@ -107,6 +111,9 @@ export const createApprovalsRepository = (db: Database.Database): ApprovalsRepos
   const setCoalescedWithStmt = db.prepare("UPDATE approvals SET coalesced_with = ? WHERE id = ?");
   const pendingAgentIdsStmt = db.prepare(
     "SELECT DISTINCT agent_id FROM approvals WHERE status = 'pending' AND agent_id IS NOT NULL",
+  );
+  const pendingForStaleSweepStmt = db.prepare(
+    "SELECT id, agent_id, created_at FROM approvals WHERE status = 'pending' AND agent_id IS NOT NULL",
   );
 
   return {
@@ -151,6 +158,15 @@ export const createApprovalsRepository = (db: Database.Database): ApprovalsRepos
     },
     pendingAgentIds() {
       return (pendingAgentIdsStmt.all() as Array<{ agent_id: string }>).map((r) => r.agent_id);
+    },
+    listPendingForStaleSweep() {
+      return (
+        pendingForStaleSweepStmt.all() as Array<{
+          id: string;
+          agent_id: string;
+          created_at: number;
+        }>
+      ).map((r) => ({ id: r.id, agentId: r.agent_id, createdAt: r.created_at }));
     },
   };
 };
