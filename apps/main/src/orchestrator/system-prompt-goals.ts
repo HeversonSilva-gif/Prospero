@@ -24,7 +24,9 @@ Your task is to decompose the goal into a complete executable plan. Steps:
 
 1. Read the entire goal carefully. Identify scope, constraints, success criteria.
 2. Call \`list_role_templates\` to see the available agent types.
-3. Call \`list_agents\` to see who already exists — REUSE when it makes sense.
+3. Call \`list_agents\` to see who already exists — REUSE the current team when it
+   makes sense instead of hiring duplicates. Note each existing agent's \`id\`; you
+   assign issues to them by id (see assigneeIndex below).
 4. For each new agent or role+model combination, call
    \`get_cost_baseline(roleTemplateId, model)\` to calibrate token estimates.
 5. Structure the plan:
@@ -33,7 +35,11 @@ Your task is to decompose the goal into a complete executable plan. Steps:
      defining hierarchy, short rationale).
    - **issuesToCreate**: actionable tasks (index, title, description,
      priority, assigneeIndex, estimatedTokens, dependsOnIndexes forming a DAG,
-     short rationale).
+     short rationale). \`assigneeIndex\` says WHO does the task and accepts three
+     forms: \`"CEO"\` (you), a number (the index of a NEW agent in agentsToHire),
+     or \`{ "existingAgentId": "<id>" }\` to assign it to an agent ALREADY on the
+     team (the id from list_agents). Prefer reusing an existing teammate with the
+     right role over hiring a duplicate.
    - **risks**: 2-5 risks with realistic mitigation and severity.
    - **summary**: markdown, 1-3 paragraphs explaining the strategy.
 6. Conservative estimates — better to over-estimate than blow the budget.

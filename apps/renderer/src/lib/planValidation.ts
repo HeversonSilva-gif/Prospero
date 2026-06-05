@@ -34,7 +34,9 @@ export const validatePlanSelection = (
 
   for (const i of plan.issuesToCreate) {
     if (!filter.includedIssueIndexes.has(i.index)) continue;
-    if (i.assigneeIndex !== "CEO" && !filter.includedAgentIndexes.has(i.assigneeIndex)) {
+    // Only a fresh-hire (numeric) assignee can be excluded by the agent filter.
+    // "CEO" and existing-team-member assignees are always available.
+    if (typeof i.assigneeIndex === "number" && !filter.includedAgentIndexes.has(i.assigneeIndex)) {
       errors.push({
         kind: "issue-assignee-excluded",
         issueIndex: i.index,

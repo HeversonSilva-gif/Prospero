@@ -167,6 +167,7 @@
     "plan": {
       "versionLabel": "Plano v{{version}}",
       "proposedBy": "proposto pelo CEO",
+      "existingMember": "Membro do time",
       "summary": "Resumo",
       "expand": "Detalhes",
       "collapse": "Recolher",

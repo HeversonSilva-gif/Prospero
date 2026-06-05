@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { AgentToHire, Goal, GoalPlan, IssuePriority, IssueToCreate } from "@prospero/shared";
 import type { CriterionKind } from "@prospero/shared";
 import { useGoalsStore } from "../stores/goals.js";
+import { useAgentsStore } from "../stores/agents.js";
 import { useBudgetsStore } from "../stores/budgets.js";
 import { useSettingsStore } from "../stores/settings.js";
 import { useIsaStore } from "../stores/isa.js";
@@ -60,6 +61,7 @@ export const GoalPlanReview: FC<{ plan: GoalPlan; goal: Goal }> = ({ plan, goal 
   const approvePlan = useGoalsStore((s) => s.approvePlan);
   const requestChanges = useGoalsStore((s) => s.requestChanges);
   const rejectPlan = useGoalsStore((s) => s.rejectPlan);
+  const roster = useAgentsStore((s) => s.agents);
   const budgets = useBudgetsStore((s) => s.budgets);
   const loadBudgets = useBudgetsStore((s) => s.load);
   const budgetsLoaded = useBudgetsStore((s) => s.loaded);
@@ -246,10 +248,15 @@ export const GoalPlanReview: FC<{ plan: GoalPlan; goal: Goal }> = ({ plan, goal 
 
   // Build accordion items for issues.
   const issueItems: AccordionItem[] = plan.issuesToCreate.map((i: IssueToCreate) => {
+    const ref = i.assigneeIndex;
     const assigneeLabel =
-      i.assigneeIndex === "CEO"
+      ref === "CEO"
         ? "CEO"
-        : (agentsByIndex.get(i.assigneeIndex)?.name ?? `#${i.assigneeIndex}`);
+        : typeof ref === "number"
+          ? (agentsByIndex.get(ref)?.name ?? `#${ref}`)
+          : // Existing team member by id — resolve its name from the live roster.
+            (roster.find((a) => a.id === ref.existingAgentId)?.name ??
+            t("goals.plan.existingMember"));
     const badge = PRIORITY_BADGE[i.priority];
     return {
       id: `issue-${String(i.index)}`,
