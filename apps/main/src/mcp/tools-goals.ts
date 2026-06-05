@@ -8,6 +8,7 @@ import { createAgentsRepository } from "../agents/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
 import { createGoalCriteriaRepository } from "../goals/criteria-repository.js";
 import { createIssueCriteriaRepository } from "../goals/issue-criteria-repository.js";
+import { resolvePlanAssignee } from "../goals/resolve-assignee.js";
 import { resolveModelPreset } from "../agents/model-presets.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { getCostBaseline } from "../costs/baseline.js";
@@ -503,16 +504,15 @@ const createIssueForPlan: Tool = {
     if (state.issueIndexToId[planIndex] !== undefined) {
       return JSON.stringify({ issueId: state.issueIndexToId[planIndex], existing: true });
     }
-    let assigneeId: string;
-    if (issueSpec.assigneeIndex === "CEO") {
-      assigneeId = state.ceoId;
-    } else {
-      const resolved = state.agentIndexToId[issueSpec.assigneeIndex];
-      if (resolved === undefined) {
-        throw new Error(`assignee #${issueSpec.assigneeIndex} not yet hired`);
-      }
-      assigneeId = resolved;
-    }
+    const assigneeId = resolvePlanAssignee(issueSpec.assigneeIndex, {
+      ceoId: state.ceoId,
+      companyId: ctx.companyId,
+      freshHire: (i) => state.agentIndexToId[i],
+      existingAgent: (id) => {
+        const a = createAgentsRepository(ctx.db).getById(id);
+        return a === null ? null : { companyId: a.companyId, terminatedAt: a.terminatedAt };
+      },
+    });
     const dependsOnIds: string[] = [];
     for (const depIdx of issueSpec.dependsOnIndexes) {
       const resolved = state.issueIndexToId[depIdx];

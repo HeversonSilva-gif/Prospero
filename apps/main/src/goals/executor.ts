@@ -9,6 +9,7 @@ import { createIssueCriteriaRepository } from "./issue-criteria-repository.js";
 import { createSettingsRepository } from "../settings/repository.js";
 import { tryGetRecorder } from "../activity/index.js";
 import { executePlanNarrated } from "./executor-narrated.js";
+import { resolvePlanAssignee } from "./resolve-assignee.js";
 import {
   isCeoAgent,
   type AgentToHire,
@@ -144,19 +145,23 @@ export const executePlanAtomic = (
 
       for (const issue of sortedIssues) {
         let assigneeId: string;
-        if (issue.assigneeIndex === "CEO") {
-          assigneeId = ceo.id;
-        } else {
-          const resolved = indexToAgentId.get(issue.assigneeIndex);
-          if (resolved === undefined) {
-            throw Object.assign(
-              new Error(
-                `issue index ${issue.index} assignee_index ${issue.assigneeIndex} unresolved (likely excluded by filter)`,
-              ),
-              { step: "resolve-assignee" },
-            );
-          }
-          assigneeId = resolved;
+        try {
+          assigneeId = resolvePlanAssignee(issue.assigneeIndex, {
+            ceoId: ceo.id,
+            companyId: goal.companyId,
+            freshHire: (i) => indexToAgentId.get(i),
+            // Reuse the already-loaded roster — no extra query per issue.
+            existingAgent: (id) => {
+              const found = allAgents.find((a) => a.id === id);
+              return found === undefined
+                ? null
+                : { companyId: found.companyId, terminatedAt: found.terminatedAt };
+            },
+          });
+        } catch (err) {
+          throw Object.assign(new Error(`issue index ${issue.index}: ${(err as Error).message}`), {
+            step: "resolve-assignee",
+          });
         }
         const created = issuesRepo.create(
           {

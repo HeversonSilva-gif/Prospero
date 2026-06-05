@@ -1,8 +1,9 @@
-import type { Goal, GoalPlan } from "@prospero/shared";
+import type { Goal, GoalPlan, PlanAssigneeRef } from "@prospero/shared";
 
 const fmtReportsTo = (r: number | "CEO"): string => (r === "CEO" ? "CEO" : `#${r}`);
 
-const fmtAssignee = (a: number | "CEO"): string => (a === "CEO" ? "CEO" : `#${a}`);
+const fmtAssignee = (a: PlanAssigneeRef): string =>
+  a === "CEO" ? "CEO" : typeof a === "number" ? `#${a}` : `existing:${a.existingAgentId}`;
 
 // Builds the [GOAL_EXECUTE_REQUEST] turn payload enqueued for the CEO when
 // narrated execution starts. The CEO uses the listed MCP tools to instantiate

@@ -3,6 +3,21 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.12 — 2026-06-04
+
+Correção de um problema que você encontrou ao pedir uma meta ao CEO: o plano não
+deixava reutilizar o time que a empresa já tem.
+
+### Metas reutilizam o time existente
+
+- **O plano de uma meta agora pode atribuir tarefas a quem já está no time.** Antes,
+  ao montar o plano, o CEO só conseguia dar tarefas a si mesmo ou a agentes que ele
+  **contratava novos** ali mesmo — não havia como aproveitar quem já existe. Ele era
+  até instruído a "reutilizar o time quando fizer sentido", mas o formato do plano
+  não permitia. Agora permite: o CEO pode atribuir cada tarefa a um membro atual do
+  time, em vez de contratar uma cópia do mesmo papel. A tela de revisão do plano
+  mostra o nome de quem vai ficar com cada tarefa.
+
 ## v0.2.11 — 2026-06-04
 
 Correção de dois bugs que você encontrou testando: criar metas e o CEO que às

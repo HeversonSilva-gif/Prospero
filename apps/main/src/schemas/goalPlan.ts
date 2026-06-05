@@ -12,6 +12,17 @@ export { MODEL_PRESETS } from "../agents/model-presets.js";
 
 const indexRef = z.union([z.number().int().nonnegative(), z.literal("CEO")]);
 
+// An issue's assignee can be: a fresh hire (index into agentsToHire), the CEO, OR
+// an EXISTING team member by id ({ existingAgentId }). The last form is what lets
+// a plan REUSE the team the company already has — the CEO is instructed to reuse
+// (list_agents → "REUSE when it makes sense") but without this had no way to
+// express it, so it could only assign to itself or to brand-new hires.
+const assigneeRef = z.union([
+  z.number().int().nonnegative(),
+  z.literal("CEO"),
+  z.object({ existingAgentId: z.string().min(1) }),
+]);
+
 const AgentToHireSchema = z.object({
   index: z.number().int().nonnegative(),
   name: z.string().min(1).max(80),
@@ -28,7 +39,7 @@ const IssueToCreateSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(5000),
   priority: z.enum(["low", "medium", "high", "urgent"]),
-  assigneeIndex: indexRef,
+  assigneeIndex: assigneeRef,
   estimatedTokens: z.number().int().positive(),
   dependsOnIndexes: z.array(z.number().int().nonnegative()).max(20),
   advancesCriteria: z.array(z.string().min(1).max(120)).max(50).optional(),
@@ -135,7 +146,10 @@ export const GoalPlanPayloadSchema = z
     }
 
     for (const i of data.issuesToCreate) {
-      if (i.assigneeIndex !== "CEO") {
+      // Only the numeric (fresh-hire index) form is range-checked here. "CEO" and
+      // the { existingAgentId } form reference agents that exist at execution time,
+      // not at parse time — the executor validates the id against the live roster.
+      if (typeof i.assigneeIndex === "number") {
         const a = i.assigneeIndex;
         if (a < 0 || a >= agentCount) {
           ctx.addIssue({

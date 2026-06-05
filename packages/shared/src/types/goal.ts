@@ -50,12 +50,16 @@ export interface AgentToHire {
   rationale: string;
 }
 
+// An issue's assignee: a fresh hire (index into agentsToHire), the CEO, or an
+// existing team member by id (lets a plan reuse the company's current team).
+export type PlanAssigneeRef = number | "CEO" | { existingAgentId: string };
+
 export interface IssueToCreate {
   index: number;
   title: string;
   description: string;
   priority: IssuePriority;
-  assigneeIndex: number | "CEO";
+  assigneeIndex: PlanAssigneeRef;
   estimatedTokens: number;
   dependsOnIndexes: number[];
   // M13 — ids of goal_criteria (ISCs) this issue advances. Optional: existing

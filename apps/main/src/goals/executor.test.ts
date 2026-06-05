@@ -7,6 +7,7 @@ import { createGoalPlansRepository } from "./plans-repository.js";
 import { createGoalCriteriaRepository } from "./criteria-repository.js";
 import { createCompaniesRepository } from "../companies/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
+import { createIssuesRepository } from "../issues/repository.js";
 import type { AgentToHire, IssueToCreate } from "@prospero/shared";
 
 const setup = (): {
@@ -138,6 +139,41 @@ describe("executePlan", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.hiredAgentIds).toHaveLength(1);
+  });
+
+  it("assigns an issue to an EXISTING team member (no new hire) — reuse the team", () => {
+    // Bug (2026-06-04): a plan could only assign to the CEO or a fresh hire, never
+    // an agent already on the team. Now { existingAgentId } reuses the current team.
+    const worker = createAgentsRepository(env.db).create({
+      companyId: env.companyId,
+      name: "Existing Dev",
+      role: "engineer",
+      systemPrompt: "x",
+      mode: "supervised",
+      alwaysOn: false,
+      model: "sonnet-4",
+      templateId: "engineer",
+    });
+    const { planId } = createApprovedReady(
+      [], // no new hires
+      [issueInput({ index: 0, assigneeIndex: { existingAgentId: worker.id } })],
+    );
+    const result = executePlan(env.db, planId);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.hiredAgentIds).toHaveLength(0); // reused, not hired
+    expect(result.createdIssueIds).toHaveLength(1);
+    const issue = createIssuesRepository(env.db).getById(result.createdIssueIds[0]!);
+    expect(issue?.assigneeId).toBe(worker.id);
+  });
+
+  it("rolls back when an existing-agent assignee id does not exist", () => {
+    const { planId } = createApprovedReady(
+      [],
+      [issueInput({ index: 0, assigneeIndex: { existingAgentId: "agent_ghost" } })],
+    );
+    const result = executePlan(env.db, planId);
+    expect(result.ok).toBe(false);
   });
 
   it("rolls back if filter leaves an issue's assignee unresolved", () => {
