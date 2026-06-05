@@ -52,6 +52,7 @@ import {
 import {
   setRecoveryBroadcastFn,
   setRecoveryPauseFn,
+  setRecoveryResumeFn,
   setRespawnFn,
   setUserDataDir,
 } from "../auth/credential-recovery.js";
@@ -1901,6 +1902,28 @@ export const registerOrchestratorHandlers = (
       });
       broadcastInboxUpdate(a.companyId);
     }
+  });
+
+  // Reconnect revives auth-paused agents. recoverAllRunning only recovers LIVE
+  // adapters, so the breaker's auth-paused agents (adapter killed) would stay dead
+  // until a restart — the dead-end the user hit. On user-reconnect, flip them back
+  // to idle + broadcast so the renderer updates and the reconciler re-engages them
+  // (they own assigned work). Returns the ids so the recovery module clears each
+  // one's breaker. Audit 2026-06-05 Wave 3.
+  setRecoveryResumeFn(() => {
+    const resumed: string[] = [];
+    const companies = new Set<string>();
+    for (const a of agents.listByPauseReason("auth")) {
+      agents.resume(a.id);
+      broadcast({ kind: "status-changed", agentId: a.id, status: "idle", updatedAt: Date.now() });
+      companies.add(a.companyId);
+      resumed.push(a.id);
+    }
+    for (const companyId of companies) broadcast({ kind: "roster-changed", companyId });
+    if (resumed.length > 0) {
+      console.warn(`[auth] reconnect resumed ${String(resumed.length)} auth-paused agent(s)`);
+    }
+    return resumed;
   });
 
   // Agents with a spawn currently in flight. `respawnAgent` is async (100-500ms);

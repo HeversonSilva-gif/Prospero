@@ -89,10 +89,15 @@ export const isAuthFailureStreamEvent = (line: string): boolean => {
 type RespawnFn = (agentId: string) => Promise<unknown>;
 type BroadcastFn = (event: RecoveryStatusEvent) => void;
 type PauseFn = (agentId: string, reason: string) => void;
+// Revives agents the breaker paused for auth on a user-reconnect. Injected from
+// the orchestrator (it owns agents.resume + broadcast). Returns the resumed ids
+// so recoverAllRunning can clear each one's breaker.
+type ResumeAuthPausedFn = () => string[];
 let respawnFn: RespawnFn | null = null;
 let userDataDir: string | null = null;
 let broadcastFn: BroadcastFn | null = null;
 let pauseFn: PauseFn | null = null;
+let resumeAuthPausedFn: ResumeAuthPausedFn | null = null;
 
 const LOCK_TIMEOUT_MS = 30_000;
 const COOLDOWN_MS = 15_000;
@@ -127,6 +132,10 @@ export const setRecoveryPauseFn = (fn: PauseFn): void => {
   pauseFn = fn;
 };
 
+export const setRecoveryResumeFn = (fn: ResumeAuthPausedFn): void => {
+  resumeAuthPausedFn = fn;
+};
+
 const broadcast = (event: RecoveryStatusEvent): void => {
   if (broadcastFn !== null) broadcastFn(event);
 };
@@ -136,6 +145,7 @@ export const __resetRecoveryState = (): void => {
   userDataDir = null;
   broadcastFn = null;
   pauseFn = null;
+  resumeAuthPausedFn = null;
   inFlight.clear();
   lastSuccessAt.clear();
   autoRecoveryTimes.clear();
@@ -204,7 +214,31 @@ export const recoverAgent = async (
 export const recoverAllRunning = async (): Promise<RecoveryResult[]> => {
   const ids = listAdapterAgentIds();
   dlog(`recoverAllRunning n=${ids.length.toString()} ids=${ids.join(",")}`);
-  return Promise.all(ids.map((id) => recoverAgent(id, { reason: "user-reconnect" })));
+  // Recover SEQUENTIALLY, not in parallel. Every agent shares one OAuth login and
+  // Anthropic rotates the refresh token on each refresh; reseeding+respawning them
+  // all at once (Promise.all) made every process refresh concurrently, so the first
+  // to rotate invalidated the others → a cascade of 401s (observed live 2026-06-05:
+  // recoverAllRunning n=4 → immediate 401 on each). Serializing cuts the concurrent
+  // refresh pressure. (The deeper cure is one OAuth account per process or API-key
+  // mode — sharing one refresh token across N processes is inherently racy.)
+  const results: RecoveryResult[] = [];
+  for (const id of ids) {
+    results.push(await recoverAgent(id, { reason: "user-reconnect" }));
+  }
+  // Revive agents the breaker already paused for auth. A reconnect only recovers
+  // LIVE adapters, so without this an auth-paused agent (its adapter was killed)
+  // stays dead forever — the reconnect dead-end the user hit. The injected callback
+  // flips them to idle + broadcasts; clear each one's breaker so a fresh 401 gets a
+  // clean recovery, and the reconciler re-engages them (they own assigned work).
+  const resumedIds = resumeAuthPausedFn?.() ?? [];
+  for (const id of resumedIds) {
+    autoRecoveryTimes.delete(id);
+    lastSuccessAt.delete(id);
+  }
+  if (resumedIds.length > 0) {
+    dlog(`recoverAllRunning resumed ${resumedIds.length.toString()} auth-paused agent(s)`);
+  }
+  return results;
 };
 
 const runPipeline = async (
