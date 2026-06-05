@@ -52,11 +52,14 @@ import {
 import {
   setRecoveryBroadcastFn,
   setRecoveryPauseFn,
+  setRecoveryResumeFn,
   setRespawnFn,
   setUserDataDir,
 } from "../auth/credential-recovery.js";
 import { computeLaneSchedule } from "../orchestrator/scheduler.js";
 import { stuckWaitingAgentIds } from "../orchestrator/stuck-waiting.js";
+import { computeIdleAssigneesToWake } from "../orchestrator/idle-assignee-wake.js";
+import { staleApprovalIdsToExpire } from "../approvals/stale-sweep.js";
 import { startSchedulerTick } from "../orchestrator/scheduler-tick.js";
 import {
   computeReconcileDecision,
@@ -346,6 +349,14 @@ export const registerOrchestratorHandlers = (
   // boot — reset them to idle so they are usable again. Paused/terminated stay.
   const stuckReset = agents.resetStuckAgents();
   if (stuckReset > 0) console.warn(`[boot] reset ${String(stuckReset)} stuck agent(s) to idle`);
+
+  // Boot heal: enforce "pause_reason is set only while status='paused'". A paused
+  // agent re-spawned by the (now-guarded) drain/agent.deliver paths was flipped
+  // thinking→idle without clearing its reason, leaving an "idle + pause_reason=auth"
+  // ghost that confused the runtime. Clears any such stale reason. See Wave 2.
+  const reasonsCleared = agents.clearStalePauseReasons();
+  if (reasonsCleared > 0)
+    console.warn(`[boot] cleared ${String(reasonsCleared)} stale pause_reason(s)`);
 
   // Boot heal: a terminated agent whose status drifted to idle (the pre-fix
   // resume bug) is a "zombie" — it shows in the status-filtered roster and
@@ -1894,6 +1905,28 @@ export const registerOrchestratorHandlers = (
     }
   });
 
+  // Reconnect revives auth-paused agents. recoverAllRunning only recovers LIVE
+  // adapters, so the breaker's auth-paused agents (adapter killed) would stay dead
+  // until a restart — the dead-end the user hit. On user-reconnect, flip them back
+  // to idle + broadcast so the renderer updates and the reconciler re-engages them
+  // (they own assigned work). Returns the ids so the recovery module clears each
+  // one's breaker. Audit 2026-06-05 Wave 3.
+  setRecoveryResumeFn(() => {
+    const resumed: string[] = [];
+    const companies = new Set<string>();
+    for (const a of agents.listByPauseReason("auth")) {
+      agents.resume(a.id);
+      broadcast({ kind: "status-changed", agentId: a.id, status: "idle", updatedAt: Date.now() });
+      companies.add(a.companyId);
+      resumed.push(a.id);
+    }
+    for (const companyId of companies) broadcast({ kind: "roster-changed", companyId });
+    if (resumed.length > 0) {
+      console.warn(`[auth] reconnect resumed ${String(resumed.length)} auth-paused agent(s)`);
+    }
+    return resumed;
+  });
+
   // Agents with a spawn currently in flight. `respawnAgent` is async (100-500ms);
   // without this guard a 2nd ensureAgentRunner call in that window (e.g. a drain
   // tick and a message arriving on the same tick) would start a SECOND `claude`
@@ -1907,6 +1940,16 @@ export const registerOrchestratorHandlers = (
     // Never spawn a terminated agent. `terminatedAt` is the authoritative kill
     // marker; a zombie row whose status was reset to 'idle' must stay dead.
     if (agent.terminatedAt !== null) return;
+
+    // Never spawn a paused agent. Pause (budget / rate-limit / auth-breaker /
+    // manual) is authoritative — a deliberate "do not run". This is the single
+    // chokepoint every spawn flows through, so it honors a pause regardless of
+    // the caller (drain, agent.deliver from message_agent, reconciler wake).
+    // Resuming (manual, or the rate-limit window reset) flips status→idle FIRST,
+    // so legitimate re-engagement is unaffected. Without this a paused agent with
+    // a queued message gets re-spawned, un-pausing itself + stranding a stale
+    // pause_reason (the idle+auth ghost). Audit 2026-06-05 Wave 2 (B2).
+    if (agent.status === "paused") return;
 
     // A spawn for this agent is already in flight — bail (see `spawning` above).
     if (spawning.has(agent.id)) return;
@@ -2137,8 +2180,15 @@ export const registerOrchestratorHandlers = (
       .listPendingAgentIds()
       // pending work but no live adapter, AND not itself blocked on an approval
       // (a parked agent has nothing to do until its approval is decided — don't
-      // re-spawn it into the slot we just reclaimed; the re-engage sweep wakes it).
-      .filter((id) => !runningSet.has(id) && (agents.getById(id)?.status ?? "idle") !== "waiting")
+      // re-spawn it into the slot we just reclaimed; the re-engage sweep wakes it),
+      // AND not paused (a deliberate "do not run" — ensureAgentRunner refuses it
+      // too, but excluding it here avoids evicting a live agent to free a slot the
+      // paused one will never use). Audit 2026-06-05 Wave 2 (B2).
+      .filter((id) => {
+        if (runningSet.has(id)) return false;
+        const st = agents.getById(id)?.status ?? "idle";
+        return st !== "waiting" && st !== "paused";
+      })
       .map((id) => ({ id, isCeo: isCeoId(id), hasWork: true }));
     if (running.length === 0 && waiting.length === 0) return; // short-circuit common idle case
     // Lane-aware: reserve one slot so the CEO can always spawn to decide approvals.
@@ -2850,6 +2900,27 @@ export const registerOrchestratorHandlers = (
       return out;
     };
     const reconcileLastWakeByCeo = new Map<string, number>();
+    // Per-worker last direct-wake timestamp (issue-board re-engagement, below).
+    // In-RAM: a restart promptly re-engages all assigned work (the desired heal).
+    const reengageLastWakeByWorker = new Map<string, number>();
+    // Re-wake debounce for an idle assignee that already owns open work. The first
+    // detection is prompt (no entry → woken within one 60s tick); this only bounds
+    // RE-wakes so a worker that can't progress doesn't burn a turn every minute. A
+    // productive wake is told to clear ALL its open issues in one turn, so this is
+    // mostly a storm-guard for the genuinely-stuck case.
+    const WORKER_REENGAGE_DEBOUNCE_MS = 5 * 60_000;
+    // Builds the re-engage nudge for an idle assignee, naming up to 3 of its open
+    // issues so the worker can act without first calling list_issues.
+    const buildReengageMessage = (titles: string[]): string => {
+      const shown = titles.slice(0, 3).map((t) => `- ${t}`);
+      const more = titles.length > 3 ? `\n(+${String(titles.length - 3)} outra(s))` : "";
+      return [
+        "[CONTINUAR TRABALHO] Você tem tarefas atribuídas em aberto que ninguém está tocando:",
+        shown.join("\n") + more,
+        "",
+        "Trabalhe em TODAS elas nesta sessão (não só uma): use check_status / list_issues para revê-las e update_issue para avançar cada uma. Mova para 'review' (ou 'done' se não exigir revisão) ao concluir. Se estiver realmente bloqueado em alguma, comente nela com comment_on_issue e siga para a próxima.",
+      ].join("\n");
+    };
     // How long after a reconciler-driven CEO wake we suppress another one. This ONLY
     // throttles the board-reconciliation safety net (idle CEO + work waiting); event-driven
     // wakes — a worker messaging the CEO, an approval routing to it — are never throttled
@@ -2858,10 +2929,43 @@ export const registerOrchestratorHandlers = (
     // pure latency-vs-token-volume trade (the CEO reviews the board a few minutes later, with
     // identical reasoning), cutting reconciler-driven CEO wakes ~3x under steady review traffic.
     const RECONCILE_DEBOUNCE_MS = 10 * 60_000;
+    // An orphaned pending approval (the agent moved on but the decision was lost)
+    // keeps that agent in pendingAgentIds() forever, so the idle-assignee
+    // re-engagement treats it as "blocked on a decision" and never wakes it
+    // (observed 2026-06-05: a 20h-old approval for an idle agent). Expire orphans
+    // past this TTL whose agent is NOT currently waiting on them. Generous so a
+    // slow-but-legitimate human decision (agent IS waiting → excluded anyway) and
+    // the fresh create→waiting race are both safe. Audit 2026-06-05 Wave 4.
+    const STALE_APPROVAL_TTL_MS = 2 * 60 * 60_000;
+    const sweepStaleApprovals = (): void => {
+      const apvRepo = createApprovalsRepository(db);
+      const waitingIds = new Set(agents.listWaitingAgents().map((w) => w.id));
+      const stale = staleApprovalIdsToExpire({
+        pending: apvRepo.listPendingForStaleSweep(),
+        waitingAgentIds: waitingIds,
+        now: Date.now(),
+        ttlMs: STALE_APPROVAL_TTL_MS,
+      });
+      for (const id of stale) {
+        apvRepo.decide(
+          id,
+          "expired",
+          "system:stale-sweep",
+          "auto-expired: pending past TTL while the assignee was not waiting on it",
+        );
+      }
+      if (stale.length > 0) {
+        console.warn(`[reconcile] expired ${String(stale.length)} orphaned approval(s)`);
+      }
+    };
+
     const reconcileTick = (): void => {
       // Don't reconcile while the team is parked on a Max rate-limit window.
       const rlUntil = settingsRepo.read().rateLimitedUntil;
       if (rlUntil !== null && Date.now() < rlUntil) return;
+      // Clear orphaned approvals FIRST so a freshly-unblocked agent is eligible for
+      // re-engagement in this same tick.
+      sweepStaleApprovals();
       const companyRows = db.prepare("SELECT id FROM companies").all() as { id: string }[];
       for (const { id: companyId } of companyRows) {
         const roster = agents.listByCompany(companyId);
@@ -2894,6 +2998,45 @@ export const registerOrchestratorHandlers = (
           deliverSystemMessage(decision.ceoId, decision.summary);
           reconcileLastWakeByCeo.set(decision.ceoId, Date.now());
           console.log(`[reconcile] woke CEO ${decision.ceoId} for company ${companyId}`);
+        }
+
+        // Issue-board-driven worker re-engagement (the cure for the recurring
+        // freeze). The CEO above is the orchestrator for review/new-assignment;
+        // this directly wakes idle workers that ALREADY own open work so it never
+        // stalls behind an unreliable CEO. Group the company's open (todo/doing)
+        // issues by assignee in one pass, then wake each eligible idle assignee.
+        const openByAssignee = new Map<string, string[]>();
+        for (const iss of [
+          ...issuesRepo.list({ companyId, status: "todo" }),
+          ...issuesRepo.list({ companyId, status: "doing" }),
+        ]) {
+          if (iss.assigneeId === null) continue;
+          const arr = openByAssignee.get(iss.assigneeId) ?? [];
+          arr.push(iss.title);
+          openByAssignee.set(iss.assigneeId, arr);
+        }
+        const pendingApprovalIds = new Set(createApprovalsRepository(db).pendingAgentIds());
+        const workers = roster
+          .filter((a) => a.terminatedAt === null && !isCeoAgent(a) && a.status === "idle")
+          .map((a) => ({
+            id: a.id,
+            engaged: isEngaged(a),
+            blockedOnApproval: pendingApprovalIds.has(a.id),
+            actionableIssueCount: (openByAssignee.get(a.id) ?? []).length,
+          }));
+        const toWake = computeIdleAssigneesToWake({
+          workers,
+          lastWakeAt: reengageLastWakeByWorker,
+          now: Date.now(),
+          debounceMs: WORKER_REENGAGE_DEBOUNCE_MS,
+        });
+        for (const id of toWake) {
+          const titles = openByAssignee.get(id) ?? [];
+          deliverSystemMessage(id, buildReengageMessage(titles));
+          reengageLastWakeByWorker.set(id, Date.now());
+          console.log(
+            `[reconcile] re-engaged idle assignee ${id} (${String(titles.length)} open issue(s)) for company ${companyId}`,
+          );
         }
       }
     };

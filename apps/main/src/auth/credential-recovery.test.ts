@@ -6,6 +6,7 @@ import {
   recoverAgent,
   setRecoveryBroadcastFn,
   setRecoveryPauseFn,
+  setRecoveryResumeFn,
   setRespawnFn,
   setUserDataDir,
   __resetRecoveryState,
@@ -300,7 +301,7 @@ describe("recoverAllRunning", () => {
     setUserDataDir("/tmp/test-userdata");
   });
 
-  it("runs in parallel for all live agents", async () => {
+  it("recovers each live agent sequentially", async () => {
     vi.mocked(listAdapterAgentIds).mockReturnValue(["a", "b", "c"]);
     vi.mocked(getAdapter).mockImplementation(
       () => ({ isAlive: () => true, kill: vi.fn() }) as never,
@@ -313,6 +314,29 @@ describe("recoverAllRunning", () => {
 
     expect(results).toHaveLength(3);
     expect(results.every((r) => r.kind === "recovered")).toBe(true);
+  });
+
+  it("revives auth-paused agents via the injected resume callback and clears their breaker", async () => {
+    vi.mocked(listAdapterAgentIds).mockReturnValue(["live-a"]);
+    vi.mocked(getAdapter).mockImplementation(
+      () => ({ isAlive: () => true, kill: vi.fn() }) as never,
+    );
+    vi.mocked(detectClaudeCliToken).mockReturnValue({ token: "sk-ant-oat", expiresAt: null });
+    vi.mocked(seedSandboxCredentials).mockReturnValue(true);
+    setRespawnFn(() => Promise.resolve(null));
+    const resumeFn = vi.fn(() => ["paused-x", "paused-y"]);
+    setRecoveryResumeFn(resumeFn);
+
+    const results = await recoverAllRunning();
+
+    expect(results).toHaveLength(1); // only the live adapter was recovered
+    expect(resumeFn).toHaveBeenCalledTimes(1); // paused agents revived too
+  });
+
+  it("does not throw when no resume callback is injected", async () => {
+    vi.mocked(listAdapterAgentIds).mockReturnValue([]);
+    setRespawnFn(() => Promise.resolve(null));
+    await expect(recoverAllRunning()).resolves.toEqual([]);
   });
 
   it("skips agents whose adapter is dead", async () => {

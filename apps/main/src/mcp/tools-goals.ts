@@ -3,6 +3,7 @@ import { IPC, isCeoAgent } from "@prospero/shared";
 import { createGoalsRepository } from "../goals/repository.js";
 import { createGoalPlansRepository } from "../goals/plans-repository.js";
 import { createRoleTemplatesRepository } from "../agents/role-templates-repository.js";
+import { resolveRoleTitle } from "../agents/role-title.js";
 import { createInboxRepository } from "../inbox/repository.js";
 import { createAgentsRepository } from "../agents/repository.js";
 import { createIssuesRepository } from "../issues/repository.js";
@@ -442,7 +443,9 @@ const hireAgentForPlan: Tool = {
     const created = agentsRepo.create({
       companyId: ctx.companyId,
       name: agentSpec.name,
-      role: agentSpec.roleTemplateId,
+      // Human role title, NOT the raw template id — matches applyOrgPlan and
+      // prevents confusing "role_xxxx" duplicate-looking rows (audit Wave 4).
+      role: resolveRoleTitle(ctx.db, agentSpec.roleTemplateId),
       systemPrompt: agentSpec.personaSummary,
       mode: "supervised",
       alwaysOn: false,

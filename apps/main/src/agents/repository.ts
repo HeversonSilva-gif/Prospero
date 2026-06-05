@@ -143,6 +143,13 @@ export type AgentsRepository = {
    *  process after a restart) back to idle. Leaves paused & terminated agents
    *  alone and preserves session ids. Returns the number reset. */
   resetStuckAgents(): number;
+  /** Boot/runtime heal: enforce the invariant that `pause_reason` is non-null ONLY
+   *  while status is 'paused'. A re-spawned paused agent (pre-fix: the drain and
+   *  agent.deliver paths spawned paused agents) gets flipped to thinking→idle by
+   *  the turn lifecycle without ever clearing its reason, leaving a confusing
+   *  "idle + pause_reason=auth" ghost (observed 2026-06-05). Clears the stale
+   *  reason on every non-paused, non-terminated row. Returns the number cleared. */
+  clearStalePauseReasons(): number;
   /** Boot heal: a terminated agent (terminated_at set) whose status drifted away
    *  from 'terminated' (the pre-fix resume bug) is a "zombie" — it still shows in
    *  the status-filtered roster and accepts messages. Force status back to
@@ -572,6 +579,14 @@ export const createAgentsRepository = (
             AND terminated_at IS NULL`,
       );
       return stmt.run(Date.now()).changes;
+    },
+    clearStalePauseReasons() {
+      return db
+        .prepare(
+          `UPDATE agents SET pause_reason = NULL, updated_at = ?
+            WHERE pause_reason IS NOT NULL AND status != 'paused' AND terminated_at IS NULL`,
+        )
+        .run(Date.now()).changes;
     },
     healTerminatedStatus() {
       return db
