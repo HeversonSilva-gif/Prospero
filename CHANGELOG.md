@@ -3,6 +3,43 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.13 — 2026-06-05
+
+Pente-fino no problema que você relatou: os agentes recebiam as tarefas mas não
+"acordavam" para executá-las — todos ficavam parados. Investigado a fundo no banco
+e nos logs do app de verdade. Não eram as causas que o CEO chutou (nem modo
+supervisionado, nem limite de cota): eram duas coisas se somando, agora corrigidas.
+
+### Os agentes voltam a rodar sozinhos
+
+- **Quem tem tarefa atribuída é acordado direto pelo quadro, não só pelo CEO.** Antes,
+  a única forma de um agente parado começar a trabalhar era o CEO mandar uma mensagem
+  para ele — e essa fila vivia só na memória. Se o CEO travava, ficava sem cota,
+  reiniciava o app, ou concluía "já mandei para todo mundo", o trabalho parava para
+  sempre, mesmo com tarefas atribuídas. Agora o sistema olha o quadro de tarefas
+  diretamente: todo agente parado que tem tarefa em aberto é reativado em até ~1 min,
+  independente do CEO. O CEO continua o gestor; ele deixou de ser o único caminho.
+- **Uma pausa agora é respeitada de verdade.** Um agente pausado podia ser religado
+  sem querer e ficava num estado confuso ("parado, mas marcado como falha de
+  autenticação"). Corrigido na raiz, e esses estados-fantasma são limpos ao abrir o app.
+
+### Reconexão que funciona
+
+- **Reconectar a conta agora também revive os agentes que ficaram pausados.** Antes, o
+  botão de reconectar só mexia em quem ainda estava ativo — quem já tinha sido pausado
+  por falha de autenticação ficava morto até reiniciar. Agora a reconexão os traz de
+  volta. E a recuperação de credenciais passou a ser feita um agente de cada vez, o que
+  reduz a enxurrada de erros de autenticação quando vários rodam na mesma conta.
+
+### Limpeza
+
+- **Aprovações esquecidas não travam mais um agente.** Um pedido de aprovação que nunca
+  foi decidido (uma achei parada há 20h) mantinha o agente marcado como "esperando" e
+  ele nunca mais era reativado. Agora pedidos órfãos antigos são encerrados sozinhos.
+- **Fim das cópias de agentes.** Ao montar o plano de uma meta, contratar um novo membro
+  gravava o "cargo" errado, criando o que parecia ser um sósia do agente (um segundo
+  "Bruno Tavares"). Corrigido — novos membros entram com o cargo certo.
+
 ## v0.2.12 — 2026-06-04
 
 Correção de um problema que você encontrou ao pedir uma meta ao CEO: o plano não
