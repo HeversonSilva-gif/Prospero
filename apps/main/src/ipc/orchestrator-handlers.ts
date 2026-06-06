@@ -2972,49 +2972,26 @@ export const registerOrchestratorHandlers = (
         const ceo = findActiveCeo(roster);
         const isEngaged = (a: Agent): boolean =>
           (getAdapter(a.id)?.isAlive() ?? false) || router.hasPendingWork(a.id);
-        const decision = computeReconcileDecision({
-          ceoId: ceo?.id ?? null,
-          ceoEngaged: ceo !== null ? isEngaged(ceo) : false,
-          anyWorkerEngaged: roster.some(
-            (a) => a.terminatedAt === null && !isCeoAgent(a) && isEngaged(a),
-          ),
-          // A non-CEO worker with free capacity (idle, not engaged): lets the CEO
-          // be woken to assign/poke unstarted `todo` work even when the team is
-          // not fully stalled (Bug 2 partial-idle gap).
-          anyWorkerIdle: roster.some(
-            (a) => a.terminatedAt === null && !isCeoAgent(a) && !isEngaged(a),
-          ),
-          counts: {
-            todo: issuesRepo.list({ companyId, status: "todo" }).length,
-            doing: issuesRepo.list({ companyId, status: "doing" }).length,
-            review: issuesRepo.list({ companyId, status: "review" }).length,
-          },
-          verificationFailedGoals: retryableFailedGoals(companyId),
-          ceoLastWakeAt: ceo !== null ? (reconcileLastWakeByCeo.get(ceo.id) ?? null) : null,
-          now: Date.now(),
-          debounceMs: RECONCILE_DEBOUNCE_MS,
-        });
-        if (decision.wake) {
-          deliverSystemMessage(decision.ceoId, decision.summary);
-          reconcileLastWakeByCeo.set(decision.ceoId, Date.now());
-          console.log(`[reconcile] woke CEO ${decision.ceoId} for company ${companyId}`);
-        }
-
+        // Onda A #6 (token): compute the direct issue-board idle-assignee wake
+        // FIRST so the reconcile decision can suppress a redundant CEO wake when
+        // the idle owner is already being re-engaged directly AND nothing is left
+        // unassigned (work the CEO alone could assign). Querying each board status
+        // once here also feeds both the reconcile counts and the assignee grouping.
+        const todoIssues = issuesRepo.list({ companyId, status: "todo" });
+        const doingIssues = issuesRepo.list({ companyId, status: "doing" });
+        const reviewCount = issuesRepo.list({ companyId, status: "review" }).length;
         // Issue-board-driven worker re-engagement (the cure for the recurring
-        // freeze). The CEO above is the orchestrator for review/new-assignment;
-        // this directly wakes idle workers that ALREADY own open work so it never
-        // stalls behind an unreliable CEO. Group the company's open (todo/doing)
-        // issues by assignee in one pass, then wake each eligible idle assignee.
+        // freeze): directly wake idle workers that ALREADY own open work so it
+        // never stalls behind the unreliable CEO. Group open (todo/doing) issues
+        // by assignee in one pass.
         const openByAssignee = new Map<string, string[]>();
-        for (const iss of [
-          ...issuesRepo.list({ companyId, status: "todo" }),
-          ...issuesRepo.list({ companyId, status: "doing" }),
-        ]) {
+        for (const iss of [...todoIssues, ...doingIssues]) {
           if (iss.assigneeId === null) continue;
           const arr = openByAssignee.get(iss.assigneeId) ?? [];
           arr.push(iss.title);
           openByAssignee.set(iss.assigneeId, arr);
         }
+        const unassignedTodoCount = todoIssues.filter((i) => i.assigneeId === null).length;
         const pendingApprovalIds = new Set(createApprovalsRepository(db).pendingAgentIds());
         const workers = roster
           .filter((a) => a.terminatedAt === null && !isCeoAgent(a) && a.status === "idle")
@@ -3030,6 +3007,34 @@ export const registerOrchestratorHandlers = (
           now: Date.now(),
           debounceMs: WORKER_REENGAGE_DEBOUNCE_MS,
         });
+
+        const decision = computeReconcileDecision({
+          ceoId: ceo?.id ?? null,
+          ceoEngaged: ceo !== null ? isEngaged(ceo) : false,
+          anyWorkerEngaged: roster.some(
+            (a) => a.terminatedAt === null && !isCeoAgent(a) && isEngaged(a),
+          ),
+          // A non-CEO worker with free capacity (idle, not engaged): lets the CEO
+          // be woken to assign/poke unstarted `todo` work even when the team is
+          // not fully stalled (Bug 2 partial-idle gap).
+          anyWorkerIdle: roster.some(
+            (a) => a.terminatedAt === null && !isCeoAgent(a) && !isEngaged(a),
+          ),
+          counts: { todo: todoIssues.length, doing: doingIssues.length, review: reviewCount },
+          verificationFailedGoals: retryableFailedGoals(companyId),
+          ceoLastWakeAt: ceo !== null ? (reconcileLastWakeByCeo.get(ceo.id) ?? null) : null,
+          // The direct wake below already covers the idle-with-unstarted-work case
+          // when it actually fires for >=1 worker and no todo is left unassigned.
+          idleWorkHandledDirectly: toWake.length > 0 && unassignedTodoCount === 0,
+          now: Date.now(),
+          debounceMs: RECONCILE_DEBOUNCE_MS,
+        });
+        if (decision.wake) {
+          deliverSystemMessage(decision.ceoId, decision.summary);
+          reconcileLastWakeByCeo.set(decision.ceoId, Date.now());
+          console.log(`[reconcile] woke CEO ${decision.ceoId} for company ${companyId}`);
+        }
+
         for (const id of toWake) {
           const titles = openByAssignee.get(id) ?? [];
           deliverSystemMessage(id, buildReengageMessage(titles));

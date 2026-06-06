@@ -42,6 +42,14 @@ export type ReconcileInput = {
   verificationFailedGoals: VerificationFailedGoal[];
   /** When this CEO was last woken by the reconciler (null = never). */
   ceoLastWakeAt: number | null;
+  /** Onda A #6 (token): true when the direct issue-board idle-assignee wake (same
+   *  tick) is already re-engaging the unstarted work AND there is no unassigned
+   *  todo that needs the CEO to assign. When set, the `idleWithUnstartedWork`
+   *  trigger is suppressed so we don't ALSO boot a full Opus CEO turn for work
+   *  that is already moving. Stall / review / verification-failed wakes are
+   *  unaffected — those genuinely need the orchestrator. Defaults to false so
+   *  existing callers/tests keep the prior behaviour. */
+  idleWorkHandledDirectly?: boolean;
   now: number;
   debounceMs: number;
 };
@@ -57,6 +65,7 @@ export const computeReconcileDecision = (input: ReconcileInput): ReconcileDecisi
     counts,
     verificationFailedGoals,
     ceoLastWakeAt,
+    idleWorkHandledDirectly = false,
     now,
     debounceMs,
   } = input;
@@ -71,7 +80,10 @@ export const computeReconcileDecision = (input: ReconcileInput): ReconcileDecisi
   // Unstarted work with a free hand to do it: a worker is idle but `todo` work
   // sits unworked (its assignee went idle / was just unstuck). The team isn't
   // fully stalled, but the CEO must orchestrate — assign/poke the idle worker.
-  const idleWithUnstartedWork = counts.todo > 0 && anyWorkerIdle;
+  // Onda A #6: suppress this trigger when the same-tick direct idle-assignee wake
+  // already covers it (idle owner woken + no unassigned todo), so we don't double
+  // up a redundant Opus CEO turn on work that is already being re-engaged.
+  const idleWithUnstartedWork = counts.todo > 0 && anyWorkerIdle && !idleWorkHandledDirectly;
   // Workers are progressing and nothing is waiting on the CEO → leave them be.
   if (!stalled && !reviewPending && !verificationFailedPending && !idleWithUnstartedWork) {
     return { wake: false };

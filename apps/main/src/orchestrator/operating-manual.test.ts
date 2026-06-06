@@ -37,4 +37,11 @@ describe("operating-manual", () => {
     expect(OPERATING_MANUAL).toMatch(/algorithm/);
     expect(OPERATING_MANUAL.toLowerCase()).toMatch(/non-trivial|substantive/);
   });
+
+  it("steers agents toward bounded reads to keep native tool output small (Onda B #3)", () => {
+    // The host can't compress built-in Read/Bash/WebFetch output — it runs inside
+    // the claude CLI child, outside TokenJuice. The only lever is guidance, so the
+    // manual must tell agents to read in bounded slices rather than whole files.
+    expect(OPERATING_MANUAL.toLowerCase()).toContain("bounded slices");
+  });
 });

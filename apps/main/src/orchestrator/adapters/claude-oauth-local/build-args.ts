@@ -27,6 +27,13 @@ export const buildClaudeArgs = (
     // connected channels (build-args has no DB access). Audit 2026-06-03 Facet 3
     // C1 — CEO-prompt side. Falls back to the x-only default when absent.
     capabilityBoundary?: string;
+    // Onda A #2 (token): true once the company has an approved business plan.
+    // The genesis playbook (~4.5 KB) is only needed WHILE the business is being
+    // created; after approval it's dead weight on every CEO turn. We drop it only
+    // when this is positively true — absent/undefined keeps it (fail-safe: never
+    // strip planning guidance during onboarding, incl. the unapproved resubmit
+    // loop). Pre-resolved host-side in respawn.ts (build-args has no DB access).
+    companyHasApprovedBusiness?: boolean;
   } = {},
 ): string[] => {
   const allowedTools = applyRunPolicy(resolveCapabilityTools(agent.capabilities), {
@@ -60,13 +67,21 @@ export const buildClaudeArgs = (
             goalsBlock:
               goalsSystemPromptBlock +
               orgArchitectSystemPromptBlock +
-              // The boundary reaches the CEO so it only proposes what the AI
-              // can build/run/maintain. Prefer the host-built boundary (grounded
-              // in the company's real connectors); fall back to the x-only
-              // default when the host didn't pass one. Audit 2026-06-03 Facet 3 C1.
-              buildGenesisSystemPromptBlock(
-                opts.capabilityBoundary ?? buildCapabilityBoundary(["x"]),
-              ),
+              // Onda A #2 (token): the genesis playbook is only needed while the
+              // company is being created. Once the business is approved it's ~4.5 KB
+              // of dead weight re-read on every CEO turn, so drop it then. We keep it
+              // whenever we don't KNOW it's approved (undefined/false) — fail-safe so
+              // onboarding (incl. the [BUSINESS_PLAN_FEEDBACK] resubmit loop, where the
+              // business is still unapproved) never loses its guidance.
+              (opts.companyHasApprovedBusiness === true
+                ? ""
+                : // The boundary reaches the CEO so it only proposes what the AI can
+                  // build/run/maintain. Prefer the host-built boundary (grounded in the
+                  // company's real connectors); fall back to the x-only default when the
+                  // host didn't pass one. Audit 2026-06-03 Facet 3 C1.
+                  buildGenesisSystemPromptBlock(
+                    opts.capabilityBoundary ?? buildCapabilityBoundary(["x"]),
+                  )),
           }
         : {}),
       ...(narratedBlock !== undefined ? { narratedBlock } : {}),
