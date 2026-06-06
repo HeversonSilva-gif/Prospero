@@ -117,6 +117,35 @@ describe("buildClaudeArgs — empty persona falls back to systemPrompt (audit 20
   });
 });
 
+// Onda A #2 (token): the genesis playbook (~4.5 KB) is only needed while the
+// company is being created (business not yet approved). After approval it is
+// dead weight on every steady-state CEO turn, so it is dropped once we KNOW the
+// business is approved. Fail-safe: absent flag => keep it (never drop planning
+// guidance we're unsure about, incl. the [BUSINESS_PLAN_FEEDBACK] resubmit loop).
+describe("buildClaudeArgs — genesis block gated to the genesis phase (Onda A #2)", () => {
+  it("includes the genesis playbook for the CEO by default (flag absent = fail-safe)", () => {
+    const prompt = systemPromptOf(buildClaudeArgs(ceo(), null, {}));
+    expect(prompt).toContain("Creating the business (genesis)");
+  });
+
+  it("includes the genesis playbook while the business is not yet approved", () => {
+    const prompt = systemPromptOf(
+      buildClaudeArgs(ceo(), null, { companyHasApprovedBusiness: false }),
+    );
+    expect(prompt).toContain("Creating the business (genesis)");
+  });
+
+  it("DROPS the genesis playbook once the business is approved, keeping org + goals", () => {
+    const prompt = systemPromptOf(
+      buildClaudeArgs(ceo(), null, { companyHasApprovedBusiness: true }),
+    );
+    expect(prompt).not.toContain("Creating the business (genesis)");
+    // ...but the always-needed org + goals playbooks stay.
+    expect(prompt).toContain("Designing the organization");
+    expect(prompt).toContain("Goals & Planning");
+  });
+});
+
 // Audit 2026-06-03 Inteligência & Contexto I2: the narrated block is injected
 // only when narratedActive===true (respawn.ts resolves this host-side via the
 // goals repo). Guard the contract here since respawn.ts isn't unit-tested.

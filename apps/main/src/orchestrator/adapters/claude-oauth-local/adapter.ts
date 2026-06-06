@@ -244,6 +244,9 @@ export class ClaudeOAuthLocalAdapter implements AgentAdapter {
       ...(this.ctx.capabilityBoundary !== undefined
         ? { capabilityBoundary: this.ctx.capabilityBoundary }
         : {}),
+      ...(this.ctx.companyHasApprovedBusiness !== undefined
+        ? { companyHasApprovedBusiness: this.ctx.companyHasApprovedBusiness }
+        : {}),
     });
 
     const spawnCwd = this.ctx.cwd ?? agentSandboxCwd;

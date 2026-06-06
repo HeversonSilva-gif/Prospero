@@ -84,7 +84,7 @@ describe("visibleToolNames", () => {
     }
   });
 
-  it("keeps read-only and meta tools visible to a worker (reachable via the gate)", () => {
+  it("keeps read-only and communication meta tools visible to a worker (reachable via the gate)", () => {
     const v = visibleToolNames(allNames, {
       capabilities: ENGINEER_CAPS,
       canHire: true,
@@ -93,10 +93,43 @@ describe("visibleToolNames", () => {
     // read-only (MCP_ALLOWLIST / list_*)
     expect(v.has("list_issues")).toBe(true);
     expect(v.has("check_status")).toBe(true);
-    // meta (auto-approved in supervised) — including decide_batch, which is in NO capability
-    expect(v.has("decide_batch")).toBe(true);
+    // communication meta stays visible (auto-approved in supervised)
     expect(v.has("create_issue")).toBe(true);
     expect(v.has("message_agent")).toBe(true);
+    // authority meta (decide_*/criterion_judge) is now manager-scoped — see below.
+  });
+
+  it("hides authority decision tools from a non-manager worker (it is never an approver/judge)", () => {
+    const v = visibleToolNames(allNames, {
+      capabilities: ENGINEER_CAPS, // no delegation, no issues
+      canHire: true,
+      canAssign: true,
+    });
+    for (const authority of ["decide_request", "decide_batch", "criterion_judge"]) {
+      expect(v.has(authority), `${authority} should be hidden from a non-manager`).toBe(false);
+    }
+  });
+
+  it("keeps authority decision tools visible to a delegation manager (decide_batch has no capability home)", () => {
+    const v = visibleToolNames(allNames, {
+      capabilities: ["delegation", "chat"],
+      canHire: true,
+      canAssign: true,
+    });
+    expect(v.has("decide_request")).toBe(true);
+    expect(v.has("decide_batch")).toBe(true);
+    expect(v.has("criterion_judge")).toBe(true);
+  });
+
+  it("an issues worker still sees criterion_judge via its capability, but not the decide tools", () => {
+    const v = visibleToolNames(allNames, {
+      capabilities: ["issues", "chat"],
+      canHire: true,
+      canAssign: true,
+    });
+    expect(v.has("criterion_judge")).toBe(true); // homed by the issues capability
+    expect(v.has("decide_batch")).toBe(false); // still manager-only
+    expect(v.has("decide_request")).toBe(false);
   });
 
   it("canHire=false hides hire_agent/fire_agent even for a delegation agent (mirrors --allowedTools)", () => {

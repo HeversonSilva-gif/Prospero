@@ -6,6 +6,7 @@ import { createMemoriesRepository } from "../memory/memories-repository.js";
 import { createSkillsRepository } from "../memory/skills-repository.js";
 import { createProjectsRepository } from "../projects/repository.js";
 import { createGoalsRepository } from "../goals/repository.js";
+import { createBusinessPlansRepository } from "../agents/business-plans-repository.js";
 import { buildMemoryBlock } from "./system-prompt-memory.js";
 import { buildTelosBlock } from "./system-prompt-telos.js";
 import { buildCapabilityBoundary } from "../agents/genesis/capability-boundary.js";
@@ -185,6 +186,13 @@ export const createRespawnFn = (deps: RespawnDeps): RespawnFn => {
       listConnectedChannels(deps.db, agent.companyId),
     );
 
+    // Onda A #2 (token): once the company has an approved business plan, the CEO
+    // is past genesis — build-args drops the ~4.5 KB genesis playbook from its
+    // prompt. Computed here (build-args has no DB); harmless to compute for
+    // non-CEO agents (build-args only consults it on the CEO branch).
+    const companyHasApprovedBusiness =
+      createBusinessPlansRepository(deps.db).getLatestApprovedForCompany(agent.companyId) !== null;
+
     // Audit 2026-06-03 Inteligência & Contexto I2: respawn is the sole
     // SpawnContext constructor; it must resolve narrated-active host-side (the
     // adapter comment says the host owns this) or buildNarratedBlock() is dead
@@ -208,6 +216,7 @@ export const createRespawnFn = (deps: RespawnDeps): RespawnFn => {
       ...(projectContextBlock !== undefined ? { projectContextBlock } : {}),
       instructionsBlock,
       capabilityBoundary,
+      companyHasApprovedBusiness,
     };
 
     // Allocate a fresh per-spawn cell BEFORE buildCallbacks so the callback

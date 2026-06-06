@@ -3,6 +3,38 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.14 — 2026-06-06
+
+Continuação do trabalho de reduzir o consumo de cota do seu plano Max — a equipe
+gasta menos para fazer o mesmo, sem ficar mais "burra" e sem trocar nenhum agente
+por um modelo inferior. A pesquisa desta rodada confirmou que o gargalo real não é
+dinheiro, e sim o limite de uso da sessão/semana do Max: cada vez que um agente
+"acorda", ele relê todo o seu contexto, e isso conta para o limite. O foco, então,
+foi acordar menos e carregar menos peso por vez.
+
+### A equipe gasta menos cota
+
+- **O CEO para de carregar o manual de criação de empresa depois que o negócio já
+  existe.** O guia de como entrevistar você e montar o plano de negócio (vários KB de
+  texto) só é útil enquanto a empresa está sendo criada. Antes, ele acompanhava o CEO
+  em toda mensagem, para sempre. Agora ele some assim que o negócio é aprovado — e
+  continua presente, intacto, durante toda a criação (inclusive nas revisões do plano),
+  para não perder nada. É o maior alívio por mensagem do CEO.
+- **O CEO é acordado menos vezes à toa.** Quando um agente parado já vai ser reativado
+  direto pelo quadro de tarefas (a correção da v0.2.13) e não há nada sem dono, o
+  sistema deixou de acordar TAMBÉM o CEO para a mesma coisa. Ele continua sendo chamado
+  para revisar, destravar e distribuir trabalho novo — só parou de duplicar o esforço.
+- **Cada agente recebe só as ferramentas que realmente usa.** As ferramentas de decisão
+  gerencial (aprovar/julgar pedidos de outros agentes) deixaram de ser anunciadas a quem
+  nunca decide nada — só pesavam no contexto sem nunca serem usadas. Nada foi tirado de
+  quem precisa delas.
+- **Os agentes aprendem a ler de forma mais econômica.** O manual passou a orientar a
+  ler trechos dos arquivos (em vez de arquivos inteiros) e a não reler o que já está na
+  sessão — a fonte mais comum de desperdício silencioso.
+
+Nenhum agente foi rebaixado de modelo e nenhuma capacidade foi cortada — só removemos
+peso repetido e idas desnecessárias.
+
 ## v0.2.13 — 2026-06-05
 
 Pente-fino no problema que você relatou: os agentes recebiam as tarefas mas não

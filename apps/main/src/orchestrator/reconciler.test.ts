@@ -141,6 +141,44 @@ describe("computeReconcileDecision", () => {
     expect(d.wake).toBe(false);
   });
 
+  it("does NOT wake for idle-with-unstarted-work when the direct idle-assignee wake already covers it", () => {
+    // Onda A #6: in the same reconcile tick the idle owner is being woken DIRECTLY
+    // (issue-board re-engagement) and there is no unassigned todo that needs the
+    // CEO to assign. Waking the CEO too would be a redundant Opus turn for work
+    // that is already moving.
+    const d = computeReconcileDecision({
+      ...base,
+      anyWorkerEngaged: true,
+      anyWorkerIdle: true,
+      counts: { todo: 3, doing: 1, review: 0 },
+      idleWorkHandledDirectly: true,
+    });
+    expect(d).toEqual({ wake: false });
+  });
+
+  it("STILL wakes for review even when idle work is handled directly", () => {
+    const d = computeReconcileDecision({
+      ...base,
+      anyWorkerEngaged: true,
+      anyWorkerIdle: true,
+      counts: { todo: 3, doing: 1, review: 2 },
+      idleWorkHandledDirectly: true,
+    });
+    expect(d.wake).toBe(true);
+    if (d.wake) expect(d.summary).toContain("Revise cada tarefa");
+  });
+
+  it("STILL wakes on a full stall even when idle work is handled directly", () => {
+    const d = computeReconcileDecision({
+      ...base,
+      anyWorkerEngaged: false, // whole team idle = stalled
+      anyWorkerIdle: true,
+      counts: { todo: 3, doing: 0, review: 0 },
+      idleWorkHandledDirectly: true,
+    });
+    expect(d.wake).toBe(true);
+  });
+
   it("respects the debounce for failed-verification wakes", () => {
     const d = computeReconcileDecision({
       ceoId: "ceo1",

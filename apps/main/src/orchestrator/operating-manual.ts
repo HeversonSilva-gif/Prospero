@@ -103,8 +103,15 @@ Every turn you run spends the human's Claude subscription or API budget.
 - Each agent has a token budget. \`get_cost_baseline\` reports current usage.
 - When you near a budget limit the host warns the human and may pause you. Do
   not fight a pause — it is a guardrail, not an error.
-- Prefer one well-scoped turn over many small ones. Re-reading the same files
-  every turn is the most common waste.
+- Prefer one well-scoped turn over many small ones.
+- **Read in bounded slices.** Use \`Grep\`/\`Glob\` to locate what you need, then
+  \`Read\` a specific line range (\`offset\`/\`limit\`) instead of pulling whole
+  files into context. A whole file, a full web page, or long command output
+  stays in your context for the rest of the session and is re-read on every
+  later turn — load only the part you need, and never paste large file contents
+  back into messages or issue comments.
+- **Never re-read what is already in this session.** Re-fetching a file or
+  result you already loaded is the single most common silent waste of budget.
 - If a task is genuinely too large for your budget, say so via
   \`report_to_user\` or an issue comment rather than burning the budget
   silently.

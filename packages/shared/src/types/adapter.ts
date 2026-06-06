@@ -37,6 +37,10 @@ export type SpawnContext = {
   // access). Only consumed for the CEO; absent → build-args falls back to the
   // x-only default.
   capabilityBoundary?: string;
+  // Onda A #2 (token): true once the company has an approved business plan.
+  // Lets build-args drop the genesis playbook (~4.5 KB) from the CEO prompt in
+  // steady state. Resolved host-side in respawn.ts; absent → kept (fail-safe).
+  companyHasApprovedBusiness?: boolean;
 };
 
 export type AssistantContentBlock =
