@@ -36,4 +36,13 @@ describe("tool-bridge", () => {
   it("runTool throws a clear error for an unknown tool", async () => {
     await expect(runTool("nope_not_a_tool", {}, fakeCtx())).rejects.toThrow(/unknown tool/i);
   });
+
+  it("honors run policy: canHire=false drops hire/fire tools", () => {
+    expect(
+      buildSdkTools(["delegation"], { canHire: true }).some((t) => t.name === "hire_agent"),
+    ).toBe(true);
+    expect(
+      buildSdkTools(["delegation"], { canHire: false }).some((t) => t.name === "hire_agent"),
+    ).toBe(false);
+  });
 });

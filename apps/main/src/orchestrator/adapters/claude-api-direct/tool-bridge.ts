@@ -29,10 +29,20 @@ export type SdkToolDef = {
   input_schema: { type: "object"; [k: string]: unknown };
 };
 
-export const buildSdkTools = (capabilities: string[]): SdkToolDef[] => {
+export const buildSdkTools = (
+  capabilities: string[],
+  policy: { canHire?: boolean; canAssign?: boolean } = {},
+): SdkToolDef[] => {
+  // Honor the agent's real run policy (the adapter passes agent.canHire/canAssign)
+  // so e.g. a CEO with canHire=false doesn't get hire/fire tools. Defaults to true
+  // for back-compat with callers that don't pass a policy.
   const visible = visibleToolNames(
     ALL_DEFS.map((d) => d.name),
-    { capabilities, canHire: true, canAssign: true },
+    {
+      capabilities,
+      canHire: policy.canHire ?? true,
+      canAssign: policy.canAssign ?? true,
+    },
   );
   return ALL_DEFS.filter((d) => visible.has(d.name)).map((d) => ({
     name: d.name,
