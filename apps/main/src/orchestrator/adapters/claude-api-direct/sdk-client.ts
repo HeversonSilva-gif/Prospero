@@ -18,11 +18,14 @@ const realCreate =
   (apiKey: string): SdkCreateFn =>
   (params) => {
     const client = new Anthropic({ apiKey });
-    // The SDK's content blocks are structurally `{type, ...}` and stop_reason can
-    // be null; cast through unknown to our narrower SdkCreateFn return shape.
-    return client.messages.create(
-      params as Anthropic.MessageCreateParamsNonStreaming,
-    ) as unknown as ReturnType<SdkCreateFn>;
+    // STREAM (not .create): the CEO can emit long turns (genesis/org plans, long
+    // narration) and at max_tokens=64000 a non-streaming request risks an HTTP
+    // timeout. `.stream().finalMessage()` assembles the full Message without that
+    // risk. Cast through unknown to our narrower SdkCreateFn return shape (the SDK's
+    // content blocks are structurally `{type, ...}`; stop_reason can be null).
+    return client.messages
+      .stream(params as Anthropic.MessageStreamParams)
+      .finalMessage() as unknown as ReturnType<SdkCreateFn>;
   };
 
 export const createSdkClient = (apiKey: string, deps?: { create?: SdkCreateFn }): LlmClient => {
@@ -43,8 +46,15 @@ export const createSdkClient = (apiKey: string, deps?: { create?: SdkCreateFn })
 
       const params = {
         model: req.model,
-        max_tokens: 16000,
+        // 64000 (not 16000): the CLI CEO had no output ceiling; a too-low cap would
+        // silently truncate a long genesis/org plan mid-turn. Paired with streaming
+        // (realCreate) so the larger budget can't cause an HTTP timeout.
+        max_tokens: 64000,
         thinking: { type: "adaptive" },
+        // Match Claude Code's default effort on Opus 4.7/4.8 (xhigh) so the SDK CEO
+        // reasons exactly as hard as the CLI CEO. Omitting effort defaults to `high`
+        // — a silent intelligence downgrade, which violates "don't make anyone dumber".
+        output_config: { effort: "xhigh" },
         // 1h cache on the stable system prefix — the cost win. No beta header
         // is required for the 1h ttl.
         system: [{ type: "text", text: req.system, cache_control: CACHE_1H }],

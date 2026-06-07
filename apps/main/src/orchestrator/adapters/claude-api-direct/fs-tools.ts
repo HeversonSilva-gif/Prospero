@@ -2,9 +2,10 @@
 //
 // WHY THIS EXISTS: the CLI adapter gets Read/Glob/Grep for free from Claude
 // Code. The SDK adapter has no built-in file tools, so the CEO (which holds the
-// `fs-read` capability and uses it to read the operating manual / project
-// files) would lose its ability to build context — making it dumber. These
-// tools restore that ability for the SDK path.
+// `fs-read` capability and uses it to read project files by absolute path — the
+// operating manual itself is served by the skill_read MCP tool, not the FS) would
+// lose its ability to inspect files — making it dumber. These tools restore that
+// ability for the SDK path.
 //
 // SECURITY MODEL — we REUSE the existing gate, we do NOT invent new logic.
 // Every path the tool touches is run through `evaluatePermission` from

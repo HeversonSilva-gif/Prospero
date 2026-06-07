@@ -39,7 +39,9 @@ describe("createSdkClient", () => {
     // only the LAST tool carries cache_control
     expect(tools[0]!.cache_control).toBeUndefined();
     expect(params.thinking).toEqual({ type: "adaptive" });
-    expect(params.max_tokens).toBe(16000);
+    expect(params.max_tokens).toBe(64000);
+    // effort matches Claude Code's xhigh default so the SDK CEO isn't dumbed down
+    expect(params.output_config).toEqual({ effort: "xhigh" });
     expect(res.stop_reason).toBe("end_turn");
     expect(res.content).toEqual([{ type: "text", text: "hi" }]);
     expect(res.usage).toEqual({ input_tokens: 1 });

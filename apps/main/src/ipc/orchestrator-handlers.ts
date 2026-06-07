@@ -1899,14 +1899,12 @@ export const registerOrchestratorHandlers = (
       authMode: mode,
       hasApiKey: loadApiKeyStatus(db).hasKey,
       listAgents: () =>
-        agents
-          .listAll()
-          .map((a) => ({
-            id: a.id,
-            adapterName: a.adapterName,
-            status: a.status,
-            isCeo: isCeoAgent(a),
-          })),
+        agents.listAll().map((a) => ({
+          id: a.id,
+          adapterName: a.adapterName,
+          status: a.status,
+          isCeo: isCeoAgent(a),
+        })),
       setAdapterName: (id, name) => {
         agents.setAdapterName(id, name);
       },
@@ -2657,7 +2655,12 @@ export const registerOrchestratorHandlers = (
   ipcMain.handle(
     IPC.AGENTS_SET_ADAPTER,
     (_e, payload: { agentId: string; adapterName: string }): { ok: true } => {
-      const valid = ["claude-oauth-local", "claude-api-key-local", "claude-oauth-remote-docker"];
+      const valid = [
+        "claude-oauth-local",
+        "claude-api-key-local",
+        "claude-oauth-remote-docker",
+        "claude-api-direct",
+      ];
       if (!valid.includes(payload.adapterName)) throw new Error("Invalid adapter");
       const agent = agents.getById(payload.agentId);
       if (agent === null) throw new Error("Agent not found");
