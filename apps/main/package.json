@@ -18,6 +18,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.102.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@prospero/shared": "workspace:*",
     "better-sqlite3": "^12.10.0",
@@ -28,7 +29,8 @@
     "gray-matter": "^4.0.3",
     "imapflow": "^1.3.5",
     "nodemailer": "^8.0.10",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@electron/rebuild": "^3.7.1",
