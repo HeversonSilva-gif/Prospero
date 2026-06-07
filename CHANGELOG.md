@@ -3,6 +3,25 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.18 — 2026-06-07
+
+Redução de custo no modo chave de API: o CEO passa a falar com a API da Anthropic
+diretamente, com cache de 1 hora — atacando o gasto de "só abrir o app já consome muito".
+
+### CEO mais barato no modo chave de API
+
+- **No modo chave de API, o CEO agora conversa com a API diretamente** (em vez de pelo
+  CLI). Isso destrava um **cache de 1 hora** no trecho estável do contexto dele. Como o
+  CEO acorda com frequência, reaproveitar esse cache entre as acordadas reduz o custo —
+  especialmente aquele "abri o app e já gastei".
+- **O comportamento do CEO não muda:** mesmas decisões, mesmo modelo (Opus), mesmo nível
+  de raciocínio e as mesmas ferramentas (inclusive leitura de arquivos). Ele só fica mais
+  barato.
+- **Modo OAuth (assinatura Max) e os demais agentes seguem exatamente iguais** — esta
+  mudança vale só para quem usa chave de API.
+- Quando a API responde "limite de requisições" (429), o app espera um pouco e tenta de
+  novo, sem encher a caixa de entrada com avisos.
+
 ## v0.2.17 — 2026-06-07
 
 Controle de custo na API e tratamento do limite de requisições — depois que apenas
