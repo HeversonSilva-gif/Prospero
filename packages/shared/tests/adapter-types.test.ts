@@ -15,3 +15,10 @@ describe("adapter types", () => {
     expect(names).toHaveLength(3);
   });
 });
+
+describe("AdapterName includes claude-api-direct", () => {
+  it("accepts claude-api-direct as a valid adapter name", () => {
+    const n: AdapterName = "claude-api-direct";
+    expect(n).toBe("claude-api-direct");
+  });
+});

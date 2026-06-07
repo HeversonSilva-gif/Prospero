@@ -33,6 +33,10 @@ export const adapterRegistry: Record<AdapterName, AgentAdapterFactory | undefine
   "claude-oauth-local": claudeOAuthLocalFactory,
   "claude-api-key-local": claudeApiKeyLocalFactory,
   "claude-oauth-remote-docker": claudeOAuthRemoteDockerFactory,
+  // Wired in Task 7 once ClaudeApiDirectAdapter exists. Until then `undefined`
+  // means "not implemented yet" (createAdapter throws a clear error); nothing
+  // selects this adapter until the Task 8 routing change lands.
+  "claude-api-direct": undefined,
 };
 
 export const createAdapter = (name: AdapterName, ctx: SpawnContext): AgentAdapter => {
