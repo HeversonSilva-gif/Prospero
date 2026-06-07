@@ -53,7 +53,16 @@ export type ParsedEvent =
   | { kind: "tool-result"; toolUseId: string; content: string; isError: boolean }
   | { kind: "turn-complete"; usage?: UsageEstimate; model?: string }
   | { kind: "api-retry"; attempt: number; error: string }
-  | { kind: "rate-limited"; resetsAt: number | null; retryAfterSec: number | null; message: string }
+  | {
+      kind: "rate-limited";
+      resetsAt: number | null;
+      retryAfterSec: number | null;
+      message: string;
+      // Distinguishes the Max session/weekly limit (long park + "plan exhausted"
+      // inbox card) from an API 429 ITPM/OTPM limit (short token-bucket backoff,
+      // transient — no inbox card). Absent ⇒ treat as max-session (back-compat).
+      scope?: "max-session" | "api-rate-limit";
+    }
   | { kind: "unknown"; raw: unknown };
 
 export type UsageEstimate = {

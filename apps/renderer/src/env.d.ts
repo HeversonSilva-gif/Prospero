@@ -77,6 +77,7 @@ declare global {
         pickWorkspace: () => Promise<string | null>;
         getExecutorMode: () => Promise<"atomic" | "narrated">;
         setExecutorMode: (mode: "atomic" | "narrated") => Promise<{ ok: true }>;
+        setAutonomyPaused: (paused: boolean) => Promise<AppSettings>;
       };
       connections: {
         xStatus: (companyId: string) => Promise<{ connected: boolean; handle?: string }>;

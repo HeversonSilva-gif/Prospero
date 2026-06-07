@@ -34,6 +34,7 @@ import { TitleBar } from "./components/TitleBar.js";
 import { AuthErrorBanner } from "./components/banners/AuthErrorBanner.js";
 import { OAuthExpiryBanner } from "./components/banners/OAuthExpiryBanner.js";
 import { RateLimitBanner } from "./components/banners/RateLimitBanner.js";
+import { AutonomyBanner } from "./components/banners/AutonomyBanner.js";
 import { UpdateBanner } from "./components/UpdateBanner.js";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary.js";
 
@@ -53,6 +54,7 @@ const Shell = ({ children }: { children: React.ReactNode }) => (
     <AuthErrorBanner />
     <OAuthExpiryBanner />
     <RateLimitBanner />
+    <AutonomyBanner />
     <div className="flex-1 min-h-0 flex">{children}</div>
     <UpdateBanner />
   </div>

@@ -34,6 +34,8 @@ export const AppSettingsSchema = z.object({
   compactionCacheReadThreshold: z.number().int().min(0).default(75_000),
   // Epoch ms until which the Max account is rate-limited; the team auto-resumes after. null = not limited.
   rateLimitedUntil: z.number().int().nullable().default(null),
+  // Global autonomous-loop kill-switch (forced true at boot → opens paused).
+  autonomyPaused: z.boolean().default(true),
   remoteExecution: RemoteExecutionSettingsSchema.default({
     enabled: false,
     mode: "local-docker",
@@ -78,6 +80,9 @@ export const parseSettings = (raw: unknown): AppSettings => {
   }
   if (result.data.rateLimitedUntil !== undefined) {
     merged.rateLimitedUntil = result.data.rateLimitedUntil;
+  }
+  if (result.data.autonomyPaused !== undefined) {
+    merged.autonomyPaused = result.data.autonomyPaused;
   }
   if (result.data.remoteExecution !== undefined) {
     merged.remoteExecution = result.data.remoteExecution;

@@ -22,6 +22,7 @@ type State = {
   setDerivationsPerDay: (n: number) => Promise<void>;
   saveExecutorMode: (mode: ExecutorMode) => Promise<void>;
   setAuthMode: (mode: AuthMode) => Promise<void>;
+  setAutonomyPaused: (paused: boolean) => Promise<void>;
   setRemoteExecution: (patch: Partial<RemoteExecutionSettings>) => Promise<void>;
   pickAndSetWorkspace: () => Promise<void>;
 };
@@ -40,6 +41,7 @@ export const useSettingsStore = create<State>((set, get) => ({
     derivationsPerDayPerAgent: 3,
     compactionCacheReadThreshold: 75_000,
     rateLimitedUntil: null,
+    autonomyPaused: true,
     remoteExecution: {
       enabled: false,
       mode: "local-docker",
@@ -101,6 +103,13 @@ export const useSettingsStore = create<State>((set, get) => ({
     // update) so the main process also migrates existing agents to the matching
     // adapter and respawns the live ones — no need to re-hire the team.
     const next = await window.prospero.settings.setAuthMode(mode);
+    set({ settings: next });
+  },
+
+  setAutonomyPaused: async (paused) => {
+    // Global play/pause for the autonomous loop. Unpausing (false) makes the main
+    // process kick the scheduler so the team starts working right away.
+    const next = await window.prospero.settings.setAutonomyPaused(paused);
     set({ settings: next });
   },
 

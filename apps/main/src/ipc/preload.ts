@@ -80,6 +80,8 @@ contextBridge.exposeInMainWorld("prospero", {
       ipcRenderer.invoke(IPC.SETTINGS_GET_EXECUTOR_MODE) as Promise<"atomic" | "narrated">,
     setExecutorMode: (mode: "atomic" | "narrated") =>
       ipcRenderer.invoke(IPC.SETTINGS_SET_EXECUTOR_MODE, mode) as Promise<{ ok: true }>,
+    setAutonomyPaused: (paused: boolean) =>
+      ipcRenderer.invoke(IPC.SETTINGS_SET_AUTONOMY_PAUSED, paused) as Promise<AppSettings>,
   },
   connections: {
     xStatus: (companyId: string) =>

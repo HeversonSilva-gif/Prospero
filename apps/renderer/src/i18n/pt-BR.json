@@ -1128,6 +1128,12 @@
     "rateLimit": {
       "message": "Equipe pausada — limite do plano Max atingido. Retoma sozinha por volta de {{time}}."
     },
+    "autonomy": {
+      "pausedMessage": "Equipe pausada — ela não trabalha sozinha (e não gasta) enquanto isso.",
+      "activate": "Ativar equipe",
+      "activeMessage": "Equipe ativa — trabalhando e consumindo tokens.",
+      "pause": "Pausar"
+    },
     "recoveryFailedHostStale": "Sua credencial do Claude expirou. Rode `claude setup-token` no terminal e clique Reconectar."
   },
   "agents": {

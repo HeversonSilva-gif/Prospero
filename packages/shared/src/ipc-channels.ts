@@ -121,6 +121,7 @@ export const IPC = {
   GOALS_NARRATED_ROLLBACK: "goals:narrated-rollback",
   SETTINGS_GET_EXECUTOR_MODE: "settings:get-executor-mode",
   SETTINGS_SET_EXECUTOR_MODE: "settings:set-executor-mode",
+  SETTINGS_SET_AUTONOMY_PAUSED: "settings:set-autonomy-paused",
   REMOTE_TEST_CONNECTION: "remote:test-connection",
   SKILLS_LIST_FOR_AGENT: "skills:list-for-agent",
   SKILLS_READ_BODY: "skills:read-body",

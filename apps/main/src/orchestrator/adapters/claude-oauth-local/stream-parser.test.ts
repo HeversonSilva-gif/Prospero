@@ -87,4 +87,91 @@ describe("parseStreamLine rate_limit_event", () => {
     expect(ev.resetsAt).toBe(1779400800 * 1000);
     expect(ev.message).toBe("five_hour");
   });
+
+  it("tags the Max rate_limit_event with scope max-session", () => {
+    const ev = parseStreamLine(
+      JSON.stringify({
+        type: "rate_limit_event",
+        rate_limit_info: { status: "rejected", resetsAt: 1779400800, rateLimitType: "five_hour" },
+      }),
+    );
+    expect(ev?.kind).toBe("rate-limited");
+    if (ev?.kind !== "rate-limited") return;
+    expect(ev.scope).toBe("max-session");
+  });
+});
+
+describe("parseStreamLine API rate-limit (429, api-key mode)", () => {
+  const ITPM_MSG =
+    "API Error: Request rejected (429) · This request would exceed your organization's rate limit of 500,000 input tokens per minute (org: x, model: claude-opus-4-8).";
+
+  it("emits a short-backoff rate-limited (scope api-rate-limit) on a result with api_error_status 429", () => {
+    const ev = parseStreamLine(
+      JSON.stringify({
+        type: "result",
+        subtype: "error_during_execution",
+        is_error: true,
+        api_error_status: 429,
+        result: ITPM_MSG,
+      }),
+    );
+    expect(ev?.kind).toBe("rate-limited");
+    if (ev?.kind !== "rate-limited") return;
+    expect(ev.scope).toBe("api-rate-limit");
+    expect(ev.retryAfterSec).toBe(60);
+    expect(typeof ev.resetsAt).toBe("number");
+  });
+
+  it("emits rate-limited from the result TEXT alone (no structured status)", () => {
+    const ev = parseStreamLine(
+      JSON.stringify({ type: "result", is_error: true, result: ITPM_MSG }),
+    );
+    expect(ev?.kind).toBe("rate-limited");
+    if (ev?.kind !== "rate-limited") return;
+    expect(ev.scope).toBe("api-rate-limit");
+  });
+
+  it("suppresses the chat message when the 429 surfaces as assistant text", () => {
+    const ev = parseStreamLine(
+      JSON.stringify({
+        type: "assistant",
+        message: { content: [{ type: "text", text: ITPM_MSG }] },
+      }),
+    );
+    expect(ev?.kind).toBe("rate-limited");
+    expect(ev?.kind).not.toBe("assistant-message");
+  });
+
+  it("also catches the OUTPUT tokens-per-minute variant", () => {
+    const ev = parseStreamLine(
+      JSON.stringify({
+        type: "result",
+        result: "API Error (429): exceed your rate limit of 80,000 output tokens per minute.",
+      }),
+    );
+    expect(ev?.kind).toBe("rate-limited");
+  });
+
+  it("does NOT treat a normal successful result as rate-limited", () => {
+    const ev = parseStreamLine(
+      JSON.stringify({
+        type: "result",
+        subtype: "success",
+        usage: { input_tokens: 10, output_tokens: 5 },
+      }),
+    );
+    expect(ev?.kind).toBe("turn-complete");
+  });
+
+  it("does NOT trip on an agent merely mentioning 429 without the ITPM phrasing", () => {
+    const ev = parseStreamLine(
+      JSON.stringify({
+        type: "assistant",
+        message: {
+          content: [{ type: "text", text: "HTTP 429 means too many requests; I'll retry." }],
+        },
+      }),
+    );
+    expect(ev?.kind).toBe("assistant-message");
+  });
 });

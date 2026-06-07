@@ -1128,6 +1128,12 @@
     "rateLimit": {
       "message": "Team paused — Max plan limit reached. Resumes automatically around {{time}}."
     },
+    "autonomy": {
+      "pausedMessage": "Team paused — it won't work on its own (or spend) until you activate it.",
+      "activate": "Activate team",
+      "activeMessage": "Team active — working and spending tokens.",
+      "pause": "Pause"
+    },
     "recoveryFailedHostStale": "Your Claude credential expired. Run `claude setup-token` in the terminal and click Reconnect."
   },
   "agents": {
