@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.js";
 import { useSettingsStore } from "../stores/settings.js";
 import { GenesisEntry } from "../components/GenesisEntry.js";
+import { isAuthConnected } from "../lib/auth-connected.js";
 
 type Step = "authSource" | "choose" | "manual" | "auto" | "apiKey" | "genesis";
 
@@ -14,10 +15,14 @@ export const SetupWizard = () => {
   const setApiKey = useAuthStore((s) => s.setApiKey);
   const importDetected = useAuthStore((s) => s.importDetected);
   const hasToken = useAuthStore((s) => s.status.hasToken);
+  const hasKey = useAuthStore((s) => s.apiKeyStatus.hasKey);
+  const authMode = useSettingsStore((s) => s.settings.authMode);
   const setAuthMode = useSettingsStore((s) => s.setAuthMode);
   // If the user is already authenticated (e.g. relaunch with no company yet),
-  // skip straight to genesis (the two-door start).
-  const [step, setStep] = useState<Step>(hasToken ? "genesis" : "authSource");
+  // skip straight to genesis (the two-door start). Respects the auth MODE — an
+  // api-key user with a saved key is connected even without an OAuth token.
+  const initiallyConnected = isAuthConnected(authMode, { hasToken }, { hasKey });
+  const [step, setStep] = useState<Step>(initiallyConnected ? "genesis" : "authSource");
   const [tokenInput, setTokenInput] = useState("");
   const [apiKeyInput, setApiKeyInput] = useState("");
   // We only ever hold the masked prefix in renderer state — never the raw token.
