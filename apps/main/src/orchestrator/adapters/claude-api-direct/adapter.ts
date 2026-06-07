@@ -13,7 +13,7 @@ import type {
 import type { ToolContext } from "../../../mcp/tools.js";
 import { createProjectsRepository } from "../../../projects/repository.js";
 import { getAgentSandboxCwd } from "../../util/paths.js";
-import { composeAgentSystemPrompt } from "../system-prompt-compose.js";
+import { composeAgentSystemPromptSplit } from "../system-prompt-compose.js";
 import { createSdkClient } from "./sdk-client.js";
 import { runAgenticTurn, type LlmClient } from "./agentic-loop.js";
 import { buildSdkTools, runTool, type SdkToolDef } from "./tool-bridge.js";
@@ -59,7 +59,9 @@ export class ClaudeApiDirectAdapter implements AgentAdapter {
   // and closed in kill().
   private db: Database.Database | null = null;
   private client: LlmClient | null = null;
-  private system = "";
+  // Split into the stable (1h-cached) prefix and the volatile (uncached) suffix —
+  // see composeAgentSystemPromptSplit. Keeps the digest out of the cached prefix.
+  private systemPrompt: { stable: string; volatile: string } = { stable: "", volatile: "" };
   private tools: SdkToolDef[] = [];
   private toolCtx: ToolContext | null = null;
   private fsSecCtx: FsSecCtx | null = null;
@@ -85,8 +87,9 @@ export class ClaudeApiDirectAdapter implements AgentAdapter {
     const agent = this.ctx.agent;
 
     // The system prompt is composed by the SAME shared pure function the CLI
-    // path (build-args) uses, so the SDK CEO gets a byte-identical prompt.
-    this.system = composeAgentSystemPrompt(agent, {
+    // path (build-args) uses (stable+volatile is byte-identical to the CLI's
+    // single prompt), then split so the 1h cache covers the stable prefix.
+    this.systemPrompt = composeAgentSystemPromptSplit(agent, {
       ...(this.ctx.narratedActive === true ? { narratedActive: true } : {}),
       ...(this.ctx.telosBlock !== undefined ? { telosBlock: this.ctx.telosBlock } : {}),
       ...(this.ctx.memoryBlock !== undefined ? { memoryBlock: this.ctx.memoryBlock } : {}),
@@ -185,7 +188,8 @@ export class ClaudeApiDirectAdapter implements AgentAdapter {
       await runAgenticTurn({
         client,
         model: this.ctx.agent.model,
-        system: this.system,
+        system: this.systemPrompt.stable,
+        systemVolatile: this.systemPrompt.volatile,
         tools: this.tools,
         messages: this.messages,
         runTool: (name, input) =>

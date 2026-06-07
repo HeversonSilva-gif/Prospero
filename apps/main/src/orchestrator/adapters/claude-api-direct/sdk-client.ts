@@ -44,6 +44,19 @@ export const createSdkClient = (apiKey: string, deps?: { create?: SdkCreateFn })
         return i === req.tools.length - 1 ? { ...base, cache_control: CACHE_1H } : base;
       });
 
+      // The STABLE prefix carries the 1h cache breakpoint; the VOLATILE suffix
+      // (digest/telos/project-context) follows it UNcached. So when the digest
+      // changes between the CEO's wakes, only the small suffix is re-processed —
+      // the big cached prefix (persona + capabilities + tools) still reads from
+      // cache instead of paying a 2× cache write. stable+volatile is byte-identical
+      // to the CLI's single system string (same content, same order).
+      const system: Array<Record<string, unknown>> = [
+        { type: "text", text: req.system, cache_control: CACHE_1H },
+      ];
+      if (req.systemVolatile !== undefined && req.systemVolatile !== "") {
+        system.push({ type: "text", text: req.systemVolatile });
+      }
+
       const params = {
         model: req.model,
         // 64000 (not 16000): the CLI CEO had no output ceiling; a too-low cap would
@@ -55,9 +68,7 @@ export const createSdkClient = (apiKey: string, deps?: { create?: SdkCreateFn })
         // reasons exactly as hard as the CLI CEO. Omitting effort defaults to `high`
         // — a silent intelligence downgrade, which violates "don't make anyone dumber".
         output_config: { effort: "xhigh" },
-        // 1h cache on the stable system prefix — the cost win. No beta header
-        // is required for the 1h ttl.
-        system: [{ type: "text", text: req.system, cache_control: CACHE_1H }],
+        system,
         tools,
         messages: req.messages,
       };

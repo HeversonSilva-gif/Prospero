@@ -10,7 +10,11 @@ export type LlmResponse = {
 export type LlmClient = {
   createMessage: (req: {
     model: string;
+    /** The STABLE system prefix — cached (1h) by the SDK client. */
     system: string;
+    /** The VOLATILE system suffix (digest/telos/etc.) — sent AFTER the cache
+     * breakpoint so a changing digest never invalidates the cached prefix. */
+    systemVolatile?: string;
     tools: SdkToolDef[];
     messages: Array<{ role: "user" | "assistant"; content: unknown }>;
   }) => Promise<LlmResponse>;
@@ -20,6 +24,8 @@ export type RunTurnArgs = {
   client: LlmClient;
   model: string;
   system: string;
+  /** Volatile system suffix forwarded to createMessage (uncached). */
+  systemVolatile?: string;
   tools: SdkToolDef[];
   messages: Array<{ role: "user" | "assistant"; content: unknown }>;
   runTool: (name: string, input: unknown) => Promise<string>;
@@ -36,6 +42,7 @@ export const runAgenticTurn = async (args: RunTurnArgs): Promise<void> => {
     const res = await args.client.createMessage({
       model: args.model,
       system: args.system,
+      ...(args.systemVolatile !== undefined ? { systemVolatile: args.systemVolatile } : {}),
       tools: args.tools,
       messages: args.messages,
     });

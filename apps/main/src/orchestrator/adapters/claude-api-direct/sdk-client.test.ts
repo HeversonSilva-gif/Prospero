@@ -47,6 +47,38 @@ describe("createSdkClient", () => {
     expect(res.usage).toEqual({ input_tokens: 1 });
   });
 
+  it("puts the volatile suffix in a SECOND, uncached system block", async () => {
+    const create = fakeCreate({ stop_reason: "end_turn", content: [], usage: {} });
+    const client = createSdkClient("sk-ant-x", { create });
+    await client.createMessage({
+      model: "claude-opus-4-8",
+      system: "STABLE",
+      systemVolatile: "VOLATILE-DIGEST",
+      tools: [],
+      messages: [{ role: "user", content: "go" }],
+    });
+    const system = create.lastParams().system as Array<Record<string, unknown>>;
+    expect(system).toHaveLength(2);
+    expect(system[0]!.text).toBe("STABLE");
+    expect(system[0]!.cache_control).toEqual({ type: "ephemeral", ttl: "1h" });
+    // the volatile block is AFTER the breakpoint → no cache_control
+    expect(system[1]!.text).toBe("VOLATILE-DIGEST");
+    expect(system[1]!.cache_control).toBeUndefined();
+  });
+
+  it("omits the volatile block when systemVolatile is empty or absent", async () => {
+    const create = fakeCreate({ stop_reason: "end_turn", content: [], usage: {} });
+    const client = createSdkClient("sk-ant-x", { create });
+    await client.createMessage({
+      model: "m",
+      system: "S",
+      systemVolatile: "",
+      tools: [],
+      messages: [{ role: "user", content: "go" }],
+    });
+    expect((create.lastParams().system as unknown[]).length).toBe(1);
+  });
+
   it("passes through model and messages", async () => {
     const create = fakeCreate({ stop_reason: "end_turn", content: [], usage: {} });
     const client = createSdkClient("sk-ant-x", { create });

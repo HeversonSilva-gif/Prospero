@@ -90,3 +90,42 @@ export const composeAgentSystemPrompt = (
       : {}),
   });
 };
+
+// Split variant for the SDK adapter's 1h prompt cache. Returns the STABLE prefix
+// (preamble + persona + capabilities + the CEO goals/genesis/boundary — changes
+// rarely) and the VOLATILE suffix (narrated + telos + memory/digest + project
+// context — changes between the CEO's wakes). The SDK puts the 1h cache breakpoint
+// on the stable block, so a changing digest re-processes only the small suffix
+// while the big cached prefix still reads from cache (no 2× cache-write per wake).
+//
+// INVARIANT: `stable + volatile === composeAgentSystemPrompt(agent, opts)`. This
+// holds because composeSystemPrompt appends exactly these four blocks last, in this
+// order (preamble+role+persona+capabilities+goals, THEN narrated+telos+memory+
+// projectContext) — so the split is byte-identical to the CLI's single-string
+// prompt: same content, same order, only a cache boundary inserted between them.
+export const composeAgentSystemPromptSplit = (
+  agent: Agent,
+  opts: ComposeAgentSystemPromptOpts = {},
+): { stable: string; volatile: string } => {
+  // Stable = the full composition WITHOUT the trailing volatile blocks (they
+  // default to "" inside composeSystemPrompt when omitted here).
+  const stableOpts: ComposeAgentSystemPromptOpts = {
+    ...(opts.instructionsBlock !== undefined ? { instructionsBlock: opts.instructionsBlock } : {}),
+    ...(opts.capabilityBoundary !== undefined
+      ? { capabilityBoundary: opts.capabilityBoundary }
+      : {}),
+    ...(opts.companyHasApprovedBusiness !== undefined
+      ? { companyHasApprovedBusiness: opts.companyHasApprovedBusiness }
+      : {}),
+  };
+  const stable = composeAgentSystemPrompt(agent, stableOpts);
+  // Volatile = the same four trailing blocks, built and ordered exactly as
+  // composeSystemPrompt appends them (narrated → telos → memory → projectContext).
+  const narrated = opts.narratedActive === true ? buildNarratedBlock() : "";
+  const volatile =
+    narrated +
+    (opts.telosBlock ?? "") +
+    (opts.memoryBlock ?? "") +
+    (opts.projectContextBlock ?? "");
+  return { stable, volatile };
+};
