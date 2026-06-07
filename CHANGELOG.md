@@ -3,6 +3,33 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.17 — 2026-06-07
+
+Controle de custo na API e tratamento do limite de requisições — depois que apenas
+abrir o app (no modo chave de API) consumiu tokens demais.
+
+### O app abre pausado (não gasta sozinho)
+
+- **A equipe não trabalha mais sozinha assim que você abre o app.** Ele abre PAUSADO:
+  uma barra mostra o estado e você clica em "Ativar equipe" quando quiser que o time
+  rode. Só abrir para dar uma olhada não consome nada. Conversar com um agente e criar
+  empresa (gênese) continuam funcionando — só o trabalho autônomo fica em espera até
+  você ativar.
+
+### Gasta menos por turno
+
+- **A compactação passou a considerar o tamanho real da sessão.** Antes ela só agia
+  quando o agente relia muito contexto, e deixava passar justamente o turno mais caro
+  (a primeira vez depois de reabrir, quando o contexto é reescrito do zero). Agora ela
+  age também nesse turno, encurtando a sessão para que as próximas aberturas saiam mais
+  baratas.
+
+### Limite de requisições da API tratado
+
+- **Quando a API responde "limite de requisições atingido" (429), a equipe agora faz uma
+  pausa curta e volta sozinha**, em vez de mostrar o erro cru no chat. (Esse limite é por
+  tier da sua conta de API; subir de tier aumenta a folga.)
+
 ## v0.2.16 — 2026-06-07
 
 Correção de dois problemas no onboarding ao usar a chave de API, encontrados testando a v0.2.15.

@@ -48,6 +48,11 @@ export type AppSettings = {
   compactionCacheReadThreshold: number;
   // Epoch ms until which the Max account is rate-limited; the team auto-resumes after. null = not limited.
   rateLimitedUntil: number | null;
+  // Global kill-switch for the autonomous loop. When true, the reconciler does
+  // NOT wake the team on its own — so just opening the app costs nothing. Forced
+  // true on every launch (open paused); the user presses "Ativar" to run. Manual
+  // actions (genesis, chatting with an agent) are NOT gated by this.
+  autonomyPaused: boolean;
   remoteExecution: RemoteExecutionSettings;
 };
 
@@ -64,6 +69,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   derivationsPerDayPerAgent: 3,
   compactionCacheReadThreshold: 75_000,
   rateLimitedUntil: null,
+  autonomyPaused: true,
   remoteExecution: {
     enabled: false,
     mode: "local-docker",

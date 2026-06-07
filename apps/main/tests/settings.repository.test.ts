@@ -26,6 +26,7 @@ describe("settings repository", () => {
       derivationsPerDayPerAgent: 3,
       compactionCacheReadThreshold: 75000,
       rateLimitedUntil: null,
+      autonomyPaused: true,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
@@ -52,6 +53,7 @@ describe("settings repository", () => {
       derivationsPerDayPerAgent: 3,
       compactionCacheReadThreshold: 75000,
       rateLimitedUntil: null,
+      autonomyPaused: true,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
@@ -78,6 +80,7 @@ describe("settings repository", () => {
       derivationsPerDayPerAgent: 3,
       compactionCacheReadThreshold: 75000,
       rateLimitedUntil: null,
+      autonomyPaused: true,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",

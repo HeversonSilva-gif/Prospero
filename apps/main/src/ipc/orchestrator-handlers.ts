@@ -1379,10 +1379,13 @@ export const registerOrchestratorHandlers = (
   // scope: a single-project agent folds into that PROJECT's digest (verifiable
   // against the repo); the CEO / multi-project agent has no single repo root, so
   // it folds into an AGENT-scoped digest (knowledge not pinned to source files).
-  const maybeCompactAfterTurn = async (agent: Agent, cacheRead: number): Promise<void> => {
+  const maybeCompactAfterTurn = async (
+    agent: Agent,
+    usage: { cacheRead: number; cacheCreation: number },
+  ): Promise<void> => {
     try {
       const threshold = settingsRepo.read().compactionCacheReadThreshold;
-      if (!shouldCompact({ cacheRead }, threshold)) return;
+      if (!shouldCompact(usage, threshold)) return;
 
       const live = agents.getById(agent.id);
       if (live === null || live.status === "paused" || live.status === "terminated") return;
@@ -1747,7 +1750,10 @@ export const registerOrchestratorHandlers = (
           // Idle-only compaction (Phase 1): only when this turn left the agent
           // idle (no queued thread) — never kill a mid-turn process.
           if (ev.usage !== undefined && !stillBusy) {
-            void maybeCompactAfterTurn(agent, ev.usage.cache_read ?? 0);
+            void maybeCompactAfterTurn(agent, {
+              cacheRead: ev.usage.cache_read ?? 0,
+              cacheCreation: ev.usage.cache_creation ?? 0,
+            });
           }
           // A completed turn may have freed a slot (agent now idle) or the
           // agent had queued work for another agent — wake the drain.
@@ -1783,7 +1789,12 @@ export const registerOrchestratorHandlers = (
               updatedAt: Date.now(),
             });
           }
-          if (!wasGated) {
+          // The Max session/weekly limit warrants an inbox card (the team is
+          // parked for hours). An API ITPM/OTPM 429 is a transient ~60s
+          // token-bucket backoff that auto-resumes — surfacing a card for every
+          // blip would spam the inbox, so we skip it (the paused→idle status
+          // broadcast + rate-limit banner already signal the brief pause).
+          if (!wasGated && ev.scope !== "api-rate-limit") {
             const when = new Date(until).toLocaleString();
             inbox.create({
               companyId: agent.companyId,
@@ -2351,6 +2362,12 @@ export const registerOrchestratorHandlers = (
       settingsRepo.write({ rateLimitedUntil: Date.now() - 1000 });
     }
   }
+
+  // Open paused: force the autonomous loop OFF on every launch so just opening
+  // the app never spends (the "$6 on open" report). The user presses "Ativar"
+  // (SETTINGS_SET_AUTONOMY_PAUSED) to let the team work on its own. The reconciler
+  // checks this flag; manual actions (genesis, chatting) use other spawn paths.
+  settingsRepo.write({ autonomyPaused: true });
 
   // Re-wake the CEO for any approvals routed to the CEO but not yet decided
   // before restart. Escalating to human (old behavior) would stall CEO-driven
@@ -2989,6 +3006,12 @@ export const registerOrchestratorHandlers = (
     };
 
     const reconcileTick = (): void => {
+      // Global autonomy pause: while paused the team does NOT work on its own
+      // (no CEO wake, no idle-assignee re-engagement). This is the "open paused,
+      // press Ativar" guard that stops the app from spending the moment it opens.
+      // Manual actions (genesis, chatting with an agent) bypass this — they go
+      // through their own spawn paths, not the reconciler.
+      if (settingsRepo.read().autonomyPaused) return;
       // Don't reconcile while the team is parked on a Max rate-limit window.
       const rlUntil = settingsRepo.read().rateLimitedUntil;
       if (rlUntil !== null && Date.now() < rlUntil) return;
@@ -3094,6 +3117,16 @@ export const registerOrchestratorHandlers = (
   ipcMain.handle(IPC.SETTINGS_SET_EXECUTOR_MODE, (_e, mode: "atomic" | "narrated") => {
     createSettingsRepository(db).setExecutorMode(mode);
     return { ok: true };
+  });
+
+  // Global autonomy play/pause. Pausing stops the reconciler from waking the team
+  // on its own (manual actions still work). Unpausing kicks the scheduler so the
+  // team starts immediately instead of waiting for the next reconcile tick.
+  ipcMain.handle(IPC.SETTINGS_SET_AUTONOMY_PAUSED, (_e, paused: unknown) => {
+    if (typeof paused !== "boolean") throw new Error("autonomyPaused must be a boolean");
+    createSettingsRepository(db).write({ autonomyPaused: paused });
+    if (!paused) drainScheduler();
+    return createSettingsRepository(db).read();
   });
 
   // Switch auth mode AND migrate existing agents to the matching adapter, so the

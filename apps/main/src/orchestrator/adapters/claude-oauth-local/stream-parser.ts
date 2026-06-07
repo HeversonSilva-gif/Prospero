@@ -84,6 +84,27 @@ const extractToolResultText = (content: unknown): string => {
   return "";
 };
 
+// --- API rate-limit (429) detection — api-key mode --------------------------
+// The Anthropic API returns a 429 naming the ITPM/OTPM limit. Claude Code
+// surfaces it as a terminal `result` error (api_error_status / result text) or,
+// in some builds, as the assistant turn's text — NOT as a rate_limit_event
+// (that's the Max session telemetry). Mirrors the 401 detection in
+// credential-recovery: structured status first, text pattern as fallback.
+// ITPM/OTPM are continuously-refilling token buckets, so we back off briefly and
+// auto-resume rather than parking for the Max-style hour.
+const API_RATE_LIMIT_BACKOFF_MS = 60_000;
+// Specific to the API's rate-limit phrasing ("rate limit of 500,000 input tokens
+// per minute") so an agent merely mentioning "429" or "rate limit" won't trip it.
+const looksLikeApiRateLimitText = (s: string): boolean =>
+  /rate limit of [\d,]+[^.]{0,40}per minute/i.test(s);
+const apiRateLimitedEvent = (): ParsedEvent => ({
+  kind: "rate-limited",
+  resetsAt: Date.now() + API_RATE_LIMIT_BACKOFF_MS,
+  retryAfterSec: Math.round(API_RATE_LIMIT_BACKOFF_MS / 1000),
+  message: "api-rate-limit",
+  scope: "api-rate-limit",
+});
+
 export const parseStreamLine = (line: string): ParsedEvent | null => {
   const trimmed = line.trim();
   if (trimmed === "") return null;
@@ -109,6 +130,12 @@ export const parseStreamLine = (line: string): ParsedEvent | null => {
   // assistant message — text + tool_use blocks
   if (data["type"] === "assistant" && isObject(data["message"])) {
     const blocks = toAssistantBlocks(data["message"]["content"]);
+    // An API 429 can surface as the assistant turn's text (api-key mode). Catch
+    // it here so the team backs off + auto-resumes instead of rendering the raw
+    // API error as a chat message.
+    if (blocks.some((b) => b.kind === "text" && looksLikeApiRateLimitText(b.text))) {
+      return apiRateLimitedEvent();
+    }
     if (blocks.length > 0) {
       return { kind: "assistant-message", blocks };
     }
@@ -140,6 +167,14 @@ export const parseStreamLine = (line: string): ParsedEvent | null => {
 
   // result — turn completed
   if (data["type"] === "result") {
+    // API 429 (api-key mode) surfaces here as a terminal error — back off + resume
+    // via the rate-limited path instead of recording a (failed) turn-complete.
+    if (
+      data["api_error_status"] === 429 ||
+      (typeof data["result"] === "string" && looksLikeApiRateLimitText(data["result"]))
+    ) {
+      return apiRateLimitedEvent();
+    }
     const usage = safeReadUsage(data["usage"]);
     const model = readModel(data);
     const event: ParsedEvent = { kind: "turn-complete" };
@@ -213,6 +248,7 @@ export const parseStreamLine = (line: string): ParsedEvent | null => {
       resetsAt,
       retryAfterSec,
       message: limitType,
+      scope: "max-session",
     };
   }
 

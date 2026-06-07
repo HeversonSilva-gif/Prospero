@@ -31,6 +31,7 @@ describe("settings schema", () => {
       derivationsPerDayPerAgent: 3,
       compactionCacheReadThreshold: 75_000,
       rateLimitedUntil: null,
+      autonomyPaused: true,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
@@ -55,6 +56,7 @@ describe("settings schema", () => {
       derivationsPerDayPerAgent: 3,
       compactionCacheReadThreshold: 75_000,
       rateLimitedUntil: null,
+      autonomyPaused: true,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
@@ -79,6 +81,7 @@ describe("settings schema", () => {
       derivationsPerDayPerAgent: 3,
       compactionCacheReadThreshold: 75_000,
       rateLimitedUntil: null,
+      autonomyPaused: true,
       remoteExecution: {
         enabled: false,
         mode: "local-docker",
