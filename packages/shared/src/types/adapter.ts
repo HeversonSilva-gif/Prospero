@@ -4,7 +4,8 @@ import type { ContentBlock } from "./attachment.js";
 export type AdapterName =
   | "claude-oauth-local"
   | "claude-api-key-local"
-  | "claude-oauth-remote-docker";
+  | "claude-oauth-remote-docker"
+  | "claude-api-direct";
 
 export const DEFAULT_ADAPTER_NAME: AdapterName = "claude-oauth-local";
 

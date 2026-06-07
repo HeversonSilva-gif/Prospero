@@ -7,6 +7,7 @@ import type {
 import { ClaudeOAuthLocalAdapter } from "./claude-oauth-local/adapter.js";
 import { ClaudeApiKeyLocalAdapter } from "./claude-api-key-local/adapter.js";
 import { ClaudeRemoteDockerAdapter } from "./claude-oauth-remote-docker/adapter.js";
+import { ClaudeApiDirectAdapter } from "./claude-api-direct/adapter.js";
 
 const claudeOAuthLocalFactory: AgentAdapterFactory = {
   name: "claude-oauth-local",
@@ -29,10 +30,18 @@ const claudeOAuthRemoteDockerFactory: AgentAdapterFactory = {
   },
 };
 
+const claudeApiDirectFactory: AgentAdapterFactory = {
+  name: "claude-api-direct",
+  create(ctx: SpawnContext): AgentAdapter {
+    return new ClaudeApiDirectAdapter(ctx);
+  },
+};
+
 export const adapterRegistry: Record<AdapterName, AgentAdapterFactory | undefined> = {
   "claude-oauth-local": claudeOAuthLocalFactory,
   "claude-api-key-local": claudeApiKeyLocalFactory,
   "claude-oauth-remote-docker": claudeOAuthRemoteDockerFactory,
+  "claude-api-direct": claudeApiDirectFactory,
 };
 
 export const createAdapter = (name: AdapterName, ctx: SpawnContext): AgentAdapter => {

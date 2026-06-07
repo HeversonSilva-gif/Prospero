@@ -1,10 +1,5 @@
-import { resolveCapabilityTools, applyRunPolicy, isCeoAgent, type Agent } from "@prospero/shared";
-import { composeSystemPrompt } from "../../system-prompt.js";
-import { goalsSystemPromptBlock } from "../../system-prompt-goals.js";
-import { orgArchitectSystemPromptBlock } from "../../system-prompt-org.js";
-import { buildNarratedBlock } from "../../system-prompt-narrated.js";
-import { buildGenesisSystemPromptBlock } from "../../system-prompt-genesis.js";
-import { buildCapabilityBoundary } from "../../../agents/genesis/capability-boundary.js";
+import { resolveCapabilityTools, applyRunPolicy, type Agent } from "@prospero/shared";
+import { composeAgentSystemPrompt } from "../system-prompt-compose.js";
 
 // We deliberately omit `-p` (--print): that flag makes claude wait for stdin EOF before
 // emitting any assistant output, which is incompatible with the persistent runner that
@@ -40,57 +35,13 @@ export const buildClaudeArgs = (
     canHire: agent.canHire,
     canAssign: agent.canAssign,
   });
-  const isCeo = isCeoAgent(agent);
-  const narratedBlock = opts.narratedActive === true ? buildNarratedBlock() : undefined;
-  // Audit 2026-06-03 Inteligência & Contexto M1: composeInstructions can return
-  // "" when the bundle exists but is blank, so `?? agent.systemPrompt` does NOT
-  // fall back (?? only catches undefined). Fall back when undefined OR blank so
-  // the agent never runs with an empty persona.
-  const agentPersona =
-    opts.instructionsBlock !== undefined && opts.instructionsBlock.trim() !== ""
-      ? opts.instructionsBlock
-      : agent.systemPrompt;
+  // The system prompt is composed by the shared pure function so the SDK path
+  // (claude-api-direct) produces a byte-identical prompt — guaranteeing the SDK
+  // CEO is exactly as smart as the CLI CEO. `opts` here is structurally the
+  // ComposeAgentSystemPromptOpts shape (same fields).
   const args = [
     "--system-prompt",
-    composeSystemPrompt({
-      // M12 PR-C: the instruction bundle replaces the legacy system_prompt
-      // string. Fall back to system_prompt if the bundle is missing or blank (M1).
-      agentPersona,
-      capabilities: agent.capabilities,
-      // Audit 2026-06-03 Inteligência & Contexto I9: pass the run policy so the
-      // prompt's advertised tool list matches the run-policy-filtered
-      // --allowedTools computed above (same applyRunPolicy inputs).
-      canHire: agent.canHire,
-      canAssign: agent.canAssign,
-      ...(isCeo
-        ? {
-            goalsBlock:
-              goalsSystemPromptBlock +
-              orgArchitectSystemPromptBlock +
-              // Onda A #2 (token): the genesis playbook is only needed while the
-              // company is being created. Once the business is approved it's ~4.5 KB
-              // of dead weight re-read on every CEO turn, so drop it then. We keep it
-              // whenever we don't KNOW it's approved (undefined/false) — fail-safe so
-              // onboarding (incl. the [BUSINESS_PLAN_FEEDBACK] resubmit loop, where the
-              // business is still unapproved) never loses its guidance.
-              (opts.companyHasApprovedBusiness === true
-                ? ""
-                : // The boundary reaches the CEO so it only proposes what the AI can
-                  // build/run/maintain. Prefer the host-built boundary (grounded in the
-                  // company's real connectors); fall back to the x-only default when the
-                  // host didn't pass one. Audit 2026-06-03 Facet 3 C1.
-                  buildGenesisSystemPromptBlock(
-                    opts.capabilityBoundary ?? buildCapabilityBoundary(["x"]),
-                  )),
-          }
-        : {}),
-      ...(narratedBlock !== undefined ? { narratedBlock } : {}),
-      ...(opts.telosBlock !== undefined ? { telosBlock: opts.telosBlock } : {}),
-      ...(opts.memoryBlock !== undefined ? { memoryBlock: opts.memoryBlock } : {}),
-      ...(opts.projectContextBlock !== undefined
-        ? { projectContextBlock: opts.projectContextBlock }
-        : {}),
-    }),
+    composeAgentSystemPrompt(agent, opts),
     "--model",
     agent.model,
     "--allowedTools",

@@ -11,7 +11,7 @@ export type CredentialLoaders = {
  * Maps an adapter name to the credential it needs. The LOCAL OAuth adapter seeds
  * auth from the host's ~/.claude/.credentials.json file, so its DB token is only
  * an env fallback — OPTIONAL. The REMOTE-docker adapter has no host file to seed
- * from, so it REQUIRES the token. The API-key adapter requires the API key.
+ * from, so it REQUIRES the token. The API-key adapters (CLI + direct-SDK) require the API key.
  * Throws for an unknown adapter or a required-but-missing credential.
  */
 export const resolveAdapterCredentials = (
@@ -31,7 +31,9 @@ export const resolveAdapterCredentials = (
     if (token === null) throw new Error("OAuth token not configured");
     return { oauthToken: token };
   }
-  if (adapterName === "claude-api-key-local") {
+  if (adapterName === "claude-api-key-local" || adapterName === "claude-api-direct") {
+    // Both the CLI api-key adapter and the direct-SDK adapter (CEO) authenticate
+    // with the same stored API key.
     const key = loaders.loadApiKey();
     if (key === null) throw new Error("API key not configured");
     return { apiKey: key };
