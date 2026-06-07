@@ -105,6 +105,9 @@ export type AgentsRepository = {
   create(input: CreateAgentInput): Agent;
   getById(id: string): Agent | null;
   listByCompany(companyId: string): Agent[];
+  /** All agents across every company (created-asc). Used by the auth-mode adapter
+   *  migration — auth is a global setting, so a switch re-points every local agent. */
+  listAll(): Agent[];
   updateStatus(id: string, patch: { status: AgentStatus; currentAction: string | null }): void;
   setSessionId(id: string, sessionId: string): void;
   clearSessionId(id: string): void;
@@ -178,6 +181,7 @@ export const createAgentsRepository = (
   `);
   const byId = db.prepare("SELECT * FROM agents WHERE id = ?");
   const byCompany = db.prepare("SELECT * FROM agents WHERE company_id = ? ORDER BY created_at ASC");
+  const allAgentsStmt = db.prepare("SELECT * FROM agents ORDER BY created_at ASC");
   const updateStatusStmt = db.prepare(
     "UPDATE agents SET status = ?, current_action = ?, updated_at = ? WHERE id = ?",
   );
@@ -232,6 +236,9 @@ export const createAgentsRepository = (
     listByCompany(companyId) {
       const rows = byCompany.all(companyId) as Row[];
       return rows.map(rowToAgent);
+    },
+    listAll() {
+      return (allAgentsStmt.all() as Row[]).map(rowToAgent);
     },
     updateStatus(id, patch) {
       updateStatusStmt.run(patch.status, patch.currentAction, Date.now(), id);

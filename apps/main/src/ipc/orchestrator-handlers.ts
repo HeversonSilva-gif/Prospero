@@ -56,6 +56,12 @@ import {
   setRespawnFn,
   setUserDataDir,
 } from "../auth/credential-recovery.js";
+import {
+  migrateAgentsForAuthMode,
+  runAdapterMigration,
+  setAdapterMigrationRunner,
+} from "../auth/adapter-migration.js";
+import { loadApiKeyStatus } from "../auth/api-key-storage.js";
 import { computeLaneSchedule } from "../orchestrator/scheduler.js";
 import { stuckWaitingAgentIds } from "../orchestrator/stuck-waiting.js";
 import { computeIdleAssigneesToWake } from "../orchestrator/idle-assignee-wake.js";
@@ -1871,6 +1877,29 @@ export const registerOrchestratorHandlers = (
   // stays unit-testable; injection happens here, once, at orchestrator init.
   setRespawnFn(respawnAgent);
   setUserDataDir(app.getPath("userData"));
+
+  // Auth-mode adapter migration: flipping authMode (or saving a key) re-points
+  // every existing LOCAL agent to the matching adapter and respawns the live ones,
+  // so switching to API mode never requires re-hiring the team. Injected here
+  // because it needs respawnAgent + the live-adapter registry; the AUTH_SET_MODE
+  // and AUTH_API_KEY_SET handlers call runAdapterMigration without importing these.
+  setAdapterMigrationRunner((mode) =>
+    migrateAgentsForAuthMode({
+      authMode: mode,
+      hasApiKey: loadApiKeyStatus(db).hasKey,
+      listAgents: () =>
+        agents.listAll().map((a) => ({ id: a.id, adapterName: a.adapterName, status: a.status })),
+      setAdapterName: (id, name) => {
+        agents.setAdapterName(id, name);
+      },
+      isRunning: (id) => getAdapter(id)?.isAlive() ?? false,
+      kill: (id) => {
+        getAdapter(id)?.kill();
+      },
+      respawn: (id) => respawnAgent(id),
+      log: (msg) => olog(`[auth:migrate] ${msg}`),
+    }),
+  );
   // Forward recovery-status broadcasts to every renderer via the dedicated
   // IPC.AUTH_RECOVERY_STATUS channel (separate from AGENT_EVENT so the
   // banner subscriber doesn't need to filter the agent-event firehose).
@@ -3065,6 +3094,19 @@ export const registerOrchestratorHandlers = (
   ipcMain.handle(IPC.SETTINGS_SET_EXECUTOR_MODE, (_e, mode: "atomic" | "narrated") => {
     createSettingsRepository(db).setExecutorMode(mode);
     return { ok: true };
+  });
+
+  // Switch auth mode AND migrate existing agents to the matching adapter, so the
+  // user never has to re-hire the team after flipping to API. If switching to
+  // api-key before a key is saved, the migration no-ops until AUTH_API_KEY_SET
+  // re-runs it (the real UI order: flip mode → then paste key).
+  ipcMain.handle(IPC.AUTH_SET_MODE, async (_e, mode: unknown) => {
+    if (mode !== "oauth" && mode !== "api-key") {
+      throw new Error("Invalid auth mode");
+    }
+    createSettingsRepository(db).write({ authMode: mode });
+    await runAdapterMigration(mode);
+    return createSettingsRepository(db).read();
   });
 
   ipcMain.handle(

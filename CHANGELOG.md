@@ -3,6 +3,30 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.15 — 2026-06-07
+
+Mudar a equipe do plano Max para a sua própria chave de API (e voltar) agora é só
+um toque nos Ajustes — sem precisar recriar nenhum agente.
+
+### Trocar de Max para chave de API ficou liso
+
+- **Ao ativar "Chave de API" e colar sua chave, toda a equipe migra de uma vez.**
+  Antes, mudar o modo de autenticação só valia para agentes novos — os que já
+  existiam continuavam no Max, e você teria que recriar um por um. Agora o CEO e
+  todos os agentes locais passam para a chave de API automaticamente: os que estão
+  trabalhando reiniciam na hora (retomando de onde pararam) e os parados adotam o
+  novo modo na próxima vez que acordam.
+- **Funciona na ordem natural.** Você pode virar o modo primeiro e colar a chave
+  depois — a migração acontece assim que a chave é salva. Se ainda não houver chave,
+  nada é migrado (a equipe continua no Max, sem quebrar).
+- **Voltar para o Max é igualmente simples.** Trocar de volta re-aponta todo mundo
+  para o login do Max, sem recriar nada.
+- **Agentes em execução remota (Docker) não são afetados** — seguem na sua própria
+  configuração.
+
+Bônus: rodar na chave de API também elimina a falha de reconexão (401) que aparecia
+quando vários agentes dividiam o mesmo login do Max.
+
 ## v0.2.14 — 2026-06-06
 
 Continuação do trabalho de reduzir o consumo de cota do seu plano Max — a equipe

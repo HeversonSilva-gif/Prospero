@@ -14,6 +14,8 @@ import { saveApiKey, loadApiKeyStatus, clearApiKey } from "../auth/api-key-stora
 import { detectClaudeCliToken } from "../auth/token-detect.js";
 import { redactToken } from "../auth/token-redact.js";
 import { recoverAllRunning } from "../auth/credential-recovery.js";
+import { createSettingsRepository } from "../settings/repository.js";
+import { runAdapterMigration } from "../auth/adapter-migration.js";
 
 type SetPayload = { raw: string; source: TokenSource };
 
@@ -71,7 +73,7 @@ export const registerAuthHandlers = (
   ipcMain.handle(IPC.AUTH_API_KEY_STATUS, (): ApiKeyStatus => loadApiKeyStatus(db));
 
   ipcMain.handle(IPC.AUTH_API_KEY_SET, (_event, payload: unknown): Promise<ApiKeyStatus> => {
-    return Promise.resolve().then(() => {
+    return Promise.resolve().then(async () => {
       if (
         payload === null ||
         typeof payload !== "object" ||
@@ -80,6 +82,12 @@ export const registerAuthHandlers = (
         throw new Error("Invalid payload for api-key-set");
       }
       saveApiKey(db, (payload as { raw: string }).raw);
+      // A freshly-saved key is the trigger to migrate agents that were deferred
+      // when the user flipped to api-key mode before any key existed (the real UI
+      // order: flip mode → paste key). No-op when in oauth mode or nothing to move.
+      if (createSettingsRepository(db).read().authMode === "api-key") {
+        await runAdapterMigration("api-key");
+      }
       return loadApiKeyStatus(db);
     });
   });

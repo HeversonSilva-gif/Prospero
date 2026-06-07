@@ -2,6 +2,7 @@
 import type {
   ApiKeyStatus,
   AppSettings,
+  AuthMode,
   DetectResult,
   RecoveryResult,
   RecoveryStatusEvent,
@@ -72,6 +73,7 @@ declare global {
       settings: {
         get: () => Promise<AppSettings>;
         update: (patch: Partial<AppSettings>) => Promise<AppSettings>;
+        setAuthMode: (mode: AuthMode) => Promise<AppSettings>;
         pickWorkspace: () => Promise<string | null>;
         getExecutorMode: () => Promise<"atomic" | "narrated">;
         setExecutorMode: (mode: "atomic" | "narrated") => Promise<{ ok: true }>;
