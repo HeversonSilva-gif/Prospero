@@ -13,6 +13,7 @@ export const IPC = {
   AUTH_API_KEY_CLEAR: "auth:api-key-clear",
   AUTH_RECONNECT_RUNNING_AGENTS: "auth:reconnect-running-agents",
   AUTH_RECOVERY_STATUS: "auth:recovery-status",
+  AUTH_SET_MODE: "auth:set-mode",
   COMPANY_LIST: "company:list",
   COMPANY_CREATE_DEMO: "company:create-demo",
   COMPANY_CREATE: "company:create",

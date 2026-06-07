@@ -3,6 +3,7 @@ import {
   IPC,
   type ApiKeyStatus,
   type AppSettings,
+  type AuthMode,
   type DetectResult,
   type RecoveryResult,
   type RecoveryStatusEvent,
@@ -72,6 +73,8 @@ contextBridge.exposeInMainWorld("prospero", {
     get: () => ipcRenderer.invoke(IPC.SETTINGS_GET) as Promise<AppSettings>,
     update: (patch: Partial<AppSettings>) =>
       ipcRenderer.invoke(IPC.SETTINGS_UPDATE, patch) as Promise<AppSettings>,
+    setAuthMode: (mode: AuthMode) =>
+      ipcRenderer.invoke(IPC.AUTH_SET_MODE, mode) as Promise<AppSettings>,
     pickWorkspace: () => ipcRenderer.invoke(IPC.SETTINGS_PICK_WORKSPACE) as Promise<string | null>,
     getExecutorMode: () =>
       ipcRenderer.invoke(IPC.SETTINGS_GET_EXECUTOR_MODE) as Promise<"atomic" | "narrated">,

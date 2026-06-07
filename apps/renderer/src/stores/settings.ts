@@ -97,7 +97,10 @@ export const useSettingsStore = create<State>((set, get) => ({
   },
 
   setAuthMode: async (mode) => {
-    const next = await window.prospero.settings.update({ authMode: mode });
+    // Routes through the dedicated AUTH_SET_MODE handler (not the generic settings
+    // update) so the main process also migrates existing agents to the matching
+    // adapter and respawns the live ones — no need to re-hire the team.
+    const next = await window.prospero.settings.setAuthMode(mode);
     set({ settings: next });
   },
 
