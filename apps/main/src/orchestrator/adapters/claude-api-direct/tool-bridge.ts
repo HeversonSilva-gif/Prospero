@@ -29,6 +29,26 @@ export type SdkToolDef = {
   input_schema: { type: "object"; [k: string]: unknown };
 };
 
+// Convert a tool's Zod schema to the JSON Schema the Anthropic API expects.
+// The API validates tool input_schema against JSON Schema **draft 2020-12**. We must
+// NOT use zod-to-json-schema's `openApi3` target: it emits the OpenAPI-3.0 dialect —
+// e.g. `exclusiveMinimum: true` as a BOOLEAN for `.positive()`/`.gt()` — which draft
+// 2020-12 rejects with a 400 ("input_schema: JSON schema is invalid"), the v0.2.18
+// CEO outage. The default (draft-07) emits NUMERIC `exclusiveMinimum`, matching what
+// the MCP server already sends successfully for the CLI agents. `$refStrategy:"none"`
+// inlines everything (no $ref/$defs), and we drop `$schema` so the API interprets the
+// schema as 2020-12 rather than seeing a mis-declared draft-07 meta-schema URL.
+const toApiInputSchema = (schema: unknown): { type: "object"; [k: string]: unknown } => {
+  // `as never`: some defs use ZodEffects (refine/transform) and zodToJsonSchema's
+  // param type is deep/recursive — a precise cast triggers TS2589.
+  const json = zodToJsonSchema(schema as never, { $refStrategy: "none" }) as Record<
+    string,
+    unknown
+  >;
+  delete json["$schema"];
+  return json as { type: "object"; [k: string]: unknown };
+};
+
 export const buildSdkTools = (
   capabilities: string[],
   policy: { canHire?: boolean; canAssign?: boolean } = {},
@@ -47,13 +67,7 @@ export const buildSdkTools = (
   return ALL_DEFS.filter((d) => visible.has(d.name)).map((d) => ({
     name: d.name,
     description: d.description,
-    // `as never`: some defs use ZodEffects (refine/transform), and zodToJsonSchema's
-    // param type is deep/recursive — a precise cast triggers TS2589 (infinite
-    // instantiation). Runtime is correct (covered by the test).
-    input_schema: zodToJsonSchema(d.inputSchema as never, { target: "openApi3" }) as {
-      type: "object";
-      [k: string]: unknown;
-    },
+    input_schema: toApiInputSchema(d.inputSchema),
   }));
 };
 

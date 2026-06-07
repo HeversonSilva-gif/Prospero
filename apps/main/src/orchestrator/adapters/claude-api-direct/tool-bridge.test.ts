@@ -45,4 +45,24 @@ describe("tool-bridge", () => {
       buildSdkTools(["delegation"], { canHire: false }).some((t) => t.name === "hire_agent"),
     ).toBe(false);
   });
+
+  it("emits draft-2020-12-valid input_schema (no OpenAPI-isms) for every tool", () => {
+    // Regression (v0.2.18 CEO outage): zodToJsonSchema's `openApi3` target emitted
+    // `exclusiveMinimum: true` (a BOOLEAN) for .positive()/.gt() fields, which the
+    // Anthropic API rejects with a 400 ("input_schema: JSON schema is invalid; must
+    // match draft 2020-12"). Assert every tool's schema is API-valid.
+    const tools = buildSdkTools(["delegation", "issues", "inbox", "chat", "fs-read", "memory"], {
+      canHire: true,
+      canAssign: true,
+    });
+    expect(tools.length).toBeGreaterThan(0);
+    for (const t of tools) {
+      const s = JSON.stringify(t.input_schema);
+      expect(t.input_schema.type).toBe("object");
+      expect(s).not.toContain('"nullable"');
+      expect(s).not.toMatch(/"exclusiveM(in|ax)imum":\s*(true|false)/);
+      expect(s).not.toContain('"$ref"');
+      expect(s).not.toContain('"$schema"');
+    }
+  });
 });
