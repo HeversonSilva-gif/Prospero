@@ -2,25 +2,39 @@ import type { AdapterName, AuthMode } from "@prospero/shared";
 
 const LOCAL_OAUTH: AdapterName = "claude-oauth-local";
 const LOCAL_API_KEY: AdapterName = "claude-api-key-local";
+const LOCAL_API_DIRECT: AdapterName = "claude-api-direct";
+
+/** All three adapters that live in the LOCAL axis (not remote-docker). */
+const LOCAL_ADAPTERS = new Set<string>([LOCAL_OAUTH, LOCAL_API_KEY, LOCAL_API_DIRECT]);
 
 /**
- * Given an agent's CURRENT adapter and the NEW auth mode, returns the adapter it
- * should switch to — or `null` when nothing should change.
+ * Given an agent's CURRENT adapter, the NEW auth mode, and whether the agent is
+ * the CEO, returns the adapter it should switch to — or `null` when nothing should
+ * change.
  *
- * Only the LOCAL pair flips (`claude-oauth-local` ↔ `claude-api-key-local`).
+ * LOCAL axis: `claude-oauth-local` ↔ `claude-api-key-local` (workers) or
+ *             `claude-oauth-local` ↔ `claude-api-direct`     (CEO).
  * `claude-oauth-remote-docker` is a different axis (location=remote, picked at
  * hire time regardless of authMode — see hire-adapter.ts) and is deliberately
  * left untouched: re-pointing a remote agent to a local adapter would break it.
  */
-export const nextAdapterForAuthMode = (current: string, mode: AuthMode): AdapterName | null => {
-  if (mode === "api-key") {
-    return current === LOCAL_OAUTH ? LOCAL_API_KEY : null;
-  }
-  return current === LOCAL_API_KEY ? LOCAL_OAUTH : null;
+export const nextAdapterForAuthMode = (
+  current: string,
+  mode: AuthMode,
+  isCeo: boolean,
+): AdapterName | null => {
+  // Remote-docker is never touched — it's on the location axis, not auth axis.
+  if (!LOCAL_ADAPTERS.has(current)) return null;
+
+  const target: AdapterName =
+    mode === "api-key" ? (isCeo ? LOCAL_API_DIRECT : LOCAL_API_KEY) : LOCAL_OAUTH;
+
+  // No migration needed if already on the correct adapter.
+  return current === target ? null : target;
 };
 
 /** Minimal agent shape the migration needs (decoupled from the full Agent type). */
-export type MigrationAgent = { id: string; adapterName: string; status: string };
+export type MigrationAgent = { id: string; adapterName: string; status: string; isCeo: boolean };
 
 export type MigrateDeps = {
   authMode: AuthMode;
@@ -68,7 +82,7 @@ export const migrateAgentsForAuthMode = async (deps: MigrateDeps): Promise<Migra
 
   for (const agent of deps.listAgents()) {
     if (agent.status === "terminated") continue; // gone — never spawns again
-    const target = nextAdapterForAuthMode(agent.adapterName, deps.authMode);
+    const target = nextAdapterForAuthMode(agent.adapterName, deps.authMode, agent.isCeo);
     if (target === null) continue; // already correct, or remote-docker (untouched)
 
     deps.setAdapterName(agent.id, target);

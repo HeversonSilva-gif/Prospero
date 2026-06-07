@@ -36,6 +36,18 @@ describe("resolveAdapterCredentials", () => {
     });
   });
 
+  it("returns the API key for claude-api-direct (CEO direct-SDK adapter)", () => {
+    expect(resolveAdapterCredentials("claude-api-direct", loaders)).toEqual({
+      apiKey: "api-key",
+    });
+  });
+
+  it("throws when the API key is not configured for claude-api-direct", () => {
+    expect(() =>
+      resolveAdapterCredentials("claude-api-direct", { ...loaders, loadApiKey: () => null }),
+    ).toThrow(/API key not configured/);
+  });
+
   it("throws when the OAuth token is not configured", () => {
     expect(() =>
       resolveAdapterCredentials("claude-oauth-remote-docker", {
