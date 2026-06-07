@@ -1811,9 +1811,14 @@ export const registerOrchestratorHandlers = (
       },
       onStderr: (line: string) => {
         // Agent-emitted side-channel events now flow via file-based watcher
-        // (see startEventsWatcher above). Stderr is only used for diagnostic
-        // text from claude itself; log it.
-        console.error(`[claude:${agent.id}] stderr: ${redactString(line)}`);
+        // (see startEventsWatcher above). Stderr is diagnostic text — for the
+        // claude-api-direct adapter it carries the real "adapter-error: ..." API
+        // failure. console.error alone is DROPPED in the packaged app, which hid
+        // the v0.2.18 CEO 400 for an entire debug cycle — so ALSO route it through
+        // olog, which writes to the captured prospero-debug.log.
+        const red = redactString(line);
+        console.error(`[claude:${agent.id}] stderr: ${red}`);
+        olog(`agent=${agent.id} stderr: ${red}`);
       },
       onExit: (code) => {
         console.error(`[claude:${agent.id}] exit code: ${String(code)}`);

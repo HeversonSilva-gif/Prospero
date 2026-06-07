@@ -3,6 +3,21 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.19 — 2026-06-07
+
+Correção do CEO no modo chave de API — na v0.2.18 ele parava com erro logo ao ativar.
+
+### Corrige o CEO no modo chave de API
+
+- **O CEO voltou a funcionar no modo chave de API.** Na v0.2.18, ao falar com a API
+  diretamente, o app montava o "esquema" de algumas ferramentas num formato que a API
+  recusava (erro 400) — e o CEO entrava em loop de erro logo ao ser ativado. Corrigido:
+  as ferramentas agora seguem o padrão de JSON Schema que a API exige.
+- **As falhas dos agentes agora aparecem no log.** Esse tipo de erro estava indo para o
+  vazio (invisível), o que dificultava o diagnóstico. Agora fica registrado.
+
+(Modo OAuth/Max e os demais agentes não foram afetados por nada disso.)
+
 ## v0.2.18 — 2026-06-07
 
 Redução de custo no modo chave de API: o CEO passa a falar com a API da Anthropic
