@@ -6,6 +6,7 @@ import { useAgentsStore } from "./stores/agents.js";
 import { useMessagesStore } from "./stores/messages.js";
 import { useInboxStore } from "./stores/inbox.js";
 import { useCompaniesStore } from "./stores/companies.js";
+import { isAuthConnected } from "./lib/auth-connected.js";
 import { Dashboard } from "./routes/Dashboard.js";
 import { Ajustes } from "./routes/Ajustes.js";
 import { AjustesConta } from "./routes/AjustesConta.js";
@@ -69,7 +70,14 @@ export const App = () => {
   const loadSettings = useSettingsStore((s) => s.load);
   const authLoaded = useAuthStore((s) => s.loaded);
   const loadAuth = useAuthStore((s) => s.load);
-  const hasToken = useAuthStore((s) => s.status.hasToken);
+  const tokenStatus = useAuthStore((s) => s.status);
+  const apiKeyStatus = useAuthStore((s) => s.apiKeyStatus);
+  const authMode = useSettingsStore((s) => s.settings.authMode);
+  // Auth readiness must respect the active mode: api-key mode is "connected" on a
+  // saved key (no OAuth token). Using bare status.hasToken here left api-key users
+  // permanently un-onboarded — companies never loaded and every route bounced to
+  // the connection screen.
+  const hasAuth = isAuthConnected(authMode, tokenStatus, apiKeyStatus);
   const loadAgents = useAgentsStore((s) => s.load);
   const applyAgentStatus = useAgentsStore((s) => s.applyAgentStatus);
   const applyCurrentAction = useAgentsStore((s) => s.applyCurrentAction);
@@ -91,30 +99,30 @@ export const App = () => {
 
   // Initial companies load once auth is ready.
   useEffect(() => {
-    if (!hasToken) return;
+    if (!hasAuth) return;
     void loadCompanies();
-  }, [hasToken, loadCompanies]);
+  }, [hasAuth, loadCompanies]);
 
   // React to active company changes — reload per-company stores.
   useEffect(() => {
-    if (!hasToken || activeCompanyId === null) return;
+    if (!hasAuth || activeCompanyId === null) return;
     void (async () => {
       await loadAgents(activeCompanyId);
       await loadInbox(activeCompanyId);
       await useProjectsStore.getState().load(activeCompanyId);
       await useIssuesStore.getState().load(activeCompanyId);
     })();
-  }, [hasToken, activeCompanyId, loadAgents, loadInbox]);
+  }, [hasAuth, activeCompanyId, loadAgents, loadInbox]);
 
   // Permanent inbox-update subscription. Reloads only when active company matches.
   useEffect(() => {
-    if (!hasToken) return;
+    if (!hasAuth) return;
     const off = window.prospero.inbox.onUpdate(() => {
       const cid = useCompaniesStore.getState().activeId;
       if (cid !== null) void loadInbox(cid);
     });
     return off;
-  }, [hasToken, loadInbox]);
+  }, [hasAuth, loadInbox]);
 
   // Subscribe to agent:event broadcasts
   useEffect(() => {
@@ -169,12 +177,12 @@ export const App = () => {
     loadAgents,
   ]);
 
-  const loading = !settingsLoaded || !authLoaded || (hasToken && !companiesLoaded);
+  const loading = !settingsLoaded || !authLoaded || (hasAuth && !companiesLoaded);
 
   // First-run is over only once the user is authenticated AND has a company
   // (created via the onboarding wizard, which also seeds the CEO). Until then,
   // every app route funnels back to /setup.
-  const appReady = hasToken && companyCount > 0;
+  const appReady = hasAuth && companyCount > 0;
 
   // HashRouter must wrap Shell: the banners inside Shell call router hooks, so
   // they would crash if rendered (e.g. during loading) outside the router.

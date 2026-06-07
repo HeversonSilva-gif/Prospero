@@ -3,6 +3,23 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/).
 
+## v0.2.16 — 2026-06-07
+
+Correção de dois problemas no onboarding ao usar a chave de API, encontrados testando a v0.2.15.
+
+### Conexão por chave de API no fluxo inicial
+
+- **O app voltou a reconhecer suas empresas já criadas quando você usa a chave de API.**
+  Antes, no modo "Chave de API", o app só se considerava conectado se houvesse um login
+  do Max (OAuth) — então nunca carregava suas empresas e empurrava você para criar uma
+  nova toda vez. Agora cada modo verifica a credencial certa: no modo chave de API, ter a
+  chave salva já vale como conectado.
+- **Criar uma empresa nova pela chave de API não joga mais você de volta para a tela de
+  conexão.** Como o app não se reconhecia conectado, qualquer tela (inclusive a de criação)
+  redirecionava de volta para a conexão das chaves. Corrigido junto com o item acima.
+
+O fluxo por login do Max (OAuth) não mudou em nada.
+
 ## v0.2.15 — 2026-06-07
 
 Mudar a equipe do plano Max para a sua própria chave de API (e voltar) agora é só
